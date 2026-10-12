@@ -6,7 +6,15 @@ const require = createRequire(
   new URL("../../apps/web/package.json", import.meta.url),
 );
 const { chromium, expect } = require("@playwright/test");
-const output = new URL("../../docs/evidence/visual-v2/", import.meta.url);
+const theme = process.env.VU_PREVIEW_THEME ?? "light";
+if (theme !== "light" && theme !== "dark")
+  throw new Error("VU_PREVIEW_THEME precisa ser light ou dark.");
+const output = new URL(
+  theme === "dark"
+    ? "../../docs/evidence/dark-mode/"
+    : "../../docs/evidence/visual-v2/",
+  import.meta.url,
+);
 const baseURL = process.env.VU_PREVIEW_URL ?? "http://127.0.0.1:4201";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch();
@@ -16,6 +24,7 @@ const metadata = {
   browser: browser.version(),
   basemap: "Alidade Bright raster real",
   records: "Fictícios",
+  theme,
   views: [],
   errors: [],
 };
@@ -25,6 +34,10 @@ try {
     viewport: { width: 1440, height: 1300 },
     deviceScaleFactor: 1,
   });
+  await page.addInitScript(
+    (theme) => localStorage.setItem("vu2.theme", theme),
+    theme,
+  );
   page.on("pageerror", (error) => metadata.errors.push(error.message));
   await page.addInitScript(() =>
     Object.defineProperty(window, "WebGL2RenderingContext", {

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ViewMotion } from './view-motion';
+import { Theme } from './theme';
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import {
@@ -303,6 +304,7 @@ const CATEGORIES: { id: Category; label: string; icon: string }[] = [
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit, OnDestroy {
+  protected readonly theme = inject(Theme);
   protected readonly categories = CATEGORIES;
   protected readonly territoryGroups = TERRITORY_GROUPS;
   protected readonly activeView = signal<ViewId>('map');

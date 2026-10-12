@@ -42,6 +42,14 @@ As outras telas recebem a mesma paleta, tipografia e hierarquia. Filtros acumul�
 
 ## Verificação e limites
 
+### Modo escuro — incremento autorizado em 11/10/2026
+
+O responsável solicitou modo escuro para esta versão. O botão de lua/sol no cabeçalho alterna as paletas, tem área de 44 × 44 px, foco visível e estado acessível por `aria-pressed`. Sem escolha explícita, a interface acompanha `prefers-color-scheme`; após alternar, a preferência `vu2.theme` prevalece, é restaurada ao recarregar e sincronizada entre abas. Armazenamento bloqueado mantém a escolha na aba atual. `theme-init.js`, servido localmente, aplica a paleta antes da inicialização Angular; `theme.ts` acompanha mudanças posteriores e descarta os listeners ao encerrar a aplicação.
+
+`theme.scss` centraliza cores para as duas paletas. O modo escuro usa fundo `#10151b`, superfícies `#181f28`, texto `#e7ecf2` e destaque `#8fd7b6`; navegação, pesquisa, filtros, indicadores, lista, formulários, relatórios, fontes, mensagens e controles/popups dos mapas recebem esses tokens. Newsreader, Manrope e animações existentes permanecem. A cartografia Bright e as cores dos pins/territórios são preservadas para manter a leitura das categorias e a comparação entre consultas; a alternância reaproveita mapa, câmera e dados.
+
+As evidências e capturas deste incremento ficam em [dark-mode-2026-10-11.json](../evidence/dark-mode-2026-10-11.json) e [dark-mode/](../evidence/dark-mode/). Os testes verificam inicialização antes de Angular, preferência do sistema, teclado, recarga, sincronização entre abas, armazenamento bloqueado, seis visões, campos, contraste em amostras CSS e larguras 1024/961/768/390/320 px. Essa amostragem não equivale a uma auditoria completa de acessibilidade. O pacote inicial passou a 466,73 kB, dentro do orçamento existente; nenhuma dependência foi acrescentada.
+
 Evidências finais em [visual-v2-2026-10-11.json](../evidence/visual-v2-2026-10-11.json). A suíte herdada permanece, com seletores adaptados à navegação e abertura explícita do painel recolhido. A suíte adicional verifica sincronização dos atalhos/indicadores/lista, intervalo e foco, fontes locais, isolamento da v1, larguras 1440/1280/768/390/320 px e redução dinâmica de movimento e consistência dos seletores de comparação.
 
 As capturas para comparação visual ficam em [v2-desktop.png](../evidence/visual-v2/v2-desktop.png) e [v2-mobile.png](../evidence/visual-v2/v2-mobile.png). Os mapas nessas capturas usam o provedor raster real; os registros são fictícios. As capturas de testes com tiles simulados ficam em `apps/web/test-results/`, ignorado pelo Git.

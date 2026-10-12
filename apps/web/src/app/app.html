@@ -65,6 +65,18 @@
           ocorrência
         </button>
       </nav>
+      <button
+        class="theme-toggle"
+        type="button"
+        aria-label="Modo escuro"
+        [attr.aria-pressed]="theme.dark()"
+        [title]="theme.dark() ? 'Ativar modo claro' : 'Ativar modo escuro'"
+        (click)="theme.toggle()"
+      >
+        <svg class="ui-icon" aria-hidden="true">
+          <use [attr.href]="theme.dark() ? 'ui-icons.svg#sun' : 'ui-icons.svg#moon'" />
+        </svg>
+      </button>
     </div>
   </header>
 

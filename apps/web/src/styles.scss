@@ -1,5 +1,6 @@
 @use './app/workspace';
 @use './app/controls';
+@use './app/theme';
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
@@ -44,15 +45,8 @@
 }
 
 :root {
-  color-scheme: light;
   --font-heading: 'Newsreader', Georgia, serif;
   --font-interface: 'Manrope', 'Segoe UI', sans-serif;
-  --color-bg-base: #f7f8fa;
-  --color-bg-surface: #ffffff;
-  --color-border-subtle: #dde1e6;
-  --color-text-main: #252c36;
-  --color-text-muted: #626d7b;
-  --accent: #24765b;
 }
 
 *,
@@ -80,7 +74,7 @@ h3 {
   font-family: var(--font-heading);
 }
 :focus-visible {
-  outline: 2px solid #24765b;
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -88,7 +82,7 @@ h3 {
   display: grid;
   gap: 6px;
   min-width: 180px;
-  color: #27272a;
+  color: var(--color-text-main);
 }
 .map-popup strong {
   font-size: 0.82rem;
@@ -113,13 +107,13 @@ h3 {
 }
 .map-popup p {
   margin: 0;
-  color: #52525b;
+  color: var(--color-text-muted);
   font-size: 0.72rem;
   line-height: 1.4;
 }
 .map-popup span,
 .map-popup small {
-  color: #71717a;
+  color: var(--color-text-secondary);
   font-size: 0.66rem;
 }
 

@@ -1,0 +1,107 @@
+{
+  "checked_at": "2026-10-11T22:16:17.012674-03:00",
+  "base_commit": "46c2f7e7adc7cbf0a8dda37baf4d69a5460db6af",
+  "repository": "https://github.com/marciocoelho1/vetor-urbano-v2",
+  "scope": "Modo escuro alternável na v2, sem modificar a aplicação original.",
+  "behavior": {
+    "toggle": "Botão de lua/sol de 44x44 px, aria-pressed e teclado",
+    "default": "prefers-color-scheme, acompanhado enquanto não houver escolha explícita",
+    "storage_key": "vu2.theme",
+    "storage_blocked": "Escolha mantida na memória da aba",
+    "cross_tab": "StorageEvent sincroniza a escolha",
+    "first_paint": "theme-init.js aplica a preferência antes de Angular; verificado com main.js bloqueado",
+    "map": "Controles/popups recebem paleta; cartografia Bright/pins e identidade/câmera do mapa preservadas"
+  },
+  "verification": [
+    {
+      "command": "bash scripts/verify.sh web",
+      "exit_code": 0,
+      "unit_tests": 56,
+      "skipped": 0,
+      "initial_bundle_kb": 466.73,
+      "warnings": 0,
+      "budgets_changed": false
+    },
+    {
+      "command": "npm run test:e2e -- --workers=1",
+      "exit_code": 0,
+      "passed": 62,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ],
+      "theme_specific_cases": 8,
+      "duration": "2.5 minutes"
+    },
+    {
+      "command": "VU_PREVIEW_THEME=dark node tools/visual-review/capture.mjs",
+      "exit_code": 0,
+      "captures": 7,
+      "basemap": "Alidade Bright raster real",
+      "javascript_errors": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "theme_viewports": [
+    1440,
+    1024,
+    961,
+    768,
+    390,
+    320
+  ],
+  "contrast_check": {
+    "minimum_css_ratio": 4.5,
+    "samples": [
+      ".topbar",
+      ".overview-metric",
+      ".map-radius-panel",
+      ".search-submit"
+    ],
+    "limitation": "Amostragem CSS; não é auditoria completa de acessibilidade."
+  },
+  "assets": {
+    "docs/evidence/dark-mode/v2-desktop.png": {
+      "bytes": 689906,
+      "sha256": "01ae19425e9db927de49e8371d593dcdfa3ae00fbe01e1f38a229bc02cec290e"
+    },
+    "docs/evidence/dark-mode/v2-mobile.png": {
+      "bytes": 201591,
+      "sha256": "6796713bc61f8eeee172c6a031743d905b28a5125a74f54677d4c33be4f314dd"
+    },
+    "docs/evidence/dark-mode/v2-active.png": {
+      "bytes": 62433,
+      "sha256": "d07ffcab15cf70e209ccec2b4703d3f568f84a1f3d435efd156af2cf3cb6f60f"
+    },
+    "docs/evidence/dark-mode/v2-history.png": {
+      "bytes": 101478,
+      "sha256": "608840e3e2b90c9736e67a9069efeb7adf05a2d9b1942b3dc496884962ec4be6"
+    },
+    "docs/evidence/dark-mode/v2-insights.png": {
+      "bytes": 108119,
+      "sha256": "2518b523749104303510f02e2bafd73a68860070c9adc8b13defb71292be01a4"
+    },
+    "docs/evidence/dark-mode/v2-sources.png": {
+      "bytes": 106333,
+      "sha256": "920f4c1be39d5fc7fc7f0643ecf2876584ff91fc79045372d0a24aac301c8abe"
+    },
+    "docs/evidence/dark-mode/v2-report.png": {
+      "bytes": 55697,
+      "sha256": "0c9cec8068d56373dd1a834198dde57c8d811769a5720c305cf6012d96338d62"
+    }
+  },
+  "preserved_files": [
+    "apps/web/package-lock.json",
+    "apps/web/src/app/domain.ts",
+    "apps/web/src/app/demo-occurrences.ts",
+    "apps/web/public/maps/urban-style.json",
+    "apps/web/public/maps/raster-provider.json",
+    "apps/web/public/maps/areas-territoriais.geojson"
+  ],
+  "dependencies_added": [],
+  "remaining_review": "Avaliação manual em leitor de tela/aparelho físico segue pendente, assim como os gates de produto anteriores."
+}

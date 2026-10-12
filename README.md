@@ -4,7 +4,7 @@ Aplicação demonstrativa para consulta e análise geográfica de ocorrências, 
 
 ## Alternativa visual para comparação
 
-Esta é a versão clara inspirada na imagem fornecida: navegação horizontal, título editorial em Newsreader, mapa amplo, filtros rápidos e indicadores calculados pela consulta. Manrope é a alternativa gratuita à Mori aprovada pelo responsável. GSAP anima as entradas de tela e respeita movimento reduzido.
+Esta é a versão visual inspirada na imagem fornecida, com modos claro e escuro: navegação horizontal, título editorial em Newsreader, mapa amplo, filtros rápidos e indicadores calculados pela consulta. Manrope é a alternativa gratuita à Mori aprovada pelo responsável. GSAP anima as entradas de tela e respeita movimento reduzido.
 
 Base preservada: `311875a` do [repositório principal](https://github.com/marciocoelho1/vetor-urbano). Esta cópia tem histórico independente em [vetor-urbano-v2](https://github.com/marciocoelho1/vetor-urbano-v2), usa a porta **4201** e preferências `vu2.*`. O visual final ainda será escolhido após comparação.
 
@@ -16,6 +16,8 @@ npm start --prefix apps/web
 ```
 
 Abra `http://localhost:4201`. A v1 pode continuar em `http://localhost:4200`. O envio deste código ao GitHub não inclui hospedagem da aplicação.
+
+O botão de lua/sol no canto superior direito alterna modo claro/escuro e salva a preferência neste navegador. Sem escolha salva, a interface acompanha o tema do sistema. [Capturas do modo escuro](docs/evidence/dark-mode/) e [evidências de verificação](docs/evidence/dark-mode-2026-10-11.json).
 
 ## Branch e continuidade
 
