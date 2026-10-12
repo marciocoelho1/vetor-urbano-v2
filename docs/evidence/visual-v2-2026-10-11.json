@@ -74,6 +74,11 @@
     {
       "command": "git diff --check",
       "exit_code": 0
+    },
+    {
+      "command": "git diff 311875a..HEAD --check",
+      "exit_code": 0,
+      "scope": "Todas as alterações da v2, incluindo novos arquivos de licença e evidências."
     }
   ],
   "intermediate_runs": "Uma matriz intermediária foi invalidada por reinstalação de dependências durante execução; não é usada como aceite. Nova instalação, reinício do servidor e matriz completa estável passaram. Seletores do teste adicional foram ajustados ao nome acessível de combobox, mantendo todas as expectativas.",
@@ -157,7 +162,14 @@
     }
   },
   "git_delivery": {
-    "status": "pending_commit_and_push"
+    "status": "published",
+    "implementation_commit": "466905ba542cfd2ae269231a4b0fc801bf10c199",
+    "repository": "https://github.com/marciocoelho1/vetor-urbano-v2",
+    "default_branch": "main",
+    "local_and_tracking_sha_match": true,
+    "push_exit_code": 0,
+    "confirmed_at": "2026-10-11T21:55:31.555973-03:00",
+    "scope": "Código no GitHub; aplicação continua demonstrativa/local, sem hospedagem."
   },
   "limits": [
     "Dados de ocorrências fictícios; sem cobertura operacional confirmada",
