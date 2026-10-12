@@ -1,0 +1,155 @@
+{
+  "baseURL": "http://127.0.0.1:4201",
+  "capturedAt": "2026-10-12T01:42:18.806Z",
+  "browser": "156.0.8078.4",
+  "method": "Native browser animations paused and sought at recorded times; not an FPS measurement",
+  "basemap": "Alidade Bright raster real",
+  "records": "Fictícios",
+  "frames": [
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "dark",
+      "ms": 0,
+      "file": "desktop-dark-0ms.png",
+      "buttonFile": "desktop-dark-0ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "dark",
+      "ms": 160,
+      "file": "desktop-dark-160ms.png",
+      "buttonFile": "desktop-dark-160ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "dark",
+      "ms": 320,
+      "file": "desktop-dark-320ms.png",
+      "buttonFile": "desktop-dark-320ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "dark",
+      "ms": 600,
+      "file": "desktop-dark-600ms.png",
+      "buttonFile": "desktop-dark-600ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "light",
+      "ms": 0,
+      "file": "desktop-light-0ms.png",
+      "buttonFile": "desktop-light-0ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "light",
+      "ms": 160,
+      "file": "desktop-light-160ms.png",
+      "buttonFile": "desktop-light-160ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "light",
+      "ms": 320,
+      "file": "desktop-light-320ms.png",
+      "buttonFile": "desktop-light-320ms-button.png"
+    },
+    {
+      "layout": "desktop",
+      "width": 1440,
+      "height": 1080,
+      "theme": "light",
+      "ms": 600,
+      "file": "desktop-light-600ms.png",
+      "buttonFile": "desktop-light-600ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "dark",
+      "ms": 0,
+      "file": "mobile-dark-0ms.png",
+      "buttonFile": "mobile-dark-0ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "dark",
+      "ms": 160,
+      "file": "mobile-dark-160ms.png",
+      "buttonFile": "mobile-dark-160ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "dark",
+      "ms": 320,
+      "file": "mobile-dark-320ms.png",
+      "buttonFile": "mobile-dark-320ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "dark",
+      "ms": 600,
+      "file": "mobile-dark-600ms.png",
+      "buttonFile": "mobile-dark-600ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "light",
+      "ms": 0,
+      "file": "mobile-light-0ms.png",
+      "buttonFile": "mobile-light-0ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "light",
+      "ms": 160,
+      "file": "mobile-light-160ms.png",
+      "buttonFile": "mobile-light-160ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "light",
+      "ms": 320,
+      "file": "mobile-light-320ms.png",
+      "buttonFile": "mobile-light-320ms-button.png"
+    },
+    {
+      "layout": "mobile",
+      "width": 390,
+      "height": 900,
+      "theme": "light",
+      "ms": 600,
+      "file": "mobile-light-600ms.png",
+      "buttonFile": "mobile-light-600ms-button.png"
+    }
+  ],
+  "errors": []
+}

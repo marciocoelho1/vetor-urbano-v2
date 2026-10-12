@@ -15,3 +15,11 @@ O tema padrão da captura é claro. Para gerar a paleta escura em `docs/evidence
 ```bash
 VU_PREVIEW_THEME=dark node tools/visual-review/capture.mjs
 ```
+
+Para conferir a animação de alternância nos dois sentidos em 1440 × 1080 e 390 × 900 px:
+
+```bash
+node tools/visual-review/capture-motion.mjs
+```
+
+O script captura a página e o botão em 0/160/320/600 ms, usando o mesmo mapa raster real. Pausa e avança as animações nativas para inspecionar sua aparência; registra 16 estágios e metadados em `docs/evidence/theme-motion/`. Não mede FPS ou desempenho em aparelho físico. A suíte `e2e/theme-motion.spec.ts` verifica a execução normal, cliques rápidos, teclado, movimento reduzido e a alternativa sem View Transitions.

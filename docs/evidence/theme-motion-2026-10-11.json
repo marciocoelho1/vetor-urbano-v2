@@ -1,0 +1,236 @@
+{
+  "checked_at": "2026-10-11T22:46:12.449722-03:00",
+  "base_commit": "dd35c166035d12af3a038f56e9a180a42676502c",
+  "repository": "https://github.com/marciocoelho1/vetor-urbano-v2",
+  "scope": "Animação de lua/sol no botão e revelação circular da paleta na v2.",
+  "references": [
+    {
+      "url": "https://lottiefiles.com/free-animation/moon-to-sun-8pIVQU59J1",
+      "author": "Christopher Raeside",
+      "inspection": "Prévia MP4 de 2,4 s inspecionada; inspiração de rotação/escala/raios, sem redistribuir o asset."
+    },
+    {
+      "url": "https://dribbble.com/shots/23756585-Light-Dark-mode-button-animation",
+      "author": "Sol Kiernan",
+      "inspection": "Descrição textual acessível; mídia completa indisponível na sessão. Revelação circular é adaptação da direção solicitada."
+    }
+  ],
+  "behavior": {
+    "button": "SVG local persistente: sol no claro e lua no escuro; rotação, escala, opacidade e desenho dos raios, até 500 ms.",
+    "page": "View Transitions com clip-path circular de 640 ms, centrado no botão real; cobre a viewport nos dois sentidos.",
+    "fallback": "Sem startViewTransition, cores interpoladas por CSS em 420 ms.",
+    "reduced_motion": "Troca imediata; mudança da preferência durante animação cancela e aplica a última escolha.",
+    "rapid_clicks": "Cancela snapshots anteriores; atualiza preferência antes do callback adiado.",
+    "real_pointer": "Chromium exclui conteúdo capturado do hit-testing: encaminha somente cliques em html sobre os limites reais do botão; foco restaurado sem scroll. Listener removido no descarte.",
+    "preserved": "Estado acessível, teclado, preferência salva, sincronização entre abas, scroll, dados e identidade do mapa."
+  },
+  "verification": [
+    {
+      "command": "bash scripts/verify.sh web",
+      "exit_code": 0,
+      "unit_tests": 56,
+      "skipped": 0,
+      "initial_bundle_kb": 471.37,
+      "build_warnings": 0,
+      "budgets_changed": false
+    },
+    {
+      "command": "npm run test:e2e -- --workers=1",
+      "exit_code": 0,
+      "passed": 72,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ],
+      "motion_specific_cases": 10,
+      "duration": "2.7 minutes"
+    },
+    {
+      "command": "npm run test:e2e -- theme-motion.spec.ts --workers=1",
+      "exit_code": 0,
+      "passed": 10,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ]
+    },
+    {
+      "command": "node tools/visual-review/capture-motion.mjs",
+      "exit_code": 0,
+      "stages": 16,
+      "png_files": 32,
+      "javascript_errors": 0,
+      "viewports": [
+        [
+          1440,
+          1080
+        ],
+        [
+          390,
+          900
+        ]
+      ],
+      "method": "Native browser animations paused and sought at recorded times; not an FPS measurement"
+    },
+    {
+      "command": "node --check tools/visual-review/capture-motion.mjs; prettier --check tools/visual-review/capture-motion.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "bash scripts/verify.sh planning; git diff --check",
+      "exit_code": 0,
+      "limitation": "Estrutura documental, sintaxe e whitespace; não são testes do produto."
+    }
+  ],
+  "visual_review_samples": [
+    "desktop-dark-160ms.png",
+    "mobile-dark-320ms.png",
+    "mobile-light-160ms.png",
+    "estágios do ícone nos dois sentidos"
+  ],
+  "assets": {
+    "docs/evidence/theme-motion/desktop-dark-0ms-button.png": {
+      "bytes": 1027,
+      "sha256": "c1970e4cad02fc856af32dc2cf9d5150a34f79f49636bfa6f2c7b034a9e129f0"
+    },
+    "docs/evidence/theme-motion/desktop-dark-0ms.png": {
+      "bytes": 671797,
+      "sha256": "33707ffd7eb7e6823ed86112aea9cf1cde1dec5ee76d06d02c90fb4622be6685"
+    },
+    "docs/evidence/theme-motion/desktop-dark-160ms-button.png": {
+      "bytes": 1287,
+      "sha256": "11b141277f2c9b5dcad85cddb936868da5c8b0736f1a6b3717373e9439571e67"
+    },
+    "docs/evidence/theme-motion/desktop-dark-160ms.png": {
+      "bytes": 678124,
+      "sha256": "76ed4b6bbbe6f7c003525fa53f22c39b371c558e1f5f435145ba75b945b89c7e"
+    },
+    "docs/evidence/theme-motion/desktop-dark-320ms-button.png": {
+      "bytes": 1398,
+      "sha256": "6024bf965ddbaa5b3819ba981f2e5649b4f1e42bf7283c5eec964cd4bb8cf2dd"
+    },
+    "docs/evidence/theme-motion/desktop-dark-320ms.png": {
+      "bytes": 680158,
+      "sha256": "9821a20f08e29f3b06bfd23a30062efb25f64377f51e53c504c3cbda142af643"
+    },
+    "docs/evidence/theme-motion/desktop-dark-600ms-button.png": {
+      "bytes": 1210,
+      "sha256": "1a9564c525c03c9d44bd45cd745bd55717a77e2b6e2dc5f9508cf1c6f4993cbc"
+    },
+    "docs/evidence/theme-motion/desktop-dark-600ms.png": {
+      "bytes": 672380,
+      "sha256": "630dd71cad3d887fa5fff93a80d979342157f751ea40d9d86355c4f88b1a4996"
+    },
+    "docs/evidence/theme-motion/desktop-light-0ms-button.png": {
+      "bytes": 1210,
+      "sha256": "1a9564c525c03c9d44bd45cd745bd55717a77e2b6e2dc5f9508cf1c6f4993cbc"
+    },
+    "docs/evidence/theme-motion/desktop-light-0ms.png": {
+      "bytes": 672330,
+      "sha256": "8cf44cf343f4e4d04d61edd9083ba8e4674c0ab72440a2d4555c7dd8e5194d8e"
+    },
+    "docs/evidence/theme-motion/desktop-light-160ms-button.png": {
+      "bytes": 1204,
+      "sha256": "21afeb9feaef4d39d95a8ffe1bb7ee9badf97db3c5fbfd9319f43f7237ea807d"
+    },
+    "docs/evidence/theme-motion/desktop-light-160ms.png": {
+      "bytes": 678657,
+      "sha256": "48dfda721fb778d763e6c38551279d26a502ed96865b972c251d44dcf22a778e"
+    },
+    "docs/evidence/theme-motion/desktop-light-320ms-button.png": {
+      "bytes": 1453,
+      "sha256": "41f4abb06ebd278c66677642ec2f139aa13eff7b40b87d77f627039290d59c9c"
+    },
+    "docs/evidence/theme-motion/desktop-light-320ms.png": {
+      "bytes": 681117,
+      "sha256": "41a79e457281dbfc6c0f383535b3e94ad9a891e0846cf729068376c0b928dcbd"
+    },
+    "docs/evidence/theme-motion/desktop-light-600ms-button.png": {
+      "bytes": 1027,
+      "sha256": "c1970e4cad02fc856af32dc2cf9d5150a34f79f49636bfa6f2c7b034a9e129f0"
+    },
+    "docs/evidence/theme-motion/desktop-light-600ms.png": {
+      "bytes": 671848,
+      "sha256": "4bccce885c70059289abb76d8adaaed5879ee6816cbd7038433fc1c328293d2c"
+    },
+    "docs/evidence/theme-motion/mobile-dark-0ms-button.png": {
+      "bytes": 1027,
+      "sha256": "c1970e4cad02fc856af32dc2cf9d5150a34f79f49636bfa6f2c7b034a9e129f0"
+    },
+    "docs/evidence/theme-motion/mobile-dark-0ms.png": {
+      "bytes": 172023,
+      "sha256": "d385530c5c1ee46ecabcf3bdf343743509d360868ce4c91277b78d1afd005b90"
+    },
+    "docs/evidence/theme-motion/mobile-dark-160ms-button.png": {
+      "bytes": 1288,
+      "sha256": "7c63224a0018008fc38fb1ccc5404b2d29caa620b3ce348ff74d741fcdacb529"
+    },
+    "docs/evidence/theme-motion/mobile-dark-160ms.png": {
+      "bytes": 175285,
+      "sha256": "543a4d16fc7cb76afe3cef78da47cb06ef151f1bf7cf86cf678b2c54e5adc54e"
+    },
+    "docs/evidence/theme-motion/mobile-dark-320ms-button.png": {
+      "bytes": 1398,
+      "sha256": "b6c40174729a1c9ce576e599423bbeef67c4e3f7c8c8491fabfe869c89ab42c9"
+    },
+    "docs/evidence/theme-motion/mobile-dark-320ms.png": {
+      "bytes": 172958,
+      "sha256": "dd9e1e4d4a78359497e1a088b27c1c5fa642bdee72eded4a0ee752a2f6d8b336"
+    },
+    "docs/evidence/theme-motion/mobile-dark-600ms-button.png": {
+      "bytes": 1210,
+      "sha256": "1a9564c525c03c9d44bd45cd745bd55717a77e2b6e2dc5f9508cf1c6f4993cbc"
+    },
+    "docs/evidence/theme-motion/mobile-dark-600ms.png": {
+      "bytes": 172144,
+      "sha256": "750044191731367a912b2e26b35cc5b9fd60c9c86e98a5da2c8a876d18c04a20"
+    },
+    "docs/evidence/theme-motion/mobile-light-0ms-button.png": {
+      "bytes": 1210,
+      "sha256": "1a9564c525c03c9d44bd45cd745bd55717a77e2b6e2dc5f9508cf1c6f4993cbc"
+    },
+    "docs/evidence/theme-motion/mobile-light-0ms.png": {
+      "bytes": 172111,
+      "sha256": "39bd2ed1bc2899aca65e6eb5ccbfbd30ad2cab0ddc562055a3aa8877f68e8f1f"
+    },
+    "docs/evidence/theme-motion/mobile-light-160ms-button.png": {
+      "bytes": 1204,
+      "sha256": "21afeb9feaef4d39d95a8ffe1bb7ee9badf97db3c5fbfd9319f43f7237ea807d"
+    },
+    "docs/evidence/theme-motion/mobile-light-160ms.png": {
+      "bytes": 175196,
+      "sha256": "a7eefd52e9a483e3b4600db4155cef6f11d686182b935e2f56926a6dca2b9e37"
+    },
+    "docs/evidence/theme-motion/mobile-light-320ms-button.png": {
+      "bytes": 1454,
+      "sha256": "6a559da3d40469ec82a5da939c67f62b844df45c90f97a6636ce2a7a80747cdb"
+    },
+    "docs/evidence/theme-motion/mobile-light-320ms.png": {
+      "bytes": 172579,
+      "sha256": "25fe860d112e5830203ebc724d634bcd4b6d311ac143b2468c36f014be91e25c"
+    },
+    "docs/evidence/theme-motion/mobile-light-600ms-button.png": {
+      "bytes": 1027,
+      "sha256": "c1970e4cad02fc856af32dc2cf9d5150a34f79f49636bfa6f2c7b034a9e129f0"
+    },
+    "docs/evidence/theme-motion/mobile-light-600ms.png": {
+      "bytes": 171907,
+      "sha256": "fffa5f017fe7f76196d76bbb792873bf8ed33715a33ccbd19099940b6d0c81c7"
+    }
+  },
+  "preserved_files": [
+    "apps/web/package-lock.json",
+    "apps/web/src/app/domain.ts",
+    "apps/web/src/app/demo-occurrences.ts",
+    "apps/web/src/app/view-motion.ts",
+    "apps/web/public/theme-init.js",
+    "apps/web/public/maps/urban-style.json",
+    "apps/web/public/maps/raster-provider.json",
+    "apps/web/public/maps/areas-territoriais.geojson",
+    "docs/references/ui/v2/reference.png"
+  ],
+  "dependencies_added": [],
+  "limits": "Sem medição de FPS/GPU física, aparelho real, leitor de tela ou Safari. Capturas pausadas servem à aparência; a suíte verifica execução e interação. Gates anteriores do produto permanecem."
+}

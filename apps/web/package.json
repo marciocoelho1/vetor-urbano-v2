@@ -9,7 +9,7 @@
     "test": "ng test",
     "test:ci": "ng test --watch=false",
     "test:e2e": "playwright test",
-    "lint": "prettier --check \"src/app/app.{ts,html,scss}\" src/app/app.spec.ts src/app/domain.ts src/app/demo-occurrences.ts src/app/demo-occurrences.spec.ts src/app/domain.spec.ts src/app/leaflet-style-loader.ts src/leaflet-esm.d.ts src/app/maplibre-style-loader.ts src/app/urban-map-style.ts src/app/radius-geometry.ts src/app/source-import.ts src/app/xlsx-export.ts src/app/xlsx-export.spec.ts src/app/workspace.scss src/app/controls.scss src/app/visual-v2.scss src/app/view-motion.ts src/app/theme.ts src/app/theme.scss public/theme-init.js src/styles.scss src/index.html playwright.config.ts e2e/browser-smoke.spec.ts e2e/visual-v2.spec.ts e2e/theme.spec.ts"
+    "lint": "prettier --check \"src/app/app.{ts,html,scss}\" src/app/app.spec.ts src/app/domain.ts src/app/demo-occurrences.ts src/app/demo-occurrences.spec.ts src/app/domain.spec.ts src/app/leaflet-style-loader.ts src/leaflet-esm.d.ts src/app/maplibre-style-loader.ts src/app/urban-map-style.ts src/app/radius-geometry.ts src/app/source-import.ts src/app/xlsx-export.ts src/app/xlsx-export.spec.ts src/app/workspace.scss src/app/controls.scss src/app/visual-v2.scss src/app/view-motion.ts src/app/theme.ts src/app/theme.scss src/app/theme-motion.ts src/app/theme-motion.scss public/theme-init.js src/styles.scss src/index.html playwright.config.ts e2e/browser-smoke.spec.ts e2e/visual-v2.spec.ts e2e/theme.spec.ts e2e/theme-motion.spec.ts"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

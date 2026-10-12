@@ -1,5 +1,6 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { ThemeMotion } from './theme-motion';
 
 type ThemePreference = 'light' | 'dark' | null;
 const STORAGE_KEY = 'vu2.theme';
@@ -12,9 +13,11 @@ export class Theme {
   private readonly destroyRef = inject(DestroyRef);
   private preference: ThemePreference = null;
   private media?: MediaQueryList;
+  private motion?: ThemeMotion;
 
   constructor() {
     if (!isPlatformBrowser(this.platformId)) return;
+    this.motion = new ThemeMotion(this.document);
     this.media = window.matchMedia('(prefers-color-scheme: dark)');
     try {
       this.preference = this.parse(localStorage.getItem(STORAGE_KEY));
@@ -24,24 +27,42 @@ export class Theme {
     this.apply(this.preference ?? (this.media.matches ? 'dark' : 'light'));
 
     const systemChanged = () => {
-      if (!this.preference) this.apply(this.media!.matches ? 'dark' : 'light');
+      if (!this.preference) {
+        this.motion?.cancel();
+        this.apply(this.media!.matches ? 'dark' : 'light');
+      }
     };
     const preferenceChanged = (event: StorageEvent) => {
       if (event.key !== STORAGE_KEY && event.key !== null) return;
+      this.motion?.cancel();
       this.preference = this.parse(event.newValue);
       this.apply(this.preference ?? (this.media!.matches ? 'dark' : 'light'));
     };
     this.media.addEventListener('change', systemChanged);
     window.addEventListener('storage', preferenceChanged);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedChanged = () => {
+      if (!reduced.matches) return;
+      this.motion?.cancel();
+      this.apply(this.preference ?? (this.media!.matches ? 'dark' : 'light'));
+    };
+    reduced.addEventListener('change', reducedChanged);
     this.destroyRef.onDestroy(() => {
+      this.motion?.destroy();
+      reduced.removeEventListener('change', reducedChanged);
       this.media?.removeEventListener('change', systemChanged);
       window.removeEventListener('storage', preferenceChanged);
     });
   }
 
-  toggle(): void {
-    this.preference = this.dark() ? 'light' : 'dark';
-    this.apply(this.preference);
+  toggle(event?: Event): void {
+    const current = this.preference ?? (this.dark() ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    this.preference = next;
+    if (this.motion) {
+      const source = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+      this.motion.change(() => this.apply(next), source);
+    } else this.apply(next);
     try {
       localStorage.setItem(STORAGE_KEY, this.preference);
     } catch {
