@@ -1,0 +1,86 @@
+{
+  "browser": "157.0",
+  "method": "Firefox headed, X11 apenas janela própria, RGB lossless 60 amostras/s; região de fundo 16x16",
+  "viewport": {
+    "width": 1241,
+    "height": 1219
+  },
+  "frames": 420,
+  "normalClicks": 4,
+  "rapidClicks": 6,
+  "expectedChanges": 6,
+  "observedChanges": 6,
+  "changes": [
+    {
+      "frame": 0,
+      "ms": 0,
+      "theme": "light",
+      "rgb": [
+        247,
+        248,
+        250
+      ]
+    },
+    {
+      "frame": 17,
+      "ms": 283.3333333333333,
+      "theme": "dark",
+      "rgb": [
+        16,
+        21,
+        27
+      ]
+    },
+    {
+      "frame": 74,
+      "ms": 1233.3333333333333,
+      "theme": "light",
+      "rgb": [
+        247,
+        248,
+        250
+      ]
+    },
+    {
+      "frame": 130,
+      "ms": 2166.6666666666665,
+      "theme": "dark",
+      "rgb": [
+        16,
+        21,
+        27
+      ]
+    },
+    {
+      "frame": 187,
+      "ms": 3116.6666666666665,
+      "theme": "light",
+      "rgb": [
+        247,
+        248,
+        250
+      ]
+    },
+    {
+      "frame": 243,
+      "ms": 4050,
+      "theme": "dark",
+      "rgb": [
+        16,
+        21,
+        27
+      ]
+    },
+    {
+      "frame": 283,
+      "ms": 4716.666666666667,
+      "theme": "light",
+      "rgb": [
+        247,
+        248,
+        250
+      ]
+    }
+  ],
+  "stderr": ""
+}

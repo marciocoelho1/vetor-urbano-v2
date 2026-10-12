@@ -1,9 +1,9 @@
 /** Animate a single palette change without cloning the application's DOM or map. */
 export class ThemeMotion {
   private transition?: ViewTransition;
-  private animation?: Animation;
   private timer?: ReturnType<typeof setTimeout>;
   private source?: HTMLElement;
+  private pending?: { theme: 'light' | 'dark'; update: () => void; source?: HTMLElement };
   private revision = 0;
   private readonly reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   private readonly snapshotClick = (event: MouseEvent) => {
@@ -29,7 +29,13 @@ export class ThemeMotion {
     document.addEventListener('click', this.snapshotClick, true);
   }
 
-  change(update: () => void, source?: HTMLElement): void {
+  change(theme: 'light' | 'dark', update: () => void, source?: HTMLElement): void {
+    if (this.transition || this.timer) {
+      // Replacing an active snapshot exposes the already updated DOM in full.
+      // Finish the current reveal, then apply only the latest requested palette.
+      this.pending = { theme, update, source };
+      return;
+    }
     this.cancel();
     const revision = this.revision;
     if (this.reduced.matches) {
@@ -51,27 +57,18 @@ export class ThemeMotion {
     const y = bounds ? bounds.top + bounds.height / 2 : 32;
     const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
     this.source = source;
+    root.style.setProperty('--theme-reveal-x', `${x}px`);
+    root.style.setProperty('--theme-reveal-y', `${y}px`);
+    root.style.setProperty('--theme-reveal-radius', `${radius}px`);
     root.dataset['themeMotion'] = 'reveal';
     const transition = this.document.startViewTransition(() => {
       if (revision === this.revision) update();
     });
     this.transition = transition;
-    void transition.ready
-      .then(() => {
-        if (revision !== this.revision || this.reduced.matches) return;
-        this.animation = root.animate(
-          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-          {
-            duration: 640,
-            easing: 'cubic-bezier(.4, 0, .2, 1)',
-            fill: 'both',
-            pseudoElement: '::view-transition-new(root)',
-          },
-        );
-      })
-      .catch(() => {
-        // A skipped/unsupported snapshot never prevents the final palette change.
-      });
+    // CSS owns the mask from the first snapshot frame, even when JS is delayed.
+    void transition.ready.catch(() => {
+      // A skipped/unsupported snapshot never prevents the final palette change.
+    });
     void transition.finished.then(
       () => this.cleanup(revision),
       () => this.cleanup(revision),
@@ -81,13 +78,12 @@ export class ThemeMotion {
   cancel(): void {
     this.revision++;
     this.transition?.skipTransition();
-    this.animation?.cancel();
     if (this.timer) clearTimeout(this.timer);
     this.transition = undefined;
-    this.animation = undefined;
     this.timer = undefined;
     this.source = undefined;
-    delete this.document.documentElement.dataset['themeMotion'];
+    this.pending = undefined;
+    this.clearStyles();
   }
 
   destroy(): void {
@@ -97,11 +93,21 @@ export class ThemeMotion {
 
   private cleanup(revision: number): void {
     if (revision !== this.revision) return;
-    this.animation?.cancel();
+    const pending = this.pending;
+    this.pending = undefined;
     this.transition = undefined;
-    this.animation = undefined;
     this.timer = undefined;
     this.source = undefined;
-    delete this.document.documentElement.dataset['themeMotion'];
+    this.clearStyles();
+    if (pending && this.document.documentElement.dataset['theme'] !== pending.theme)
+      this.change(pending.theme, pending.update, pending.source);
+  }
+
+  private clearStyles(): void {
+    const root = this.document.documentElement;
+    delete root.dataset['themeMotion'];
+    root.style.removeProperty('--theme-reveal-x');
+    root.style.removeProperty('--theme-reveal-y');
+    root.style.removeProperty('--theme-reveal-radius');
   }
 }

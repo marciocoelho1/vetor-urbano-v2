@@ -61,7 +61,7 @@ export class Theme {
     this.preference = next;
     if (this.motion) {
       const source = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
-      this.motion.change(() => this.apply(next), source);
+      this.motion.change(next, () => this.apply(next), source);
     } else this.apply(next);
     try {
       localStorage.setItem(STORAGE_KEY, this.preference);

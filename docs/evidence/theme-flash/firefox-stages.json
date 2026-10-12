@@ -1,0 +1,66 @@
+{
+  "browser": "157.0",
+  "method": "X11 captura exclusiva da janela própria; viewport recortada; tiles simulados",
+  "frames": [
+    {
+      "file": "dark-before",
+      "pixel": "(247, 248, 250)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "dark-0ms",
+      "pixel": "(247, 248, 250)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "dark-160ms",
+      "pixel": "(247, 248, 250)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "dark-600ms",
+      "pixel": "(16, 21, 27)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "dark-after",
+      "pixel": "(16, 21, 27)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "light-before",
+      "pixel": "(16, 21, 27)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "light-0ms",
+      "pixel": "(16, 21, 27)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "light-160ms",
+      "pixel": "(16, 21, 27)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "light-600ms",
+      "pixel": "(247, 248, 250)",
+      "width": 1241,
+      "height": 1219
+    },
+    {
+      "file": "light-after",
+      "pixel": "(247, 248, 250)",
+      "width": 1241,
+      "height": 1219
+    }
+  ]
+}

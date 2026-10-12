@@ -17,7 +17,7 @@ npm start --prefix apps/web
 
 Abra `http://localhost:4201`. A v1 pode continuar em `http://localhost:4200`. O envio deste código ao GitHub não inclui hospedagem da aplicação.
 
-O botão no canto superior direito transforma sol em lua (e vice-versa), enquanto a nova paleta se expande pela página a partir dele. A preferência é salva neste navegador; sem escolha salva, a interface acompanha o tema do sistema. Movimento reduzido aplica a troca imediatamente e navegadores sem View Transitions recebem uma transição de cores. [Capturas do modo escuro](docs/evidence/dark-mode/), [estágios da animação](docs/evidence/theme-motion/) e [evidências de verificação](docs/evidence/theme-motion-2026-10-11.json).
+O botão no canto superior direito transforma sol em lua (e vice-versa), enquanto a nova paleta se expande pela página a partir dele. A máscara existe desde o primeiro quadro; cliques durante a animação guardam a última escolha até a transição atual terminar. A preferência é salva neste navegador; sem escolha salva, a interface acompanha o tema do sistema. Movimento reduzido aplica a troca imediatamente e navegadores sem View Transitions recebem uma transição de cores. [Capturas do modo escuro](docs/evidence/dark-mode/), [estágios da animação](docs/evidence/theme-motion/) e [evidências da correção da piscada](docs/evidence/theme-flash-2026-10-11.json).
 
 ## Branch e continuidade
 

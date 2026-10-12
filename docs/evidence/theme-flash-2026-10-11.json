@@ -1,0 +1,119 @@
+{
+  "checked_at": "2026-10-11T23:18:10.532609-03:00",
+  "base_commit": "7a2076a3a9aedc0451654e56b958bd7316951aaa",
+  "repository": "https://github.com/marciocoelho1/vetor-urbano-v2",
+  "reported_browser": "Firefox",
+  "scope": "Corrigir piscada inicial e exposição da paleta ao interromper alternâncias de tema.",
+  "diagnosis": {
+    "initial": "Snapshot novo sem clip-path até transition.ready acionar Element.animate; atraso nessa entrega expõe página inteira nova e depois reinicia o círculo no tema anterior.",
+    "controlled_reproduction": "Teste com entrega de ready adiada falhou na versão anterior; Chromium exibiu (16,21,27) antes de voltar a (247,248,250). Essa é uma reprodução amplificada, não medição do perfil pessoal.",
+    "interruptions": "skipTransition ao repetir clique expunha o DOM já atualizado antes do fim da revelação.",
+    "firefox_screenshot_limit": "drawSnapshot não representa View Transitions ativas; regressão compara máscara computada em ambos os motores e pixels do compositor no Chromium. Janela real do Firefox capturada via X11 para verificar aparência.",
+    "firefox_screenshot_source": "https://bugzilla.mozilla.org/show_bug.cgi?id=2008417"
+  },
+  "fix": {
+    "mask": "Centro/raio preparados antes da captura; clip-path e keyframes CSS existentes desde a geração de ::view-transition-new(root), fill-mode both.",
+    "previous_frame": "Snapshot anterior opaco; grupo sem animação padrão; estilos temporários removidos após finished.",
+    "rapid_choices": "Conclui revelação atual e aplica apenas última preferência distinta; não substitui snapshot parcial.",
+    "tradeoff": "Escolha adicional pode aguardar o restante da animação de 640 ms; nenhuma fila de escolhas intermediárias.",
+    "preserved": "Lua/sol, teclado, foco, scroll, mapa/câmera/dados, armazenamento, sincronização, fallback CSS e movimento reduzido."
+  },
+  "verification": [
+    {
+      "command": "npm run test:e2e -- theme-motion.spec.ts -g \"first snapshot frame\" --workers=1 (before fix)",
+      "exit_code": 1,
+      "failed": 2,
+      "meaning": "Falha de pixels no Chromium reproduz a exposição; captura Firefox tem limitação documentada, sem usar seus pixels como prova da piscada."
+    },
+    {
+      "command": "npm run test:e2e -- theme-motion.spec.ts --workers=1 (final)",
+      "exit_code": 0,
+      "passed": 14,
+      "skipped": 0
+    },
+    {
+      "command": "bash scripts/verify.sh web",
+      "exit_code": 0,
+      "unit_tests": 56,
+      "skipped": 0,
+      "initial_bundle_kb": 471.87,
+      "build_warnings": 0,
+      "budgets_changed": false
+    },
+    {
+      "command": "npm run test:e2e -- --workers=1",
+      "exit_code": 0,
+      "passed": 76,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ],
+      "duration": "2.9 minutes"
+    },
+    {
+      "command": "Firefox headed + X11 own-window snapshots",
+      "exit_code": 0,
+      "stages": 10,
+      "viewport": [
+        1241,
+        1219
+      ],
+      "expected": "Cor anterior em 0/160 ms; nova em 600 ms e após encerramento, nos dois sentidos."
+    },
+    {
+      "command": "Firefox headed + X11 own-window raw RGB recording",
+      "exit_code": 0,
+      "frames": 420,
+      "samples_per_second": 60,
+      "normal_clicks": 4,
+      "rapid_clicks": 6,
+      "expected_changes": 6,
+      "observed_changes": 6,
+      "extra_palette_pulses": 0,
+      "intermediate_min_samples": 40,
+      "region": "16x16 pixels de fundo; não é medição de FPS da GPU."
+    },
+    {
+      "command": "bash scripts/verify.sh planning; git diff --check",
+      "exit_code": 0,
+      "limitation": "Estrutura documental e whitespace; não são testes de aplicação."
+    }
+  ],
+  "artifacts": {
+    "docs/evidence/theme-flash/before-reset.png": {
+      "bytes": 73881,
+      "sha256": "bc51ade6620bff08f5e48582371fc9ce5cbfb8592a9d3faccc6ff4c8fe52eb02"
+    },
+    "docs/evidence/theme-flash/before-unmasked.png": {
+      "bytes": 74459,
+      "sha256": "3aabd69e132fed2641ab7d7d026aedd2147d38ca40971d86a00b0e44f63bf998"
+    },
+    "docs/evidence/theme-flash/firefox-continuous.json": {
+      "bytes": 1335,
+      "sha256": "680bc47be0a03e0ddfff7c7ac3fe5a8149c1bbf4e821dc21af1a9dd42e97b00e"
+    },
+    "docs/evidence/theme-flash/firefox-dark-0ms.png": {
+      "bytes": 123518,
+      "sha256": "7f9a64c0f774773b021065eceec3951c780712c92c3f162d59981f9e7eba8c35"
+    },
+    "docs/evidence/theme-flash/firefox-dark-160ms.png": {
+      "bytes": 129506,
+      "sha256": "d630c603b47bb0b4b170178cab3970d64b38e0ff7ab536bf0ff7cdd7e7b849a6"
+    },
+    "docs/evidence/theme-flash/firefox-light-0ms.png": {
+      "bytes": 122797,
+      "sha256": "264de8e792f9d9e20821bac78a64b10f8792ddbdbe9ca4647213a02023a0afc8"
+    },
+    "docs/evidence/theme-flash/firefox-light-160ms.png": {
+      "bytes": 128632,
+      "sha256": "8fe7723bc4a4d61f27d5106f3a14d26ec0c2a44f4751ddafa5f3d42124286cb7"
+    },
+    "docs/evidence/theme-flash/firefox-stages.json": {
+      "bytes": 1293,
+      "sha256": "2a1fa7179ae80863a6f99271469f32001fd35be7c77393d6495d6146b270f46b"
+    }
+  },
+  "dependencies_added": [],
+  "limits": "Região contínua e estágios amostrados em ambiente controlado com tiles simulados/fixtures; não cobre cada pixel/dispositivo ou o perfil pessoal, nem certifica fotossensibilidade. API/banco/Safari/aparelho físico não foram testados nesta tarefa."
+}
