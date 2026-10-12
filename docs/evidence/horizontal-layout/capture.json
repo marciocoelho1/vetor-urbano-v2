@@ -1,0 +1,73 @@
+{
+  "capturedAt": "2026-10-12T20:31:49.225Z",
+  "basemap": "Alidade Bright raster real",
+  "records": "Fictícios",
+  "views": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "desktop-1920.png"
+    },
+    {
+      "name": "results-1920",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "results-1920.png"
+    },
+    {
+      "name": "results-detail-1920",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "results-detail-1920.png"
+    },
+    {
+      "name": "panel-resized-1920",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "panel-resized-1920.png"
+    },
+    {
+      "name": "reports-1920",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "reports-1920.png"
+    },
+    {
+      "name": "dark-results-1920",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "file": "dark-results-1920.png"
+    },
+    {
+      "name": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 1000
+      },
+      "file": "mobile-390.png"
+    },
+    {
+      "name": "mobile-results-390",
+      "viewport": {
+        "width": 390,
+        "height": 1000
+      },
+      "file": "mobile-results-390.png"
+    }
+  ],
+  "errors": [],
+  "tiles200": 46
+}

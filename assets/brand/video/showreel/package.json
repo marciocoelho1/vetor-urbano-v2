@@ -1,0 +1,12 @@
+{
+  "name": "@vetor-urbano/showreel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.8.150 preview",
+    "check": "npx --yes hyperframes@0.8.150 check",
+    "render": "npx --yes hyperframes@0.8.150 render --fps 60 --quality delivery --output renders/vetor-urbano-showreel-15s.mp4",
+    "soundtrack": "python3 tools/make_soundtrack.py",
+    "verify:output": "python3 tools/verify_output.py"
+  }
+}

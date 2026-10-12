@@ -1,0 +1,22 @@
+{
+  "file": "renders/vetor-urbano-showreel-15s.mp4",
+  "bytes": 4583660,
+  "sha256": "cbfb3fbc735abe166de4e5ac53df980eba9693a62312910ac4331389d1d69b34",
+  "checks": {
+    "duration_15_seconds": true,
+    "canvas_1920_1080": true,
+    "fps_60": true,
+    "frames_900": true,
+    "video_h264": true,
+    "audio_aac_stereo_48k": true,
+    "full_decode_without_errors": true
+  },
+  "all_passed": true,
+  "duration_s": 15.0,
+  "frames": 900,
+  "fps": "60/1",
+  "width": 1920,
+  "height": 1080,
+  "audio_channels": 2,
+  "audio_sample_rate": "48000"
+}

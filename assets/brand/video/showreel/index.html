@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Vetor Urbano — A cidade, em perspectiva</title>
+<style>
+@font-face{font-family:Manrope;font-style:normal;font-weight:400 700;font-display:block;src:url('assets/fonts/manrope-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Manrope;font-style:normal;font-weight:400 700;font-display:block;src:url('assets/fonts/manrope-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Newsreader;font-style:normal;font-weight:400 700;font-display:block;src:url('assets/fonts/newsreader-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Newsreader;font-style:normal;font-weight:400 700;font-display:block;src:url('assets/fonts/newsreader-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+:root{--paper:#f4f1ea;--white:#f7f8fa;--ink:#252c36;--green:#24765b;--mint:#8fd7b6;--dark:#10151b;--line:#dde1e6;--pure:#fff;--water:#e4eeea;--block:#e9e8e1;--muted:#536057;--shadow:rgba(37,44,54,.13)}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;font-family:Manrope,sans-serif;background:var(--paper)}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;color:var(--ink);isolation:isolate}
+#background{position:absolute;inset:0;background:var(--paper);z-index:0}
+.clip{position:absolute;inset:0}
+.scene-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:110px 215px 145px;gap:0}
+.eyebrow{font-size:23px;font-weight:600;line-height:1.5;letter-spacing:.15em}
+.topline{position:absolute;inset:0 0 auto;height:225px;padding:117px 215px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.edition{font-size:22px;font-weight:500;letter-spacing:.08em}
+.fine-rule{position:absolute;left:215px;right:215px;top:190px;height:1px;background:var(--ink);opacity:.16;transform-origin:left center}
+.headline{font-weight:600;letter-spacing:-.045em;margin:0}
+.mask{overflow:hidden;position:relative;flex:0 0 auto;padding:10px 0 8px}
+.moving{display:block;width:max-content;will-change:transform;transform-origin:0 100%;opacity:0}
+.serif{font-family:Newsreader,serif;font-weight:400;letter-spacing:-.043em}
+#hook-clip{z-index:5}
+#hook .headline{font-size:156px;line-height:1.12}
+#hook .serif{font-size:226px;line-height:1.08}
+#hook .scene-content{padding-bottom:172px;gap:0}
+#hook .hero-bottom{margin-top:-11px}
+#understand-clip{z-index:6}
+#understand .scene-content{padding-bottom:170px}
+#understand .serif{font-size:210px;line-height:1.1}
+#understand .headline{font-size:145px;line-height:1.2}
+#understand .topline{padding-top:118px}
+.editorial-label{font-size:26px;letter-spacing:.025em;position:absolute;right:216px;bottom:170px;line-height:1.4}
+#cartography-clip{z-index:8}
+.lens{position:absolute;inset:0;perspective:1300px;perspective-origin:50% 48%;display:flex;align-items:center;justify-content:center;padding:280px 0 130px}
+.world{position:relative;width:1480px;height:650px;flex:0 0 auto;transform-style:preserve-3d;transform-origin:50% 50%;will-change:transform}
+.plane{position:absolute;inset:0;box-shadow:0 30px 65px -28px var(--shadow);background:var(--white);border:1px solid var(--line);border-radius:7px}
+.map-art{position:absolute;inset:0;width:1480px;height:650px}
+.block{fill:var(--block);stroke:var(--white);stroke-width:3}
+.park{fill:var(--water);stroke:var(--white);stroke-width:3}
+.water{fill:var(--water)}
+.road{fill:none;stroke:var(--line);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.major-road{fill:none;stroke:var(--line);stroke-width:6;stroke-linecap:round}
+.map-vector{fill:none;stroke:var(--green);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+#query-radius{fill:var(--mint);fill-opacity:.19;stroke:var(--green);stroke-width:2;stroke-dasharray:7 9}
+#query-radius-inner{fill:none;stroke:var(--green);stroke-opacity:.19;stroke-width:1}
+.marker circle{fill:var(--green);stroke:var(--pure);stroke-width:3.5}
+.marker[data-kind="security"] circle{fill:var(--ink)}
+.marker[data-kind="contingency"] circle{fill:var(--muted)}
+.depth-node{position:absolute;left:803px;top:297px;width:26px;height:26px;border-radius:50%;background:var(--green);border:5px solid var(--pure);box-shadow:0 10px 20px var(--shadow);transform:translateZ(52px)}
+.map-heading{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:flex-start;padding:108px 150px 0}
+.map-heading .mask{padding-top:0;padding-bottom:10px}
+.map-title{font-size:72px;line-height:1.17;font-weight:600;letter-spacing:-.04em}
+.radius-copy{display:flex;flex-direction:column;gap:6px;padding-top:5px;text-align:right}
+.radius-value{font-size:45px;line-height:1.2;letter-spacing:-.025em;font-weight:600;color:var(--green)}
+.radius-kicker{font-size:25px;line-height:1.25}
+.map-legend{position:absolute;left:150px;bottom:103px;display:flex;align-items:center;gap:14px;font-size:26px;line-height:1.3;font-weight:500;color:var(--ink)}
+.legend-dot{width:9px;height:9px;background:var(--green);border-radius:50%}
+.map-note{position:absolute;right:150px;bottom:106px;font-size:23px;color:var(--muted);line-height:1.3}
+#location-clip,#filters-clip{z-index:12}
+.filters-row{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:flex-start;padding:225px 150px 0;gap:50px}
+.chips{display:flex;gap:14px;overflow:hidden;height:83px;align-items:flex-start}
+.chip{display:flex;align-items:center;justify-content:center;padding:15px 25px;border:1.5px solid var(--line);border-radius:60px;background:var(--white);font-size:31px;line-height:1.25;font-weight:500;white-space:nowrap}
+#chip-transit{background:var(--green);border-color:var(--green);color:var(--pure);gap:12px}
+.check-symbol{width:21px;height:21px;flex:none}
+.period{display:flex;flex-direction:column;gap:12px;width:330px;padding-top:9px}
+.period-label{font-size:29px;line-height:1.3;white-space:nowrap;font-weight:500}
+.period-rule{height:3px;width:100%;position:relative;background:var(--line)}
+.period-fill{position:absolute;inset:0;background:var(--green);transform-origin:left center}
+.tick{position:absolute;top:-5px;width:2px;height:13px;background:var(--green)}
+.tick:nth-child(2){left:0}.tick:nth-child(3){left:50%}.tick:nth-child(4){right:0}
+#dark-sheet{position:absolute;inset:0;background:var(--dark);z-index:22;transform-origin:50% 55.5556%}
+#context-clip{z-index:30}
+#context .scene-content{padding-bottom:150px}
+#context .headline{font-size:133px;line-height:1.2;color:var(--white)}
+#context .serif{font-size:202px;line-height:1.1;color:var(--mint)}
+#context .topline{color:var(--mint)}
+#context .fine-rule{background:var(--mint);opacity:.27}
+#context .editorial-label{color:var(--white)}
+#paper-sheet{position:absolute;inset:0;background:var(--paper);z-index:45;clip-path:polygon(0% 100%,0% 100%,0% 100%,0% 100%)}
+#resolve-clip{z-index:50}
+.resolve-content{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;padding:120px 150px 135px}
+.lockup{width:1260px;display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.brand-row{display:flex;gap:42px;align-items:center}
+.brand-symbol{width:110px;height:120px;flex:none;overflow:visible}
+.brand-symbol path{fill:none;stroke:var(--green);stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.brand-symbol circle{fill:var(--green)}
+.wordmark{display:flex;gap:34px;margin:0;font-size:138px;font-weight:600;line-height:1.18;letter-spacing:-.055em;white-space:nowrap}
+.wordmark-mask{overflow:hidden;padding:10px 0 14px;display:flex}
+.brand-word{display:block;opacity:0}
+.tagline-mask{overflow:hidden;padding:10px 0 12px;margin-left:152px}
+.tagline{display:block;margin:0;font-family:Newsreader,serif;font-size:58px;font-weight:400;letter-spacing:-.025em;line-height:1.25;white-space:nowrap;opacity:0}
+.prototype{position:absolute;left:0;right:0;bottom:98px;display:flex;justify-content:center;align-items:center;gap:11px;font-size:24px;line-height:1.4;letter-spacing:.025em;color:var(--muted)}
+.prototype .legend-dot{width:7px;height:7px}
+#vector-clip{z-index:60;pointer-events:none}
+#vector-art{position:absolute;inset:0;width:1920px;height:1080px;overflow:visible}
+.vector-path{fill:none;stroke:var(--green);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+#route-understand{stroke-width:5}
+#context-underline{stroke:var(--mint)}
+#route-close{stroke:var(--mint);stroke-width:4}
+#vector-dot{fill:var(--green)}
+.hidden-geometry{fill:none;stroke:none}
+</style>
+<script src="assets/gsap.min.js"></script>
+<script src="assets/MotionPathPlugin.min.js"></script>
+</head>
+<body>
+<div data-hf-id="hf-nj4k" id="stage" data-composition-id="vetor-urbano-showreel" data-start="0" data-duration="15" data-fps="60" data-width="1920" data-height="1080">
+<div data-hf-id="hf-wp6h" id="background"></div>
+<!-- Dual-font editorial system adapted from caption-editorial-emphasis. -->
+<section data-hf-id="hf-zlso" id="hook-clip" class="clip" data-start="0" data-duration="2.63" data-track-index="1">
+<div data-hf-id="hf-a60g" id="hook">
+<div data-hf-id="hf-o5lv" class="topline"><span data-hf-id="hf-fvfm" id="hook-kicker" class="eyebrow">VETOR URBANO</span><span data-hf-id="hf-wr9h" id="hook-edition" class="edition">UM NOVO OLHAR</span></div>
+<div data-hf-id="hf-f2yj" id="hook-rule" class="fine-rule"></div>
+<div data-hf-id="hf-k7dx" id="hook-camera" class="scene-content">
+<div data-hf-id="hf-dolc" class="mask"><span data-hf-id="hf-hbov" id="hook-line-one" class="headline moving">A cidade</span></div>
+<div data-hf-id="hf-thjc" class="mask hero-bottom"><span data-hf-id="hf-2gs7" id="hook-line-two" class="serif moving">acontece.</span></div>
+</div>
+</div>
+</section>
+<section data-hf-id="hf-ua8r" id="understand-clip" class="clip" data-start="2.13" data-duration="2.8" data-track-index="2">
+<div data-hf-id="hf-nblz" id="understand">
+<div data-hf-id="hf-pz6r" class="topline"><span data-hf-id="hf-nvq0" id="understand-kicker" class="eyebrow">OBSERVAR. ORGANIZAR. ENTENDER.</span></div>
+<div data-hf-id="hf-ik1i" id="understand-copy" class="scene-content">
+<div data-hf-id="hf-i5rs" class="mask"><span data-hf-id="hf-76rb" id="understand-line-one" class="serif moving">Entenda</span></div>
+<div data-hf-id="hf-gyup" class="mask"><span data-hf-id="hf-9o2m" id="understand-line-two" class="headline moving">o que muda.</span></div>
+</div>
+<div data-hf-id="hf-91iz" id="understand-note" class="editorial-label">Um olhar sobre o seu entorno.</div>
+</div>
+</section>
+<!-- One urban world remains alive across location and both filters. -->
+<section data-hf-id="hf-04nd" id="cartography-clip" class="clip" data-start="4.2" data-duration="5.53" data-track-index="3">
+<div data-hf-id="hf-431g" class="lens">
+<div data-hf-id="hf-42us" id="map-world" class="world" data-layout-allow-overflow="true">
+<div data-hf-id="hf-yikf" id="map-plane" class="plane">
+<svg data-hf-id="hf-lrgv" id="map-art" class="map-art" viewBox="0 0 1480 650" aria-label="Mapa abstrato autoral, com pontos fictícios">
+<path data-hf-id="hf-3zcz" class="water" d="M1180 0H1480V650H1425C1372 560 1345 489 1265 430C1185 370 1290 335 1260 259C1243 216 1190 184 1208 115C1218 72 1182 39 1180 0Z" />
+<g data-hf-id="hf-fp1y" id="map-blocks">
+<path data-hf-id="hf-knzl" class="block" d="M65 68H250L224 153H76Z" /><path data-hf-id="hf-2wk7" class="block" d="M274 64H470L450 154H249Z" />
+<path data-hf-id="hf-4vxt" class="block" d="M504 67H677L684 148H487Z" /><path data-hf-id="hf-lmui" class="block" d="M718 62H881L893 158H718Z" />
+<path data-hf-id="hf-a8iz" class="block" d="M932 60H1124L1145 161H922Z" />
+<path data-hf-id="hf-3uvy" class="block" d="M80 191L220 187L190 279L75 280Z" /><path data-hf-id="hf-27pm" class="park" d="M256 194H451L438 276H223Z" />
+<path data-hf-id="hf-ux0k" class="block" d="M480 190H682L690 285H465Z" /><path data-hf-id="hf-3hhr" class="block" d="M732 192H900L910 278H727Z" />
+<path data-hf-id="hf-lztj" class="block" d="M948 196H1160L1190 292H953Z" />
+<path data-hf-id="hf-4f1s" class="block" d="M66 326H170L148 423H60Z" /><path data-hf-id="hf-bqm9" class="block" d="M207 327H427L414 419H182Z" />
+<path data-hf-id="hf-eqgm" class="block" d="M459 327H687L699 419H446Z" /><path data-hf-id="hf-nyu5" class="park" d="M738 329H915L936 427H744Z" />
+<path data-hf-id="hf-7d4n" class="block" d="M971 333H1220L1200 417H958Z" />
+<path data-hf-id="hf-d4rb" class="block" d="M52 468H139L124 571H59Z" /><path data-hf-id="hf-cs2b" class="block" d="M170 467H402L388 577H144Z" />
+<path data-hf-id="hf-08fp" class="block" d="M440 466H708L720 575H421Z" /><path data-hf-id="hf-uws2" class="block" d="M759 472H947L975 578H765Z" />
+<path data-hf-id="hf-ghvj" class="block" d="M1007 471H1265L1326 580H1008Z" />
+</g>
+<g data-hf-id="hf-bjb4" id="map-streets">
+<path data-hf-id="hf-qm7m" class="road" d="M38 174C270 178 475 169 700 171S1030 181 1190 179" />
+<path data-hf-id="hf-eol4" class="road" d="M42 302C280 305 470 301 703 308S1047 311 1240 317" />
+<path data-hf-id="hf-slfe" class="road" d="M37 444C280 443 484 439 709 447S1051 449 1278 446" />
+<path data-hf-id="hf-0a3x" class="road" d="M42 601C357 600 501 595 727 602S1117 604 1350 610" />
+<path data-hf-id="hf-20f3" class="road" d="M246 34C221 175 176 311 157 432S124 576 112 628" />
+<path data-hf-id="hf-vcc0" class="road" d="M469 28C457 162 442 285 430 429S408 578 399 626" />
+<path data-hf-id="hf-otof" class="road" d="M699 21C700 162 709 267 717 420S739 568 740 627" />
+<path data-hf-id="hf-0nzm" class="road" d="M912 26C921 141 929 271 946 425S984 565 995 631" />
+<path data-hf-id="hf-uilq" class="road" d="M1142 24C1164 153 1178 225 1207 332S1280 492 1331 625" />
+<path data-hf-id="hf-srnz" class="major-road" d="M90 580C305 521 487 423 622 333C758 243 872 208 1040 149C1111 124 1167 105 1203 86" />
+<path data-hf-id="hf-4cj6" class="major-road" d="M169 51C299 161 454 230 631 280C846 341 1043 423 1282 558" />
+<path data-hf-id="hf-0ps1" class="road" d="M38 88C279 108 486 66 703 96C892 121 1041 99 1184 63" />
+</g>
+<circle data-hf-id="hf-ppxh" id="query-radius" cx="815" cy="310" r="176" />
+<circle data-hf-id="hf-y23l" id="query-radius-inner" cx="815" cy="310" r="122" />
+<path data-hf-id="hf-0mmm" id="map-route" class="map-vector" d="M167 535C363 480 498 411 621 334C717 274 751 312 815 310C955 305 970 199 1129 152" />
+</svg>
+</div>
+<svg data-hf-id="hf-sgz9" id="map-points" class="map-art" viewBox="0 0 1480 650" aria-hidden="true"><g data-hf-id="hf-hsgt" id="map-markers" /></svg>
+<div data-hf-id="hf-057v" id="depth-node" class="depth-node" aria-hidden="true"></div>
+</div>
+</div>
+<div data-hf-id="hf-i3dy" id="map-legend" class="map-legend"><span data-hf-id="hf-kyac" class="legend-dot"></span><span data-hf-id="hf-7zlc">Demonstração · dados fictícios</span></div>
+<div data-hf-id="hf-kygt" id="map-note" class="map-note">Cartografia abstrata</div>
+</section>
+<section data-hf-id="hf-sh3o" id="location-clip" class="clip" data-start="4.44" data-duration="2.95" data-track-index="4">
+<div data-hf-id="hf-m8cc" id="location-labels" class="map-heading">
+<div data-hf-id="hf-hd5q" class="mask"><span data-hf-id="hf-4erm" id="location-title" class="map-title moving">Localização</span></div>
+<div data-hf-id="hf-y78i" id="radius-copy" class="radius-copy"><span data-hf-id="hf-qdak" class="radius-kicker">Raio de consulta</span><span data-hf-id="hf-iygn" class="radius-value">1.000 m</span></div>
+</div>
+</section>
+<section data-hf-id="hf-fntf" id="filters-clip" class="clip" data-start="6.86" data-duration="2.8" data-track-index="5">
+<div data-hf-id="hf-02i9" id="filter-labels">
+<div data-hf-id="hf-xyoj" class="map-heading"><div data-hf-id="hf-g68n" class="mask"><span data-hf-id="hf-x8gh" id="filter-title" class="map-title moving">Categoria · Período</span></div></div>
+<div data-hf-id="hf-fgfe" class="filters-row">
+<div data-hf-id="hf-exrd" class="chips">
+<span data-hf-id="hf-m9zq" id="chip-transit" class="chip"><svg data-hf-id="hf-9gs9" class="check-symbol" viewBox="0 0 22 22"><path data-hf-id="hf-uddn" d="M4 11L9 16L18 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>Trânsito</span>
+<span data-hf-id="hf-2z4z" id="chip-security" class="chip">Segurança</span>
+<span data-hf-id="hf-1xm2" id="chip-contingency" class="chip">Contingência</span>
+</div>
+<div data-hf-id="hf-r28y" id="period" class="period"><span data-hf-id="hf-nt39" class="period-label">Últimos 7 dias</span><div data-hf-id="hf-v4ha" class="period-rule"><span data-hf-id="hf-epzd" id="period-fill" class="period-fill"></span><span data-hf-id="hf-coyi" class="tick"></span><span data-hf-id="hf-ptha" class="tick"></span><span data-hf-id="hf-q7sb" class="tick"></span></div></div>
+</div>
+</div>
+</section>
+<div data-hf-id="hf-ef17" id="dark-sheet"></div>
+<section data-hf-id="hf-o6kx" id="context-clip" class="clip" data-start="9.08" data-duration="3.43" data-track-index="6">
+<div data-hf-id="hf-d2w2" id="context">
+<div data-hf-id="hf-pkvq" class="topline"><span data-hf-id="hf-feo6" id="context-kicker" class="eyebrow">VETOR URBANO</span><span data-hf-id="hf-u6pa" id="context-edition" class="edition">LEITURA DA CIDADE</span></div>
+<div data-hf-id="hf-8pud" id="context-rule" class="fine-rule"></div>
+<div data-hf-id="hf-et3b" id="context-copy" class="scene-content">
+<div data-hf-id="hf-gkjo" class="mask"><span data-hf-id="hf-etpn" id="context-line-one" class="headline moving">Menos ruído.</span></div>
+<div data-hf-id="hf-fdml" class="mask"><span data-hf-id="hf-shjp" id="context-line-two" class="serif moving">Mais contexto.</span></div>
+</div>
+</div>
+</section>
+<div data-hf-id="hf-xcgn" id="paper-sheet"></div>
+<section data-hf-id="hf-y0ar" id="resolve-clip" class="clip" data-start="11.9" data-duration="3.1" data-track-index="7">
+<div data-hf-id="hf-7flo" class="resolve-content">
+<div data-hf-id="hf-9rga" id="lockup" class="lockup">
+<div data-hf-id="hf-1l90" class="brand-row">
+<svg data-hf-id="hf-gvj1" id="brand-symbol" class="brand-symbol" viewBox="0 0 32 38" aria-hidden="true"><path data-hf-id="hf-3ujz" id="brand-v" d="M3 11 12 3h5v31h-6L2 15m14 19h4L30 8" /></svg>
+<div data-hf-id="hf-ewd8" class="wordmark-mask"><h1 data-hf-id="hf-d3p4" id="wordmark" class="wordmark"><span data-hf-id="hf-fey0" id="brand-word-vetor" class="brand-word">Vetor</span><span data-hf-id="hf-b4wy" id="brand-word-urbano" class="brand-word">Urbano</span></h1></div>
+</div>
+<div data-hf-id="hf-nh77" class="tagline-mask"><p data-hf-id="hf-29yi" id="tagline" class="tagline">A cidade, em perspectiva.</p></div>
+</div>
+</div>
+<div data-hf-id="hf-3hmz" id="prototype" class="prototype"><span data-hf-id="hf-pb58" class="legend-dot"></span>Protótipo demonstrativo</div>
+</section>
+<!-- One point and authored vector paths connect all six chapters. -->
+<div data-hf-id="hf-ac9i" id="vector-clip" class="clip" data-start="0" data-duration="15" data-track-index="8">
+<svg data-hf-id="hf-jh05" id="vector-art" viewBox="0 0 1920 1080" aria-hidden="true" data-layout-allow-overflow="true">
+<path data-hf-id="hf-w4px" id="route-hook" class="vector-path" d="M220 773C491 762 805 763 1130 769C1305 772 1423 775 1480 745" />
+<path data-hf-id="hf-xnkg" id="route-understand" class="vector-path" d="M1480 745C1590 685 1632 391 1450 324C1250 251 1230 587 1035 610" />
+<path data-hf-id="hf-vzte" id="route-to-map" class="hidden-geometry" d="M1035 610C992 618 1002 651 1035 618" />
+<path data-hf-id="hf-7viz" id="context-underline" class="vector-path" d="M215 776C610 766 981 765 1336 765C1452 765 1511 766 1560 745" />
+<path data-hf-id="hf-vihc" id="route-close" class="vector-path" d="M1560 745C1637 871 713 898 385 528" />
+<circle data-hf-id="hf-7gsu" id="vector-dot" cx="0" cy="0" r="12" />
+</svg>
+</div>
+<audio data-hf-id="hf-17kf" id="original-music" src="assets/audio/vetor-urbano-original.wav" data-start="0" data-duration="15" data-track-index="9" data-volume="1"></audio>
+</div>
+<script>
+document.fonts.ready.then(() => {
+ gsap.registerPlugin(MotionPathPlugin);
+ window.__timelines = window.__timelines || {};
+ const tl=gsap.timeline({paused:true});
+ const pins=[
+  [235,172,'transit'],[427,302,'security'],[623,334,'transit'],[815,310,'transit'],[1115,166,'contingency'],
+  [708,176,'security'],[944,310,'transit'],[1206,333,'contingency'],[389,458,'security'],[185,444,'contingency'],
+  [521,419,'transit'],[743,446,'security'],[981,446,'contingency'],[1052,235,'security'],[583,172,'contingency'],
+  [317,524,'transit'],[1024,582,'security'],[1273,526,'contingency'],[757,577,'transit'],[268,300,'transit'],[465,112,'security']
+ ];
+ const ns='http://www.w3.org/2000/svg';
+ const markerLayer=document.getElementById('map-markers');
+ pins.forEach(([px,py,kind],i)=>{
+  const g=document.createElementNS(ns,'g');g.id='marker-'+i;g.setAttribute('class','marker');g.dataset.kind=kind;
+  const dot=document.createElementNS(ns,'circle');dot.setAttribute('cx',px);dot.setAttribute('cy',py);dot.setAttribute('r',kind==='transit'?10:8);
+  g.appendChild(dot);markerLayer.appendChild(g);
+ });
+ // Stroke traces use measured geometry, directly tweened dash channels.
+ const traceIds=['route-hook','route-understand','map-route','context-underline','route-close','brand-v'];
+ const lengths={};
+ traceIds.forEach(id=>{const el=document.getElementById(id);lengths[id]=el.getTotalLength();el.style.strokeDasharray=String(lengths[id]);el.style.strokeDashoffset=String(lengths[id]);});
+ function draw(id,at,duration,ease='power2.out'){
+  tl.set('#'+id,{opacity:1},at);
+  tl.fromTo('#'+id,{strokeDashoffset:lengths[id]},{strokeDashoffset:0,duration,ease},at);
+ }
+ function clearTrace(id,at,duration){tl.to('#'+id,{strokeDashoffset:-lengths[id],duration,ease:'power2.in',immediateRender:false},at);}
+ function reveal(el,at,duration,from,to,ease){
+  if(from.opacity===undefined&&to.opacity===undefined)tl.set(el,{opacity:1},at);
+  tl.fromTo(el,from,{...to,duration,ease},at);
+ }
+ function follow(path,at,duration,ease='none'){
+  tl.to('#vector-dot',{motionPath:{path:'#'+path,autoRotate:false},duration,ease,immediateRender:false},at);
+ }
+ tl.addLabel('ponto',0).addLabel('entenda',2.34375).addLabel('localizacao',4.6875).addLabel('filtros',7.03125).addLabel('contexto',9.375).addLabel('assinatura',12.1875);
+ gsap.set('#dark-sheet',{scaleY:0});
+ gsap.set('#map-route',{opacity:0});
+ // 01 — the point opens the city; editorial lines land with different weights.
+ reveal('#vector-dot',.1,.25,{x:220,y:773,scale:.5},{x:220,y:773,scale:1},'power3.out');
+ reveal('#hook-line-one',.12,.39,{y:174},{y:0},'power4.out');
+ reveal('#hook-line-two',.25,.46,{y:237,rotation:2},{y:0,rotation:0},'expo.out');
+ reveal('#hook-edition',.29,.31,{opacity:0},{opacity:1},'power1.out');
+ reveal('#hook-rule',.19,.82,{scaleX:0},{scaleX:1},'circ.out');
+ draw('route-hook',.66,1.01,'none');follow('route-hook',.66,1.01);
+ tl.to('#hook-camera',{x:-17,duration:1.16,ease:'sine.inOut'},.74);
+ tl.to('#hook-line-one',{y:-194,duration:.38,ease:'power3.in'},1.9);
+ tl.to('#hook-line-two',{y:-270,duration:.36,ease:'power4.in'},1.945);
+ tl.to(['#hook-kicker','#hook-edition','#hook-rule'],{opacity:0,duration:.22,ease:'power1.in'},2.11);
+ clearTrace('route-hook',1.98,.38);
+ // 02 — the same endpoint curves into the next idea, then into the map.
+ tl.to('#background',{backgroundColor:'var(--white)',duration:.43,ease:'sine.inOut'},2.05);
+ reveal('#understand-line-one',2.34,.37,{y:215,x:24},{y:0,x:0},'power3.out');
+ reveal('#understand-line-two',2.49,.4,{x:-220,skewX:2},{x:0,skewX:0},'circ.out');
+ reveal('#understand-kicker',2.47,.28,{opacity:0},{opacity:1},'power1.out');
+ reveal('#understand-note',2.82,.31,{y:18,opacity:0},{y:0,opacity:1},'sine.out');
+ draw('route-understand',2.13,1.08,'power1.inOut');follow('route-understand',2.13,1.08,'power1.inOut');
+ tl.to('#understand-line-one',{x:-140,y:-90,rotation:-4,duration:.45,ease:'power3.in'},4.12);
+ tl.to('#understand-line-two',{x:-170,y:-65,duration:.43,ease:'power4.in'},4.2);
+ tl.to(['#understand-kicker','#understand-note'],{opacity:0,duration:.26,ease:'power1.in'},4.15);
+ tl.to('#understand-copy',{opacity:0,duration:.2,ease:'sine.in'},4.42);
+ clearTrace('route-understand',4.18,.42);
+ follow('route-to-map',4.31,.3,'sine.inOut');
+ tl.to('#vector-dot',{scale:0,duration:.18,ease:'power2.in'},4.58);
+ // 03 — ui-3d-reveal camera discipline, an authored world, and radius query.
+ tl.to('#background',{backgroundColor:'var(--paper)',duration:.42,ease:'sine.inOut'},4.2);
+ reveal('#map-plane',4.24,.32,{opacity:0},{opacity:1},'power1.out');
+ reveal('#map-world',4.22,.96,{z:-380,rotationX:53,rotationY:-9,rotation:-7,scale:.58,y:76},{z:0,rotationX:17,rotationY:-4,rotation:-2,scale:1,y:0},'power4.out');
+ tl.to('#map-world',{rotationX:12,rotationY:-2,rotation:-1,duration:.82,ease:'sine.inOut'},5.81);
+ reveal('#location-title',4.63,.41,{y:92},{y:0},'power3.out');
+ reveal('#radius-copy',5.41,.28,{x:28,opacity:0},{x:0,opacity:1},'circ.out');
+ reveal('#map-legend',4.72,.34,{opacity:0,y:12},{opacity:1,y:0},'power1.out');
+ reveal('#map-note',5.08,.3,{opacity:0},{opacity:1},'sine.out');
+ reveal('#map-blocks',4.51,.64,{opacity:0},{opacity:1},'power2.out');
+ reveal('#map-streets',4.61,.48,{opacity:0},{opacity:1},'sine.out');
+ draw('map-route',4.78,.86,'power2.out');
+ reveal('#depth-node',4.67,.42,{scale:0,opacity:0},{scale:1,opacity:1},'power3.out');
+ pins.forEach(([px,py],i)=>reveal('#marker-'+i,5.04+i*.017,.29,{scale:0,opacity:0,svgOrigin:px+' '+py},{scale:1,opacity:1},'power3.out'));
+ reveal('#query-radius',5.5,.65,{scale:0,opacity:0,svgOrigin:'815 310'},{scale:1,opacity:1},'sine.out');
+ reveal('#query-radius-inner',5.65,.55,{scale:0,opacity:0,svgOrigin:'815 310'},{scale:1,opacity:1},'circ.out');
+ // 04 — one continuous camera flattens; category and time organize its points.
+ tl.to('#map-world',{rotationX:0,rotationY:0,rotation:0,duration:.64,ease:'power2.inOut'},6.65);
+ tl.to('#background',{backgroundColor:'var(--white)',duration:.5,ease:'sine.inOut'},6.64);
+ tl.to('#location-title',{y:-104,duration:.32,ease:'power3.in'},6.71);
+ tl.to('#radius-copy',{y:-28,opacity:0,duration:.25,ease:'power1.in'},6.76);
+ reveal('#filter-title',6.99,.35,{y:90},{y:0},'power3.out');
+ reveal('.chip',7.15,.31,{y:83},{y:0},'expo.out');
+ tl.to('#query-radius',{opacity:.45,duration:.42,ease:'sine.inOut'},7.13);
+ tl.to('#query-radius-inner',{opacity:0,duration:.3,ease:'power1.in'},7.14);
+ tl.to('.marker:not([data-kind="transit"])',{opacity:.22,duration:.3,ease:'power2.inOut'},7.45);
+ tl.to('.marker[data-kind="transit"]',{scale:1.17,duration:.31,ease:'circ.out'},7.46);
+ reveal('#period',7.8,.26,{x:29,opacity:0},{x:0,opacity:1},'power1.out');
+ reveal('#period-fill',7.96875,.77,{scaleX:0},{scaleX:1},'sine.inOut');
+ tl.to('#map-route',{opacity:.6,duration:.6,ease:'sine.inOut'},7.47);
+ // No counter, no simulated real-world territory: a geometric alignment only.
+ pins.forEach(([px,py],i)=>{
+  tl.to('#marker-'+i,{x:125+i*61-px,y:310-py,scale:1,opacity:.9,duration:.35,ease:'power3.inOut'},8.65+i*.004);
+ });
+ tl.to(['#map-blocks','#map-streets','#query-radius','#map-route','#depth-node'],{opacity:0,duration:.36,ease:'power2.in'},8.85);
+ tl.to('#map-plane',{opacity:0,duration:.29,ease:'power1.in'},8.94);
+ tl.to(['#filter-labels','#map-legend','#map-note'],{opacity:0,y:-20,duration:.26,ease:'power1.in'},8.96);
+ tl.to('#dark-sheet',{scaleY:1,duration:.46,ease:'power3.inOut'},9.065);
+ // 05 — a single dark chapter, clear benefit, 1.5 seconds of steady reading.
+ reveal('#context-line-one',9.35,.43,{x:-140,y:8},{x:0,y:0},'power4.out');
+ reveal('#context-line-two',9.55,.47,{y:214,rotation:1.5},{y:0,rotation:0},'expo.out');
+ reveal('#context-kicker',9.49,.28,{opacity:0},{opacity:1},'power1.out');
+ reveal('#context-edition',9.62,.27,{opacity:0},{opacity:1},'sine.out');
+ reveal('#context-rule',9.58,.66,{scaleX:0},{scaleX:1},'circ.out');
+ draw('context-underline',10.04,.64,'power2.out');
+ tl.set('#vector-dot',{x:215,y:776,scale:0,fill:'var(--mint)'},10.04);
+ tl.to('#vector-dot',{scale:1,duration:.16,ease:'power1.out'},10.04);
+ follow('context-underline',10.04,.64,'power2.out');
+ clearTrace('context-underline',11.68,.48);
+ tl.to('#context-line-one',{y:-165,duration:.38,ease:'power3.in'},11.64);
+ tl.to('#context-line-two',{y:-250,duration:.31,ease:'power4.in'},11.65);
+ tl.to(['#context-kicker','#context-edition','#context-rule'],{opacity:0,duration:.3,ease:'power1.in'},11.69);
+ tl.to('#paper-sheet',{clipPath:'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',duration:.56,ease:'power3.inOut'},11.68);
+ draw('route-close',11.68,.79,'sine.inOut');follow('route-close',11.68,.79,'sine.inOut');
+ tl.to('#route-close',{stroke:'var(--green)',duration:.36,ease:'sine.inOut'},12.04);
+ tl.to('#vector-dot',{fill:'var(--green)',duration:.36,ease:'sine.inOut'},12.04);
+ // 06 — logo-brand-close adapted to words; the final 1.35 s are dead still.
+ reveal('#brand-word-vetor',11.98,.44,{y:172},{y:0},'power4.out');
+ reveal('#brand-word-urbano',12.06,.44,{y:172},{y:0},'expo.out');
+ draw('brand-v',11.96,.6,'power2.out');
+ reveal('#tagline',12.46,.43,{y:82},{y:0},'circ.out');
+ reveal('#prototype',12.71,.36,{opacity:0},{opacity:1},'sine.out');
+ clearTrace('route-close',12.51,.51);
+ tl.to('#vector-dot',{scale:0,duration:.2,ease:'power2.in'},13.11);
+ tl.seek(0);
+ window.__timelines['vetor-urbano-showreel']=tl;
+});
+</script>
+</body>
+</html>

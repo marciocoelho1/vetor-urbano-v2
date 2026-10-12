@@ -1,0 +1,288 @@
+{
+  "date": "2026-10-12",
+  "captures": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "frame": {
+        "x": 48,
+        "y": 253.34375,
+        "width": 1344,
+        "height": 648
+      },
+      "radius": {
+        "x": 608,
+        "y": 266.34375,
+        "width": 224,
+        "height": 44
+      },
+      "actions": {
+        "x": 1165,
+        "y": 266.34375,
+        "width": 214,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": false
+    },
+    {
+      "name": "desktop-filters",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "frame": {
+        "x": 48,
+        "y": 253.34375,
+        "width": 1344,
+        "height": 648
+      },
+      "radius": {
+        "x": 608,
+        "y": 266.34375,
+        "width": 224,
+        "height": 44
+      },
+      "actions": {
+        "x": 1165,
+        "y": 266.34375,
+        "width": 214,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": true
+    },
+    {
+      "name": "desktop-radius",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "frame": {
+        "x": 48,
+        "y": 253.34375,
+        "width": 1344,
+        "height": 648
+      },
+      "radius": {
+        "x": 608,
+        "y": 266.34375,
+        "width": 224,
+        "height": 44
+      },
+      "actions": {
+        "x": 1165,
+        "y": 266.34375,
+        "width": 214,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": false
+    },
+    {
+      "name": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "frame": {
+        "x": 48,
+        "y": 253.34375,
+        "width": 1344,
+        "height": 648
+      },
+      "radius": {
+        "x": 608,
+        "y": 266.34375,
+        "width": 224,
+        "height": 44
+      },
+      "actions": {
+        "x": 1165,
+        "y": 266.34375,
+        "width": 214,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "dark",
+      "filtersOpen": false
+    },
+    {
+      "name": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "frame": {
+        "x": 8,
+        "y": 186.9375,
+        "width": 374,
+        "height": 658.3125
+      },
+      "radius": {
+        "x": 139,
+        "y": 195.9375,
+        "width": 112,
+        "height": 44
+      },
+      "actions": {
+        "x": 281,
+        "y": 195.9375,
+        "width": 92,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": false
+    },
+    {
+      "name": "mobile-filters",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "frame": {
+        "x": 8,
+        "y": 186.9375,
+        "width": 374,
+        "height": 658.3125
+      },
+      "radius": {
+        "x": 139,
+        "y": 195.9375,
+        "width": 112,
+        "height": 44
+      },
+      "actions": {
+        "x": 281,
+        "y": 195.9375,
+        "width": 92,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": true
+    },
+    {
+      "name": "mobile-320",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      },
+      "frame": {
+        "x": 2,
+        "y": 81,
+        "width": 316,
+        "height": 560
+      },
+      "radius": {
+        "x": 116,
+        "y": 90,
+        "width": 88,
+        "height": 44
+      },
+      "actions": {
+        "x": 217,
+        "y": 90,
+        "width": 92,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": false
+    },
+    {
+      "name": "mobile-expanded-radius",
+      "viewport": {
+        "width": 320,
+        "height": 640
+      },
+      "frame": {
+        "x": 6,
+        "y": 6,
+        "width": 308,
+        "height": 628
+      },
+      "radius": {
+        "x": 116,
+        "y": 15,
+        "width": 88,
+        "height": 44
+      },
+      "actions": {
+        "x": 213,
+        "y": 15,
+        "width": 92,
+        "height": 44
+      },
+      "horizontalOverflow": false,
+      "engine": "Leaflet",
+      "pageTheme": "light",
+      "filtersOpen": false
+    }
+  ],
+  "errors": [],
+  "tileStatuses": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "note": "Cartografia raster real do provedor existente; registros fictícios. Capturas estáticas não comprovam fluidez nem acessibilidade em aparelho físico.",
+  "verification": {
+    "web": "bash scripts/verify.sh web: lint, 56 testes unitários e build passaram. Após o último ajuste CSS, npm run lint e npm run build passaram; inicial 484,97 kB, sem avisos.",
+    "e2e": "npm run test:e2e -- --workers=2: 84 passados, zero ignorados, Chromium e Firefox.",
+    "diff": "git diff --check passou.",
+    "initial_findings": [
+      "Popup MapLibre com botão de fechar sob a barra central: corrigida a ordem de exibição do popup; regressão passou.",
+      "Testes de layout passaram a aguardar o painel visível; campos datetime exigem Tab por segmentos nativos antes do próximo campo.",
+      "O teste de clique/arraste passou a apontar para cartografia livre à direita das opções de raio, preservando os mesmos asserts de centro/câmera.",
+      "Seletores de animação de tema foram delimitados ao botão do cabeçalho, pois o mapa também usa SVG de lua/sol."
+    ]
+  },
+  "files": [
+    "apps/web/src/app/app.html",
+    "apps/web/src/app/app.ts",
+    "apps/web/src/app/public-map.scss",
+    "apps/web/src/styles.scss",
+    "apps/web/package.json",
+    "apps/web/e2e/browser-smoke.spec.ts",
+    "apps/web/e2e/visual-v2.spec.ts",
+    "apps/web/e2e/theme-motion.spec.ts",
+    "docs/product/visual-v2.md",
+    "PLAN.md"
+  ],
+  "limits": [
+    "Mapas e ocorrências continuam demonstrativos; nenhum RF/RNF ou contrato de dados alterado.",
+    "Capturas reais usaram Leaflet e o provedor existente em localhost, com 18 respostas de tiles HTTP 200 e zero erros JavaScript.",
+    "A matriz E2E cobre MapLibre/Leaflet; vários cenários raster usam tiles simulados.",
+    "Leitor de tela e aparelho físico continuam no gate de QA manual existente."
+  ]
+}

@@ -1,7 +1,7 @@
 .workspace-view {
   display: grid;
   gap: 14px;
-  max-width: 1180px;
+  width: 100%;
   padding-bottom: 28px;
 }
 .workspace-view > .page-header {
@@ -294,6 +294,16 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
   background: var(--color-bg-surface);
+}
+.report-map-theme-toggle {
+  position: absolute;
+  z-index: 800;
+  top: 12px;
+  left: 12px;
+}
+.map-frame.map-dark .leaflet-tile-pane,
+.report-map-shell.map-dark .leaflet-tile-pane {
+  filter: invert(0.88) hue-rotate(180deg) brightness(0.78) contrast(0.9);
 }
 .report-map-canvas {
   width: 100%;
@@ -720,11 +730,17 @@
   grid-column: 1 / -1;
 }
 .map-radius-panel {
-  position: absolute;
+  position: relative;
   z-index: 6;
-  top: 56px;
-  left: 12px;
-  width: min(270px, calc(100% - 24px));
+  display: grid;
+  min-width: 0;
+  width: min(270px, 100%);
+  max-height: min(70vh, calc(100dvh - 48px));
+  flex: 1 1 270px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 8px;
+  overflow-y: auto;
   padding: 7px 10px 9px;
   border: 1px solid rgb(196 181 253 / 52%);
   border-radius: 8px;
@@ -734,7 +750,7 @@
 }
 .map-radius-title {
   display: block;
-  margin-bottom: 5px;
+  min-width: 0;
   color: var(--color-radius-text);
   font-size: 0.67rem;
   font-weight: 700;
@@ -744,6 +760,7 @@
   min-height: 29px;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
   color: var(--color-text-main);
   cursor: pointer;
   font-size: 0.69rem;
@@ -755,6 +772,7 @@
   accent-color: #c4b5fd;
 }
 .map-radius-options {
+  grid-column: 1 / -1;
   display: grid;
   gap: 4px;
   padding-top: 5px;
@@ -857,10 +875,17 @@
 
 @media (max-width: 560px) {
   .map-radius-panel {
-    top: 54px;
-    left: 8px;
-    width: min(260px, calc(100% - 16px));
+    grid-template-columns: minmax(0, 1fr);
     padding-inline: 8px;
+  }
+  .map-radius-toggle {
+    white-space: normal;
+  }
+  .map-radius-toggle input {
+    flex-shrink: 0;
+  }
+  .map-radius-options {
+    grid-column: auto;
   }
   .map-radius-hint {
     font-size: 0.58rem;

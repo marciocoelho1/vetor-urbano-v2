@@ -11,7 +11,9 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ViewMotion } from './view-motion';
+import { PanelResize } from './panel-resize';
 import { Theme } from './theme';
+import { applyUrbanMapTheme } from './urban-map-style';
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import {
@@ -298,7 +300,7 @@ const CATEGORIES: { id: Category; label: string; icon: string }[] = [
 ];
 
 @Component({
-  imports: [CommonModule, FormsModule, ViewMotion],
+  imports: [CommonModule, FormsModule, ViewMotion, PanelResize],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -363,7 +365,10 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly mapErrorDetails = signal('');
   protected readonly mapReady = signal(false);
   protected readonly filtersCollapsed = signal(false);
+  protected readonly radiusOptionsOpen = signal(false);
   protected readonly mapExpanded = signal(false);
+  protected readonly mapDark = signal(false);
+  protected readonly reportMapDark = signal(false);
   protected readonly selectedPointId = signal<string | null>(null);
   protected readonly expandedResultDetailIds = signal<string[]>([]);
   protected readonly selectedTerritoryId = signal<number | null>(null);
@@ -379,6 +384,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly reportFields = signal<Record<string, string>>({});
   private readonly platformId = inject(PLATFORM_ID);
   private map?: maplibregl.Map;
+  private urbanMapStyle?: maplibregl.StyleSpecification;
   private leaflet?: typeof import('leaflet');
   private leafletLibrariesPromise?: Promise<typeof import('leaflet')>;
   private rasterTileProvider?: RasterTileProvider;
@@ -779,15 +785,23 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleFilters(): void {
     this.filtersCollapsed.update((collapsed) => !collapsed);
+    if (!this.filtersCollapsed()) this.radiusOptionsOpen.set(false);
     try {
       localStorage.setItem('vu2.filtersCollapsed', String(this.filtersCollapsed()));
     } catch {
       // The preference remains usable for this session if storage is unavailable.
     }
-    requestAnimationFrame(() => {
-      this.map?.resize();
-      this.fallbackMap?.invalidateSize();
-    });
+  }
+
+  protected closeMapFilters(): void {
+    if (!this.filtersCollapsed()) this.toggleFilters();
+    document.querySelector<HTMLElement>('.map-filter-toggle')?.focus();
+  }
+
+  protected toggleRadiusOptions(): void {
+    if (!this.useRadius()) this.toggleRadius(true);
+    else this.radiusOptionsOpen.update((open) => !open);
+    if (this.radiusOptionsOpen() && !this.filtersCollapsed()) this.toggleFilters();
   }
 
   protected toggleMapExpanded(): void {
@@ -801,8 +815,28 @@ export class App implements AfterViewInit, OnDestroy {
     });
   }
 
+  protected toggleMapTheme(): void {
+    this.mapDark.update((dark) => !dark);
+    this.applyMapTheme(this.map, this.mapDark());
+  }
+
+  protected toggleReportMapTheme(): void {
+    this.reportMapDark.update((dark) => !dark);
+    this.applyMapTheme(this.reportMap, this.reportMapDark());
+  }
+
   @HostListener('document:keydown.escape')
   protected closeExpandedMapOnEscape(): void {
+    if (this.activeView() !== 'map') return;
+    if (this.radiusOptionsOpen()) {
+      this.radiusOptionsOpen.set(false);
+      document.querySelector<HTMLElement>('.map-radius-disclosure')?.focus();
+      return;
+    }
+    if (!this.filtersCollapsed()) {
+      this.closeMapFilters();
+      return;
+    }
     if (!this.mapExpanded()) return;
     this.mapExpanded.set(false);
     requestAnimationFrame(() => {
@@ -816,11 +850,14 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.mapExpanded() || event.key !== 'Tab') return;
     const frame = document.querySelector<HTMLElement>('.map-frame.map-expanded');
     const focusable = frame?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, a[href], [tabindex]:not([tabindex="-1"])',
     );
-    if (!focusable?.length) return;
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
+    const visible = Array.from(focusable ?? []).filter(
+      (element) => element.getClientRects().length > 0,
+    );
+    if (!visible.length) return;
+    const first = visible[0]!;
+    const last = visible[visible.length - 1]!;
     if (
       event.shiftKey &&
       (document.activeElement === first || !frame?.contains(document.activeElement))
@@ -1046,6 +1083,8 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleRadius(enabled: boolean): void {
     this.useRadius.set(enabled);
+    this.radiusOptionsOpen.set(enabled);
+    if (enabled && !this.filtersCollapsed()) this.toggleFilters();
     if (!enabled && this.mapPickPurpose() === 'radius') this.mapPickPurpose.set(null);
     this.refreshMapData();
   }
@@ -1823,6 +1862,7 @@ export class App implements AfterViewInit, OnDestroy {
     try {
       const maplibre = await this.loadMapLibraries();
       const style = await this.loadUrbanStyle();
+      this.urbanMapStyle = style;
       if (this.activeView() !== 'map' || !document.getElementById('map-canvas')) return;
       this.map = new maplibre.Map({
         container: 'map-canvas',
@@ -1863,6 +1903,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.observeMapSize();
       this.map.on('load', () => {
         if (this.map !== map) return;
+        this.applyMapTheme(map, this.mapDark());
         this.map?.addSource('search-radius-source', {
           type: 'geojson',
           data: this.radiusGeoJson(),
@@ -2134,6 +2175,7 @@ export class App implements AfterViewInit, OnDestroy {
     try {
       const maplibre = await this.loadMapLibraries();
       const style = await this.loadUrbanStyle();
+      this.urbanMapStyle = style;
       if (
         !container.isConnected ||
         document.getElementById('report-map-canvas') !== container ||
@@ -2158,6 +2200,7 @@ export class App implements AfterViewInit, OnDestroy {
 
       reportMap.on('load', () => {
         if (this.reportMap !== reportMap) return;
+        this.applyMapTheme(reportMap, this.reportMapDark());
         this.updateReportMapMarker();
       });
       this.stopReportMapMonitoring = this.monitorMap(
@@ -2323,6 +2366,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.reportFallbackMap?.remove();
     this.reportFallbackMap = undefined;
     this.reportMapStatus.set('idle');
+  }
+
+  private applyMapTheme(map: maplibregl.Map | undefined, dark: boolean): void {
+    if (!map || !this.urbanMapStyle || !map.isStyleLoaded()) return;
+    applyUrbanMapTheme(map, this.urbanMapStyle, dark);
   }
 
   protected retryReportMap(): void {

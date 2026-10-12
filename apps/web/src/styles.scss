@@ -1,5 +1,6 @@
 @use './app/workspace';
 @use './app/controls';
+@use './app/public-map';
 @use './app/theme';
 @use './app/theme-motion';
 @font-face {
@@ -69,9 +70,17 @@ body {
   font-family: var(--font-interface);
   -webkit-font-smoothing: antialiased;
 }
+app-root,
+app-root .leaflet-container,
+app-root .maplibregl-map {
+  font-family: var(--font-interface);
+}
 h1,
 h2,
-h3 {
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
 }
 :focus-visible {
@@ -95,7 +104,7 @@ h3 {
   background: transparent;
   box-shadow: none;
   color: #18181b;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: var(--font-interface);
   font-size: 0.56rem;
   font-weight: 700;
   text-shadow:

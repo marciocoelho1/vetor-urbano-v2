@@ -59,13 +59,17 @@ test('animates a moon/sun change and a circular reveal from the actual button po
     `${bounds.x + bounds.width / 2}px ${bounds.y + bounds.height / 2}px`,
   );
   await expect
-    .poll(() => page.locator('.theme-moon').evaluate((node) => getComputedStyle(node).opacity))
+    .poll(() =>
+      page.locator('.theme-toggle .theme-moon').evaluate((node) => getComputedStyle(node).opacity),
+    )
     .toBe('1');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme-motion');
   await button.click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect
-    .poll(() => page.locator('.theme-sun').evaluate((node) => getComputedStyle(node).opacity))
+    .poll(() =>
+      page.locator('.theme-toggle .theme-sun').evaluate((node) => getComputedStyle(node).opacity),
+    )
     .toBe('1');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme-motion');
   expect(errors).toEqual([]);
@@ -330,7 +334,9 @@ test('skips animation for reduced motion and finishes safely when that preferenc
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('html')).not.toHaveAttribute('data-theme-motion');
   expect(
-    await page.locator('.theme-moon').evaluate((node) => getComputedStyle(node).transitionDuration),
+    await page
+      .locator('.theme-toggle .theme-moon')
+      .evaluate((node) => getComputedStyle(node).transitionDuration),
   ).toBe('0s');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await button.click();

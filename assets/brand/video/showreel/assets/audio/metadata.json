@@ -1,0 +1,21 @@
+{
+  "title": "A cidade, em perspectiva",
+  "origin": "original-local-code-synthesis",
+  "generator": "tools/make_soundtrack.py",
+  "duration_s": 15,
+  "bpm": 128,
+  "beat_s": 0.46875,
+  "sample_rate": 48000,
+  "channels": 2,
+  "seed": 1282026,
+  "transition_accents_s": [
+    2.34375,
+    4.6875,
+    7.03125,
+    9.375,
+    12.1875
+  ],
+  "peak_dbfs": -2.62,
+  "rms_dbfs": -19.51,
+  "source_audio_sampled": false
+}

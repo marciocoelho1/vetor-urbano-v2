@@ -91,6 +91,72 @@ async function openMainMap(page: import('@playwright/test').Page): Promise<void>
   await page.getByTestId('filter-panel-toggle').click();
 }
 
+test('toggles the basemap theme independently on each MapLibre map', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('vu2.theme', 'light'));
+  await openMainMap(page);
+
+  const publicToggle = page.getByTestId('map-theme-toggle');
+  await expect(publicToggle).toHaveAttribute('aria-pressed', 'false');
+  const publicStyle = () =>
+    page.evaluate(() => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      return app.map.getPaintProperty('background', 'background-color');
+    });
+  expect(await publicStyle()).toBe('#e8eaed');
+
+  const radiusBounds = await page.locator('.map-radius-panel').boundingBox();
+  const actionsBounds = await page.locator('.map-top-actions').boundingBox();
+  const zoomBounds = await page.locator('#map-canvas .maplibregl-ctrl-group').boundingBox();
+  expect(radiusBounds).not.toBeNull();
+  expect(actionsBounds).not.toBeNull();
+  expect(zoomBounds).not.toBeNull();
+  expect(Math.abs(radiusBounds!.y - actionsBounds!.y)).toBeLessThanOrEqual(2);
+  expect(Math.abs(radiusBounds!.y - zoomBounds!.y)).toBeLessThanOrEqual(5);
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const narrowRadius = await page.locator('.map-radius-panel').boundingBox();
+    const narrowActions = await page.locator('.map-top-actions').boundingBox();
+    const narrowZoom = await page.locator('#map-canvas .maplibregl-ctrl-group').boundingBox();
+    expect(narrowRadius).not.toBeNull();
+    expect(narrowActions).not.toBeNull();
+    expect(narrowZoom).not.toBeNull();
+    expect(narrowRadius!.y).toBeCloseTo(narrowActions!.y, 0);
+    expect(narrowRadius!.x + narrowRadius!.width).toBeLessThanOrEqual(narrowActions!.x);
+    expect(narrowZoom!.y).toBeGreaterThanOrEqual(narrowActions!.y + narrowActions!.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await publicToggle.click();
+  await expect(publicToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.map-frame')).toHaveClass(/map-dark/);
+  expect(await publicStyle()).toBe('#202832');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  await page.getByRole('button', { name: 'Registrar ocorrência' }).click();
+  await page.locator('.category-option[data-category="TRANSITO"]').click();
+  await expect(page.locator('#report-map-canvas canvas.maplibregl-canvas')).toBeVisible();
+  await expect(page.locator('.report-map-status, .report-map-error')).toHaveCount(0);
+  await expect(page.getByTestId('report-map-theme-toggle')).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  const reportToggle = page.getByTestId('report-map-theme-toggle');
+  await reportToggle.click();
+  await expect(reportToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.report-map-shell')).toHaveClass(/map-dark/);
+  await expect(publicToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(
+    await page.evaluate(() => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      return app.reportMap.getPaintProperty('background', 'background-color');
+    }),
+  ).toBe('#202832');
+});
+
 test('recovers both maps when the vector style is unavailable', async ({ page }) => {
   await mockRasterTiles(page);
   await page.route('**/maps/urban-style.json', (route) =>
@@ -528,6 +594,7 @@ test('uses the lazy 2D map when the browser has no WebGL2 context', async ({
   page,
   browserName,
 }) => {
+  await page.addInitScript(() => localStorage.setItem('vu2.theme', 'light'));
   const tileRequests: string[] = [];
   const styleResponses: number[] = [];
   const providerResponses: number[] = [];
@@ -574,6 +641,17 @@ test('uses the lazy 2D map when the browser has no WebGL2 context', async ({
   expect(
     await page.locator('#map-canvas .leaflet-marker-pane .occurrence-pin img').count(),
   ).toBeGreaterThan(0);
+  const publicThemeToggle = page.getByTestId('map-theme-toggle');
+  await publicThemeToggle.click();
+  await expect(publicThemeToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.map-frame')).toHaveClass(/map-dark/);
+  expect(
+    await page
+      .locator('#map-canvas .leaflet-tile-pane')
+      .evaluate((node) => getComputedStyle(node).filter),
+  ).toContain('invert');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await publicThemeToggle.click();
   await page.screenshot({
     path: `test-results/${browserName}-leaflet-fallback.png`,
     fullPage: true,
@@ -617,6 +695,17 @@ test('uses the lazy 2D map when the browser has no WebGL2 context', async ({
   await page.locator('.category-option[data-category="TRANSITO"]').click();
   await expect(page.locator('#report-map-canvas.leaflet-container')).toBeVisible();
   await expect(page.locator('.report-map-status')).toHaveCount(0);
+  const reportThemeToggle = page.getByTestId('report-map-theme-toggle');
+  await reportThemeToggle.click();
+  await expect(reportThemeToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.report-map-shell')).toHaveClass(/map-dark/);
+  expect(
+    await page
+      .locator('#report-map-canvas .leaflet-tile-pane')
+      .evaluate((node) => getComputedStyle(node).filter),
+  ).toContain('invert');
+  await expect(publicThemeToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   const map = page.locator('#report-map-canvas.leaflet-container');
   const bounds = await map.boundingBox();
   expect(bounds).not.toBeNull();
@@ -758,7 +847,8 @@ for (const engine of ['vector', 'raster'] as const) {
     const center = page.locator('.map-radius-center');
     await page.getByLabel('Filtrar por raio').check();
     const originalCenter = await center.textContent();
-    const x = box.x + box.width * 0.55;
+    // Use free cartography to the right of the centered radius options.
+    const x = box.x + box.width * 0.75;
     const y = box.y + box.height * 0.4;
     await page.mouse.click(x, y, { button: 'right' });
     await expect(center).toHaveText(originalCenter!);

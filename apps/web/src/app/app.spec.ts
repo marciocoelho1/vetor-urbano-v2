@@ -42,6 +42,7 @@ const maplibreWorkerMock = vi.hoisted(() => {
     getLayer: vi.fn(() => ({ id: 'layer' })),
     getSource: vi.fn((_id: string): unknown => undefined),
     getStyle: vi.fn(() => ({ layers: [{ id: 'place-labels', type: 'symbol' }] })),
+    isStyleLoaded: vi.fn(() => true),
     on: vi.fn((...args: unknown[]) => {
       const callback = args.at(-1);
       if (args.length === 2 && typeof callback === 'function') {

@@ -11,9 +11,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 28px;
-    max-width: 1568px;
+    width: 100%;
     min-height: 82px;
-    padding: 0 48px;
+    padding: 0 32px;
     margin: auto;
   }
   .brand {
@@ -129,8 +129,8 @@
     color: var(--color-bg-surface);
   }
   .main-content {
-    max-width: 1568px;
-    padding: 0 48px 0;
+    width: 100%;
+    padding: 0 32px 0;
     margin: auto;
   }
   .demo-ribbon {
@@ -653,7 +653,7 @@
     letter-spacing: 0;
   }
   .report-form {
-    max-width: 1120px;
+    max-width: none;
   }
   .form-card {
     padding: 24px;
@@ -690,12 +690,6 @@
     text-decoration: none;
   }
 
-  @media (min-width: 1568px) {
-    .topbar-inner,
-    .main-content {
-      padding-inline: 64px;
-    }
-  }
   @media (max-width: 1200px) {
     .topbar-inner {
       gap: 16px;

@@ -1,0 +1,13 @@
+{
+  "duration": 15,
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#hook-line-one", "bySec": 0.6 },
+    { "kind": "appearsBy", "selector": "#hook-line-two", "bySec": 0.8 },
+    { "kind": "appearsBy", "selector": "#location-title", "bySec": 5.2 },
+    { "kind": "appearsBy", "selector": "#filter-title", "bySec": 7.5 },
+    { "kind": "appearsBy", "selector": "#context-line-two", "bySec": 10.15 },
+    { "kind": "appearsBy", "selector": "#brand-word-vetor", "bySec": 12.7 },
+    { "kind": "staysInFrame", "selector": "#wordmark" },
+    { "kind": "keepsMoving", "withinSelector": "#stage", "maxStaticSec": 2 }
+  ]
+}

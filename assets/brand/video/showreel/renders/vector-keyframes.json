@@ -1,0 +1,191 @@
+{
+  "project": "showreel",
+  "runtime": "all",
+  "compositions": [
+    {
+      "composition": "index.html",
+      "source": "index.html",
+      "tweens": [
+        {
+          "id": "#vector-dot-to-__raw:at",
+          "target": "#vector-dot",
+          "method": "to",
+          "start": 0,
+          "duration": 0,
+          "end": 0,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {}
+            },
+            {
+              "pct": 100,
+              "time": 0,
+              "properties": {}
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#vector-dot-to-4580-scale",
+          "target": "#vector-dot",
+          "method": "to",
+          "group": "scale",
+          "start": 4.58,
+          "duration": 0.18,
+          "end": 4.76,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 4.58,
+              "properties": {
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 4.76,
+              "properties": {
+                "scale": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#vector-dot-set-10040",
+          "target": "#vector-dot",
+          "method": "set",
+          "start": 10.04,
+          "duration": 0,
+          "end": 10.04,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.04,
+              "properties": {
+                "x": 0,
+                "y": 0,
+                "scale": 1,
+                "fill": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.04,
+              "properties": {
+                "x": 215,
+                "y": 776,
+                "scale": 0,
+                "fill": "var(--mint)"
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 215,
+              "y": 776
+            }
+          ]
+        },
+        {
+          "id": "#vector-dot-to-10040-scale",
+          "target": "#vector-dot",
+          "method": "to",
+          "group": "scale",
+          "start": 10.04,
+          "duration": 0.16,
+          "end": 10.2,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 10.04,
+              "properties": {
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 10.2,
+              "properties": {
+                "scale": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#vector-dot-to-12040-other",
+          "target": "#vector-dot",
+          "method": "to",
+          "group": "other",
+          "start": 12.04,
+          "duration": 0.36,
+          "end": 12.4,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 12.04,
+              "properties": {
+                "fill": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 12.4,
+              "properties": {
+                "fill": "var(--green)"
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#vector-dot-to-13110-scale",
+          "target": "#vector-dot",
+          "method": "to",
+          "group": "scale",
+          "start": 13.11,
+          "duration": 0.2,
+          "end": 13.31,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 13.11,
+              "properties": {
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 13.31,
+              "properties": {
+                "scale": 0
+              }
+            }
+          ],
+          "path": null
+        }
+      ],
+      "traces": [],
+      "cssKeyframes": [],
+      "anime": []
+    }
+  ],
+  "_meta": {
+    "version": "0.8.150",
+    "latestVersion": "0.8.150",
+    "updateAvailable": false
+  }
+}

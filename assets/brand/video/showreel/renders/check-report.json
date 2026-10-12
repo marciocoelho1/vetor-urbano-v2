@@ -1,0 +1,985 @@
+{
+  "ok": true,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 8,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"hook-clip\"> is a timeline element that contains nested <div id=\"hook\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#hook-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"hook-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"understand-clip\"> is a timeline element that contains nested <div id=\"understand\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#understand-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"understand-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"cartography-clip\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#cartography-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"cartography-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"location-clip\"> is a timeline element that contains nested <div id=\"location-labels\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#location-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"location-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"filters-clip\"> is a timeline element that contains nested <div id=\"filter-labels\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#filters-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"filters-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"context-clip\"> is a timeline element that contains nested <div id=\"context\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#context-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"context-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<section id=\"resolve-clip\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#resolve-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <section id=\"resolve-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      },
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"vector-clip\"> is a timeline element that contains nested <svg id=\"vector-art\">. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#vector-clip",
+        "dataAttributes": {},
+        "sourceFile": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"vector-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 17,
+    "findings": [
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 0.234,
+        "selector": "#hook-line-one",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 215,
+          "top": 327.5,
+          "right": 792.13,
+          "bottom": 502.22,
+          "width": 577.13,
+          "height": 174.72
+        },
+        "containerSelector": "#hook-camera > div:nth-of-type(1)",
+        "text": "A cidade",
+        "fixHint": "Text is 577px x 175px inside 1490px x 193px and overflows by up to 22px; increase the container height to at least ~215px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 215,
+          "top": 287.09,
+          "right": 1705,
+          "bottom": 479.81,
+          "width": 1490,
+          "height": 192.72
+        },
+        "overflow": {
+          "bottom": 22.41
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-hbov"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 327.5,
+          "width": 577.13,
+          "height": 174.72
+        },
+        "firstSeen": 0.234,
+        "lastSeen": 2.109,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          0.234,
+          2.109
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 0.234,
+        "selector": "#hook-line-one",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 215,
+          "top": 328.36,
+          "right": 792.13,
+          "bottom": 503.07,
+          "width": 577.13,
+          "height": 174.72
+        },
+        "containerSelector": "#hook-camera > div:nth-of-type(1)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 215,
+          "top": 287.09,
+          "right": 1705,
+          "bottom": 479.81,
+          "width": 1490,
+          "height": 192.72
+        },
+        "overflow": {
+          "bottom": 23.26
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-hbov"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 328.36,
+          "width": 577.13,
+          "height": 174.72
+        },
+        "firstSeen": 0.234,
+        "lastSeen": 2.578,
+        "occurrences": 3,
+        "heldMs": 468.9999999999999,
+        "times": [
+          0.234,
+          2.109,
+          2.578
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 2.578,
+        "selector": "#understand-line-two",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 121.83,
+          "top": 548,
+          "right": 892.61,
+          "bottom": 722,
+          "width": 770.78,
+          "height": 174
+        },
+        "containerSelector": "#understand-copy > div:nth-of-type(2)",
+        "text": "o que muda.",
+        "fixHint": "Text is 771px x 174px inside 1490px x 192px and overflows by up to 93px; widen the container to at least ~1583px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 215,
+          "top": 538.5,
+          "right": 1705,
+          "bottom": 730.5,
+          "width": 1490,
+          "height": 192
+        },
+        "overflow": {
+          "left": 93.17
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-9o2m"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 121.83,
+          "y": 548,
+          "width": 770.78,
+          "height": 174
+        },
+        "firstSeen": 2.578,
+        "lastSeen": 4.453,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          2.578,
+          4.453
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 2.578,
+        "selector": "#hook-line-two",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 198,
+          "top": 208.81,
+          "right": 1053.75,
+          "bottom": 452.89,
+          "width": 855.75,
+          "height": 244.08
+        },
+        "containerSelector": "div.mask.hero-bottom",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 198,
+          "top": 468.81,
+          "right": 1688,
+          "bottom": 730.89,
+          "width": 1490,
+          "height": 262.08
+        },
+        "overflow": {
+          "top": 260
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-2gs7"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 198,
+          "y": 208.81,
+          "width": 855.75,
+          "height": 244.08
+        },
+        "firstSeen": 2.578,
+        "lastSeen": 2.578,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          2.578
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 2.578,
+        "selector": "#understand-line-two",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 122.02,
+          "top": 548.5,
+          "right": 892.44,
+          "bottom": 722.5,
+          "width": 770.42,
+          "height": 174
+        },
+        "containerSelector": "#understand-copy > div:nth-of-type(2)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 215,
+          "top": 538.5,
+          "right": 1705,
+          "bottom": 730.5,
+          "width": 1490,
+          "height": 192
+        },
+        "overflow": {
+          "left": 92.98
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-9o2m"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 122.02,
+          "y": 548.5,
+          "width": 770.42,
+          "height": 174
+        },
+        "firstSeen": 2.578,
+        "lastSeen": 4.453,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          2.578,
+          4.453
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 4.453,
+        "selector": "#understand-line-one",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 178.47,
+          "top": 276.28,
+          "right": 919.12,
+          "bottom": 498.35,
+          "width": 740.65,
+          "height": 222.07
+        },
+        "containerSelector": "#understand-copy > div:nth-of-type(1)",
+        "text": "Entenda",
+        "fixHint": "Text is 741px x 222px inside 1490px x 249px and overflows by up to 37px; resize the container to at least ~1527px x 262px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 215,
+          "top": 289.5,
+          "right": 1705,
+          "bottom": 538.5,
+          "width": 1490,
+          "height": 249
+        },
+        "overflow": {
+          "left": 36.53,
+          "top": 13.22
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-76rb"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 178.47,
+          "y": 276.28,
+          "width": 740.65,
+          "height": 222.07
+        },
+        "firstSeen": 4.453,
+        "lastSeen": 4.453,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          4.453
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 4.453,
+        "selector": "#understand-line-one",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 178.47,
+          "top": 276.28,
+          "right": 919.12,
+          "bottom": 498.35,
+          "width": 740.66,
+          "height": 222.07
+        },
+        "containerSelector": "#map-plane",
+        "text": "Entenda",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 0.22,
+        "dataAttributes": {
+          "data-hf-id": "hf-76rb"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 178.47,
+          "y": 276.28,
+          "width": 740.66,
+          "height": 222.07
+        },
+        "firstSeen": 4.453,
+        "lastSeen": 4.453,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          4.453
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 4.453,
+        "selector": "#understand-line-two",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 207,
+          "top": 532.44,
+          "right": 974.92,
+          "bottom": 731.44,
+          "width": 767.92,
+          "height": 199
+        },
+        "containerSelector": "#map-plane",
+        "text": "o que muda.",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 0.67,
+        "dataAttributes": {
+          "data-hf-id": "hf-9o2m"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 207,
+          "y": 532.44,
+          "width": 767.92,
+          "height": 199
+        },
+        "firstSeen": 4.453,
+        "lastSeen": 4.453,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          4.453
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 4.453,
+        "selector": "#understand-line-one",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 178.3,
+          "top": 266.28,
+          "right": 919.31,
+          "bottom": 509.34,
+          "width": 741,
+          "height": 243.07
+        },
+        "containerSelector": "#understand-copy > div:nth-of-type(1)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 215,
+          "top": 289.5,
+          "right": 1705,
+          "bottom": 538.5,
+          "width": 1490,
+          "height": 249
+        },
+        "overflow": {
+          "left": 36.7,
+          "top": 23.22
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-76rb"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 178.3,
+          "y": 266.28,
+          "width": 741,
+          "height": 243.07
+        },
+        "firstSeen": 4.453,
+        "lastSeen": 4.453,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          4.453
+        ]
+      },
+      {
+        "code": "canvas_overflow",
+        "severity": "info",
+        "time": 7.266,
+        "selector": "#location-title",
+        "message": "Text extends outside the composition canvas.",
+        "rect": {
+          "left": 150,
+          "top": -4,
+          "right": 522.11,
+          "bottom": 95,
+          "width": 372.11,
+          "height": 99
+        },
+        "containerSelector": "#stage",
+        "text": "Localização",
+        "fixHint": "Move the text inward, reduce its size, or mark intentional off-canvas animation with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "overflow": {
+          "top": 4
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-4erm"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": -4,
+          "width": 372.11,
+          "height": 99
+        },
+        "firstSeen": 7.266,
+        "lastSeen": 7.266,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          7.266
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 7.266,
+        "selector": "#location-title",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 150,
+          "top": 4,
+          "right": 522.11,
+          "bottom": 88.23,
+          "width": 372.11,
+          "height": 84.23
+        },
+        "containerSelector": "#location-labels > div:nth-of-type(1)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 150,
+          "top": 108,
+          "right": 522.11,
+          "bottom": 202.23,
+          "width": 372.11,
+          "height": 94.23
+        },
+        "overflow": {
+          "top": 104
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-4erm"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 150,
+          "y": 4,
+          "width": 372.11,
+          "height": 84.23
+        },
+        "firstSeen": 7.266,
+        "lastSeen": 7.266,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          7.266
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 9.609,
+        "selector": "#context-line-two",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 215.13,
+          "top": 611.79,
+          "right": 1428.88,
+          "bottom": 829.05,
+          "width": 1213.75,
+          "height": 217.26
+        },
+        "containerSelector": "#context-copy > div:nth-of-type(2)",
+        "text": "Mais contexto.",
+        "fixHint": "Text is 1214px x 217px inside 1490px x 240px and overflows by up to 100px; increase the container height to at least ~340px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 215,
+          "top": 488.7,
+          "right": 1705,
+          "bottom": 728.89,
+          "width": 1490,
+          "height": 240.19
+        },
+        "overflow": {
+          "bottom": 100.16
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-shjp"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215.13,
+          "y": 611.79,
+          "width": 1213.75,
+          "height": 217.26
+        },
+        "firstSeen": 9.609,
+        "lastSeen": 11.953,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          9.609,
+          11.953
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 9.609,
+        "selector": "#context-line-two",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 215,
+          "top": 601.79,
+          "right": 1429,
+          "bottom": 839.24,
+          "width": 1214,
+          "height": 237.44
+        },
+        "containerSelector": "#context-copy > div:nth-of-type(2)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 215,
+          "top": 488.7,
+          "right": 1705,
+          "bottom": 728.89,
+          "width": 1490,
+          "height": 240.19
+        },
+        "overflow": {
+          "bottom": 110.35
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-shjp"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 601.79,
+          "width": 1214,
+          "height": 237.44
+        },
+        "firstSeen": 9.609,
+        "lastSeen": 12.422,
+        "occurrences": 3,
+        "heldMs": 469.0000000000012,
+        "times": [
+          9.609,
+          11.953,
+          12.422
+        ]
+      },
+      {
+        "code": "text_box_overflow",
+        "severity": "info",
+        "time": 11.953,
+        "selector": "#context-line-one",
+        "message": "Text extends outside its nearest visual/container box.",
+        "rect": {
+          "left": 215,
+          "top": 261.72,
+          "right": 957.98,
+          "bottom": 421.32,
+          "width": 742.98,
+          "height": 159.6
+        },
+        "containerSelector": "#context-copy > div:nth-of-type(1)",
+        "text": "Menos ruído.",
+        "fixHint": "Text is 743px x 160px inside 1490px x 178px and overflows by up to 49px; increase the container height to at least ~227px, or allow wrapping with max-width/fitTextFontSize.",
+        "containerRect": {
+          "left": 215,
+          "top": 311.11,
+          "right": 1705,
+          "bottom": 488.7,
+          "width": 1490,
+          "height": 177.59
+        },
+        "overflow": {
+          "top": 49.39
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-etpn"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 261.72,
+          "width": 742.98,
+          "height": 159.6
+        },
+        "firstSeen": 11.953,
+        "lastSeen": 11.953,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          11.953
+        ]
+      },
+      {
+        "code": "container_overflow",
+        "severity": "info",
+        "time": 11.953,
+        "selector": "#context-line-one",
+        "message": "Element extends outside a clipping layout container.",
+        "rect": {
+          "left": 215,
+          "top": 262.52,
+          "right": 957.98,
+          "bottom": 422.12,
+          "width": 742.98,
+          "height": 159.59
+        },
+        "containerSelector": "#context-copy > div:nth-of-type(1)",
+        "fixHint": "Resize/reposition the child or container, or mark intentional overflow with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 215,
+          "top": 311.11,
+          "right": 1705,
+          "bottom": 488.7,
+          "width": 1490,
+          "height": 177.59
+        },
+        "overflow": {
+          "top": 48.59
+        },
+        "dataAttributes": {
+          "data-hf-id": "hf-etpn"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 262.52,
+          "width": 742.98,
+          "height": 159.59
+        },
+        "firstSeen": 11.953,
+        "lastSeen": 12.422,
+        "occurrences": 2,
+        "heldMs": 469.0000000000012,
+        "times": [
+          11.953,
+          12.422
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 12.422,
+        "selector": "#context-line-one",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 215,
+          "top": 144.11,
+          "right": 957.98,
+          "bottom": 326.11,
+          "width": 742.98,
+          "height": 182
+        },
+        "containerSelector": "#paper-sheet",
+        "text": "Menos ruído.",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {
+          "data-hf-id": "hf-etpn"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 144.11,
+          "width": 742.98,
+          "height": 182
+        },
+        "firstSeen": 12.422,
+        "lastSeen": 12.422,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          12.422
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 12.422,
+        "selector": "#context-line-two",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 215,
+          "top": 258.7,
+          "right": 1426.3,
+          "bottom": 460.7,
+          "width": 1211.3,
+          "height": 202
+        },
+        "containerSelector": "#paper-sheet",
+        "text": "Mais contexto.",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {
+          "data-hf-id": "hf-shjp"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 215,
+          "y": 258.7,
+          "width": 1211.3,
+          "height": 202
+        },
+        "firstSeen": 12.422,
+        "lastSeen": 12.422,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          12.422
+        ]
+      }
+    ],
+    "duration": 15,
+    "samples": [
+      0.234,
+      0.703,
+      1.172,
+      1.641,
+      2.109,
+      2.578,
+      3.047,
+      3.516,
+      3.984,
+      4.453,
+      4.922,
+      5.391,
+      5.859,
+      6.328,
+      6.797,
+      7.266,
+      7.734,
+      8.203,
+      8.672,
+      9.141,
+      9.609,
+      10.078,
+      10.547,
+      11.016,
+      11.484,
+      11.953,
+      12.422,
+      12.891,
+      13.359,
+      13.828,
+      14.297,
+      14.766
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 17,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "specPath": "/home/marciocoelho/Documentos/Projetos/VetorUrbano v2/vetor-urbano-v2/assets/brand/video/showreel/index.motion.json",
+    "samples": 300
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      0.234,
+      3.516,
+      7.266,
+      11.016,
+      14.766
+    ],
+    "checked": 21,
+    "passed": 21
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  },
+  "_meta": {
+    "version": "0.8.150",
+    "latestVersion": "0.8.150",
+    "updateAvailable": false
+  }
+}

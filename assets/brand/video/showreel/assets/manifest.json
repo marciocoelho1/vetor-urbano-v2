@@ -1,0 +1,95 @@
+{
+  "recorded": "2026-10-12",
+  "assets": [
+    {
+      "path": "assets/MotionPathPlugin.min.js",
+      "bytes": 22002,
+      "sha256": "ace44a07c6c179f5347d9b46a152d468e4c9f272ee0d68bf0354e00d60000693"
+    },
+    {
+      "path": "assets/audio/metadata.json",
+      "bytes": 416,
+      "sha256": "b39c813d4261865a497fd9ba34f2ee005906a2c3f1cda6d68f0e12ad01aa4d8d"
+    },
+    {
+      "path": "assets/audio/vetor-urbano-original.wav",
+      "bytes": 2880044,
+      "sha256": "88a76dc4d202334b05241225753d64d4098a453f9db821d2f93e71fad2963ac2"
+    },
+    {
+      "path": "assets/fonts/manrope-OFL.txt",
+      "bytes": 4386,
+      "sha256": "d6a309fcfb963d329a93baf9df66fa5f3c23a4be2b5f67edf24d6cafecde12ac"
+    },
+    {
+      "path": "assets/fonts/manrope-latin-ext.woff2",
+      "bytes": 15120,
+      "sha256": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb"
+    },
+    {
+      "path": "assets/fonts/manrope-latin.woff2",
+      "bytes": 24836,
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    {
+      "path": "assets/fonts/newsreader-OFL.txt",
+      "bytes": 4394,
+      "sha256": "865f0949b59fab5925506f80102dff3d12e8666412daf52d212db969d40adc25"
+    },
+    {
+      "path": "assets/fonts/newsreader-latin-ext.woff2",
+      "bytes": 86608,
+      "sha256": "45683de03de37187604102316c0b42c0cb2d8dc9c4140a20ad471c3148cc1278"
+    },
+    {
+      "path": "assets/fonts/newsreader-latin.woff2",
+      "bytes": 132000,
+      "sha256": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101"
+    },
+    {
+      "path": "assets/gsap.min.js",
+      "bytes": 72927,
+      "sha256": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb"
+    },
+    {
+      "path": "assets/index.md",
+      "bytes": 3314,
+      "sha256": "e9e595367bd66c7380accadbd5fd8bd9d61742dd4b24b25221c881568a16d8b5"
+    },
+    {
+      "path": "assets/registry-reference/LICENSE",
+      "bytes": 10763,
+      "sha256": "4259155fb06f127687ee7b0a8a3682d45132db0f2da26cbc0b7a2d1e796436b8"
+    },
+    {
+      "path": "assets/registry-reference/README.md",
+      "bytes": 3174,
+      "sha256": "dbdf58a57fddfd44b587c8b472f19ee278aa0d2f6717a1761dfb887381a9d5e4"
+    },
+    {
+      "path": "assets/registry-reference/components/arc-motion-path.html",
+      "bytes": 3221,
+      "sha256": "26fe5636069b3396af3f8ed4d88034bf939c78eb1e836cd3db9899e7f669a187"
+    },
+    {
+      "path": "assets/registry-reference/components/caption-editorial-emphasis.html",
+      "bytes": 12107,
+      "sha256": "2a3fbdebcb64f42dc302bd9d7c5b13aaa8ec3b3876e92bcde74c4da3a13da756"
+    },
+    {
+      "path": "assets/registry-reference/components/logo-brand-close.html",
+      "bytes": 15736,
+      "sha256": "7ab1d1ddedc59e0e7d97f589657135e799b26f562767addf65722802938264f8"
+    },
+    {
+      "path": "assets/registry-reference/components/marker-highlight.html",
+      "bytes": 16403,
+      "sha256": "0f6fbe2b5d34c53549455f0c631feedcf11abbc9043a34949155740a9b7abfe6"
+    },
+    {
+      "path": "assets/registry-reference/ui-3d-reveal.html",
+      "bytes": 98275,
+      "sha256": "b4abfd36e12f787756fcb6acfa86235a278853bf857858a946118da0bd8e124e"
+    }
+  ]
+}

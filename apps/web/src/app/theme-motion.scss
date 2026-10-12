@@ -9,7 +9,8 @@
   stroke-linejoin: round;
   transition: transform 180ms ease;
 }
-.theme-toggle:active .theme-glyph {
+.theme-toggle:active .theme-glyph,
+.map-theme-toggle:active .theme-glyph {
   transform: scale(0.86);
 }
 .theme-moon,
@@ -44,6 +45,29 @@ html[data-theme='dark'] {
   .theme-rays {
     stroke-dashoffset: 3;
   }
+}
+
+.map-theme-toggle[aria-pressed='false'] .theme-moon {
+  opacity: 0;
+  transform: rotate(75deg) scale(0.25);
+}
+.map-theme-toggle[aria-pressed='false'] .theme-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+.map-theme-toggle[aria-pressed='false'] .theme-rays {
+  stroke-dashoffset: 0;
+}
+.map-theme-toggle[aria-pressed='true'] .theme-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+.map-theme-toggle[aria-pressed='true'] .theme-sun {
+  opacity: 0;
+  transform: rotate(-65deg) scale(0.3);
+}
+.map-theme-toggle[aria-pressed='true'] .theme-rays {
+  stroke-dashoffset: 3;
 }
 
 html[data-theme-motion='reveal'] {
@@ -105,7 +129,8 @@ html[data-theme-motion='fade']
     .category-shortcut,
     .category-option,
     .search-submit,
-    .theme-toggle
+    .theme-toggle,
+    .map-theme-toggle
   ) {
   transition-property: background-color, color, border-color, box-shadow;
   transition-duration: 420ms;

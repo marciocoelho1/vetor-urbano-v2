@@ -1,0 +1,537 @@
+{
+  "schema_version": "1.0",
+  "status": "final",
+  "category": "kinetic-type",
+  "duration_s": 15,
+  "fps": 60,
+  "canvas": {
+    "w": 1920,
+    "h": 1080,
+    "aspect": "16:9"
+  },
+  "style": "Minimalismo editorial cinematográfico; contraste entre Manrope e Newsreader; movimento veloz e legível com um vetor verde contínuo, um mergulho cartográfico em perspectiva e um único capítulo escuro. Sério, acolhedor e acessível ao público geral.",
+  "palette": [
+    "#f7f8fa",
+    "#f4f1ea",
+    "#252c36",
+    "#24765b",
+    "#8fd7b6",
+    "#10151b",
+    "#ffffff",
+    "#dde1e6"
+  ],
+  "font": "Manrope + Newsreader (WOFF2 locais aprovados na v2)",
+  "beats": [
+    0,
+    0.46875,
+    0.9375,
+    1.40625,
+    1.875,
+    2.34375,
+    2.8125,
+    3.28125,
+    3.75,
+    4.21875,
+    4.6875,
+    5.15625,
+    5.625,
+    6.09375,
+    6.5625,
+    7.03125,
+    7.5,
+    7.96875,
+    8.4375,
+    8.90625,
+    9.375,
+    9.84375,
+    10.3125,
+    10.78125,
+    11.25,
+    11.71875,
+    12.1875,
+    12.65625,
+    13.125,
+    13.59375,
+    14.0625,
+    14.53125,
+    15
+  ],
+  "beat_unit": "seconds",
+  "tempo_bpm": 128,
+  "export": "mp4",
+  "asset_needs": [],
+  "shot_brief": "Um ponto verde desperta numa página clara. Ele desenha o sublinhado da cidade, atravessa palavras editoriais e abre um território abstrato em perspectiva: distância, tema e tempo aparecem como maneiras de organizar a leitura. Os pontos dispersos encontram alinhamento, a peça muda para um plano escuro por um único movimento de cobertura e a frase 'Menos ruído. Mais contexto.' ganha o máximo contraste. O mesmo vetor volta ao claro e assenta no nome Vetor Urbano. A câmera muda de verbo — aproxima, gira, afasta, fixa — enquanto as informações permanecem curtas e inteligíveis. Sem narração, sem acontecimentos reais ou capacidades futuras.",
+  "framework": {
+    "selected": "HyperFrames 0.8.150 + GSAP (local)",
+    "alternative": "Remotion",
+    "rationale": "A entrega é dirigida por tipografia, SVG e perspectivas CSS; HyperFrames oferece um contrato de seek e o catálogo de movimentos, sem exigir um segundo projeto React. Remotion seria útil para alto volume de variantes parametrizadas, mas traz estrutura adicional sem ganho concreto nesta peça autoral de 15 s.",
+    "fps_note": "60 fps é a saída preferida para fluidez das trajetórias; duração final deve ser exatamente 15,000 s e 900 quadros."
+  },
+  "block": "caption-editorial-emphasis",
+  "customize": {
+    "fonts": {
+      "body": "Manrope",
+      "display": "Newsreader"
+    },
+    "palette": "tokens da v2 com papel aquecido #f4f1ea em momentos editoriais",
+    "width": 1920,
+    "height": 1080,
+    "remove": [
+      "glow excessivo",
+      "shake de câmera",
+      "flicker",
+      "glitch",
+      "URLs fictícias",
+      "CTA comercial",
+      "estatísticas não demonstradas"
+    ],
+    "entrances": "word_reveal por máscaras com power4.out, 0,35–0,55 s; texto deve atingir leitura até 0,5 s",
+    "emphasis": "Newsreader regular nos verbos e benefícios; contraste de tamanho e uma inclinação máxima de 2° na entrada, sem exigir arquivo itálico novo"
+  },
+  "content": {
+    "block": "caption-editorial-emphasis",
+    "customize": {
+      "copy": "pt-BR",
+      "font": "Manrope",
+      "emphasis_font": "Newsreader",
+      "bg": "#f4f1ea",
+      "ink": "#252c36",
+      "accent": "#24765b"
+    },
+    "registry_reuse": [
+      {
+        "id": "caption-editorial-emphasis",
+        "kind": "component",
+        "role": "Sistema dual-font da abertura, entendimento e frase de benefício.",
+        "customize": "Fontes locais, pesos 400/600/700, verdes da v2, entradas mascaradas rápidas; sem caixas repetidas."
+      },
+      {
+        "id": "ui-3d-reveal",
+        "kind": "block",
+        "role": "Mecânica da cartografia plana em perspectiva.",
+        "customize": "Trocar todo UI de exemplo por mapa abstrato inline SVG, adaptar para um único plano 1450×700, sem smartphone/window frame e sem conteúdo real."
+      },
+      {
+        "id": "arc-motion-path",
+        "kind": "component",
+        "role": "O ponto conduz a linha entre tipografia e cartografia.",
+        "customize": "Trajetória SVG autoral, via local GSAP MotionPath caso o bloco exija; sem network. Caso plugin indisponível, parâmetro do path derivado exclusivamente do tempo."
+      },
+      {
+        "id": "marker-highlight",
+        "kind": "component",
+        "role": "Um traço sublinha 'acontece' e 'contexto'.",
+        "customize": "Stroke limpo verde; nenhum aspecto de caneta amarela/grunge/boil; o traço termina num ponto real."
+      },
+      {
+        "id": "logo-brand-close",
+        "kind": "component",
+        "role": "Wordmark final com assentamento calmo.",
+        "customize": "Texto Vetor Urbano em Manrope ou identidade textual local; linha-vetor como acento e tagline em Newsreader; sem ponto comercial/url/pill; hold totalmente estático ≥1,3 s."
+      }
+    ],
+    "hand_authored_gaps": [
+      {
+        "role": "Cartografia abstrata não territorial",
+        "why": "Os resultados de mapas são bases dos EUA/mundo/Espanha. Nenhum representa o universo local ou a geometria abstrata pedida. Desenho autoral de vias/coastline evita inferir cobertura.",
+        "rule": "svg-path-draw; 3d-camera-flight"
+      },
+      {
+        "role": "Alinhamento das ocorrências fictícias em vetor",
+        "why": "Os blocos de path fornecem linhas/arcos; nenhum transforma o conjunto de pontos da cartografia no motivo editorial contínuo.",
+        "rule": "center-outward-expansion invertido com destinos determinísticos"
+      }
+    ],
+    "scenes": [
+      {
+        "id": "hook",
+        "start": 0,
+        "end": 2.34375,
+        "text": "A cidade acontece.",
+        "emphasis_words": [
+          "acontece"
+        ],
+        "emotion": "Curiosidade tranquila; confiança imediata.",
+        "motion": "Ponto → linha. Entrada mascarada de 'A cidade' de baixo (48 px), 'acontece.' em Newsreader surge com 70 px e leve rotação 2→0°. Sublinhado autoral desenhado; deslocamento sutil da câmera, não pulsação. O ponto termina à direita da frase.",
+        "beats": [
+          0,
+          0.46875,
+          1.40625,
+          1.875
+        ],
+        "layout": {
+          "background": "#f4f1ea",
+          "headline": {
+            "x": 215,
+            "y": 280,
+            "w": 1490,
+            "h": 480,
+            "lines": [
+              "A cidade",
+              "acontece."
+            ],
+            "font_sizes": [
+              156,
+              196
+            ],
+            "align": "left"
+          },
+          "kicker": {
+            "x": 220,
+            "y": 174,
+            "text": "VETOR URBANO · UM NOVO OLHAR",
+            "font_size": 23
+          },
+          "motif": "Dot r=12 abre em x218,y772; linha curva limpa 8 px passa sob a palavra e termina x1480,y745."
+        },
+        "timing": {
+          "first_readable": 0.42,
+          "full_readable": 0.72,
+          "hold_until": 1.9,
+          "exit_start": 1.93,
+          "exit_duration": 0.41
+        },
+        "transition_out": "Match cut no ponto de chegada + máscara horizontal guiada pela linha. A tipografia acelera para cima no fim; ponto e linha permanecem ancorados."
+      },
+      {
+        "id": "understand",
+        "start": 2.34375,
+        "end": 4.6875,
+        "text": "Entenda o que muda.",
+        "emphasis_words": [
+          "Entenda",
+          "muda"
+        ],
+        "emotion": "Convite, leveza editorial.",
+        "motion": "A linha anterior se curva como vetor e atravessa um recorte entre as duas linhas. 'Entenda' aterra em Newsreader, 'o que muda.' cresce com Manrope numa composição assimétrica. Um arco grande fino e um pequeno ponto fazem contraponto. A linha entra na profundidade, preparando o mergulho cartográfico.",
+        "beats": [
+          2.34375,
+          2.8125,
+          3.28125,
+          4.21875
+        ],
+        "layout": {
+          "background": "#f7f8fa",
+          "headline": {
+            "x": 220,
+            "y": 260,
+            "w": 1410,
+            "h": 470,
+            "lines": [
+              "Entenda",
+              "o que muda."
+            ],
+            "font_sizes": [
+              174,
+              132
+            ],
+            "align": "left"
+          },
+          "motif": "Arco verde tangente à região x1330,y540; ponto passa de x1480,y745 para x1080,y610."
+        },
+        "timing": {
+          "first_readable": 2.65,
+          "full_readable": 2.93,
+          "hold_until": 4.03,
+          "exit_start": 4.11,
+          "exit_duration": 0.57
+        },
+        "transition_out": "O plano cartográfico nasce no ponto, vem da profundidade e inclina; a saída do texto segue a mesma diagonal. Evitar um corte genérico fade."
+      },
+      {
+        "id": "place",
+        "start": 4.6875,
+        "end": 7.03125,
+        "text": "Localização",
+        "emphasis_words": [
+          "Localização"
+        ],
+        "emotion": "Orientação; os sinais encontram lugar.",
+        "motion": "O mesmo vetor desenha vias abstratas num plano em perspectiva. Camera tilt→flatten, 48→16°, z −220→0, rotationZ −6→−2°. Pequenos pontos de dados fictícios aparecem com 0,025 s de stagger limitado a 0,45 s. Um raio de consulta limpo se expande do ponto central; a linha se ancora no centro do raio. Headline permanece plana no espaço da tela e lê 'Localização'.",
+        "beats": [
+          4.6875,
+          5.15625,
+          5.625,
+          6.09375,
+          6.5625
+        ],
+        "layout": {
+          "background": "#f4f1ea",
+          "headline": {
+            "x": 150,
+            "y": 115,
+            "w": 650,
+            "h": 120,
+            "font_sizes": [
+              72
+            ],
+            "align": "left"
+          },
+          "plane": {
+            "x": 240,
+            "y": 290,
+            "w": 1450,
+            "h": 620
+          },
+          "legend": {
+            "x": 150,
+            "y": 932,
+            "text": "Visualização demonstrativa · dados fictícios",
+            "font_size": 26
+          },
+          "radius_label": {
+            "x": 1360,
+            "y": 250,
+            "text": "1.000 m",
+            "font_size": 32
+          }
+        },
+        "timing": {
+          "first_readable": 4.97,
+          "full_readable": 5.18,
+          "map_hold_start": 5.55,
+          "hold_until": 6.65
+        },
+        "transition_out": "A câmera gira suavemente na mesma cartografia, do raio para a faixa de filtros; não reconstruir mapa nem trocar para sequência de cartões."
+      },
+      {
+        "id": "filters",
+        "start": 7.03125,
+        "end": 9.375,
+        "text": "Categoria · Período",
+        "emphasis_words": [
+          "Categoria",
+          "Período"
+        ],
+        "emotion": "Clareza; organizar em vez de alarmar.",
+        "motion": "Cartografia fica quase frontal. O rótulo 'Categoria' e chips Trânsito, Segurança e Contingência surgem no canto superior em um único gesto limpo. Seleção verde de Trânsito: somente o subconjunto correspondente fica brilhante, demais pontos atenuam. Em seguida 'Período' + 'Últimos 7 dias' aparece em uma régua curta com três marcas. Tempo atua por preenchimento contínuo, sem contador de ocorrências. Tudo cabe em um campo cartográfico amplo; o vetor prepara o alinhamento dos pontos para a próxima frase.",
+        "beats": [
+          7.03125,
+          7.5,
+          7.96875,
+          8.4375,
+          8.90625
+        ],
+        "layout": {
+          "background": "#f7f8fa",
+          "headline": {
+            "x": 150,
+            "y": 114,
+            "w": 1220,
+            "h": 120,
+            "font_sizes": [
+              72
+            ],
+            "align": "left"
+          },
+          "plane": {
+            "x": 225,
+            "y": 278,
+            "w": 1470,
+            "h": 590
+          },
+          "category_filters": {
+            "x": 170,
+            "y": 245,
+            "font_size": 32,
+            "labels": [
+              "Trânsito",
+              "Segurança",
+              "Contingência"
+            ]
+          },
+          "period": {
+            "x": 1280,
+            "y": 150,
+            "font_size": 28,
+            "label": "Últimos 7 dias"
+          },
+          "legend": {
+            "x": 150,
+            "y": 932,
+            "text": "Visualização demonstrativa · dados fictícios",
+            "font_size": 26
+          }
+        },
+        "timing": {
+          "category_readable": 7.42,
+          "category_hold_until": 8.87,
+          "period_readable": 7.99,
+          "period_hold_until": 8.87,
+          "collapse_start": 8.9,
+          "collapse_end": 9.37
+        },
+        "transition_out": "Pontos caem sobre uma linha horizontal verde em x210–1710,y540; uma forma escura vinculada à linha cobre a tela em 0,40 s. Sem flashes ou estrobo."
+      },
+      {
+        "id": "context",
+        "start": 9.375,
+        "end": 12.1875,
+        "text": "Menos ruído. Mais contexto.",
+        "emphasis_words": [
+          "contexto"
+        ],
+        "emotion": "Benefício claro e confiante; clímax visual.",
+        "motion": "Um único capítulo escuro. 'Menos ruído.' em Manrope claro entra da esquerda; 'Mais contexto.' em Newsreader mint ocupa a linha inferior e ganha maior escala. A linha-vetor fina dissolve os pontinhos restantes e faz um sublinhado sob 'contexto'. A entrada é firme e rápida, seguida de 1,3 s de leitura. No fim, o ponto guia uma abertura diagonal clara de 0,55 s para o lockup.",
+        "beats": [
+          9.375,
+          9.84375,
+          10.3125,
+          11.25,
+          11.71875
+        ],
+        "layout": {
+          "background": "#10151b",
+          "headline": {
+            "x": 215,
+            "y": 250,
+            "w": 1510,
+            "h": 480,
+            "lines": [
+              "Menos ruído.",
+              "Mais contexto."
+            ],
+            "font_sizes": [
+              133,
+              172
+            ],
+            "align": "left",
+            "colors": [
+              "#f7f8fa",
+              "#8fd7b6"
+            ]
+          },
+          "motif": "Traço mint 7 px sob contexto; 5 pontos atenuados são recolhidos sobre esse traço."
+        },
+        "timing": {
+          "first_readable": 9.68,
+          "full_readable": 10.04,
+          "hold_until": 11.55,
+          "exit_start": 11.62,
+          "exit_duration": 0.5675
+        },
+        "transition_out": "Mint line → abertura diagonal de papel. Cobertura gradual e uma única inversão claro/escuro, sem flash."
+      },
+      {
+        "id": "resolve",
+        "start": 12.1875,
+        "end": 15,
+        "text": "Vetor Urbano\nA cidade, em perspectiva.",
+        "emphasis_words": [
+          "Vetor Urbano"
+        ],
+        "emotion": "Assinatura; confiança e serenidade.",
+        "motion": "Vetor nasce da linha anterior e assenta num símbolo SVG existente na aplicação, junto da marca textual. Wordmark por palavras com 0,08 s de stagger, power4.out; tagline fica legível em 0,4 s. Nenhuma oscilação no hold final. O brilho residual do ponto desaparece antes de 13,65 s.",
+        "beats": [
+          12.1875,
+          12.65625,
+          13.125,
+          13.59375
+        ],
+        "layout": {
+          "background": "#f4f1ea",
+          "wordmark": {
+            "x": 440,
+            "y": 363,
+            "w": 1110,
+            "h": 150,
+            "font_size": 138,
+            "font": "Manrope",
+            "weight": 600
+          },
+          "tagline": {
+            "x": 441,
+            "y": 550,
+            "w": 1120,
+            "h": 100,
+            "font_size": 58,
+            "font": "Newsreader"
+          },
+          "symbol": {
+            "x": 290,
+            "y": 393,
+            "w": 100,
+            "h": 118
+          },
+          "footer": {
+            "x": 0,
+            "y": 950,
+            "w": 1920,
+            "h": 42,
+            "text": "Protótipo demonstrativo",
+            "font_size": 24,
+            "align": "center"
+          },
+          "motif": "A linha conecta simbolo e wordmark, sem ornamentação solta."
+        },
+        "timing": {
+          "wordmark_readable": 12.72,
+          "tagline_readable": 13.12,
+          "fully_static_from": 13.65,
+          "hold_until": 15
+        },
+        "transition_out": "Nenhuma; terminar segurando a marca."
+      }
+    ],
+    "build_requirements": {
+      "typography": "@font-face local, arquivos aprovados. Cada leitura principal ≥1 s; explicações auxiliares ≥24 px. Nada de serif itálica obtida de rede; Newsreader regular cumpre o papel editorial.",
+      "map": "SVG inline autoral, sem contornos territoriais identificáveis, nomes reais, polígonos de criminalidade, heatmaps ou geolocalização implícita. Pontos 18–24 em três categorias com posições fixas.",
+      "motion": "Compor waterfall-entry, svg-path-draw, 3d-camera-flight e spring-pop-entrance (power3.out, sem back/elastic na câmera). Transform aliases GSAP; não animar medidas de layout.",
+      "color": "Paleta da v2 preservada; #f4f1ea é adaptação editorial ao papel da referência, documentada. Verde continua organizador; sem vermelho de alerta/sirenes.",
+      "framework": "Uma timeline raiz pausada de exatamente 15 s. Cenas/subcomposições com data-start/data-duration e registro __timelines; seus clips têm lifecycle do framework. Esconder só wrappers internos.",
+      "assets": "Manrope/Newsreader e trilha WAV originais locais; não copiar áudio, marca, UI ou movimentos quadro a quadro da referência.",
+      "sound": "Trilha instrumental original 128 BPM produzida pelo parent; sync de acentos em 0/2.34375/4.6875/7.03125/9.375/12.1875. Sem narração/sirene.",
+      "verification": "Lint/check sem erros, amostras de entradas/holds/seams, legibilidade dos avisos e ausência de frames vazios. Conferir 900 frames, 15 s, 1080p, 60 fps e áudio AAC.",
+      "publication": "Somente MP4 e fontes editáveis no projeto local. Nenhuma publicação externa."
+    }
+  },
+  "catalog_queries": [
+    {
+      "query": "editorial kinetic typography",
+      "tier": "words",
+      "picked": [
+        "caption-editorial-emphasis"
+      ]
+    },
+    {
+      "query": "abstract map paths",
+      "tier": "words",
+      "picked": [],
+      "limitation": "resultados territoriais reais inadequados para esta cartografia abstrata; hand-authored gap"
+    },
+    {
+      "query": "3D perspective floating cards",
+      "tier": "words",
+      "picked": [
+        "ui-3d-reveal"
+      ]
+    },
+    {
+      "query": "SVG line draw path",
+      "tier": "words",
+      "picked": [
+        "arc-motion-path"
+      ]
+    },
+    {
+      "query": "stroke draw on SVG outline",
+      "tier": "words",
+      "picked": [
+        "marker-highlight"
+      ]
+    },
+    {
+      "query": "logo brand close",
+      "tier": "words",
+      "picked": [
+        "logo-brand-close"
+      ]
+    }
+  ],
+  "brand_asset": {
+    "source": "apps/web/src/app/app.html",
+    "viewBox": "0 0 32 38",
+    "path": "M3 11 12 3h5v31h-6L2 15m14 19h4L30 8",
+    "decision": "Reutilizar o símbolo atual, sem redesenho da marca."
+  }
+}

@@ -73,7 +73,7 @@ test('loads local typefaces, preserves v1 preferences and fits desktop and mobil
   await page.getByTestId('filter-panel-toggle').click();
   expect(await page.evaluate(() => localStorage.getItem('vu.filtersCollapsed'))).toBe('false');
   expect(await page.evaluate(() => localStorage.getItem('vu2.filtersCollapsed'))).toBe('true');
-  for (const width of [1440, 1280, 768, 390, 320]) {
+  for (const width of [2560, 1920, 1440, 1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -86,7 +86,7 @@ test('loads local typefaces, preserves v1 preferences and fits desktop and mobil
       Math.abs(
         frame!.width -
           content!.width +
-          (width > 1200 ? 96 : width > 560 ? 56 : width > 360 ? 40 : 28),
+          (width > 1200 ? 64 : width > 560 ? 56 : width > 360 ? 16 : 4),
       ),
     ).toBeLessThan(3);
     if (width === 1440 || width === 390)
@@ -153,4 +153,299 @@ test('shows comparison selections that match the calculation when options are cr
     '2026-08',
   );
   await expect(page.locator('.comparison-result')).toContainText('diferença B−A: 3');
+});
+
+test('keeps map controls inside the larger map and aligns the compact radius bar', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  for (const width of [1440, 1024, 768, 560, 390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    const bounds = await page.evaluate(() => {
+      const box = (selector: string) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return {
+          x: r.x,
+          y: r.y,
+          width: r.width,
+          height: r.height,
+          right: r.right,
+          bottom: r.bottom,
+        };
+      };
+      return {
+        frame: box('.map-frame'),
+        radius: box('.map-radius-bar'),
+        filters: box('.map-filter-toggle'),
+        actions: box('.map-top-actions'),
+        quick: box('.quick-filters'),
+        theme: box('.map-theme-toggle'),
+        expand: box('.map-expand-toggle'),
+      };
+    });
+    expect(bounds.frame.height).toBeGreaterThanOrEqual(540);
+    expect(
+      Math.abs(bounds.radius.x + bounds.radius.width / 2 - bounds.frame.x - bounds.frame.width / 2),
+    ).toBeLessThan(1);
+    expect(bounds.radius.height).toBe(44);
+    expect(bounds.theme.height).toBe(44);
+    expect(bounds.expand.height).toBe(44);
+    expect(bounds.radius.y).toBe(bounds.actions.y);
+    expect(bounds.filters.right).toBeLessThanOrEqual(bounds.radius.x);
+    expect(bounds.radius.right).toBeLessThanOrEqual(bounds.actions.x);
+    for (const control of [bounds.radius, bounds.filters, bounds.actions, bounds.quick]) {
+      expect(control.x).toBeGreaterThan(bounds.frame.x);
+      expect(control.right).toBeLessThan(bounds.frame.right);
+      expect(control.y).toBeGreaterThan(bounds.frame.y);
+      expect(control.bottom).toBeLessThan(bounds.frame.bottom);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.getByTestId('filter-panel-toggle').click();
+    await expect(page.locator('#map-filter-panel')).toBeVisible();
+    const panel = await page.locator('#map-filter-panel').boundingBox();
+    expect(panel!.y).toBeGreaterThan(bounds.radius.bottom);
+    expect(panel!.y + panel!.height).toBeLessThan(bounds.quick.y);
+    await page.getByRole('button', { name: 'Fechar filtros e camadas' }).click();
+    await expect(page.getByTestId('filter-panel-toggle')).toBeFocused();
+  }
+});
+
+test('uses filters and radius in the expanded map with keyboard and preserves its instance', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await page.evaluate(() => {
+    const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+    (window as any).__layoutMap = app.fallbackMap;
+    (window as any).__layoutCenter = app.fallbackMap.getCenter();
+  });
+  await page.getByTestId('map-expand-toggle').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByTestId('filter-panel-toggle').click();
+  await page.getByRole('checkbox', { name: 'Segurança', exact: true }).check();
+  await expect(page.locator('.overview-metric strong')).toHaveText(['50', '25', '25', '0']);
+  await page.getByLabel('Período da consulta').selectOption('custom');
+  const start = page.getByLabel('Início (horário de Brasília)', { exact: true });
+  await expect(start).toBeFocused();
+  const end = page.getByLabel('Fim (horário de Brasília; exclusivo)');
+  // Native datetime inputs have several segments in Chromium; Tab visits those first.
+  for (let segment = 0; segment < 12; segment++) {
+    await page.keyboard.press('Tab');
+    if (await end.evaluate((input) => input === document.activeElement)) break;
+  }
+  await expect(end).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#map-filter-panel')).toBeHidden();
+  await expect(page.getByTestId('filter-panel-toggle')).toBeFocused();
+  await page.getByLabel('Período da consulta').selectOption('1m');
+  await page.getByLabel('Filtrar por raio').check();
+  await expect(page.locator('#map-radius-options')).toBeVisible();
+  await page.locator('#map-radius-slider').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#map-radius-slider')).toHaveValue('1100');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#map-radius-options')).toBeHidden();
+  await expect(page.getByLabel('Filtrar por raio')).toBeChecked();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(
+    await page.evaluate(() => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      return (
+        app.fallbackMap === (window as any).__layoutMap &&
+        app.fallbackMap.getCenter().equals((window as any).__layoutCenter)
+      );
+    }),
+  ).toBe(true);
+});
+
+test('fits expanded controls in a 320 px viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto('/');
+  await page.getByTestId('map-expand-toggle').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const radius = (await page.locator('.map-radius-bar').boundingBox())!;
+  const actions = (await page.locator('.map-top-actions').boundingBox())!;
+  expect(radius.x + radius.width).toBeLessThanOrEqual(actions.x);
+  await page.getByLabel('Filtrar por raio').check();
+  await page.locator('.map-radius-coordinates summary').click();
+  const options = page.locator('#map-radius-options');
+  await expect(options).toBeVisible();
+  await page.getByLabel('Latitude', { exact: true }).focus();
+  await page.keyboard.press('Tab');
+  expect(
+    await page.evaluate(() =>
+      document.querySelector('.map-frame.map-expanded')!.contains(document.activeElement),
+    ),
+  ).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('uses the available width across views and arranges results in responsive cards', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/');
+  await page.evaluate(() => document.fonts.ready);
+  for (const selector of [
+    'body',
+    '.map-search-control input',
+    '.record-copy span',
+    '.leaflet-container',
+  ]) {
+    expect(
+      await page
+        .locator(selector)
+        .first()
+        .evaluate((node) => getComputedStyle(node).fontFamily),
+    ).toContain('Manrope');
+  }
+  for (const selector of ['h1', '#results-heading', '.record-copy strong']) {
+    expect(
+      await page
+        .locator(selector)
+        .first()
+        .evaluate((node) => getComputedStyle(node).fontFamily),
+    ).toContain('Newsreader');
+  }
+  for (const width of [2560, 1920, 1280, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1080 });
+    const cards = page.locator('.result-list > li');
+    const first = (await cards.nth(0).boundingBox())!;
+    const second = (await cards.nth(1).boundingBox())!;
+    if (width >= 768) {
+      expect(second.y).toBe(first.y);
+      expect(second.x).toBeGreaterThan(first.x + first.width);
+    } else {
+      expect(second.x).toBe(first.x);
+      expect(second.y).toBeGreaterThan(first.y + first.height);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.locator('[data-result-detail-toggle]').first().click();
+  await expect(page.locator('.result-inline-detail')).toHaveCount(1);
+  const detail = (await page.locator('.result-inline-detail').boundingBox())!;
+  const card = (await page.locator('.result-list > li').first().boundingBox())!;
+  expect(detail.x).toBeGreaterThan(card.x);
+  expect(detail.x + detail.width).toBeLessThan(card.x + card.width);
+  for (const name of [
+    'Informes ativos',
+    'Histórico',
+    'Relatórios',
+    'Fontes',
+    'Registrar ocorrência',
+  ]) {
+    await page.getByRole('button', { name, exact: true }).click();
+    const view = page
+      .locator(name === 'Registrar ocorrência' ? '.report-form' : '.workspace-view')
+      .filter({ visible: true });
+    expect((await view.boundingBox())!.width).toBeGreaterThan(1800);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+});
+
+test('resizes the topic panel by edges and corner without moving the map, with keyboard and responsive limits', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await page.getByTestId('filter-panel-toggle').click();
+  const panel = page.locator('#map-filter-panel');
+  const original = (await panel.boundingBox())!;
+  const mapState = await page.evaluate(() => {
+    const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+    (window as any).__resizedMap = app.fallbackMap;
+    const center = app.fallbackMap.getCenter();
+    return { lat: center.lat, lng: center.lng, zoom: app.fallbackMap.getZoom() };
+  });
+  const drag = async (selector: string, dx: number, dy: number) => {
+    await page.locator(selector).scrollIntoViewIfNeeded();
+    const handle = (await page.locator(selector).boundingBox())!;
+    await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+    await page.mouse.down();
+    const viewport = page.viewportSize()!;
+    await page.mouse.move(
+      Math.max(1, Math.min(viewport.width - 1, handle.x + handle.width / 2 + dx)),
+      Math.max(1, Math.min(viewport.height - 1, handle.y + handle.height / 2 + dy)),
+      { steps: 8 },
+    );
+    await page.mouse.up();
+    await expect(panel).not.toHaveClass(/is-resizing/);
+  };
+  await drag('.resize-width', 180, 0);
+  let box = (await panel.boundingBox())!;
+  expect(box.width).toBeCloseTo(original.width + 180, 0);
+  expect(box.height).toBeCloseTo(original.height, 0);
+  await drag('.resize-height', 0, -100);
+  box = (await panel.boundingBox())!;
+  expect(box.height).toBeCloseTo(original.height - 100, 0);
+  await drag('.resize-corner', 60, 40);
+  box = (await panel.boundingBox())!;
+  expect(box.width).toBeCloseTo(original.width + 240, 0);
+  expect(box.height).toBeCloseTo(original.height - 60, 0);
+  await page.locator('.resize-corner').focus();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowUp');
+  box = (await panel.boundingBox())!;
+  expect(box.width).toBeCloseTo(original.width + 216, 0);
+  expect(box.height).toBeCloseTo(original.height - 84, 0);
+  await page.keyboard.press('Home');
+  box = (await panel.boundingBox())!;
+  expect(box.width).toBe(original.width);
+  expect(box.height).toBeCloseTo(original.height, 0);
+  await drag('.resize-corner', -1000, -1000);
+  box = (await panel.boundingBox())!;
+  expect(box.width).toBe(260);
+  expect(box.height).toBe(220);
+  await drag('.resize-corner', 2500, 1200);
+  box = (await panel.boundingBox())!;
+  const frame = (await page.locator('.map-frame').boundingBox())!;
+  const quick = (await page.locator('.quick-filters').boundingBox())!;
+  expect(box.x + box.width).toBeLessThan(frame.x + frame.width);
+  expect(box.y + box.height).toBeLessThan(quick.y);
+  await page.setViewportSize({ width: 768, height: 800 });
+  box = (await panel.boundingBox())!;
+  const smallerFrame = (await page.locator('.map-frame').boundingBox())!;
+  expect(box.x + box.width).toBeLessThan(smallerFrame.x + smallerFrame.width);
+  await page.getByRole('button', { name: 'Fechar filtros e camadas' }).click();
+  await expect(panel).toBeHidden();
+  await page.getByTestId('filter-panel-toggle').click();
+  await expect(panel).toBeVisible();
+  expect((await panel.boundingBox())!.width).toBe(box.width);
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator('.resize-corner')).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    const scroll = page.locator('.filter-panel-content');
+    await scroll.evaluate((node) => (node.scrollTop = node.scrollHeight));
+    expect(await scroll.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  }
+  expect(
+    await page.evaluate(() => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      return app.fallbackMap === (window as any).__resizedMap;
+    }),
+  ).toBe(true);
+  expect(
+    await page.evaluate(() => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      const center = app.fallbackMap.getCenter();
+      return { lat: center.lat, lng: center.lng, zoom: app.fallbackMap.getZoom() };
+    }),
+  ).toEqual(mapState);
 });

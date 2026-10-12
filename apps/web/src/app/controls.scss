@@ -392,6 +392,7 @@ app-root {
   }
   .map-tool-button,
   .map-expand-toggle,
+  .map-theme-toggle,
   .search-clear,
   .inline-retry {
     min-height: 40px;
@@ -407,17 +408,45 @@ app-root {
   }
   .map-tool-button:hover,
   .map-expand-toggle:hover,
+  .map-theme-toggle:hover,
   .search-clear:hover,
   .inline-retry:hover {
     border-color: var(--accent);
     background: var(--color-bg-surface);
   }
-  .map-expand-toggle {
+  .map-top-controls {
     position: absolute;
     z-index: 800;
     top: 12px;
-    right: 58px;
-    min-height: 38px;
+    right: 48px;
+    left: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .map-top-controls > * {
+    pointer-events: auto;
+  }
+  .map-top-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .map-theme-toggle {
+    display: grid;
+    width: 40px;
+    min-height: 40px;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 6px;
+    background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 22%);
+  }
+  .map-expand-toggle {
+    min-height: 40px;
     background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
     box-shadow: 0 2px 8px rgb(0 0 0 / 22%);
   }
@@ -431,11 +460,12 @@ app-root {
     border-radius: 10px;
     box-shadow: 0 0 0 9999px rgb(5 7 9 / 84%);
   }
-  .map-frame.map-expanded .map-expand-toggle {
+  .map-frame.map-expanded .map-top-controls {
     position: fixed;
     z-index: 1100;
     top: 16px;
-    right: 66px;
+    right: 60px;
+    left: 16px;
   }
   .result-total {
     display: flex;
@@ -1078,19 +1108,32 @@ app-root {
       min-height: 40px;
     }
 
+    .map-top-controls {
+      right: 48px;
+      gap: 4px;
+    }
+    .map-top-actions {
+      gap: 4px;
+    }
+    .map-theme-toggle {
+      width: 36px;
+      min-height: 40px;
+      padding: 5px;
+    }
     .map-expand-toggle {
-      right: 54px;
-      max-width: calc(100% - 106px);
-      padding-inline: 8px;
-      font-size: 0.63rem;
+      max-width: none;
+      padding-inline: 7px;
+      font-size: 0.61rem;
+      white-space: nowrap;
     }
     .map-frame.map-expanded {
       inset: 6px;
       min-height: 0;
     }
-    .map-frame.map-expanded .map-expand-toggle {
+    .map-frame.map-expanded .map-top-controls {
       top: 10px;
-      right: 56px;
+      right: 58px;
+      left: 10px;
     }
     .map-frame {
       height: 46vh;
@@ -1159,7 +1202,7 @@ app-root {
     *::before,
     *::after {
       scroll-behavior: auto !important;
-      transition-duration: 0.01ms !important;
+      transition: none !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
     }

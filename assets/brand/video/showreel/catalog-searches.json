@@ -1,0 +1,46 @@
+{
+  "source": "Director Part 2",
+  "queries": [
+    {
+      "query": "editorial kinetic typography",
+      "tier": "words",
+      "picked": [
+        "caption-editorial-emphasis"
+      ]
+    },
+    {
+      "query": "abstract map paths",
+      "tier": "words",
+      "picked": [],
+      "limitation": "resultados territoriais reais inadequados para esta cartografia abstrata; hand-authored gap"
+    },
+    {
+      "query": "3D perspective floating cards",
+      "tier": "words",
+      "picked": [
+        "ui-3d-reveal"
+      ]
+    },
+    {
+      "query": "SVG line draw path",
+      "tier": "words",
+      "picked": [
+        "arc-motion-path"
+      ]
+    },
+    {
+      "query": "stroke draw on SVG outline",
+      "tier": "words",
+      "picked": [
+        "marker-highlight"
+      ]
+    },
+    {
+      "query": "logo brand close",
+      "tier": "words",
+      "picked": [
+        "logo-brand-close"
+      ]
+    }
+  ]
+}
