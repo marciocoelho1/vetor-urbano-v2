@@ -147,7 +147,7 @@ describe('Vetor Urbano', () => {
     expect(fixture.nativeElement.querySelector('.map-layout').classList).toContain(
       'filters-collapsed',
     );
-    expect(localStorage.getItem('vu.filtersCollapsed')).toBe('true');
+    expect(localStorage.getItem('vu2.filtersCollapsed')).toBe('true');
 
     const expandToggle = fixture.nativeElement.querySelector('[data-testid="map-expand-toggle"]');
     expandToggle.click();
@@ -243,11 +243,11 @@ describe('Vetor Urbano', () => {
   });
 
   it('keeps the report form hidden until one category is chosen', () => {
-    fixture.nativeElement.querySelector('button.nav-link:nth-child(2)').click();
+    fixture.nativeElement.querySelector('button.nav-register').click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="report-details"]')).toBeNull();
 
-    fixture.nativeElement.querySelector('[data-category="SEGURANCA"]').click();
+    fixture.nativeElement.querySelector('.category-option[data-category="SEGURANCA"]').click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[data-testid="report-details"]')).not.toBeNull();
@@ -345,9 +345,9 @@ describe('Vetor Urbano', () => {
   });
 
   it('rejects empty coordinates and makes clear that the demonstration never sends a report', () => {
-    fixture.nativeElement.querySelector('button.nav-link:nth-child(2)').click();
+    fixture.nativeElement.querySelector('button.nav-register').click();
     fixture.detectChanges();
-    fixture.nativeElement.querySelector('[data-category="TRANSITO"]').click();
+    fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
     fixture.detectChanges();
 
     const app = fixture.componentInstance as unknown as {
@@ -715,7 +715,7 @@ describe('Vetor Urbano', () => {
     app.savedSearchName.set('Manhã no Centro');
     app.saveCurrentSearchFromInsights();
 
-    const saved = JSON.parse(localStorage.getItem('vu.savedSearches') ?? '[]') as Record<
+    const saved = JSON.parse(localStorage.getItem('vu2.savedSearches') ?? '[]') as Record<
       string,
       unknown
     >[];

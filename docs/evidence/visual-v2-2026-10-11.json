@@ -1,0 +1,170 @@
+{
+  "checked_at": "2026-10-11T21:52:43.897610-03:00",
+  "source_snapshot_sha": "311875a9e1bf6d9c97f43d304919ad4dd3aa8797",
+  "destination": "https://github.com/marciocoelho1/vetor-urbano-v2",
+  "local_copy": ".worktrees/vetor-urbano-v2",
+  "branch": "main",
+  "authorized_scope": "Alternativa visual frontend para comparar com a v1; copiar histórico e enviar ao repositório indicado.",
+  "fonts": {
+    "headings": "Newsreader",
+    "interface": "Manrope",
+    "decision": "Alternativa gratuita à Mori aprovada pelo responsável, sem preparação de Mori.",
+    "format": "WOFF2 local, Latin e Latin Extended",
+    "license": "SIL OFL 1.1; arquivos de licença locais"
+  },
+  "dependency_added": {
+    "gsap": "3.15.0",
+    "loading": "dynamic import",
+    "raw_lazy_chunk_kb": 71.29,
+    "motion": "Contexto revertido por navegação/destruição e prefers-reduced-motion"
+  },
+  "verification": [
+    {
+      "command": "npm ci",
+      "exit_code": 0,
+      "packages_audited": 293,
+      "vulnerabilities": 0
+    },
+    {
+      "command": "bash scripts/verify.sh web",
+      "exit_code": 0,
+      "unit_tests": 56,
+      "unit_test_files": 4,
+      "skipped": 0,
+      "production_initial_kb": 456.34,
+      "warnings": 0,
+      "limits_changed": false
+    },
+    {
+      "command": "npm run test:e2e -- --workers=1",
+      "exit_code": 0,
+      "passed": 52,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ],
+      "duration": "2.3 minutes",
+      "scope": "Matriz completa, antes da correção pontual dos seletores da comparação"
+    },
+    {
+      "command": "npm run test:e2e -- visual-v2.spec.ts --grep 'comparison selections' --workers=1",
+      "exit_code": 0,
+      "passed": 2,
+      "skipped": 0,
+      "browsers": [
+        "chromium",
+        "firefox"
+      ],
+      "duration_seconds": 4.9,
+      "scope": "Seleção inicial, cálculo coerente e preservação da seleção ao voltar; executado após a correção e novo verify web"
+    },
+    {
+      "command": "node tools/visual-review/capture.mjs",
+      "exit_code": 0,
+      "captures": 7,
+      "javascript_errors": 0,
+      "basemap": "Alidade Bright raster real, não interceptado"
+    },
+    {
+      "command": "bash scripts/verify.sh planning",
+      "exit_code": 0,
+      "scope": "Verificação estrutural documental"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "intermediate_runs": "Uma matriz intermediária foi invalidada por reinstalação de dependências durante execução; não é usada como aceite. Nova instalação, reinício do servidor e matriz completa estável passaram. Seletores do teste adicional foram ajustados ao nome acessível de combobox, mantendo todas as expectativas.",
+  "coverage": [
+    "MapLibre WebGL2 real",
+    "Leaflet e tiles reais em Firefox/Chromium",
+    "recuperação de GPU/provedor e erro com lista alternativa",
+    "raio e pins por categoria",
+    "cadastro nas três categorias e coordenadas",
+    "detalhes inline e exportação XLSX",
+    "atalhos/indicadores/lista e intervalo/foco",
+    "fontes locais e isolamento de preferências v1",
+    "larguras 1440/1280/768/390/320",
+    "preferência dinâmica de movimento",
+    "seletores de comparação consistentes"
+  ],
+  "preserved_from_source_sha256": {
+    "apps/web/src/app/domain.ts": "2906da227856fe6e9f73f95392ff3fe33db2afc06309e3d1fd506700bf3889c5",
+    "apps/web/src/app/demo-occurrences.ts": "a4027bcf3b832356beefc05e3a708dac3cbcbcb36744817fc5716a89e6a59ff6",
+    "apps/web/src/app/urban-map-style.ts": "488e5747486059d4fa7bfd26d596ef54d0b977d22f3431325232946be65a7fee",
+    "apps/web/src/app/radius-geometry.ts": "1e09a192ebadf66c05c30dafd02c9f2b6f95b1fee8bf54decbd2d6de0fcd16b7",
+    "apps/web/src/app/source-import.ts": "e53d3b4bd1a0b9652b7c213ecffc9bbac595919f4ae5eddb5b34e3e692aaa362",
+    "apps/web/src/app/xlsx-export.ts": "328a0c885ef398038436e66497482bf1cce5820162f0e7a31fb58a3ea41b5c80",
+    "apps/web/public/maps/areas-territoriais.geojson": "8848047b48da0859a8410b11804340eecac0692e214f85a4d9def30e09797ceb",
+    "apps/web/public/maps/urban-style.json": "93358a445c444ec7646d272c11d14ecdba488901feb0a7fd123c46b9b6b1603b",
+    "apps/web/public/maps/raster-provider.json": "7f7f5659b9f1fc7d0111151fb10324b8143b4530fecf2752852858d6f6bca066",
+    "assets/brand/video/renders/vetor-urbano-15s.mp4": "9d3e8864b9815535fb8c4daa2266d44b82ac5ec594891992136e03ffa8c17840",
+    "docs/references/initial-context.md": "f0ab08af33fe0382e09b311362c13babc148ae7760cd43c1e3c7ac98d36f117e",
+    "docs/references/ui/app.html": "87811eecc9cec25587f26df467223b011db74c2c3adcb5a08d5dcaae019d770d",
+    "docs/references/ui/app.scss": "9f8a22cc88640ba39377e6850bb3587d122be5a51259da65fd28e21e99b9aa6f",
+    "docs/references/ui/styles.scss": "1f04e36acccb596e83023a8aa3ff89f0d021e93e40739386574e3b6bcc0baa9f"
+  },
+  "frozen_assets": {
+    "apps/web/public/fonts/manrope-latin-ext.woff2": {
+      "bytes": 15120,
+      "sha256": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb"
+    },
+    "apps/web/public/fonts/manrope-latin.woff2": {
+      "bytes": 24836,
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    "apps/web/public/fonts/newsreader-latin.woff2": {
+      "bytes": 132000,
+      "sha256": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101"
+    },
+    "apps/web/public/fonts/newsreader-latin-ext.woff2": {
+      "bytes": 86608,
+      "sha256": "45683de03de37187604102316c0b42c0cb2d8dc9c4140a20ad471c3148cc1278"
+    },
+    "docs/references/ui/v2/reference.png": {
+      "bytes": 1469417,
+      "sha256": "f7aea0e6711b3f15b3f9cfd6b19f3d8ebe4d07cade0717a7ed4a3a7f4bce9ba7"
+    },
+    "docs/evidence/visual-v2/v2-desktop.png": {
+      "bytes": 690521,
+      "sha256": "f9e244a0ab155f90e2ca5d7dfa5e4331bff98d69790825bcccd8604c8cbfa2f5"
+    },
+    "docs/evidence/visual-v2/v2-mobile.png": {
+      "bytes": 210522,
+      "sha256": "21bceae5707f6ef036a0cb4173533f2e214f7876d81514ef946dce15bf9ab8b8"
+    },
+    "docs/evidence/visual-v2/v2-active.png": {
+      "bytes": 60768,
+      "sha256": "01d1137198fb754222db59d5e3de18b13dc9b643e088ed15241be46081a174af"
+    },
+    "docs/evidence/visual-v2/v2-history.png": {
+      "bytes": 100317,
+      "sha256": "5c38f302783b8dcc2037e4c1f5d861aa0801198549605c1ff01fd2c15709dbd2"
+    },
+    "docs/evidence/visual-v2/v2-insights.png": {
+      "bytes": 105806,
+      "sha256": "c8b3a245806fefc010d09a144d2c7666420afa4a0e6230f0fbfba443e6cb4b2d"
+    },
+    "docs/evidence/visual-v2/v2-sources.png": {
+      "bytes": 103620,
+      "sha256": "1cee054c0c11a3ae0b919ab34e9b153180435100c36982b1db130222b1a6deb5"
+    },
+    "docs/evidence/visual-v2/v2-report.png": {
+      "bytes": 53879,
+      "sha256": "327827d9f2b2e13f04921c5b633644557a3183907a9771388bcc6a09f0689847"
+    }
+  },
+  "git_delivery": {
+    "status": "pending_commit_and_push"
+  },
+  "limits": [
+    "Dados de ocorrências fictícios; sem cobertura operacional confirmada",
+    "Sem backend, autenticação ou PostGIS executável",
+    "Sem hospedagem da aplicação",
+    "QA manual com leitor de tela e aparelho físico pendente",
+    "Provedor de mapas continua sujeito às condições existentes fora de localhost/127.0.0.1"
+  ],
+  "next_action": "Comparar as duas versões e alinhar o visual definitivo."
+}

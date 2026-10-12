@@ -1,6 +1,21 @@
-# Vetor Urbano
+# Vetor Urbano 02
 
 Aplicação demonstrativa para consulta e análise geográfica de ocorrências, com evolução possível para colaboração e alertas. Stack planejada: **Angular + SCSS, Java e PostgreSQL/PostGIS**.
+
+## Alternativa visual para comparação
+
+Esta é a versão clara inspirada na imagem fornecida: navegação horizontal, título editorial em Newsreader, mapa amplo, filtros rápidos e indicadores calculados pela consulta. Manrope é a alternativa gratuita à Mori aprovada pelo responsável. GSAP anima as entradas de tela e respeita movimento reduzido.
+
+Base preservada: `311875a` do [repositório principal](https://github.com/marciocoelho1/vetor-urbano). Esta cópia tem histórico independente em [vetor-urbano-v2](https://github.com/marciocoelho1/vetor-urbano-v2), usa a porta **4201** e preferências `vu2.*`. O visual final ainda será escolhido após comparação.
+
+[Decisões e adaptação da referência](docs/product/visual-v2.md) · [captura desktop](docs/evidence/visual-v2/v2-desktop.png) · [captura mobile](docs/evidence/visual-v2/v2-mobile.png).
+
+```bash
+npm ci --prefix apps/web
+npm start --prefix apps/web
+```
+
+Abra `http://localhost:4201`. A v1 pode continuar em `http://localhost:4200`. O envio deste código ao GitHub não inclui hospedagem da aplicação.
 
 ## Branch e continuidade
 
@@ -10,7 +25,7 @@ Requisitos e decisões atuais ficam em `docs/product/scope.md`, `docs/architectu
 
 ## Estado implementado
 
-Existe uma **demonstração frontend Angular** em `apps/web/`, derivada da identidade visual dos anexos: navegação entre mapa e cadastro, filtros acumuláveis, busca de ocorrências e áreas, painel recolhível, mapa ampliado, formulário progressivo por categoria, lista alternativa e camadas de densidade separadas. O protótipo também apresenta histórico/informes ativos, dashboard, reprodução temporal, comparação, filtros salvos, triagem manual de referências e exportação XLSX.
+Existe uma **demonstração frontend Angular** em `apps/web/`, com visual 02 documentado acima e referências originais preservadas: navegação entre mapa e cadastro, filtros acumuláveis, busca de ocorrências e áreas, painel recolhível, mapa ampliado, formulário progressivo por categoria, lista alternativa e camadas de densidade separadas. O protótipo também apresenta histórico/informes ativos, dashboard, reprodução temporal, comparação, filtros salvos, triagem manual de referências e exportação XLSX.
 
 O filtro de raio fica dentro do mapa: inicia em 1.000 m, pode ser ajustado em passos de 100 m pelo slider ou pelo scroll do mouse, entre 100 e 25.000 m e aparece como polígono roxo-claro `#C4B5FD` com preenchimento transparente. Com “Filtrar por raio” ligado, clique esquerdo muda o centro e segurar/arrastar move apenas o mapa; desligado, cliques não mudam o centro. O cálculo é local e aproximado. Períodos usam calendário e hora de Brasília; datas/horários personalizados ficam no filtro por período, com campos de intervalo em uma coluna responsiva.
 
@@ -103,7 +118,7 @@ npx playwright install firefox chromium
 npm run test:e2e
 ```
 
-Os testes E2E iniciam o servidor Angular local e exercitam MapLibre/WebGL2, Leaflet sem WebGL2 nos dois motores (tiles simulados para repetibilidade), falhas de GPU/estilo, timeout vetorial, filtros/raio/territórios, mapa inline de cadastro, detalhes, teclado e larguras de 390/320 px nos dois renderizadores. Incluem pins/popups por categoria, preservação de marcadores ao mudar o raio, início em 1 km e responsividade do intervalo. Capturas, traces e downloads ficam em `apps/web/test-results/`, excluídos do Git. Cenários separados carregam Alidade Bright raster real no mapa público/cadastro dos dois motores, sem interceptação. A matriz final passou com **44 testes/zero ignorados**; `harness frontend` passou com **56 testes e build de 449,26 kB**, sem avisos. Evidências em `PLAN.md`.
+Os testes E2E iniciam o servidor Angular local e exercitam MapLibre/WebGL2, Leaflet sem WebGL2 nos dois motores (tiles simulados para repetibilidade), falhas de GPU/estilo, timeout vetorial, filtros/raio/territórios, mapa inline de cadastro, detalhes, teclado e larguras de 390/320 px nos dois renderizadores. Incluem pins/popups por categoria, preservação de marcadores ao mudar o raio, início em 1 km e responsividade do intervalo. Capturas, traces e downloads ficam em `apps/web/test-results/`, excluídos do Git. Cenários separados carregam Alidade Bright raster real no mapa público/cadastro dos dois motores, sem interceptação. A matriz da base v1 passou com **44 testes/zero ignorados**; `harness frontend` passou com **56 testes e build de 449,26 kB**, sem avisos. Evidências herdadas em `PLAN.md`; resultados específicos da v2 em `docs/evidence/visual-v2-2026-10-11.json`.
 
 - O mapa principal depende de WebGL2. Sem WebGL2 ou com GPU por software identificada, o fallback 2D busca tiles raster pela configuração estática; ambos dependem de rede/provedor. Nos testes atuais Firefox/Chromium sem WebGL2, os tiles reais Alidade Bright retornaram HTTP 200; atribuição e seleção de coordenadas foram verificadas. Se ambos os renderizadores falharem, lista e filtros continuam acessíveis. O raio usa centro selecionável/digitável e é uma estimativa local.
 - Os exemplos de formulário não são enviados. Sem API Java, autenticação de Operador e aprovação, nenhum registro será persistido/publicado.

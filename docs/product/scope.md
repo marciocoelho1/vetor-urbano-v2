@@ -2,6 +2,10 @@
 
 Revisão: 11/10/2026. **Há um protótipo frontend demonstrativo, sem backend ou persistência.** Fonte dos requisitos originais: `docs/references/initial-context.md`; nenhum RF/RNF original foi substituído ou renumerado. A direção de produto de 06/10 permanece proposta nos demais pontos, mas a ordem agora aprovada é concluir primeiro a demonstração frontend, sem banco/API/alertas; após a validação do frontend, iniciar a fase de banco e API. A visualização mantém MapLibre e fallback Leaflet. Ajuste autorizado em 11/10/2026: base Bright vetorial personalizada/raster para aproximar a paleta solicitada e o visual da referência, com autenticação dispensada pelo provedor somente em localhost/127.0.0.1; detalhes atuais em `docs/maps/visual-reference.md`; histórico em `docs/maps/compatibility.md`. O responsável autorizou o uso demonstrativo dos polígonos e informou possuir autorização; isso não aprova publicação externa, alertas operacionais, dados reais de ocorrências ou demais pontos de escopo em aberto.
 
+## Alternativa visual 02 autorizada em 11/10/2026
+
+Neste repositório, o responsável autorizou uma atualização de UI/UX inspirada na nova imagem, mantendo as funções demonstrativas. Tema claro, navegação horizontal, Newsreader, Manrope (alternativa gratuita à Mori aprovada após esclarecimento) e GSAP; detalhes em [visual-v2.md](visual-v2.md). Não altera IDs RF/RNF, cobertura operacional ou os gates full-stack. O código será enviado a `marciocoelho1/vetor-urbano-v2` para comparação; a escolha do visual definitivo permanece aberta.
+
 ## Direção candidata para a versão 1.0 — proposta de 06/10/2026
 
 | Proposta | Avaliação | Condição / questão em aberto |

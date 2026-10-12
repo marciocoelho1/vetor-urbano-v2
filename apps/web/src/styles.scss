@@ -1,14 +1,58 @@
 @use './app/workspace';
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@use './app/controls';
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/manrope-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/manrope-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/newsreader-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/newsreader-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
-  color-scheme: dark;
-  --color-bg-base: #09090b;
-  --color-bg-surface: #18181b;
-  --color-border-subtle: #27272a;
-  --color-text-main: #f4f4f5;
-  --color-text-muted: #a1a1aa;
-  --accent: #10b981;
+  color-scheme: light;
+  --font-heading: 'Newsreader', Georgia, serif;
+  --font-interface: 'Manrope', 'Segoe UI', sans-serif;
+  --color-bg-base: #f7f8fa;
+  --color-bg-surface: #ffffff;
+  --color-border-subtle: #dde1e6;
+  --color-text-main: #252c36;
+  --color-text-muted: #626d7b;
+  --accent: #24765b;
 }
 
 *,
@@ -27,16 +71,16 @@ body {
 }
 body {
   min-height: 100dvh;
-  font-family: 'Geist', 'Segoe UI', sans-serif;
+  font-family: var(--font-interface);
   -webkit-font-smoothing: antialiased;
 }
 h1,
 h2,
 h3 {
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  font-family: var(--font-heading);
 }
 :focus-visible {
-  outline: 2px solid #6ee7b7;
+  outline: 2px solid #24765b;
   outline-offset: 3px;
 }
 
@@ -108,4 +152,31 @@ h3 {
   width: 15px;
   height: 21px;
   flex-shrink: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-interface);
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] {
+  display: none !important;
+}
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

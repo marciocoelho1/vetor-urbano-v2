@@ -88,6 +88,7 @@ async function openMainMap(page: import('@playwright/test').Page): Promise<void>
   await expect(page.locator('#map-canvas canvas.maplibregl-canvas')).toBeVisible();
   await expect(page.locator('.map-loading')).toHaveCount(0);
   await expect(page.locator('.map-fallback')).toHaveCount(0);
+  await page.getByTestId('filter-panel-toggle').click();
 }
 
 test('recovers both maps when the vector style is unavailable', async ({ page }) => {
@@ -606,6 +607,8 @@ test('uses the lazy 2D map when the browser has no WebGL2 context', async ({
   await expect(page.locator('.radius-legend-note')).toContainText('1100 m');
   await page.screenshot({ path: `test-results/${browserName}-leaflet-radius.png`, fullPage: true });
 
+  if (await page.locator('#map-filter-panel').isHidden())
+    await page.getByTestId('filter-panel-toggle').click();
   await page.locator('[data-module="territory"]').click();
   await page.locator('[data-filter="territory:CV"]').check();
   await expect(page.locator('.territory-legend-note')).toContainText('1.671 áreas carregadas');
@@ -786,6 +789,7 @@ for (const engine of ['vector', 'raster'] as const) {
     await expect(center).toHaveText(beforeDrag!);
     await page.getByLabel('Filtrar por raio').uncheck();
     await expect(page.locator('.result-list > li')).toHaveCount(25);
+    await page.getByTestId('filter-panel-toggle').click();
     await page.getByRole('checkbox', { name: 'Segurança', exact: true }).check();
     await page.getByRole('checkbox', { name: 'Contingência', exact: true }).check();
     await expect(page.locator('.result-list > li')).toHaveCount(75);
@@ -892,6 +896,7 @@ for (const engine of ['vector', 'raster'] as const) {
     }
     await page.goto('/');
     await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+    await page.getByTestId('filter-panel-toggle').click();
     for (const width of [1280, 390, 320]) {
       await page.setViewportSize({ width, height: 844 });
       await page.locator('[data-filter="period-custom"]').check();

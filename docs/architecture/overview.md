@@ -1,5 +1,8 @@
 # Arquitetura — frontend demonstrativo existente; backend proposto
 
+**Versão visual 02:** esta cópia preserva a base `311875a` e acrescenta somente GSAP 3.15.0. O tema escuro/navegação lateral descritos como referência original abaixo foram substituídos nesta alternativa, por autorização explícita, por tema claro e navegação horizontal. Angular, mapas, regras e contratos existentes permanecem. Fontes WOFF2 locais Newsreader/Manrope e estilos compartilhados/tema separados; porta 4201 e armazenamento `vu2.*`. Decisões e verificação em [visual-v2.md](../product/visual-v2.md).
+
+
 Revisão: 11/10/2026. Stack fornecida: **Angular + SCSS, Java, PostgreSQL**. O frontend demonstrativo existe com MapLibre/estilo Bright personalizado como renderizador principal e Leaflet/Alidade Bright raster como fallback sem WebGL2 ou com GPU por software identificada; **não existe backend Java executável, API, migração ativa ou banco do produto**. Decisão aprovada: concluir o frontend local antes da fase de banco/API e não implementar alertas neste incremento. Google Maps não foi escolhido para esta demonstração.
 
 ## 1. Evidência atual e fluxo pretendido

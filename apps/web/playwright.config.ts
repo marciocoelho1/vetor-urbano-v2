@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 20_000 },
   outputDir: './test-results',
   use: {
-    baseURL: 'http://127.0.0.1:4200',
+    baseURL: 'http://127.0.0.1:4201',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -35,8 +35,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run start -- --host 127.0.0.1 --port 4200',
-    url: 'http://127.0.0.1:4200',
+    command: 'npm run start -- --host 127.0.0.1 --port 4201',
+    url: 'http://127.0.0.1:4201',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: { NG_CLI_ANALYTICS: 'false' },

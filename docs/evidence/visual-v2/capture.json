@@ -1,0 +1,52 @@
+{
+  "baseURL": "http://127.0.0.1:4201",
+  "capturedAt": "2026-10-12T00:50:45.755Z",
+  "browser": "156.0.8078.4",
+  "basemap": "Alidade Bright raster real",
+  "records": "Fictícios",
+  "views": [
+    {
+      "view": "map",
+      "width": 1440,
+      "height": 1300,
+      "file": "v2-desktop.png"
+    },
+    {
+      "view": "map",
+      "width": 390,
+      "height": 1600,
+      "file": "v2-mobile.png"
+    },
+    {
+      "view": "active",
+      "width": 1440,
+      "height": 1080,
+      "file": "v2-active.png"
+    },
+    {
+      "view": "history",
+      "width": 1440,
+      "height": 1080,
+      "file": "v2-history.png"
+    },
+    {
+      "view": "insights",
+      "width": 1440,
+      "height": 1080,
+      "file": "v2-insights.png"
+    },
+    {
+      "view": "sources",
+      "width": 1440,
+      "height": 1080,
+      "file": "v2-sources.png"
+    },
+    {
+      "view": "report",
+      "width": 1440,
+      "height": 1080,
+      "file": "v2-report.png"
+    }
+  ],
+  "errors": []
+}

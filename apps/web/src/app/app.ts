@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ViewMotion } from './view-motion';
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import {
@@ -296,7 +297,7 @@ const CATEGORIES: { id: Category; label: string; icon: string }[] = [
 ];
 
 @Component({
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ViewMotion],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -729,13 +730,14 @@ export class App implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
-      this.filtersCollapsed.set(localStorage.getItem('vu.filtersCollapsed') === 'true');
-      const saved = JSON.parse(localStorage.getItem('vu.savedSearches') ?? '[]') as SavedSearch[];
+      this.filtersCollapsed.set(localStorage.getItem('vu2.filtersCollapsed') !== 'false');
+      const saved = JSON.parse(localStorage.getItem('vu2.savedSearches') ?? '[]') as SavedSearch[];
       if (Array.isArray(saved)) this.savedSearches.set(saved);
-      const clips = JSON.parse(localStorage.getItem('vu.demoClips') ?? 'null') as DemoClip[] | null;
+      const clips = JSON.parse(localStorage.getItem('vu2.demoClips') ?? 'null') as
+        DemoClip[] | null;
       if (Array.isArray(clips)) this.clips.set(clips);
     } catch {
-      this.filtersCollapsed.set(false);
+      this.filtersCollapsed.set(true);
     }
     void this.initializeMap();
   }
@@ -776,7 +778,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected toggleFilters(): void {
     this.filtersCollapsed.update((collapsed) => !collapsed);
     try {
-      localStorage.setItem('vu.filtersCollapsed', String(this.filtersCollapsed()));
+      localStorage.setItem('vu2.filtersCollapsed', String(this.filtersCollapsed()));
     } catch {
       // The preference remains usable for this session if storage is unavailable.
     }
@@ -829,6 +831,23 @@ export class App implements AfterViewInit, OnDestroy {
     ) {
       event.preventDefault();
       first.focus();
+    }
+  }
+
+  protected submitMapSearch(): void {
+    const first = this.searchResults()[0];
+    if (first && this.searchQuery().trim().length >= 2) this.selectMapSearchResult(first);
+    else document.getElementById('map-search')?.focus();
+  }
+
+  protected selectQuickPeriod(period: string): void {
+    this.selectPeriod(period);
+    if (period === 'custom') {
+      this.expandedModule.set('intelligence');
+      if (this.filtersCollapsed()) this.toggleFilters();
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLInputElement>('.period-custom-options input')?.focus(),
+      );
     }
   }
 
@@ -1083,7 +1102,7 @@ export class App implements AfterViewInit, OnDestroy {
     const searches = [...this.savedSearches(), saved];
     this.savedSearches.set(searches);
     this.savedSearchName.set('');
-    this.persistLocalValue('vu.savedSearches', searches);
+    this.persistLocalValue('vu2.savedSearches', searches);
   }
 
   protected applySavedSearch(search: SavedSearch): void {
@@ -1107,7 +1126,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected removeSavedSearch(id: string): void {
     const searches = this.savedSearches().filter((search) => search.id !== id);
     this.savedSearches.set(searches);
-    this.persistLocalValue('vu.savedSearches', searches);
+    this.persistLocalValue('vu2.savedSearches', searches);
   }
 
   private persistLocalValue(key: string, value: unknown): void {
@@ -1404,7 +1423,7 @@ export class App implements AfterViewInit, OnDestroy {
       ...this.clips(),
     ];
     this.clips.set(clips);
-    this.persistLocalValue('vu.demoClips', clips);
+    this.persistLocalValue('vu2.demoClips', clips);
     this.clipDraft.set({ title: '', publisher: '', referenceUrl: '' });
     this.sourceImportStatus.set(
       'Referência adicionada à triagem local; nenhum conteúdo foi baixado.',
@@ -1442,7 +1461,7 @@ export class App implements AfterViewInit, OnDestroy {
       clip.id === clipId ? { ...clip, status, ...(eventId ? { eventId } : {}) } : clip,
     );
     this.clips.set(clips);
-    this.persistLocalValue('vu.demoClips', clips);
+    this.persistLocalValue('vu2.demoClips', clips);
   }
 
   protected startPlayback(): void {
