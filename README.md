@@ -2,13 +2,13 @@
 
 Aplicação demonstrativa para consulta e análise geográfica de ocorrências, com evolução possível para colaboração e alertas. Stack planejada: **Angular + SCSS, Java e PostgreSQL/PostGIS**.
 
-## Alternativa visual para comparação
+## Visual atual
 
-Esta é a versão visual inspirada na imagem fornecida, com modos claro e escuro: navegação horizontal, título editorial em Newsreader, mapa amplo, filtros rápidos e indicadores calculados pela consulta. Manrope é a alternativa gratuita à Mori aprovada pelo responsável. GSAP anima as entradas de tela e respeita movimento reduzido.
+O visual atual segue a proposta 6 escolhida em 14/10/2026: cabeçalho arredondado com as seis áreas existentes, mapa amplo à esquerda, busca/filtros/resultados à direita no desktop e Mapa / Lista no celular. Usa a paleta clara/escura original da v2 e Manrope também nos títulos. Filtros avançados, indicadores e demais recursos continuam disponíveis. GSAP anima as entradas de tela e respeita movimento reduzido.
 
-Base preservada: `311875a` do [repositório principal](https://github.com/marciocoelho1/vetor-urbano). Esta cópia tem histórico independente em [vetor-urbano-v2](https://github.com/marciocoelho1/vetor-urbano-v2), usa a porta **4201** e preferências `vu2.*`. O visual final ainda será escolhido após comparação.
+Base preservada: `311875a` do [repositório principal](https://github.com/marciocoelho1/vetor-urbano). Esta cópia tem histórico independente em [vetor-urbano-v2](https://github.com/marciocoelho1/vetor-urbano-v2), usa a porta **4201** e preferências `vu2.*`. A proposta 6 foi escolhida após comparação na galeria local.
 
-[Decisões e adaptação da referência](docs/product/visual-v2.md) · [captura desktop](docs/evidence/visual-v2/v2-desktop.png) · [captura mobile](docs/evidence/visual-v2/v2-mobile.png).
+[Direção atual e preservação dos recursos](docs/product/visual-v6.md) · [captura desktop](docs/evidence/visual-v6/chromium/light-map-1440.png) · [captura mobile](docs/evidence/visual-v6/chromium/light-map-390.png) · [histórico visual](docs/product/visual-v2.md).
 
 ```bash
 npm ci --prefix apps/web

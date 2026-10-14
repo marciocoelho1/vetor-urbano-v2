@@ -1,5 +1,7 @@
 # Vetor Urbano 02 — estudo visual
 
+**Direção atual:** a proposta 6 foi escolhida e aplicada em 14/10/2026; composição lateral, Manrope também nos títulos e preservação dos recursos existentes estão em [visual-v6.md](visual-v6.md). As decisões e evidências abaixo registram o visual anterior e sua evolução em 11–12/10.
+
 Autorização: 11/10/2026. Esta versão foi solicitada como alternativa visual para comparação, com cópia do repositório em `marciocoelho1/vetor-urbano-v2`. Não decide o visual final da versão principal nem inicia outro marco do produto.
 
 ## Origem e requisitos aprovados

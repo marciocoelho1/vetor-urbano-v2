@@ -41,11 +41,11 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 6%);
     color: var(--color-text-warning);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
   .demo-ribbon strong {
     color: var(--color-text-warning);
-    font-size: 0.63rem;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
   }
   .demo-dot {
@@ -71,7 +71,7 @@ app-root {
   .page-intro {
     margin: 7px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.83rem;
+    font-size: 0.875rem;
   }
   .heatmap-button,
   .submit-button,
@@ -137,7 +137,7 @@ app-root {
     letter-spacing: -0.025em;
   }
   .filter-heading .eyebrow {
-    font-size: 0.6rem;
+    font-size: 0.75rem;
   }
   .filter-count {
     display: grid;
@@ -147,7 +147,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 50%;
     color: var(--color-text-main);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
   .module-block + .module-block {
     border-top: 1px solid var(--color-border-subtle);
@@ -214,7 +214,7 @@ app-root {
     padding: 0;
     margin-bottom: 8px;
     color: var(--color-text-muted);
-    font-size: 0.69rem;
+    font-size: 0.75rem;
     font-weight: 650;
   }
   .filter-choice {
@@ -225,7 +225,7 @@ app-root {
     padding: 5px 1px;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     line-height: 1.4;
   }
   .filter-choice input {
@@ -257,7 +257,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 6px;
     color: var(--color-text-muted);
-    font-size: 0.62rem;
+    font-size: 0.75rem;
   }
   .period-option input:checked + span {
     border-color: rgb(16 185 129 / 55%);
@@ -279,7 +279,7 @@ app-root {
     justify-content: space-between;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     list-style: none;
   }
   .advanced-filter summary::-webkit-details-marker {
@@ -294,7 +294,7 @@ app-root {
   .filter-hint {
     margin: 12px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     line-height: 1.5;
   }
   .source-warning {
@@ -306,17 +306,17 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 5%);
     color: var(--color-text-warning);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     line-height: 1.45;
   }
   .source-warning strong {
     color: var(--color-text-warning);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   .source-warning a {
     width: fit-content;
     color: var(--accent-strong);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     text-underline-offset: 3px;
   }
   .inline-retry {
@@ -324,7 +324,7 @@ app-root {
     min-height: 34px;
     padding-inline: 9px;
     color: var(--color-text-warning);
-    font-size: 0.64rem;
+    font-size: 0.75rem;
   }
   .territory-choice {
     align-items: center;
@@ -348,7 +348,7 @@ app-root {
   }
   .territory-count {
     color: var(--color-text-muted);
-    font-size: 0.62rem;
+    font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
   }
   .territory-legend-note {
@@ -373,7 +373,7 @@ app-root {
     min-height: 38px;
     padding: 0 2px 8px;
     color: var(--color-text-muted);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
   .map-layout.filters-collapsed {
     grid-template-columns: minmax(0, 1fr);
@@ -403,7 +403,7 @@ app-root {
     color: var(--color-text-main);
     cursor: pointer;
     font: inherit;
-    font-size: 0.69rem;
+    font-size: 0.75rem;
     font-weight: 600;
   }
   .map-tool-button:hover,
@@ -507,7 +507,7 @@ app-root {
     border-radius: 6px;
     background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
     color: var(--color-text-main);
-    font-size: 0.69rem;
+    font-size: 0.75rem;
   }
   .map-frame.heat-active::after {
     position: absolute;
@@ -531,7 +531,7 @@ app-root {
     border-radius: 6px;
     background: color-mix(in srgb, var(--color-bg-surface) 91%, transparent);
     color: var(--color-text-main);
-    font-size: 0.58rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     pointer-events: none;
@@ -582,7 +582,7 @@ app-root {
     border-radius: 7px;
     background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
     color: var(--color-text-warning);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.4;
   }
   .map-legend {
@@ -593,7 +593,7 @@ app-root {
     min-height: 37px;
     padding: 7px 3px;
     color: var(--color-text-muted);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   .map-legend > span {
     display: inline-flex;
@@ -637,11 +637,11 @@ app-root {
   .results-heading p {
     margin: 4px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
   .results-heading > span {
     color: var(--color-text-muted);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     white-space: nowrap;
   }
   .result-list {
@@ -688,7 +688,7 @@ app-root {
     border-radius: 8px;
     background: rgb(16 185 129 / 8%);
     color: var(--accent-strong);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
   .record-symbol.poi-symbol {
     border-color: rgb(163 230 53 / 27%);
@@ -704,21 +704,21 @@ app-root {
   .record-copy strong {
     overflow: hidden;
     color: var(--color-text-main);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .record-copy span {
     color: var(--color-text-muted);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
   }
   .record-tag {
     padding: 4px 6px;
     border: 1px solid var(--color-border-subtle);
     border-radius: 4px;
     color: var(--color-text-muted);
-    font-size: 0.52rem;
+    font-size: 0.75rem;
     letter-spacing: 0.07em;
   }
   .record-detail-button {
@@ -734,7 +734,7 @@ app-root {
     color: var(--accent-strong);
     cursor: pointer;
     font: inherit;
-    font-size: 0.67rem;
+    font-size: 0.75rem;
   }
   .record-detail-button:hover:not(:disabled) {
     border-color: var(--accent);
@@ -762,7 +762,7 @@ app-root {
     margin: 0;
     border-top: 1px solid var(--color-border-subtle);
     color: var(--color-text-muted);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
     line-height: 1.45;
   }
   .empty-state {
@@ -779,10 +779,10 @@ app-root {
   }
   .empty-state strong {
     color: var(--color-text-main);
-    font-size: 0.77rem;
+    font-size: 0.875rem;
   }
   .empty-state span:last-child {
-    font-size: 0.68rem;
+    font-size: 0.875rem;
   }
 
   .report-header {
@@ -796,7 +796,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 999px;
     color: var(--color-text-muted);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     white-space: nowrap;
   }
   .lock-mark {
@@ -832,7 +832,7 @@ app-root {
     border-radius: 7px;
     background: rgb(16 185 129 / 8%);
     color: var(--accent-strong);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 700;
   }
   .section-heading h2 {
@@ -844,14 +844,14 @@ app-root {
   .section-heading p {
     margin: 4px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.71rem;
+    font-size: 0.875rem;
   }
   .required-chip {
     padding: 6px 9px;
     border: 1px solid var(--color-border-subtle);
     border-radius: 999px;
     color: var(--color-text-muted);
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     white-space: nowrap;
@@ -926,7 +926,7 @@ app-root {
     align-content: start;
     gap: 7px;
     color: var(--color-text-main);
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 600;
   }
   .field input,
@@ -940,8 +940,8 @@ app-root {
     background: var(--color-bg-surface);
     color: var(--color-text-main);
     font: inherit;
-    font-size: 0.76rem;
-    font-weight: 400;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
   .field textarea {
     min-height: 88px;
@@ -953,8 +953,8 @@ app-root {
   }
   .field small {
     color: var(--color-text-muted);
-    font-size: 0.65rem;
-    font-weight: 400;
+    font-size: 0.75rem;
+    font-weight: 500;
     line-height: 1.45;
   }
   .field-wide {
@@ -975,13 +975,13 @@ app-root {
   .field-note {
     margin: 10px 0 0;
     color: var(--color-text-warning);
-    font-size: 0.67rem;
+    font-size: 0.75rem;
   }
   .optional-label {
     margin-left: 5px;
     color: var(--color-text-muted);
-    font-size: 0.63rem;
-    font-weight: 400;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
   .location-card {
     padding-bottom: 14px;
@@ -1008,7 +1008,7 @@ app-root {
   .coordinate-help {
     margin: 9px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     line-height: 1.45;
   }
   .point-confirmed {
@@ -1017,7 +1017,7 @@ app-root {
     gap: 7px;
     margin: 10px 0 0;
     color: var(--accent-strong);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
   .submit-row {
     display: grid;
@@ -1035,11 +1035,11 @@ app-root {
   }
   .submit-note strong {
     color: var(--color-text-warning);
-    font-size: 0.61rem;
+    font-size: 0.75rem;
   }
   .submit-note span {
     color: var(--color-text-muted);
-    font-size: 0.69rem;
+    font-size: 0.75rem;
     line-height: 1.4;
   }
   .submit-button {
@@ -1056,7 +1056,7 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 6%);
     color: var(--color-text-warning);
-    font-size: 0.73rem;
+    font-size: 0.875rem;
     line-height: 1.45;
   }
 
@@ -1066,7 +1066,7 @@ app-root {
     }
     .demo-ribbon {
       align-items: flex-start;
-      font-size: 0.66rem;
+      font-size: 0.75rem;
       line-height: 1.4;
     }
     .demo-ribbon strong {
@@ -1081,13 +1081,13 @@ app-root {
     }
     .page-intro {
       max-width: 32ch;
-      font-size: 0.76rem;
+      font-size: 0.875rem;
       line-height: 1.45;
     }
     .heatmap-button {
       min-height: 38px;
       padding-inline: 9px;
-      font-size: 0.66rem;
+      font-size: 0.75rem;
     }
     .heat-icon {
       display: none;
@@ -1123,7 +1123,7 @@ app-root {
     .map-expand-toggle {
       max-width: none;
       padding-inline: 7px;
-      font-size: 0.61rem;
+      font-size: 0.75rem;
       white-space: nowrap;
     }
     .map-frame.map-expanded {
@@ -1141,7 +1141,7 @@ app-root {
     }
     .map-legend {
       gap: 8px 12px;
-      font-size: 0.64rem;
+      font-size: 0.75rem;
     }
     .result-item {
       padding-inline: 10px;
@@ -1151,7 +1151,7 @@ app-root {
       gap: 12px;
     }
     .account-badge {
-      font-size: 0.62rem;
+      font-size: 0.75rem;
     }
     .form-card {
       padding: 13px;
@@ -1164,12 +1164,12 @@ app-root {
     }
     .section-heading p {
       max-width: 29ch;
-      font-size: 0.66rem;
+      font-size: 0.875rem;
       line-height: 1.45;
     }
     .required-chip {
       padding: 5px 6px;
-      font-size: 0.49rem;
+      font-size: 0.75rem;
     }
     .category-options {
       grid-template-columns: 1fr;

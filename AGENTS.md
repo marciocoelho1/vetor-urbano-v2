@@ -45,3 +45,17 @@
 ## Formato de encerramento da tarefa
 
 Informe, na medida relevante: resultado observável, arquivos alterados, decisão técnica e trade-off, verificações e bloqueios, além da próxima decisão ou tarefa sugerida. Seja direto; não inclua exercício nem pergunta de compreensão por padrão. Um status “concluído” requer evidência compatível com seu critério de aceite.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues; use `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use the single-context layout. See `docs/agents/domain.md`.

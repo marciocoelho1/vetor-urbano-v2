@@ -1,5 +1,5 @@
 <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
-<div class="app-shell">
+<div class="app-shell" [class.map-view]="activeView() === 'map'">
   <header class="topbar">
     <div class="topbar-inner">
       <a
@@ -88,946 +88,1031 @@
   </header>
 
   <main id="main-content" class="main-content" tabindex="-1" [appViewMotion]="activeView()">
-    <div class="demo-ribbon" role="note">
-      <span class="demo-dot" aria-hidden="true"></span>
-      <strong>Demonstração</strong>
-      @if (isDemonstrationOnly()) {
-        <span>Dados fictícios — não usar para decisões de segurança.</span>
-      } @else {
-        <span
-          >Arquivos abertos importados localmente — não validados para decisões de segurança.</span
-        >
-      }
-    </div>
-
-    <section class="public-map" [hidden]="activeView() !== 'map'" aria-label="Mapa público">
-      <header class="page-header map-page-header">
-        <div class="hero-copy">
-          <p class="eyebrow">
-            <span class="region-dot" aria-hidden="true"></span>Região Metropolitana do Rio
-          </p>
-          <h1 data-view-title="map" tabindex="-1">Um novo olhar<br />sobre a cidade.</h1>
-        </div>
-        <p class="hero-aside">Explore ocorrências, conecte informações e entenda o território.</p>
-      </header>
-
-      <div class="map-search-wrap">
-        <label class="visually-hidden" for="map-search">Buscar ocorrências, locais e áreas</label>
-        <div class="map-search-control">
-          <svg class="ui-icon search-glyph" aria-hidden="true">
-            <use href="ui-icons.svg#search" />
-          </svg>
-          <input
-            id="map-search"
-            data-testid="map-search"
-            type="search"
-            autocomplete="off"
-            placeholder="Buscar ocorrência, local ou área territorial…"
-            [value]="searchQuery()"
-            [attr.aria-expanded]="searchQuery().trim().length >= 2"
-            aria-controls="map-search-results"
-            (input)="setSearchQuery($any($event.target).value)"
-            (keydown.enter)="submitMapSearch()"
-          />
-          @if (searchQuery()) {
-            <button
-              class="search-clear"
-              type="button"
-              aria-label="Limpar busca"
-              (click)="setSearchQuery('')"
-            >
-              ×
-            </button>
-          }
-          <button class="search-submit" type="button" (click)="submitMapSearch()">
-            Buscar<svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#arrow" /></svg>
-          </button>
-        </div>
-        @if (searchQuery().trim().length >= 2) {
-          <div
-            class="search-results"
-            id="map-search-results"
-            role="group"
-            aria-label="Resultados da busca"
+    @if (activeView() !== 'map') {
+      <div class="demo-ribbon" role="note">
+        <span class="demo-dot" aria-hidden="true"></span>
+        <strong>Demonstração</strong>
+        @if (isDemonstrationOnly()) {
+          <span>Dados fictícios — não usar para decisões de segurança.</span>
+        } @else {
+          <span
+            >Arquivos abertos importados localmente — não validados para decisões de
+            segurança.</span
           >
-            @for (result of searchResults(); track result.key) {
-              <button
-                class="search-result"
-                type="button"
-                [attr.data-search-result]="result.key"
-                (click)="selectMapSearchResult(result)"
-              >
-                <span
-                  class="search-result-mark"
-                  [class.area-result-mark]="result.kind === 'territory'"
-                  aria-hidden="true"
-                >
-                  {{ result.kind === 'territory' ? '⬡' : '●' }}
-                </span>
-                <span class="search-result-copy">
-                  <strong>{{ result.title }}</strong>
-                  <small>{{ result.subtitle }}</small>
-                </span>
-              </button>
-            }
-            @if (!searchResults().length && territoryStatus() === 'loading') {
-              <p class="search-message" role="status">Buscando áreas territoriais…</p>
-            }
-            @if (!searchResults().length && territoryStatus() === 'error') {
-              <p class="search-message" role="status">
-                Não foi possível carregar as áreas. Use “Tentar novamente” no filtro territorial.
-              </p>
-            }
-            @if (
-              !searchResultTotal() &&
-              territoryStatus() !== 'loading' &&
-              territoryStatus() !== 'error'
-            ) {
-              <p class="search-message">Nenhum resultado encontrado nos filtros atuais.</p>
-            }
-            @if (searchHasMore()) {
-              <p class="search-message">
-                {{ searchResults().length }} de {{ searchResultTotal() }} resultados. Refine a busca
-                para encontrar outros.
-              </p>
-            }
-          </div>
         }
       </div>
+    }
 
-      <div
-        class="map-layout"
-        [class.filters-collapsed]="filtersCollapsed()"
-        [class.map-expanded]="mapExpanded()"
-      >
-        <section class="map-column" aria-label="Mapa e resultados">
-          <div class="map-meta-bar">
-            <div>
-              <div class="result-total">
-                <span class="result-led" aria-hidden="true"></span
-                ><strong>{{ eventCount() }}</strong
-                >&nbsp;<span>{{
-                  isDemonstrationOnly() ? 'ocorrências fictícias' : 'ocorrências na consulta'
-                }}</span>
-              </div>
-              <span class="map-region">Região Metropolitana do Rio · dados fictícios</span>
-            </div>
+    <section
+      class="public-map"
+      [class.consultation-list]="consultationView() === 'list'"
+      [class.consultation-map-error]="mapError()"
+      [hidden]="activeView() !== 'map'"
+      aria-label="Mapa público"
+    >
+      <div class="map-first-screen">
+        <header class="page-header map-page-header">
+          <div class="hero-copy">
+            <p class="eyebrow">
+              <span class="region-dot" aria-hidden="true"></span>Região Metropolitana do Rio
+            </p>
+            <h1 data-view-title="map" tabindex="-1">Explore o que está ao redor.</h1>
           </div>
-          <div
-            class="map-frame"
-            [class.heat-active]="heatmap()"
-            [class.map-expanded]="mapExpanded()"
-            [class.map-dark]="mapDark()"
-            [attr.role]="mapExpanded() ? 'dialog' : null"
-            [attr.aria-modal]="mapExpanded() ? 'true' : null"
-            [attr.aria-label]="mapExpanded() ? 'Mapa ampliado. Pressione Escape para sair.' : null"
-          >
-            <div
-              id="map-canvas"
-              class="map-canvas"
-              role="region"
-              aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as áreas territoriais seguem a classificação da fonte."
-            ></div>
-            <div class="map-top-controls">
-              <button
-                class="map-filter-toggle"
-                type="button"
-                data-testid="filter-panel-toggle"
-                [attr.aria-expanded]="!filtersCollapsed()"
-                aria-controls="map-filter-panel"
-                aria-label="Filtros e camadas"
-                title="Filtros e camadas"
-                (click)="toggleFilters()"
-              >
-                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg>
-                <span class="map-filter-label">Filtros e camadas</span>
-                <span class="map-filter-count" aria-label="camadas ativas">{{
-                  activeFilters().length
-                }}</span>
-              </button>
-              @if (!mapPickPurpose()) {
-                <div class="map-radius-panel" role="group" aria-labelledby="map-radius-heading">
-                  <div class="map-radius-bar" (wheel)="adjustRadiusWithWheel($event)">
-                    <label class="map-radius-toggle">
-                      <input
-                        type="checkbox"
-                        [checked]="useRadius()"
-                        (change)="toggleRadius($any($event.target).checked)"
-                      />
-                      <span class="visually-hidden">Filtrar por raio</span>
-                    </label>
-                    <button
-                      class="map-radius-disclosure"
-                      type="button"
-                      [attr.aria-expanded]="useRadius() && radiusOptionsOpen()"
-                      aria-controls="map-radius-options"
-                      aria-label="Ajustar raio personalizado"
-                      (click)="toggleRadiusOptions()"
-                    >
-                      <span id="map-radius-heading" class="map-radius-title"
-                        >Raio<span class="radius-full-label"> personalizado</span></span
-                      >
-                      @if (useRadius()) {
-                        <span class="map-radius-current">{{ radiusMeters() }} m</span>
-                      }
-                      <span class="chevron" aria-hidden="true">⌄</span>
-                    </button>
-                  </div>
-                  @if (useRadius()) {
-                    <div
-                      id="map-radius-options"
-                      class="map-radius-options"
-                      [hidden]="!radiusOptionsOpen()"
-                    >
-                      <label class="map-radius-value" for="map-radius-slider">
-                        <span>Distância do centro</span>
-                        <output id="map-radius-value" for="map-radius-slider"
-                          >{{ radiusMeters() }} m</output
-                        >
-                      </label>
-                      <input
-                        id="map-radius-slider"
-                        class="map-radius-slider"
-                        type="range"
-                        min="100"
-                        max="25000"
-                        step="100"
-                        [value]="radiusMeters()"
-                        [attr.aria-valuetext]="radiusMeters() + ' metros'"
-                        (input)="setRadiusMeters($any($event.target).value)"
-                      />
-                      <p class="map-radius-hint">
-                        Clique no mapa para mudar o centro; segure e arraste para navegar. Use o
-                        scroll sobre a barra de raio para ajustar a distância em passos de 100 m,
-                        até 25 km.
-                      </p>
-                      <p class="map-radius-center">
-                        Centro: {{ searchCenter().longitude }}, {{ searchCenter().latitude }}
-                      </p>
-                      <button
-                        type="button"
-                        class="map-radius-pick"
-                        (click)="beginMapPick('radius')"
-                      >
-                        Escolher centro no mapa
-                      </button>
-                      <details class="map-radius-coordinates">
-                        <summary>Definir centro por coordenadas</summary>
-                        <div class="map-radius-coordinate-grid">
-                          <label
-                            >Longitude<input
-                              inputmode="decimal"
-                              [value]="searchCenter().longitude"
-                              (input)="setSearchCoordinate('longitude', $any($event.target).value)"
-                          /></label>
-                          <label
-                            >Latitude<input
-                              inputmode="decimal"
-                              [value]="searchCenter().latitude"
-                              (input)="setSearchCoordinate('latitude', $any($event.target).value)"
-                          /></label>
-                        </div>
-                      </details>
-                      @if (radiusInvalid()) {
-                        <p class="query-error" role="status">
-                          Confira o centro e o raio entre 100 e 25.000 m.
-                        </p>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-              <div class="map-top-actions">
+          <p class="hero-aside">Explore ocorrências, conecte informações e entenda o território.</p>
+        </header>
+
+        <ng-template #quickFilters>
+          <section class="quick-filters" aria-label="Filtros rápidos">
+            <span class="quick-filter-label"
+              ><svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg
+              >Filtros</span
+            >
+            <div class="category-shortcuts" role="group" aria-label="Categorias da consulta">
+              @for (category of categories; track category.id) {
                 <button
-                  class="map-theme-toggle"
+                  class="category-shortcut"
                   type="button"
-                  data-testid="map-theme-toggle"
-                  [attr.aria-pressed]="mapDark()"
-                  [attr.aria-label]="
-                    mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
-                  "
-                  [title]="mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'"
-                  (click)="toggleMapTheme()"
+                  [class.is-selected]="isFilterActive('category:' + category.id)"
+                  [attr.aria-pressed]="isFilterActive('category:' + category.id)"
+                  [attr.data-quick-category]="category.id"
+                  (click)="toggleFilter('category:' + category.id)"
                 >
-                  <svg class="theme-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <g class="theme-moon">
-                      <path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" />
-                    </g>
-                    <g class="theme-sun">
-                      <circle cx="12" cy="12" r="4" />
-                      <path
-                        class="theme-rays"
-                        d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
-                      />
-                    </g>
-                  </svg>
+                  <span
+                    class="category-dot"
+                    [attr.data-category]="category.id"
+                    aria-hidden="true"
+                  ></span
+                  >{{ category.label }}
                 </button>
+              }
+            </div>
+            <label class="quick-period"
+              ><span class="visually-hidden">Período da consulta</span
+              ><select [value]="period()" (change)="selectQuickPeriod($any($event.target).value)">
+                <option value="1w">Última semana</option>
+                <option value="1m">Último mês</option>
+                <option value="3m">Últimos 3 meses</option>
+                <option value="6m">Últimos 6 meses</option>
+                <option value="1y">Último ano</option>
+                <option value="custom">Intervalo personalizado</option>
+              </select></label
+            >
+            <button
+              class="heatmap-button"
+              [class.is-on]="heatmap()"
+              (click)="toggleHeatmap()"
+              [attr.aria-pressed]="heatmap()"
+            >
+              <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
+              >{{ heatmap() ? 'Ver marcadores' : 'Ver mancha térmica' }}
+            </button>
+          </section>
+        </ng-template>
+        <div class="consultation-mobile-tabs" role="group" aria-label="Visualização da consulta">
+          <button
+            type="button"
+            [attr.aria-pressed]="consultationView() === 'map'"
+            (click)="consultationView.set('map')"
+            aria-controls="consultation-map"
+          >
+            <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#map" /></svg>Mapa
+          </button>
+          <button
+            type="button"
+            [attr.aria-pressed]="consultationView() === 'list'"
+            (click)="consultationView.set('list')"
+            aria-controls="map-results"
+          >
+            <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#list" /></svg>Lista
+            <span>{{ visiblePoints().length }}</span>
+          </button>
+        </div>
+        <div
+          class="map-layout"
+          [class.filters-collapsed]="filtersCollapsed()"
+          [class.map-expanded]="mapExpanded()"
+        >
+          <section id="consultation-map" class="map-column" aria-label="Mapa e resultados">
+            <div class="map-meta-bar">
+              <div>
+                <div class="result-total">
+                  <span class="result-led" aria-hidden="true"></span
+                  ><strong>{{ eventCount() }}</strong
+                  >&nbsp;<span>{{
+                    isDemonstrationOnly() ? 'ocorrências fictícias' : 'ocorrências na consulta'
+                  }}</span>
+                </div>
+                <span class="map-region">Região Metropolitana do Rio · dados fictícios</span>
+              </div>
+            </div>
+            <div
+              class="map-frame"
+              [class.heat-active]="heatmap()"
+              [class.map-expanded]="mapExpanded()"
+              [class.map-dark]="mapDark()"
+              [attr.role]="mapExpanded() ? 'dialog' : null"
+              [attr.aria-modal]="mapExpanded() ? 'true' : null"
+              [attr.aria-label]="
+                mapExpanded() ? 'Mapa ampliado. Pressione Escape para sair.' : null
+              "
+            >
+              <div
+                id="map-canvas"
+                class="map-canvas"
+                role="region"
+                aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as áreas territoriais seguem a classificação da fonte."
+              ></div>
+              <div class="map-top-controls">
                 <button
-                  class="map-expand-toggle"
+                  class="map-filter-toggle"
                   type="button"
-                  data-testid="map-expand-toggle"
-                  [attr.aria-pressed]="mapExpanded()"
-                  [attr.aria-label]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
-                  [title]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
-                  (click)="toggleMapExpanded()"
+                  data-testid="filter-panel-toggle"
+                  [attr.aria-expanded]="!filtersCollapsed()"
+                  aria-controls="map-filter-panel"
+                  aria-label="Filtros e camadas"
+                  title="Filtros e camadas"
+                  (click)="toggleFilters()"
                 >
-                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
-                  </svg>
-                  <span class="map-expand-label">{{
-                    mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'
+                  <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg>
+                  <span class="map-filter-label">Filtros e camadas</span>
+                  <span class="map-filter-count" aria-label="camadas ativas">{{
+                    activeFilters().length
                   }}</span>
                 </button>
-              </div>
-            </div>
-            <aside
-              id="map-filter-panel"
-              class="filter-panel"
-              appPanelResize
-              [hidden]="filtersCollapsed()"
-              aria-label="Filtros do mapa"
-            >
-              <div class="filter-panel-content">
-                <div class="filter-heading">
-                  <div>
-                    <span class="eyebrow">Filtros e camadas</span>
-                    <h2>Explore por tema</h2>
+                @if (!mapPickPurpose()) {
+                  <div class="map-radius-panel" role="group" aria-labelledby="map-radius-heading">
+                    <div class="map-radius-bar" (wheel)="adjustRadiusWithWheel($event)">
+                      <label class="map-radius-toggle">
+                        <input
+                          type="checkbox"
+                          [checked]="useRadius()"
+                          (change)="toggleRadius($any($event.target).checked)"
+                        />
+                        <span class="visually-hidden">Filtrar por raio</span>
+                      </label>
+                      <button
+                        class="map-radius-disclosure"
+                        type="button"
+                        [attr.aria-expanded]="useRadius() && radiusOptionsOpen()"
+                        aria-controls="map-radius-options"
+                        aria-label="Ajustar raio personalizado"
+                        (click)="toggleRadiusOptions()"
+                      >
+                        <span id="map-radius-heading" class="map-radius-title"
+                          >Raio<span class="radius-full-label"> personalizado</span></span
+                        >
+                        @if (useRadius()) {
+                          <span class="map-radius-current">{{ radiusMeters() }} m</span>
+                        }
+                        <span class="chevron" aria-hidden="true">⌄</span>
+                      </button>
+                    </div>
+                    @if (useRadius()) {
+                      <div
+                        id="map-radius-options"
+                        class="map-radius-options"
+                        [hidden]="!radiusOptionsOpen()"
+                      >
+                        <label class="map-radius-value" for="map-radius-slider">
+                          <span>Distância do centro</span>
+                          <output id="map-radius-value" for="map-radius-slider"
+                            >{{ radiusMeters() }} m</output
+                          >
+                        </label>
+                        <input
+                          id="map-radius-slider"
+                          class="map-radius-slider"
+                          type="range"
+                          min="100"
+                          max="25000"
+                          step="100"
+                          [value]="radiusMeters()"
+                          [attr.aria-valuetext]="radiusMeters() + ' metros'"
+                          (input)="setRadiusMeters($any($event.target).value)"
+                        />
+                        <p class="map-radius-hint">
+                          Clique no mapa para mudar o centro; segure e arraste para navegar. Use o
+                          scroll sobre a barra de raio para ajustar a distância em passos de 100 m,
+                          até 25 km.
+                        </p>
+                        <p class="map-radius-center">
+                          Centro: {{ searchCenter().longitude }}, {{ searchCenter().latitude }}
+                        </p>
+                        <button
+                          type="button"
+                          class="map-radius-pick"
+                          (click)="beginMapPick('radius')"
+                        >
+                          Escolher centro no mapa
+                        </button>
+                        <details class="map-radius-coordinates">
+                          <summary>Definir centro por coordenadas</summary>
+                          <div class="map-radius-coordinate-grid">
+                            <label
+                              >Longitude<input
+                                inputmode="decimal"
+                                [value]="searchCenter().longitude"
+                                (input)="
+                                  setSearchCoordinate('longitude', $any($event.target).value)
+                                "
+                            /></label>
+                            <label
+                              >Latitude<input
+                                inputmode="decimal"
+                                [value]="searchCenter().latitude"
+                                (input)="
+                                  setSearchCoordinate('latitude', $any($event.target).value)
+                                "
+                            /></label>
+                          </div>
+                        </details>
+                        @if (radiusInvalid()) {
+                          <p class="query-error" role="status">
+                            Confira o centro e o raio entre 100 e 25.000 m.
+                          </p>
+                        }
+                      </div>
+                    }
                   </div>
+                }
+                <div class="map-top-actions">
                   <button
-                    class="map-panel-close"
+                    class="map-theme-toggle"
                     type="button"
-                    aria-label="Fechar filtros e camadas"
-                    (click)="closeMapFilters()"
+                    data-testid="map-theme-toggle"
+                    [attr.aria-pressed]="mapDark()"
+                    [attr.aria-label]="
+                      mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
+                    "
+                    [title]="mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'"
+                    (click)="toggleMapTheme()"
                   >
-                    ×
+                    <svg
+                      class="theme-glyph"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <g class="theme-moon">
+                        <path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" />
+                      </g>
+                      <g class="theme-sun">
+                        <circle cx="12" cy="12" r="4" />
+                        <path
+                          class="theme-rays"
+                          d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+                        />
+                      </g>
+                    </svg>
+                  </button>
+                  <button
+                    class="map-expand-toggle"
+                    type="button"
+                    data-testid="map-expand-toggle"
+                    [attr.aria-pressed]="mapExpanded()"
+                    [attr.aria-label]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
+                    [title]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
+                    (click)="toggleMapExpanded()"
+                  >
+                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
+                    </svg>
+                    <span class="map-expand-label">{{
+                      mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'
+                    }}</span>
                   </button>
                 </div>
+              </div>
+              <aside
+                id="map-filter-panel"
+                class="filter-panel"
+                appPanelResize
+                [hidden]="filtersCollapsed()"
+                aria-label="Filtros do mapa"
+              >
+                <div class="filter-panel-content">
+                  <div class="filter-heading">
+                    <div>
+                      <span class="eyebrow">Filtros e camadas</span>
+                      <h2>Explore por tema</h2>
+                    </div>
+                    <button
+                      class="map-panel-close"
+                      type="button"
+                      aria-label="Fechar filtros e camadas"
+                      (click)="closeMapFilters()"
+                    >
+                      ×
+                    </button>
+                  </div>
 
-                <section class="module-block">
-                  <button
-                    class="module-toggle"
-                    data-module="intelligence"
-                    [attr.aria-expanded]="expandedModule() === 'intelligence'"
-                    aria-controls="module-intelligence"
-                    (click)="toggleModule('intelligence')"
-                  >
-                    <span class="module-glyph glyph-analysis" aria-hidden="true">⌁</span
-                    ><span class="module-title">Análise e Inteligência</span
-                    ><span class="chevron" aria-hidden="true">⌄</span>
-                  </button>
-                  @if (expandedModule() === 'intelligence') {
-                    <div class="module-content" id="module-intelligence">
-                      <fieldset class="filter-group period-group">
-                        <legend>Filtro por período</legend>
-                        <div class="period-options">
-                          @for (
-                            option of [
-                              { id: '1w', label: '1 sem.' },
-                              { id: '1m', label: '1 mês' },
-                              { id: '3m', label: '3 meses' },
-                              { id: '6m', label: '6 meses' },
-                              { id: '1y', label: '1 ano' },
-                              { id: 'custom', label: 'Intervalo' },
-                            ];
-                            track option.id
-                          ) {
-                            <label class="period-option"
-                              ><input
-                                type="radio"
-                                name="period"
-                                [value]="option.id"
-                                [checked]="period() === option.id"
-                                [attr.data-filter]="'period-' + option.id"
-                                (change)="selectPeriod(option.id)"
-                              /><span>{{ option.label }}</span></label
-                            >
-                          }
-                        </div>
-                        @if (period() === 'custom') {
-                          <div class="period-custom-options">
-                            <label class="field"
-                              >Início (horário de Brasília)
-                              <input
-                                type="datetime-local"
-                                [value]="customRangeStart()"
-                                (change)="setCustomRange('start', $any($event.target).value)"
-                              />
-                            </label>
-                            <label class="field"
-                              >Fim (horário de Brasília; exclusivo)
-                              <input
-                                type="datetime-local"
-                                [value]="customRangeEnd()"
-                                (change)="setCustomRange('end', $any($event.target).value)"
-                              />
-                            </label>
-                            @if (customRangeInvalid()) {
-                              <p class="query-error" role="status">
-                                Informe início e fim válidos; o início precisa anteceder o fim.
-                              </p>
-                            }
-                          </div>
-                        }
-                        <div class="period-time-options">
-                          <label class="field"
-                            >Horário a partir de
-                            <input
-                              type="time"
-                              [value]="timeStart()"
-                              (change)="setTimeRange('start', $any($event.target).value)"
-                            />
-                          </label>
-                          <label class="field"
-                            >Horário até
-                            <input
-                              type="time"
-                              [value]="timeEnd()"
-                              (change)="setTimeRange('end', $any($event.target).value)"
-                            />
-                          </label>
-                        </div>
-                        <p class="query-note">
-                          Períodos usam America/Sao_Paulo e intervalo [início, fim); horários são
-                          filtros locais opcionais.
-                        </p>
-                      </fieldset>
-                      <fieldset class="filter-group">
-                        <legend>Tipos de ocorrência</legend>
-                        @for (
-                          option of [
-                            { id: 'CRIMES', label: 'Crimes' },
-                            { id: 'CALAMIDADE_PUBLICA', label: 'Calamidade pública' },
-                            { id: 'ASSUNTOS_SEGURANCA', label: 'Assuntos diversos de segurança' },
-                            { id: 'ATIVIDADE_POLICIAL', label: 'Atividade policial' },
-                            { id: 'ORDEM_PUBLICA', label: 'Ordem pública' },
-                            { id: 'ALERTA', label: 'Alerta' },
-                            { id: 'OUTROS_REGISTROS', label: 'Outros registros' },
-                          ];
-                          track option.id
-                        ) {
-                          <label class="filter-choice"
-                            ><input
-                              type="checkbox"
-                              [checked]="isFilterActive('group:' + option.id)"
-                              (change)="toggleFilter('group:' + option.id)"
-                            /><span>{{ option.label }}</span></label
-                          >
-                        }
-                        <details class="advanced-filter">
-                          <summary>Opções avançadas <span aria-hidden="true">＋</span></summary>
-                          <div class="advanced-options">
+                  <section class="module-block">
+                    <button
+                      class="module-toggle"
+                      data-module="intelligence"
+                      [attr.aria-expanded]="expandedModule() === 'intelligence'"
+                      aria-controls="module-intelligence"
+                      (click)="toggleModule('intelligence')"
+                    >
+                      <span class="module-glyph glyph-analysis" aria-hidden="true">⌁</span
+                      ><span class="module-title">Análise e Inteligência</span
+                      ><span class="chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    @if (expandedModule() === 'intelligence') {
+                      <div class="module-content" id="module-intelligence">
+                        <fieldset class="filter-group period-group">
+                          <legend>Filtro por período</legend>
+                          <div class="period-options">
                             @for (
-                              crime of [
-                                { id: 'FURTO', label: 'Furto' },
-                                { id: 'ROUBO_TRANSEUNTE', label: 'Roubo a transeunte' },
-                                { id: 'ESTELIONATO', label: 'Estelionato' },
-                                { id: 'AMEACA', label: 'Ameaça' },
-                                { id: 'LESAO_CORPORAL_DOLOSA', label: 'Lesão corporal dolosa' },
-                                { id: 'ROUBO_VEICULO', label: 'Roubo de veículo' },
-                                { id: 'FURTO_VEICULO', label: 'Furto de veículo' },
-                                { id: 'ROUBO_COLETIVO', label: 'Roubo em transporte coletivo' },
-                                { id: 'ROUBO_CARGA', label: 'Roubo de carga' },
-                                { id: 'HOMICIDIO_DOLOSO', label: 'Homicídio doloso' },
+                              option of [
+                                { id: '1w', label: '1 sem.' },
+                                { id: '1m', label: '1 mês' },
+                                { id: '3m', label: '3 meses' },
+                                { id: '6m', label: '6 meses' },
+                                { id: '1y', label: '1 ano' },
+                                { id: 'custom', label: 'Intervalo' },
                               ];
-                              track crime.id
+                              track option.id
                             ) {
-                              <label class="filter-choice"
+                              <label class="period-option"
                                 ><input
-                                  type="checkbox"
-                                  [checked]="isFilterActive('crime:' + crime.id)"
-                                  (change)="toggleFilter('crime:' + crime.id)"
-                                /><span>{{ crime.label }}</span></label
+                                  type="radio"
+                                  name="period"
+                                  [value]="option.id"
+                                  [checked]="period() === option.id"
+                                  [attr.data-filter]="'period-' + option.id"
+                                  (change)="selectPeriod(option.id)"
+                                /><span>{{ option.label }}</span></label
                               >
                             }
                           </div>
-                        </details>
-                      </fieldset>
-                      <fieldset class="filter-group">
-                        <legend>Análise de alertas</legend>
-                        @for (category of categories; track category.id) {
-                          <label class="filter-choice"
-                            ><input
-                              type="checkbox"
-                              [checked]="isFilterActive('category:' + category.id)"
-                              (change)="toggleFilter('category:' + category.id)"
-                            /><span>{{ category.label }}</span></label
-                          >
-                        }
-                      </fieldset>
-                      <p class="filter-hint">
-                        As camadas se somam. O período filtra a data do fato, não a data de
-                        inclusão.
-                      </p>
-                    </div>
-                  }
-                </section>
-
-                <section class="module-block">
-                  <button
-                    class="module-toggle"
-                    data-module="information"
-                    [attr.aria-expanded]="expandedModule() === 'information'"
-                    aria-controls="module-information"
-                    (click)="toggleModule('information')"
-                  >
-                    <span class="module-glyph glyph-info" aria-hidden="true">⌖</span
-                    ><span class="module-title">Informações</span
-                    ><span class="chevron" aria-hidden="true">⌄</span>
-                  </button>
-                  @if (expandedModule() === 'information') {
-                    <div class="module-content" id="module-information">
-                      <fieldset class="filter-group">
-                        <legend>Pontos de interesse coletivos</legend>
-                        @for (
-                          poi of [
-                            { id: 'HOSPITAL_PUBLICO', label: 'Hospitais públicos' },
-                            { id: 'HOSPITAL_PARTICULAR', label: 'Hospitais particulares' },
-                            { id: 'UPA', label: 'UPAs' },
-                            { id: 'AEROPORTO', label: 'Aeroportos' },
-                            { id: 'EMBAIXADA_CONSULADO', label: 'Embaixadas e consulados' },
-                            { id: 'ESTADIO', label: 'Estádios' },
-                          ];
-                          track poi.id
-                        ) {
-                          <label class="filter-choice"
-                            ><input
-                              type="checkbox"
-                              [attr.data-filter]="'poi:' + poi.id"
-                              [checked]="isFilterActive('poi:' + poi.id)"
-                              (change)="toggleFilter('poi:' + poi.id)"
-                            /><span>{{ poi.label }}</span></label
-                          >
-                        }
-                      </fieldset>
-                      <fieldset class="filter-group">
-                        <legend>Pontos exclusivos</legend>
-                        <label class="filter-choice"
-                          ><input
-                            type="checkbox"
-                            [checked]="isFilterActive('poi:EXCLUSIVO')"
-                            (change)="toggleFilter('poi:EXCLUSIVO')"
-                          /><span>Locais do cliente</span></label
-                        >
+                          @if (period() === 'custom') {
+                            <div class="period-custom-options">
+                              <label class="field"
+                                >Início (horário de Brasília)
+                                <input
+                                  type="datetime-local"
+                                  [value]="customRangeStart()"
+                                  (change)="setCustomRange('start', $any($event.target).value)"
+                                />
+                              </label>
+                              <label class="field"
+                                >Fim (horário de Brasília; exclusivo)
+                                <input
+                                  type="datetime-local"
+                                  [value]="customRangeEnd()"
+                                  (change)="setCustomRange('end', $any($event.target).value)"
+                                />
+                              </label>
+                              @if (customRangeInvalid()) {
+                                <p class="query-error" role="status">
+                                  Informe início e fim válidos; o início precisa anteceder o fim.
+                                </p>
+                              }
+                            </div>
+                          }
+                          <div class="period-time-options">
+                            <label class="field"
+                              >Horário a partir de
+                              <input
+                                type="time"
+                                [value]="timeStart()"
+                                (change)="setTimeRange('start', $any($event.target).value)"
+                              />
+                            </label>
+                            <label class="field"
+                              >Horário até
+                              <input
+                                type="time"
+                                [value]="timeEnd()"
+                                (change)="setTimeRange('end', $any($event.target).value)"
+                              />
+                            </label>
+                          </div>
+                          <p class="query-note">
+                            Períodos usam America/Sao_Paulo e intervalo [início, fim); horários são
+                            filtros locais opcionais.
+                          </p>
+                        </fieldset>
+                        <fieldset class="filter-group">
+                          <legend>Tipos de ocorrência</legend>
+                          @for (
+                            option of [
+                              { id: 'CRIMES', label: 'Crimes' },
+                              { id: 'CALAMIDADE_PUBLICA', label: 'Calamidade pública' },
+                              { id: 'ASSUNTOS_SEGURANCA', label: 'Assuntos diversos de segurança' },
+                              { id: 'ATIVIDADE_POLICIAL', label: 'Atividade policial' },
+                              { id: 'ORDEM_PUBLICA', label: 'Ordem pública' },
+                              { id: 'ALERTA', label: 'Alerta' },
+                              { id: 'OUTROS_REGISTROS', label: 'Outros registros' },
+                            ];
+                            track option.id
+                          ) {
+                            <label class="filter-choice"
+                              ><input
+                                type="checkbox"
+                                [checked]="isFilterActive('group:' + option.id)"
+                                (change)="toggleFilter('group:' + option.id)"
+                              /><span>{{ option.label }}</span></label
+                            >
+                          }
+                          <details class="advanced-filter">
+                            <summary>Opções avançadas <span aria-hidden="true">＋</span></summary>
+                            <div class="advanced-options">
+                              @for (
+                                crime of [
+                                  { id: 'FURTO', label: 'Furto' },
+                                  { id: 'ROUBO_TRANSEUNTE', label: 'Roubo a transeunte' },
+                                  { id: 'ESTELIONATO', label: 'Estelionato' },
+                                  { id: 'AMEACA', label: 'Ameaça' },
+                                  { id: 'LESAO_CORPORAL_DOLOSA', label: 'Lesão corporal dolosa' },
+                                  { id: 'ROUBO_VEICULO', label: 'Roubo de veículo' },
+                                  { id: 'FURTO_VEICULO', label: 'Furto de veículo' },
+                                  { id: 'ROUBO_COLETIVO', label: 'Roubo em transporte coletivo' },
+                                  { id: 'ROUBO_CARGA', label: 'Roubo de carga' },
+                                  { id: 'HOMICIDIO_DOLOSO', label: 'Homicídio doloso' },
+                                ];
+                                track crime.id
+                              ) {
+                                <label class="filter-choice"
+                                  ><input
+                                    type="checkbox"
+                                    [checked]="isFilterActive('crime:' + crime.id)"
+                                    (change)="toggleFilter('crime:' + crime.id)"
+                                  /><span>{{ crime.label }}</span></label
+                                >
+                              }
+                            </div>
+                          </details>
+                        </fieldset>
+                        <fieldset class="filter-group">
+                          <legend>Análise de alertas</legend>
+                          @for (category of categories; track category.id) {
+                            <label class="filter-choice"
+                              ><input
+                                type="checkbox"
+                                [checked]="isFilterActive('category:' + category.id)"
+                                (change)="toggleFilter('category:' + category.id)"
+                              /><span>{{ category.label }}</span></label
+                            >
+                          }
+                        </fieldset>
                         <p class="filter-hint">
-                          Disponíveis apenas em uma conta autenticada. Nenhum local privado é
-                          carregado nesta demonstração.
+                          As camadas se somam. O período filtra a data do fato, não a data de
+                          inclusão.
                         </p>
-                      </fieldset>
-                    </div>
-                  }
-                </section>
+                      </div>
+                    }
+                  </section>
 
-                <section class="module-block">
-                  <button
-                    class="module-toggle"
-                    data-module="territory"
-                    [attr.aria-expanded]="expandedModule() === 'territory'"
-                    aria-controls="module-territory"
-                    (click)="toggleModule('territory')"
-                  >
-                    <span class="module-glyph glyph-territory" aria-hidden="true">⬡</span
-                    ><span class="module-title">Áreas territoriais</span
-                    ><span class="chevron" aria-hidden="true">⌄</span>
-                  </button>
-                  @if (expandedModule() === 'territory') {
-                    <div class="module-content" id="module-territory">
-                      <fieldset class="filter-group">
-                        <legend>Áreas territoriais</legend>
-                        @for (area of territoryGroups; track area.id) {
-                          <label class="filter-choice territory-choice">
-                            <input
+                  <section class="module-block">
+                    <button
+                      class="module-toggle"
+                      data-module="information"
+                      [attr.aria-expanded]="expandedModule() === 'information'"
+                      aria-controls="module-information"
+                      (click)="toggleModule('information')"
+                    >
+                      <span class="module-glyph glyph-info" aria-hidden="true">⌖</span
+                      ><span class="module-title">Informações</span
+                      ><span class="chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    @if (expandedModule() === 'information') {
+                      <div class="module-content" id="module-information">
+                        <fieldset class="filter-group">
+                          <legend>Pontos de interesse coletivos</legend>
+                          @for (
+                            poi of [
+                              { id: 'HOSPITAL_PUBLICO', label: 'Hospitais públicos' },
+                              { id: 'HOSPITAL_PARTICULAR', label: 'Hospitais particulares' },
+                              { id: 'UPA', label: 'UPAs' },
+                              { id: 'AEROPORTO', label: 'Aeroportos' },
+                              { id: 'EMBAIXADA_CONSULADO', label: 'Embaixadas e consulados' },
+                              { id: 'ESTADIO', label: 'Estádios' },
+                            ];
+                            track poi.id
+                          ) {
+                            <label class="filter-choice"
+                              ><input
+                                type="checkbox"
+                                [attr.data-filter]="'poi:' + poi.id"
+                                [checked]="isFilterActive('poi:' + poi.id)"
+                                (change)="toggleFilter('poi:' + poi.id)"
+                              /><span>{{ poi.label }}</span></label
+                            >
+                          }
+                        </fieldset>
+                        <fieldset class="filter-group">
+                          <legend>Pontos exclusivos</legend>
+                          <label class="filter-choice"
+                            ><input
                               type="checkbox"
-                              [checked]="isFilterActive('territory:' + area.id)"
-                              [attr.data-filter]="'territory:' + area.id"
-                              (change)="toggleFilter('territory:' + area.id)"
-                            />
-                            <span class="territory-swatch" [style.background]="area.color"></span>
-                            <span class="territory-label">{{ area.label }}</span>
-                            <span class="territory-count">{{
-                              area.count.toLocaleString('pt-BR')
-                            }}</span>
-                          </label>
-                        }
-                      </fieldset>
-                      <p class="source-warning">
-                        <strong>Classificação registrada segundo a fonte</strong>
-                        <span>
-                          Base informada: julho de 2026. O mapa não confirma a situação atual nem
-                          representa limites municipais oficiais.
-                        </span>
-                        <a
-                          href="https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          >Consultar a fonte</a
-                        >
-                        @if (territoryStatus() === 'loading') {
-                          <span role="status">Carregando polígonos…</span>
-                        }
-                        @if (territoryStatus() === 'error') {
-                          <span role="status">Não foi possível carregar a camada.</span>
-                          <button class="inline-retry" type="button" (click)="retryTerritories()">
-                            Tentar novamente
-                          </button>
-                        }
-                      </p>
-                    </div>
-                  }
-                </section>
-              </div>
-              <button
-                type="button"
-                class="panel-resize-handle resize-width"
-                data-panel-resize="width"
-                aria-label="Redimensionar largura de Explore por tema"
-                aria-describedby="panel-resize-help"
-                title="Arraste para ajustar a largura"
-              ></button>
-              <button
-                type="button"
-                class="panel-resize-handle resize-height"
-                data-panel-resize="height"
-                aria-label="Redimensionar altura de Explore por tema"
-                aria-describedby="panel-resize-help"
-                title="Arraste para ajustar a altura"
-              ></button>
-              <button
-                type="button"
-                class="panel-resize-handle resize-corner"
-                data-panel-resize="both"
-                aria-label="Redimensionar Explore por tema"
-                aria-describedby="panel-resize-help"
-                title="Arraste para ajustar largura e altura"
-              >
-                ↘
-              </button>
-              <span id="panel-resize-help" class="visually-hidden"
-                >Arraste a borda ou use as setas para redimensionar. Home restaura o tamanho
-                inicial.</span
-              >
-            </aside>
-            <section class="quick-filters" aria-label="Filtros rápidos">
-              <span class="quick-filter-label"
-                ><svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg
-                >Filtros</span
-              >
-              <div class="category-shortcuts" role="group" aria-label="Categorias da consulta">
-                @for (category of categories; track category.id) {
-                  <button
-                    class="category-shortcut"
-                    type="button"
-                    [class.is-selected]="isFilterActive('category:' + category.id)"
-                    [attr.aria-pressed]="isFilterActive('category:' + category.id)"
-                    [attr.data-quick-category]="category.id"
-                    (click)="toggleFilter('category:' + category.id)"
-                  >
-                    <span
-                      class="category-dot"
-                      [attr.data-category]="category.id"
-                      aria-hidden="true"
-                    ></span
-                    >{{ category.label }}
-                  </button>
-                }
-              </div>
-              <label class="quick-period"
-                ><span class="visually-hidden">Período da consulta</span
-                ><select [value]="period()" (change)="selectQuickPeriod($any($event.target).value)">
-                  <option value="1w">Última semana</option>
-                  <option value="1m">Último mês</option>
-                  <option value="3m">Últimos 3 meses</option>
-                  <option value="6m">Últimos 6 meses</option>
-                  <option value="1y">Último ano</option>
-                  <option value="custom">Intervalo personalizado</option>
-                </select></label
-              >
-              <button
-                class="heatmap-button"
-                [class.is-on]="heatmap()"
-                (click)="toggleHeatmap()"
-                [attr.aria-pressed]="heatmap()"
-              >
-                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
-                >{{ heatmap() ? 'Ver marcadores' : 'Ver mancha térmica' }}
-              </button>
-            </section>
-            @if (!mapReady() && !mapError()) {
-              <div class="map-loading" role="status">Preparando mapa demonstrativo…</div>
-            }
-            @if (mapError()) {
-              <div class="map-fallback" role="status">
-                <span class="fallback-mark" aria-hidden="true">⌖</span>
-                <strong>Não foi possível carregar o mapa</strong>
-                <span>Os resultados continuam disponíveis na lista abaixo.</span>
-                @if (mapErrorDetails()) {
-                  <small class="map-error-details">Detalhe técnico: {{ mapErrorDetails() }}</small>
-                }
-                <button
-                  class="map-tool-button"
-                  type="button"
-                  data-testid="retry-map"
-                  (click)="retryMap()"
-                >
-                  Tentar carregar novamente
-                </button>
-              </div>
-            }
-            @if (mapPickPurpose()) {
-              <div class="map-pick-prompt" role="status">
-                Clique no mapa para
-                {{
-                  mapPickPurpose() === 'radius'
-                    ? 'definir o centro da busca'
-                    : 'escolher o local do registro'
-                }}.
-                <button type="button" class="inline-retry" (click)="cancelMapPick()">
-                  Cancelar
-                </button>
-              </div>
-            }
-            @if (territorySelected()) {
-              <div class="map-notice" role="status">
-                @if (territoryStatus() === 'loading') {
-                  <span aria-hidden="true">◌</span>Carregando polígonos atribuídos à fonte…
-                } @else if (territoryStatus() === 'error') {
-                  <span aria-hidden="true">ⓘ</span>A camada territorial está indisponível. Os
-                  filtros podem ser tentados novamente.
-                } @else {
-                  <span aria-hidden="true">ⓘ</span>Classificação da fonte · base julho de 2026 · não
-                  confirma a situação atual.
-                }
-              </div>
-            }
-            <div class="map-stamp">
-              <span class="stamp-dot" aria-hidden="true"></span>Mapa demonstrativo
-            </div>
-          </div>
-          <div class="map-legend" aria-label="Legenda do mapa">
-            <span
-              ><img class="legend-pin" src="maps/pins/transito.svg" alt="" />Trânsito fictício</span
-            >
-            <span
-              ><img class="legend-pin" src="maps/pins/seguranca.svg" alt="" />Segurança
-              fictícia</span
-            >
-            <span
-              ><img class="legend-pin" src="maps/pins/contingencia.svg" alt="" />Contingência
-              fictícia</span
-            >
-            <span
-              ><i class="legend-dot poi-dot" aria-hidden="true"></i>Ponto de interesse
-              fictício</span
-            >
-            @if (territorySelected()) {
-              <span class="territory-legend-note">
-                <i class="legend-area-mark" aria-hidden="true"></i>
-                {{
-                  territoryStatus() === 'loaded'
-                    ? territories().length.toLocaleString('pt-BR')
-                    : '0'
-                }}
-                áreas carregadas · classificação da fonte
-              </span>
-            }
-            @if (useRadius() && !radiusInvalid()) {
-              <span class="radius-legend-note">
-                <i class="radius-legend-mark" aria-hidden="true"></i>
-                Raio de busca · {{ radiusMeters() }} m · estimativa local
-              </span>
-            }
-            @if (heatmap()) {
-              <span class="legend-note"
-                >Densidades de ocorrências e POIs são camadas distintas; não representam nível de
-                risco.</span
-              >
-            }
-            <span class="legend-note"
-              >Cor e ícone identificam a categoria; pin ampliado indica seleção.</span
-            >
-          </div>
+                              [checked]="isFilterActive('poi:EXCLUSIVO')"
+                              (change)="toggleFilter('poi:EXCLUSIVO')"
+                            /><span>Locais do cliente</span></label
+                          >
+                          <p class="filter-hint">
+                            Disponíveis apenas em uma conta autenticada. Nenhum local privado é
+                            carregado nesta demonstração.
+                          </p>
+                        </fieldset>
+                      </div>
+                    }
+                  </section>
 
-          <section class="overview-row" aria-label="Resumo da consulta">
-            <div class="overview-metrics">
-              <article class="overview-metric">
-                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
-                ><strong>{{ eventCount().toLocaleString('pt-BR') }}</strong
-                ><span>Ocorrências</span><small>Na consulta atual</small>
-              </article>
-              @for (metric of categoryMetrics(); track metric.id) {
-                <article class="overview-metric">
-                  <svg class="ui-icon" aria-hidden="true">
-                    <use
-                      [attr.href]="
-                        'ui-icons.svg#' +
-                        (metric.id === 'TRANSITO'
-                          ? 'car'
-                          : metric.id === 'SEGURANCA'
-                            ? 'shield'
-                            : 'alert')
-                      "
-                    /></svg
-                  ><strong>{{ metric.count.toLocaleString('pt-BR') }}</strong
-                  ><span>{{ metric.label }}</span
-                  ><small>Na consulta atual</small>
-                </article>
+                  <section class="module-block">
+                    <button
+                      class="module-toggle"
+                      data-module="territory"
+                      [attr.aria-expanded]="expandedModule() === 'territory'"
+                      aria-controls="module-territory"
+                      (click)="toggleModule('territory')"
+                    >
+                      <span class="module-glyph glyph-territory" aria-hidden="true">⬡</span
+                      ><span class="module-title">Áreas territoriais</span
+                      ><span class="chevron" aria-hidden="true">⌄</span>
+                    </button>
+                    @if (expandedModule() === 'territory') {
+                      <div class="module-content" id="module-territory">
+                        <fieldset class="filter-group">
+                          <legend>Áreas territoriais</legend>
+                          @for (area of territoryGroups; track area.id) {
+                            <label class="filter-choice territory-choice">
+                              <input
+                                type="checkbox"
+                                [checked]="isFilterActive('territory:' + area.id)"
+                                [attr.data-filter]="'territory:' + area.id"
+                                (change)="toggleFilter('territory:' + area.id)"
+                              />
+                              <span class="territory-swatch" [style.background]="area.color"></span>
+                              <span class="territory-label">{{ area.label }}</span>
+                              <span class="territory-count">{{
+                                area.count.toLocaleString('pt-BR')
+                              }}</span>
+                            </label>
+                          }
+                        </fieldset>
+                        <p class="source-warning">
+                          <strong>Classificação registrada segundo a fonte</strong>
+                          <span>
+                            Base informada: julho de 2026. O mapa não confirma a situação atual nem
+                            representa limites municipais oficiais.
+                          </span>
+                          <a
+                            href="https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >Consultar a fonte</a
+                          >
+                          @if (territoryStatus() === 'loading') {
+                            <span role="status">Carregando polígonos…</span>
+                          }
+                          @if (territoryStatus() === 'error') {
+                            <span role="status">Não foi possível carregar a camada.</span>
+                            <button class="inline-retry" type="button" (click)="retryTerritories()">
+                              Tentar novamente
+                            </button>
+                          }
+                        </p>
+                      </div>
+                    }
+                  </section>
+                </div>
+                <button
+                  type="button"
+                  class="panel-resize-handle resize-width"
+                  data-panel-resize="width"
+                  aria-label="Redimensionar largura de Explore por tema"
+                  aria-describedby="panel-resize-help"
+                  title="Arraste para ajustar a largura"
+                ></button>
+                <button
+                  type="button"
+                  class="panel-resize-handle resize-height"
+                  data-panel-resize="height"
+                  aria-label="Redimensionar altura de Explore por tema"
+                  aria-describedby="panel-resize-help"
+                  title="Arraste para ajustar a altura"
+                ></button>
+                <button
+                  type="button"
+                  class="panel-resize-handle resize-corner"
+                  data-panel-resize="both"
+                  aria-label="Redimensionar Explore por tema"
+                  aria-describedby="panel-resize-help"
+                  title="Arraste para ajustar largura e altura"
+                >
+                  ↘
+                </button>
+                <span id="panel-resize-help" class="visually-hidden"
+                  >Arraste a borda ou use as setas para redimensionar. Home restaura o tamanho
+                  inicial.</span
+                >
+              </aside>
+              @if (mapExpanded()) {
+                <ng-container [ngTemplateOutlet]="quickFilters" />
+              }
+              @if (!mapReady() && !mapError()) {
+                <div class="map-loading" role="status">Preparando mapa demonstrativo…</div>
+              }
+              @if (mapError()) {
+                <div class="map-fallback" role="status">
+                  <span class="fallback-mark" aria-hidden="true">⌖</span>
+                  <strong>Não foi possível carregar o mapa</strong>
+                  <span>Os resultados continuam disponíveis na lista de resultados.</span>
+                  @if (mapErrorDetails()) {
+                    <small class="map-error-details"
+                      >Detalhe técnico: {{ mapErrorDetails() }}</small
+                    >
+                  }
+                  <button
+                    class="map-tool-button"
+                    type="button"
+                    data-testid="retry-map"
+                    (click)="retryMap()"
+                  >
+                    Tentar carregar novamente
+                  </button>
+                </div>
+              }
+              @if (mapPickPurpose()) {
+                <div class="map-pick-prompt" role="status">
+                  Clique no mapa para
+                  {{
+                    mapPickPurpose() === 'radius'
+                      ? 'definir o centro da busca'
+                      : 'escolher o local do registro'
+                  }}.
+                  <button type="button" class="inline-retry" (click)="cancelMapPick()">
+                    Cancelar
+                  </button>
+                </div>
+              }
+              @if (territorySelected()) {
+                <div class="map-notice" role="status">
+                  @if (territoryStatus() === 'loading') {
+                    <span aria-hidden="true">◌</span>Carregando polígonos atribuídos à fonte…
+                  } @else if (territoryStatus() === 'error') {
+                    <span aria-hidden="true">ⓘ</span>A camada territorial está indisponível. Os
+                    filtros podem ser tentados novamente.
+                  } @else {
+                    <span aria-hidden="true">ⓘ</span>Classificação da fonte · base julho de 2026 ·
+                    não confirma a situação atual.
+                  }
+                </div>
+              }
+              <div class="map-stamp">
+                <span class="stamp-dot" aria-hidden="true"></span>Mapa demonstrativo
+              </div>
+            </div>
+            <div class="map-legend" aria-label="Legenda do mapa">
+              <span
+                ><img class="legend-pin" src="maps/pins/transito.svg" alt="" />Trânsito
+                fictício</span
+              >
+              <span
+                ><img class="legend-pin" src="maps/pins/seguranca.svg" alt="" />Segurança
+                fictícia</span
+              >
+              <span
+                ><img class="legend-pin" src="maps/pins/contingencia.svg" alt="" />Contingência
+                fictícia</span
+              >
+              <span
+                ><i class="legend-dot poi-dot" aria-hidden="true"></i>Ponto de interesse
+                fictício</span
+              >
+              @if (territorySelected()) {
+                <span class="territory-legend-note">
+                  <i class="legend-area-mark" aria-hidden="true"></i>
+                  {{
+                    territoryStatus() === 'loaded'
+                      ? territories().length.toLocaleString('pt-BR')
+                      : '0'
+                  }}
+                  áreas carregadas · classificação da fonte
+                </span>
+              }
+              @if (useRadius() && !radiusInvalid()) {
+                <span class="radius-legend-note">
+                  <i class="radius-legend-mark" aria-hidden="true"></i>
+                  Raio de busca · {{ radiusMeters() }} m · estimativa local
+                </span>
+              }
+              @if (heatmap()) {
+                <span class="legend-note"
+                  >Densidades de ocorrências e POIs são camadas distintas; não representam nível de
+                  risco.</span
+                >
               }
             </div>
-            <article class="overview-report">
-              <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#chart" /></svg>
-              <h2>O contexto além do mapa.</h2>
-              <p>Compare períodos e explore as estatísticas demonstrativas.</p>
-              <button class="report-link" type="button" (click)="openView('insights')">
-                Explorar relatórios<svg class="ui-icon" aria-hidden="true">
-                  <use href="ui-icons.svg#arrow" />
-                </svg>
-              </button>
-            </article>
           </section>
-
-          <section class="results-panel" aria-labelledby="results-heading">
-            <div class="results-heading">
-              <div>
-                <h2 id="results-heading">Resultados visíveis</h2>
-                <p>Os mesmos registros alimentam o mapa e esta lista.</p>
-              </div>
-              <span>{{ visiblePoints().length }} itens</span>
-            </div>
-            @if (visiblePoints().length) {
-              <ul class="result-list">
-                @for (point of visiblePoints(); track point.id) {
-                  <li>
+          <aside class="consultation-sidebar" aria-label="Consulta e resultados">
+            <section class="consultation-query" aria-label="Busca e filtros da consulta">
+              <div class="map-search-wrap">
+                <label class="consultation-search-label" for="map-search"
+                  >Buscar ocorrências, locais e áreas</label
+                >
+                <div class="map-search-control">
+                  <svg class="ui-icon search-glyph" aria-hidden="true">
+                    <use href="ui-icons.svg#search" />
+                  </svg>
+                  <input
+                    id="map-search"
+                    data-testid="map-search"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Buscar ocorrência, local ou área territorial…"
+                    [value]="searchQuery()"
+                    [attr.aria-expanded]="searchQuery().trim().length >= 2"
+                    aria-controls="map-search-results"
+                    (input)="setSearchQuery($any($event.target).value)"
+                    (keydown.enter)="submitMapSearch()"
+                  />
+                  @if (searchQuery()) {
                     <button
-                      class="result-item"
+                      class="search-clear"
                       type="button"
-                      [attr.data-result-point]="point.id"
-                      [attr.aria-pressed]="selectedPointId() === point.id"
-                      (click)="focusPoint(point)"
+                      aria-label="Limpar busca"
+                      (click)="setSearchQuery('')"
                     >
-                      <span
-                        class="record-symbol"
-                        [class.poi-symbol]="point.kind === 'poi'"
-                        aria-hidden="true"
-                        >{{ markerCode(point) }}</span
-                      >
-                      <div class="record-copy">
-                        <strong>{{ point.name }}</strong
-                        ><span
-                          >{{ point.location }} ·
-                          {{
-                            point.kind === 'poi'
-                              ? recordTypeLabel(point)
-                              : recordTypeLabel(point) +
-                                ' · ' +
-                                statusLabel(point.operationalStatus) +
-                                ' · ' +
-                                formatTime(point.occurredAt || point.insertedAt)
-                          }}</span
-                        >
-                      </div>
-                      <span class="record-tag">{{
-                        point.sourceId === 'demo' ? 'Fictício' : 'Fonte'
-                      }}</span>
+                      ×
                     </button>
-                    <button
-                      class="record-detail-button"
-                      type="button"
-                      [attr.data-result-detail-toggle]="point.id"
-                      [attr.aria-expanded]="isResultDetailOpen(point.id)"
-                      [attr.aria-controls]="'map-result-detail-' + point.id"
-                      [disabled]="
-                        !isResultDetailOpen(point.id) && visibleOpenResultDetailCount() >= 5
-                      "
-                      (click)="toggleResultDetails(point.id)"
-                    >
-                      {{ isResultDetailOpen(point.id) ? 'Fechar detalhes' : 'Detalhes' }}
-                    </button>
-                    @if (isResultDetailOpen(point.id)) {
-                      <aside
-                        class="workspace-detail result-inline-detail"
-                        [attr.id]="'map-result-detail-' + point.id"
-                        [attr.data-result-detail]="point.id"
-                        [attr.aria-labelledby]="'map-result-detail-heading-' + point.id"
+                  }
+                  <button class="search-submit" type="button" (click)="submitMapSearch()">
+                    Buscar<svg class="ui-icon" aria-hidden="true">
+                      <use href="ui-icons.svg#arrow" />
+                    </svg>
+                  </button>
+                </div>
+                @if (searchQuery().trim().length >= 2) {
+                  <div
+                    class="search-results"
+                    id="map-search-results"
+                    role="group"
+                    aria-label="Resultados da busca"
+                  >
+                    @for (result of searchResults(); track result.key) {
+                      <button
+                        class="search-result"
+                        type="button"
+                        [attr.data-search-result]="result.key"
+                        (click)="selectMapSearchResult(result)"
                       >
-                        <button
-                          class="detail-close"
-                          type="button"
-                          [attr.aria-label]="'Fechar detalhes de ' + point.name"
-                          (click)="toggleResultDetails(point.id)"
+                        <span
+                          class="search-result-mark"
+                          [class.area-result-mark]="result.kind === 'territory'"
+                          aria-hidden="true"
                         >
-                          ×
-                        </button>
-                        <h3 [attr.id]="'map-result-detail-heading-' + point.id">
-                          {{ point.name }}
-                        </h3>
-                        <p>{{ point.description || 'Sem descrição adicional.' }}</p>
-                        <dl class="detail-grid">
-                          <div>
-                            <dt>Tipo</dt>
-                            <dd>{{ recordTypeLabel(point) }}</dd>
-                          </div>
-                          <div>
-                            <dt>Categoria</dt>
-                            <dd>{{ point.category || 'Ponto de interesse' }}</dd>
-                          </div>
-                          <div>
-                            <dt>Severidade informada</dt>
-                            <dd>{{ point.severity || 'Não informada' }}</dd>
-                          </div>
-                          <div>
-                            <dt>Estado</dt>
-                            <dd>{{ statusLabel(point.operationalStatus) }}</dd>
-                          </div>
-                          <div>
-                            <dt>Local</dt>
-                            <dd>{{ point.location }}</dd>
-                          </div>
-                          <div>
-                            <dt>Data do fato</dt>
-                            <dd>
-                              {{
-                                point.occurredAt
-                                  ? formatDateTime(point.occurredAt)
-                                  : 'Não se aplica'
-                              }}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>Última checagem</dt>
-                            <dd>
-                              {{
-                                point.lastCheckedAt
-                                  ? formatDateTime(point.lastCheckedAt)
-                                  : 'Não informada'
-                              }}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>Fonte</dt>
-                            <dd>{{ point.sourceId || 'Demonstração local' }}</dd>
-                          </div>
-                        </dl>
-                        <p class="query-note">
-                          Aprovação editorial ou importação não confirma que o fato continua ativo.
-                        </p>
-                      </aside>
+                          {{ result.kind === 'territory' ? '⬡' : '●' }}
+                        </span>
+                        <span class="search-result-copy">
+                          <strong>{{ result.title }}</strong>
+                          <small>{{ result.subtitle }}</small>
+                        </span>
+                      </button>
                     }
-                  </li>
+                    @if (!searchResults().length && territoryStatus() === 'loading') {
+                      <p class="search-message" role="status">Buscando áreas territoriais…</p>
+                    }
+                    @if (!searchResults().length && territoryStatus() === 'error') {
+                      <p class="search-message" role="status">
+                        Não foi possível carregar as áreas. Use “Tentar novamente” no filtro
+                        territorial.
+                      </p>
+                    }
+                    @if (
+                      !searchResultTotal() &&
+                      territoryStatus() !== 'loading' &&
+                      territoryStatus() !== 'error'
+                    ) {
+                      <p class="search-message">Nenhum resultado encontrado nos filtros atuais.</p>
+                    }
+                    @if (searchHasMore()) {
+                      <p class="search-message">
+                        {{ searchResults().length }} de {{ searchResultTotal() }} resultados. Refine
+                        a busca para encontrar outros.
+                      </p>
+                    }
+                  </div>
                 }
-              </ul>
-            } @else {
-              <div class="empty-state">
-                <span aria-hidden="true">⌕</span><strong>Nenhum resultado nesta combinação</strong
-                ><span>Ative uma camada ou amplie o período para explorar a demonstração.</span>
               </div>
-            }
-            @if (visibleOpenResultDetailCount() >= 5) {
-              <p class="results-detail-limit" role="status">
-                Até 5 detalhes podem ficar abertos simultaneamente. Feche um para abrir outro.
-              </p>
-            }
-          </section>
-        </section>
+              <details
+                class="consultation-quick-disclosure"
+                [open]="!compactConsultation() || consultationView() === 'list'"
+              >
+                <summary>
+                  <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg
+                  >Filtros da consulta
+                </summary>
+                @if (!mapExpanded()) {
+                  <ng-container [ngTemplateOutlet]="quickFilters" />
+                }
+                <button
+                  class="consultation-advanced"
+                  type="button"
+                  [attr.aria-expanded]="!filtersCollapsed()"
+                  aria-controls="map-filter-panel"
+                  (click)="toggleFilters()"
+                >
+                  Filtros avançados e camadas <span aria-hidden="true">→</span>
+                </button>
+              </details>
+            </section>
+            <section id="map-results" class="results-panel" aria-labelledby="results-heading">
+              <div class="results-heading">
+                <div>
+                  <h2 id="results-heading">Resultados visíveis</h2>
+                  <p>Os mesmos registros alimentam o mapa e esta lista.</p>
+                </div>
+                <span>{{ visiblePoints().length }} itens</span>
+              </div>
+              @if (visiblePoints().length) {
+                <ul class="result-list">
+                  @for (point of visiblePoints(); track point.id) {
+                    <li>
+                      <button
+                        class="result-item"
+                        type="button"
+                        [attr.data-result-point]="point.id"
+                        [attr.aria-pressed]="selectedPointId() === point.id"
+                        (click)="focusPoint(point)"
+                      >
+                        <span
+                          class="record-symbol"
+                          [class.poi-symbol]="point.kind === 'poi'"
+                          aria-hidden="true"
+                          >{{ markerCode(point) }}</span
+                        >
+                        <div class="record-copy">
+                          <strong>{{ point.name }}</strong
+                          ><span
+                            >{{ point.location }} ·
+                            {{
+                              point.kind === 'poi'
+                                ? recordTypeLabel(point)
+                                : recordTypeLabel(point) +
+                                  ' · ' +
+                                  statusLabel(point.operationalStatus) +
+                                  ' · ' +
+                                  formatTime(point.occurredAt || point.insertedAt)
+                            }}</span
+                          >
+                        </div>
+                        <span class="record-tag">{{
+                          point.sourceId === 'demo' ? 'Fictício' : 'Fonte'
+                        }}</span>
+                      </button>
+                      <button
+                        class="record-detail-button"
+                        type="button"
+                        [attr.data-result-detail-toggle]="point.id"
+                        [attr.aria-expanded]="isResultDetailOpen(point.id)"
+                        [attr.aria-controls]="'map-result-detail-' + point.id"
+                        [disabled]="
+                          !isResultDetailOpen(point.id) && visibleOpenResultDetailCount() >= 5
+                        "
+                        (click)="toggleResultDetails(point.id)"
+                      >
+                        {{ isResultDetailOpen(point.id) ? 'Fechar detalhes' : 'Detalhes' }}
+                      </button>
+                      @if (isResultDetailOpen(point.id)) {
+                        <aside
+                          class="workspace-detail result-inline-detail"
+                          [attr.id]="'map-result-detail-' + point.id"
+                          [attr.data-result-detail]="point.id"
+                          [attr.aria-labelledby]="'map-result-detail-heading-' + point.id"
+                        >
+                          <button
+                            class="detail-close"
+                            type="button"
+                            [attr.aria-label]="'Fechar detalhes de ' + point.name"
+                            (click)="toggleResultDetails(point.id)"
+                          >
+                            ×
+                          </button>
+                          <h3 [attr.id]="'map-result-detail-heading-' + point.id">
+                            {{ point.name }}
+                          </h3>
+                          <p>{{ point.description || 'Sem descrição adicional.' }}</p>
+                          <dl class="detail-grid">
+                            <div>
+                              <dt>Tipo</dt>
+                              <dd>{{ recordTypeLabel(point) }}</dd>
+                            </div>
+                            <div>
+                              <dt>Categoria</dt>
+                              <dd>{{ point.category || 'Ponto de interesse' }}</dd>
+                            </div>
+                            <div>
+                              <dt>Severidade informada</dt>
+                              <dd>{{ point.severity || 'Não informada' }}</dd>
+                            </div>
+                            <div>
+                              <dt>Estado</dt>
+                              <dd>{{ statusLabel(point.operationalStatus) }}</dd>
+                            </div>
+                            <div>
+                              <dt>Local</dt>
+                              <dd>{{ point.location }}</dd>
+                            </div>
+                            <div>
+                              <dt>Data do fato</dt>
+                              <dd>
+                                {{
+                                  point.occurredAt
+                                    ? formatDateTime(point.occurredAt)
+                                    : 'Não se aplica'
+                                }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>Última checagem</dt>
+                              <dd>
+                                {{
+                                  point.lastCheckedAt
+                                    ? formatDateTime(point.lastCheckedAt)
+                                    : 'Não informada'
+                                }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>Fonte</dt>
+                              <dd>{{ point.sourceId || 'Demonstração local' }}</dd>
+                            </div>
+                          </dl>
+                          <p class="query-note">
+                            Aprovação editorial ou importação não confirma que o fato continua
+                            ativo.
+                          </p>
+                        </aside>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="empty-state">
+                  <span aria-hidden="true">⌕</span><strong>Nenhum resultado nesta combinação</strong
+                  ><span>Ative uma camada ou amplie o período para explorar a demonstração.</span>
+                </div>
+              }
+              @if (visibleOpenResultDetailCount() >= 5) {
+                <p class="results-detail-limit" role="status">
+                  Até 5 detalhes podem ficar abertos simultaneamente. Feche um para abrir outro.
+                </p>
+              }
+            </section>
+          </aside>
+        </div>
+        <a class="map-scroll-cue" href="#consultation-overview">
+          Mais informações abaixo
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        </a>
       </div>
+      <section
+        id="consultation-overview"
+        class="overview-row"
+        aria-label="Resumo da consulta"
+        tabindex="-1"
+      >
+        <div class="overview-metrics">
+          <article class="overview-metric">
+            <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
+            ><strong>{{ eventCount().toLocaleString('pt-BR') }}</strong
+            ><span>Ocorrências</span><small>Na consulta atual</small>
+          </article>
+          @for (metric of categoryMetrics(); track metric.id) {
+            <article class="overview-metric">
+              <svg class="ui-icon" aria-hidden="true">
+                <use
+                  [attr.href]="
+                    'ui-icons.svg#' +
+                    (metric.id === 'TRANSITO'
+                      ? 'car'
+                      : metric.id === 'SEGURANCA'
+                        ? 'shield'
+                        : 'alert')
+                  "
+                /></svg
+              ><strong>{{ metric.count.toLocaleString('pt-BR') }}</strong
+              ><span>{{ metric.label }}</span
+              ><small>Na consulta atual</small>
+            </article>
+          }
+        </div>
+        <article class="overview-report">
+          <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#chart" /></svg>
+          <h2>O contexto além do mapa.</h2>
+          <p>Compare períodos e explore as estatísticas demonstrativas.</p>
+          <button class="report-link" type="button" (click)="openView('insights')">
+            Explorar relatórios<svg class="ui-icon" aria-hidden="true">
+              <use href="ui-icons.svg#arrow" />
+            </svg>
+          </button>
+        </article>
+      </section>
     </section>
     @if (activeView() === 'active') {
       <section class="workspace-view" aria-labelledby="active-heading">

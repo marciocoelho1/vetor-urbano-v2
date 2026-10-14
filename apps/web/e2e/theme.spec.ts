@@ -34,8 +34,15 @@ test('applies the system palette before Angular loads and follows system changes
     'aria-pressed',
     'true',
   );
+  const mapToggle = page.getByTestId('map-theme-toggle');
+  await expect(mapToggle).toHaveAttribute('aria-pressed', 'true');
+  await mapToggle.click();
+  await expect(mapToggle).toHaveAttribute('aria-pressed', 'false');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(mapToggle).toHaveAttribute('aria-pressed', 'false');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(mapToggle).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => localStorage.getItem('vu2.theme'))).toBeNull();
 });
 
@@ -66,8 +73,14 @@ test('saves a keyboard choice, restores it on reload and keeps v1 preferences se
   const other = await page.context().newPage();
   await other.goto('/');
   await expect(other.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await other.getByTestId('map-theme-toggle').click();
+  await expect(other.getByTestId('map-theme-toggle')).toHaveAttribute('aria-pressed', 'false');
   await button.click();
   await expect(other.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(other.getByTestId('map-theme-toggle')).toHaveAttribute('aria-pressed', 'false');
+  await button.click();
+  await expect(other.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(other.getByTestId('map-theme-toggle')).toHaveAttribute('aria-pressed', 'true');
   await other.close();
 });
 

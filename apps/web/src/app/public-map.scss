@@ -1,17 +1,230 @@
-// Controls live over the map; panels never resize or remount its canvas.
+// Consultation layout; expanded controls stay with the same map canvas.
 app-root .public-map {
-  --public-map-height: clamp(540px, 72dvh, 840px);
+  --public-map-height: 100dvh;
   --map-control-size: 44px;
 
+  .map-first-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100cqh;
+    min-height: 560px;
+  }
+  .map-page-header {
+    flex-shrink: 0;
+    padding-block: 16px;
+  }
+  .map-page-header .eyebrow {
+    margin: 0;
+  }
+  .map-first-screen .map-page-header h1 {
+    margin-top: 6px;
+  }
+  .map-layout {
+    flex: 1;
+    min-height: 0;
+  }
+  .map-scroll-cue {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .map-scroll-cue:hover {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .map-meta-bar,
+  .map-legend,
+  .consultation-query {
+    flex-shrink: 0;
+  }
+
   .map-frame {
-    height: var(--public-map-height);
-    min-height: 540px;
-    border-radius: 14px;
+    flex: 1;
+    height: auto;
+    min-height: 180px;
+    border: 0;
+    border-radius: 0;
   }
   .map-frame.map-expanded {
     --public-map-height: calc(100dvh - 24px);
     height: auto;
     min-height: 0;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+  }
+  .map-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    background: var(--color-bg-surface);
+  }
+  .map-meta-bar {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .map-legend {
+    padding: 12px 18px;
+    border-top: 1px solid var(--color-border-subtle);
+    border-radius: 0 0 14px 14px;
+  }
+  .consultation-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .consultation-query {
+    padding: 18px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    background: var(--color-bg-surface);
+  }
+  .consultation-search-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .consultation-query .map-search-wrap {
+    margin: 0;
+  }
+  .consultation-query .map-search-control {
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 6px 6px 12px;
+  }
+  .consultation-query .map-search-control input {
+    font-size: 0.875rem;
+  }
+  .consultation-query .search-submit {
+    min-height: 36px;
+    padding-inline: 10px;
+    border-color: var(--accent-strong);
+    background: var(--accent-strong);
+    color: var(--color-bg-surface);
+  }
+  .consultation-query .search-submit .ui-icon {
+    display: none;
+  }
+  .consultation-quick-disclosure {
+    margin-top: 14px;
+  }
+  .consultation-quick-disclosure > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--color-selected-bg);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+  .consultation-quick-disclosure > summary::after {
+    content: '+';
+    margin-left: auto;
+  }
+  .consultation-quick-disclosure[open] > summary::after {
+    content: '−';
+  }
+  .consultation-quick-disclosure .quick-filters {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 0 0;
+    border: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+  .consultation-quick-disclosure .quick-filter-label {
+    display: none;
+  }
+  .consultation-quick-disclosure .category-shortcuts {
+    width: 100%;
+    gap: 6px;
+  }
+  .consultation-quick-disclosure .category-shortcut {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+    padding-inline: 5px;
+    font-size: 0.75rem;
+  }
+  .consultation-quick-disclosure .quick-period {
+    flex: 1 1 100%;
+    max-width: none;
+    margin: 0;
+  }
+  .consultation-quick-disclosure .quick-period select {
+    min-height: 44px;
+  }
+  .consultation-quick-disclosure .heatmap-button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .consultation-advanced {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 0;
+    margin-top: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--accent-strong);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .consultation-sidebar .results-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 180px;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+  .consultation-sidebar .results-heading {
+    padding: 18px;
+  }
+  .consultation-sidebar .results-heading h2 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .consultation-sidebar .results-panel .result-list {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .consultation-mobile-tabs {
+    display: none;
+  }
+  .map-frame:not(.map-expanded) .filter-panel {
+    --filter-panel-bottom: 24px;
+  }
+  .map-frame:not(.map-expanded) .map-notice {
+    bottom: 28px;
   }
   // Vector popups must remain dismissible when they reach the toolbar.
   #map-canvas.maplibregl-map {
@@ -59,7 +272,7 @@ app-root .public-map {
     padding: 0 12px;
     cursor: pointer;
     font: inherit;
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 600;
   }
   .map-filter-toggle {
@@ -77,7 +290,7 @@ app-root .public-map {
     place-items: center;
     border-radius: 50%;
     background: var(--color-bg-muted);
-    font-size: 10px;
+    font-size: 0.75rem;
   }
   .map-theme-toggle {
     width: var(--map-control-size);
@@ -117,12 +330,12 @@ app-root .public-map {
     text-align: left;
   }
   .map-radius-title {
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 600;
   }
   .map-radius-current {
     color: var(--color-radius-text);
-    font-size: 10px;
+    font-size: 0.75rem;
     white-space: nowrap;
   }
   .map-radius-disclosure[aria-expanded='true'] .chevron {
@@ -239,13 +452,13 @@ app-root .public-map {
   }
   .results-panel .record-copy strong {
     font-family: var(--font-heading);
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     white-space: normal;
     overflow-wrap: anywhere;
   }
   .results-panel .record-copy span {
-    font-size: 11px;
+    font-size: 0.75rem;
     overflow-wrap: anywhere;
   }
   .results-panel .record-detail-button {
@@ -291,7 +504,7 @@ app-root .public-map {
   }
   .quick-filter-label {
     padding-right: 12px;
-    font-size: 11px;
+    font-size: 0.75rem;
   }
   .category-shortcuts {
     flex-wrap: wrap;
@@ -332,6 +545,120 @@ app-root .public-map {
       display: none;
     }
   }
+  @media (min-width: 1900px) {
+    .map-layout {
+      grid-template-columns: minmax(0, 1fr) 490px;
+    }
+  }
+  @media (max-width: 1200px) {
+    .map-layout {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+    .map-filter-label,
+    .map-expand-label,
+    .map-filter-count {
+      display: none;
+    }
+    .map-filter-toggle,
+    .map-expand-toggle {
+      width: 44px;
+      padding: 0;
+    }
+  }
+  @media (max-width: 960px) {
+    .map-page-header {
+      gap: 0;
+      padding-block: 12px;
+    }
+    .hero-aside {
+      display: none;
+    }
+    .map-meta-bar {
+      padding: 10px 12px;
+    }
+    .map-legend {
+      padding: 8px 12px;
+    }
+    .consultation-query {
+      padding: 12px;
+    }
+    &.consultation-list,
+    &.consultation-map-error {
+      .map-first-screen {
+        height: auto;
+      }
+      .map-layout {
+        flex: none;
+      }
+      .consultation-sidebar {
+        overflow: visible;
+      }
+    }
+    .map-layout,
+    .map-layout.filters-collapsed {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: auto;
+    }
+    .consultation-sidebar {
+      order: 0;
+      flex-shrink: 0;
+      height: auto;
+      overflow: visible;
+    }
+    .map-column {
+      order: 1;
+      flex: 1;
+      height: auto;
+      min-height: 260px;
+    }
+    .map-frame:not(.map-expanded) {
+      flex: 1;
+      height: auto;
+    }
+    .consultation-mobile-tabs {
+      display: flex;
+      flex-shrink: 0;
+      gap: 4px;
+      padding: 4px;
+      margin: 0 0 12px;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 14px;
+      background: var(--color-bg-surface);
+    }
+    .consultation-mobile-tabs button {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--color-text-main);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .consultation-mobile-tabs [aria-pressed='true'] {
+      background: var(--accent-strong);
+      color: var(--color-bg-surface);
+    }
+    &:not(.consultation-list):not(.consultation-map-error) .results-panel {
+      display: none;
+    }
+    &.consultation-list .map-column {
+      display: none;
+    }
+    .consultation-sidebar .results-panel {
+      overflow: visible;
+    }
+    .consultation-sidebar .result-list {
+      overflow: visible;
+    }
+  }
   @media (max-width: 760px) {
     .map-filter-label {
       display: none;
@@ -370,13 +697,34 @@ app-root .public-map {
     }
   }
   @media (max-width: 560px) {
-    --public-map-height: clamp(560px, 78dvh, 720px);
-
-    .map-layout {
-      margin-inline: -12px;
+    .map-page-header {
+      padding-block: 8px;
     }
-    .map-frame {
-      min-height: 560px;
+    .map-page-header .eyebrow,
+    .consultation-search-label {
+      display: none;
+    }
+    .map-first-screen .map-page-header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .consultation-quick-disclosure {
+      margin-top: 8px;
+    }
+    .consultation-mobile-tabs {
+      margin-bottom: 8px;
+    }
+    .consultation-quick-disclosure .category-shortcuts {
+      flex-wrap: wrap;
+    }
+    .consultation-quick-disclosure .category-shortcut {
+      flex-basis: 96px;
+    }
+    .consultation-query .map-search-control input {
+      font-size: 16px;
+    }
+    .map-layout {
+      margin-inline: 0;
     }
     .map-frame.map-expanded {
       --public-map-height: calc(100dvh - 12px);
@@ -440,5 +788,22 @@ app-root .public-map {
     .map-frame.map-expanded .map-top-controls {
       grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
     }
+  }
+}
+
+// Reserve the remaining viewport after the top bar's natural height.
+app-root .app-shell.map-view {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+
+  .topbar {
+    min-width: 0;
+  }
+  .main-content {
+    container-type: size;
+    height: 100%;
+    min-height: 0;
+    margin-block: 0;
   }
 }

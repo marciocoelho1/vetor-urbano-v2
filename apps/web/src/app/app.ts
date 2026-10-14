@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   Component,
   computed,
+  effect,
   HostListener,
   inject,
   OnDestroy,
@@ -310,6 +311,15 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly categories = CATEGORIES;
   protected readonly territoryGroups = TERRITORY_GROUPS;
   protected readonly activeView = signal<ViewId>('map');
+  protected readonly consultationView = signal<'map' | 'list'>('map');
+  protected readonly compactConsultation = signal(
+    typeof window !== 'undefined' && window.innerWidth <= 960,
+  );
+
+  @HostListener('window:resize')
+  protected updateConsultationViewport(): void {
+    this.compactConsultation.set(window.innerWidth <= 960);
+  }
   protected readonly expandedModule = signal<ModuleId | null>('intelligence');
   protected readonly selectedCategory = signal<Category | null>(null);
   protected readonly activeFilters = signal<string[]>(['category:TRANSITO']);
@@ -367,8 +377,8 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly filtersCollapsed = signal(false);
   protected readonly radiusOptionsOpen = signal(false);
   protected readonly mapExpanded = signal(false);
-  protected readonly mapDark = signal(false);
-  protected readonly reportMapDark = signal(false);
+  protected readonly mapDark = signal(this.theme.dark());
+  protected readonly reportMapDark = signal(this.theme.dark());
   protected readonly selectedPointId = signal<string | null>(null);
   protected readonly expandedResultDetailIds = signal<string[]>([]);
   protected readonly selectedTerritoryId = signal<number | null>(null);
@@ -735,6 +745,16 @@ export class App implements AfterViewInit, OnDestroy {
     () => this.visiblePoints().filter((point) => point.kind === 'occurrence').length,
   );
 
+  constructor() {
+    effect(() => {
+      const dark = this.theme.dark();
+      this.mapDark.set(dark);
+      this.reportMapDark.set(dark);
+      this.applyMapTheme(this.map, dark);
+      this.applyMapTheme(this.reportMap, dark);
+    });
+  }
+
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
@@ -785,7 +805,10 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleFilters(): void {
     this.filtersCollapsed.update((collapsed) => !collapsed);
-    if (!this.filtersCollapsed()) this.radiusOptionsOpen.set(false);
+    if (!this.filtersCollapsed()) {
+      this.radiusOptionsOpen.set(false);
+      this.consultationView.set('map');
+    }
     try {
       localStorage.setItem('vu2.filtersCollapsed', String(this.filtersCollapsed()));
     } catch {
@@ -1096,6 +1119,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected beginMapPick(purpose: 'report' | 'radius'): void {
     this.mapPickPurpose.set(purpose);
+    this.consultationView.set('map');
     if (purpose === 'report') this.activeView.set('map');
     requestAnimationFrame(() => {
       this.map?.resize();

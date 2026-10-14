@@ -67,7 +67,7 @@ test('loads local typefaces, preserves v1 preferences and fits desktop and mobil
       .filter((font) => font.status === 'loaded')
       .map((font) => font.family.replace(/["']/g, '')),
   );
-  expect(fonts).toEqual(expect.arrayContaining(['Newsreader', 'Manrope']));
+  expect(fonts).toEqual(expect.arrayContaining(['Manrope']));
   expect(externalFonts).toEqual([]);
   await page.getByTestId('filter-panel-toggle').click();
   await page.getByTestId('filter-panel-toggle').click();
@@ -82,13 +82,10 @@ test('loads local typefaces, preserves v1 preferences and fits desktop and mobil
     await expect(page.locator('.overview-row')).toBeVisible();
     const frame = await page.locator('.map-frame').boundingBox();
     const content = await page.locator('#main-content').boundingBox();
-    expect(
-      Math.abs(
-        frame!.width -
-          content!.width +
-          (width > 1200 ? 64 : width > 560 ? 56 : width > 360 ? 16 : 4),
-      ),
-    ).toBeLessThan(3);
+    const column = (await page.locator('.map-column').boundingBox())!;
+    expect(Math.abs(frame!.width - column.width + 2)).toBeLessThan(3);
+    expect(column.x).toBeGreaterThanOrEqual(content!.x);
+    expect(column.x + column.width).toBeLessThanOrEqual(content!.x + content!.width);
     if (width === 1440 || width === 390)
       await page.screenshot({
         path: `test-results/${testInfo.project.name}-visual-v2-${width}.png`,
@@ -155,7 +152,7 @@ test('shows comparison selections that match the calculation when options are cr
   await expect(page.locator('.comparison-result')).toContainText('diferença B−A: 3');
 });
 
-test('keeps map controls inside the larger map and aligns the compact radius bar', async ({
+test('keeps map controls inside the viewport-sized map and aligns the compact radius bar', async ({
   page,
 }) => {
   await page.goto('/');
@@ -184,7 +181,7 @@ test('keeps map controls inside the larger map and aligns the compact radius bar
         expand: box('.map-expand-toggle'),
       };
     });
-    expect(bounds.frame.height).toBeGreaterThanOrEqual(540);
+    expect(bounds.frame.height).toBeGreaterThanOrEqual(180);
     expect(
       Math.abs(bounds.radius.x + bounds.radius.width / 2 - bounds.frame.x - bounds.frame.width / 2),
     ).toBeLessThan(1);
@@ -194,7 +191,7 @@ test('keeps map controls inside the larger map and aligns the compact radius bar
     expect(bounds.radius.y).toBe(bounds.actions.y);
     expect(bounds.filters.right).toBeLessThanOrEqual(bounds.radius.x);
     expect(bounds.radius.right).toBeLessThanOrEqual(bounds.actions.x);
-    for (const control of [bounds.radius, bounds.filters, bounds.actions, bounds.quick]) {
+    for (const control of [bounds.radius, bounds.filters, bounds.actions]) {
       expect(control.x).toBeGreaterThan(bounds.frame.x);
       expect(control.right).toBeLessThan(bounds.frame.right);
       expect(control.y).toBeGreaterThan(bounds.frame.y);
@@ -206,8 +203,10 @@ test('keeps map controls inside the larger map and aligns the compact radius bar
     await page.getByTestId('filter-panel-toggle').click();
     await expect(page.locator('#map-filter-panel')).toBeVisible();
     const panel = await page.locator('#map-filter-panel').boundingBox();
-    expect(panel!.y).toBeGreaterThan(bounds.radius.bottom);
-    expect(panel!.y + panel!.height).toBeLessThan(bounds.quick.y);
+    const radiusAfterClick = (await page.locator('.map-radius-bar').boundingBox())!;
+    const frameAfterClick = (await page.locator('.map-frame').boundingBox())!;
+    expect(panel!.y).toBeGreaterThan(radiusAfterClick.y + radiusAfterClick.height);
+    expect(panel!.y + panel!.height).toBeLessThan(frameAfterClick.y + frameAfterClick.height);
     await page.getByRole('button', { name: 'Fechar filtros e camadas' }).click();
     await expect(page.getByTestId('filter-panel-toggle')).toBeFocused();
   }
@@ -312,20 +311,19 @@ test('uses the available width across views and arranges results in responsive c
         .locator(selector)
         .first()
         .evaluate((node) => getComputedStyle(node).fontFamily),
-    ).toContain('Newsreader');
+    ).toContain('Manrope');
   }
   for (const width of [2560, 1920, 1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1080 });
+    if (width <= 960) await page.getByRole('button', { name: /^Lista \d+/ }).click();
     const cards = page.locator('.result-list > li');
     const first = (await cards.nth(0).boundingBox())!;
     const second = (await cards.nth(1).boundingBox())!;
-    if (width >= 768) {
-      expect(second.y).toBe(first.y);
-      expect(second.x).toBeGreaterThan(first.x + first.width);
-    } else {
-      expect(second.x).toBe(first.x);
-      expect(second.y).toBeGreaterThan(first.y + first.height);
+    if (width <= 960) {
+      await page.getByRole('button', { name: /^Lista \d+/ }).click();
     }
+    expect(second.x).toBe(first.x);
+    expect(second.y).toBeGreaterThan(first.y + first.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -408,14 +406,13 @@ test('resizes the topic panel by edges and corner without moving the map, with k
   expect(box.height).toBeCloseTo(original.height, 0);
   await drag('.resize-corner', -1000, -1000);
   box = (await panel.boundingBox())!;
-  expect(box.width).toBe(260);
-  expect(box.height).toBe(220);
+  expect(box.width).toBeCloseTo(260, 2);
+  expect(box.height).toBeCloseTo(220, 2);
   await drag('.resize-corner', 2500, 1200);
   box = (await panel.boundingBox())!;
   const frame = (await page.locator('.map-frame').boundingBox())!;
-  const quick = (await page.locator('.quick-filters').boundingBox())!;
   expect(box.x + box.width).toBeLessThan(frame.x + frame.width);
-  expect(box.y + box.height).toBeLessThan(quick.y);
+  expect(box.y + box.height).toBeLessThan(frame.y + frame.height);
   await page.setViewportSize({ width: 768, height: 800 });
   box = (await panel.boundingBox())!;
   const smallerFrame = (await page.locator('.map-frame').boundingBox())!;

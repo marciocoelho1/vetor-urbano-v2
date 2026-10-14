@@ -1,5 +1,7 @@
 # Arquitetura — frontend demonstrativo existente; backend proposto
 
+**UI/UX atual — 14/10/2026:** a proposta 6 foi escolhida e aplicada à interface principal: mapa/lista lado a lado no desktop, alternância no celular, cabeçalho com os seis menus e Manrope também nos títulos. Paletas, regras, dados, motores cartográficos e recursos existentes preservados. Fontes Newsreader continuam somente na comparação. Detalhes em [visual-v6.md](../product/visual-v6.md); o registro abaixo descreve a origem desta cópia.
+
 **Versão visual 02:** esta cópia preserva a base `311875a` e acrescenta somente GSAP 3.15.0. O tema escuro/navegação lateral descritos como referência original abaixo foram substituídos nesta alternativa, por autorização explícita, por tema claro e navegação horizontal. Angular, mapas, regras e contratos existentes permanecem. Fontes WOFF2 locais Newsreader/Manrope e estilos compartilhados/tema separados; porta 4201 e armazenamento `vu2.*`. Decisões e verificação em [visual-v2.md](../product/visual-v2.md). O incremento de modo escuro acrescenta tokens comuns em `theme.scss`, preferência local `vu2.theme` e inicialização antes de Angular, sem nova dependência ou alteração de provedor.
 
 

@@ -1,0 +1,166 @@
+{
+  "capturedAt": "2026-10-13T22:03:36.395Z",
+  "url": "http://127.0.0.1:4210",
+  "records": "71 fixtures sintéticas do gerador existente; relógio fixo 13/10/2026 18:00Z",
+  "views": [
+    {
+      "variant": 1,
+      "width": 1440,
+      "height": 1120,
+      "filename": "proposal-1-desktop.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 2,
+      "width": 1440,
+      "height": 1120,
+      "filename": "proposal-2-desktop.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 3,
+      "width": 1440,
+      "height": 1120,
+      "filename": "proposal-3-desktop.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 4,
+      "width": 1440,
+      "height": 1120,
+      "filename": "proposal-4-desktop.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 5,
+      "width": 1440,
+      "height": 1120,
+      "filename": "proposal-5-desktop.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 1,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-1-mobile-map.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 1,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-1-mobile-list.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 2,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-2-mobile-map.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 2,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-2-mobile-list.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 3,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-3-mobile-map.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 3,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-3-mobile-list.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 4,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-4-mobile-map.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 4,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-4-mobile-list.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 5,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-5-mobile-map.png",
+      "resultCount": 9
+    },
+    {
+      "variant": 5,
+      "width": 390,
+      "height": 844,
+      "filename": "proposal-5-mobile-list.png",
+      "resultCount": 9
+    },
+    {
+      "filename": "comparison-mobile.png",
+      "width": 390,
+      "height": 844,
+      "view": "comparison"
+    },
+    {
+      "filename": "selected-result-desktop.png",
+      "width": 1440,
+      "height": 1120,
+      "view": "selected"
+    },
+    {
+      "variant": 5,
+      "width": 320,
+      "height": 780,
+      "filename": "proposal-5-320-map.png",
+      "resultCount": 9
+    }
+  ],
+  "checks": [
+    "Chromium: proposta 1, desktop, mapa/lista iguais e tiles reais completos",
+    "Chromium: proposta 2, desktop, mapa/lista iguais e tiles reais completos",
+    "Chromium: proposta 3, desktop, mapa/lista iguais e tiles reais completos",
+    "Chromium: proposta 4, desktop, mapa/lista iguais e tiles reais completos",
+    "Chromium: proposta 5, desktop, mapa/lista iguais e tiles reais completos",
+    "Chromium: proposta 1, 390 px, Mapa/Lista e consulta preservada",
+    "Chromium: proposta 2, 390 px, Mapa/Lista e consulta preservada",
+    "Chromium: proposta 3, 390 px, Mapa/Lista e consulta preservada",
+    "Chromium: proposta 4, 390 px, Mapa/Lista e consulta preservada",
+    "Chromium: proposta 5, 390 px, Mapa/Lista e consulta preservada",
+    "Chromium: proposta 1, endereço/período/raio/categorias/ordem/seleção preservados",
+    "Chromium: proposta 2, endereço/período/raio/categorias/ordem/seleção preservados",
+    "Chromium: proposta 3, endereço/período/raio/categorias/ordem/seleção preservados",
+    "Chromium: proposta 4, endereço/período/raio/categorias/ordem/seleção preservados",
+    "Chromium: proposta 5, endereço/período/raio/categorias/ordem/seleção preservados",
+    "Chromium: nenhuma categoria → vazio; limpar → 71 registros, raio desativado e igualdade mapa/lista",
+    "Chromium: autocomplete por teclado, sugestão inexistente/Escape e seleção explícita do centro no mapa",
+    "Chromium: setas trocam proposta fora dos controles e respeitam edição/mapa",
+    "Chromium: diálogos funcionam, URL conserva variante e recarga restaura consulta de exemplo",
+    "Chromium: cinco variantes a 320 px, Mapa/Lista sem rolagem horizontal; desktop 1920 px",
+    "Chromium: falha de tiles provocada mantém lista, filtros e detalhes disponíveis",
+    "Firefox: proposta 1, mapa real, detalhes, 320 px e consulta preservada",
+    "Firefox: proposta 2, mapa real, detalhes, 320 px e consulta preservada",
+    "Firefox: proposta 3, mapa real, detalhes, 320 px e consulta preservada",
+    "Firefox: proposta 4, mapa real, detalhes, 320 px e consulta preservada",
+    "Firefox: proposta 5, mapa real, detalhes, 320 px e consulta preservada"
+  ],
+  "errors": [],
+  "tileStatuses": {
+    "200": 156
+  },
+  "firefox": "157.0",
+  "chromium": "156.0.8078.4",
+  "status": "passed"
+}
