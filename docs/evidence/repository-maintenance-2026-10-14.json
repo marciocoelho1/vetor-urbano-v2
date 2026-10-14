@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-14",
+  "scope": "Repository organization and current documentation; no product behavior or dependency changes",
+  "previous_work_commit": "4449457",
+  "branch": "feat/ui-ux-gallery",
+  "runtime": {
+    "node": "v22.23.1",
+    "npm": "10.9.8",
+    "declared_package_manager": "npm@11.19.0"
+  },
+  "checks": {
+    "web_lint": "passed",
+    "unit_tests": {
+      "files": 4,
+      "passed": 59
+    },
+    "production_build": {
+      "status": "passed",
+      "initial_bytes": 502643,
+      "warning_budget_bytes": 500000,
+      "warning_preserved": true,
+      "output": "apps/web/dist/web/browser/"
+    },
+    "prototype_lint": "passed",
+    "prototype_build": "passed",
+    "playwright_discovery": {
+      "tests": 98,
+      "files": 5
+    },
+    "e2e_attempt": {
+      "status": "blocked",
+      "command": "npm run test:e2e --prefix apps/web -- --grep 'starts a real WebGL2|keeps quick filters|keeps map controls' --workers=1 --output=/tmp/vetor-repo-e2e",
+      "reason": "Playwright config.webServer failed to start with exit code 127; no browser test result claimed"
+    },
+    "capture_script_syntax": "passed",
+    "typescript_syntax_audit": {
+      "typescript_files_checked": 25,
+      "non_import_tokens_unchanged": true
+    },
+    "preservation": {
+      "protected_files": 390,
+      "sql_preserved": true,
+      "node": "v22.23.1",
+      "npm": "10.9.8"
+    }
+  },
+  "deleted": [
+    "apps/web/.vscode/extensions.json",
+    "apps/web/.vscode/launch.json",
+    "apps/web/.vscode/tasks.json",
+    "docs/evidence/ui-ux-gallery/review-failure.png"
+  ],
+  "known_issues": [
+    "Initial bundle exceeds warning budget by 2.64 kB",
+    "Local MapLibre report theme",
+    "Report layout at 320px",
+    "Physical device and screen reader QA pending"
+  ]
+}

@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
-import { Theme } from './theme';
-import type { SpreadsheetSheet } from './xlsx-export';
+import { Theme } from './core/theme/theme';
+import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
 
 const territorialFixture = {
   type: 'FeatureCollection',

@@ -5,13 +5,14 @@
     "ng": "ng",
     "start": "ng serve --port 4201",
     "prototype:ui": "ng serve --configuration ui-ux-prototype --host 127.0.0.1 --port 4210",
-    "lint:prototype": "prettier --check \"src/app/prototypes/ui-ux-gallery/*.{ts,html,scss}\" angular.json package.json",
+    "lint:prototype": "prettier --check \"prototypes/ui-ux-gallery/*.{ts,html,scss}\" tsconfig.prototype.json",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --watch=false",
     "test:e2e": "playwright test",
-    "lint": "prettier --check \"src/app/app.{ts,html,scss}\" src/app/app.spec.ts src/app/domain.ts src/app/demo-occurrences.ts src/app/demo-occurrences.spec.ts src/app/domain.spec.ts src/app/leaflet-style-loader.ts src/leaflet-esm.d.ts src/app/maplibre-style-loader.ts src/app/urban-map-style.ts src/app/radius-geometry.ts src/app/source-import.ts src/app/xlsx-export.ts src/app/xlsx-export.spec.ts src/app/workspace.scss src/app/controls.scss src/app/public-map.scss src/app/visual-v2.scss src/app/view-motion.ts src/app/panel-resize.ts src/app/theme.ts src/app/theme.scss src/app/theme-motion.ts src/app/theme-motion.scss public/theme-init.js src/styles.scss src/index.html playwright.config.ts e2e/browser-smoke.spec.ts e2e/visual-v2.spec.ts e2e/visual-v6.spec.ts e2e/theme.spec.ts e2e/theme-motion.spec.ts"
+    "lint": "prettier --check \"src/**/*.{ts,html,scss}\" public/theme-init.js angular.json package.json playwright.config.ts \"e2e/**/*.ts\"",
+    "build:prototype": "ng build --configuration ui-ux-prototype"
   },
   "private": true,
   "packageManager": "npm@11.19.0",

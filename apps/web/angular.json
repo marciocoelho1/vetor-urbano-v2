@@ -97,10 +97,10 @@
               "sourceMap": true
             },
             "ui-ux-prototype": {
-              "browser": "src/app/prototypes/ui-ux-gallery/main.ts",
+              "browser": "prototypes/ui-ux-gallery/main.ts",
               "styles": [
                 "src/styles.scss",
-                "src/app/prototypes/ui-ux-gallery/ui-ux-gallery.scss",
+                "prototypes/ui-ux-gallery/ui-ux-gallery.scss",
                 {
                   "input": "node_modules/leaflet/dist/leaflet.css",
                   "bundleName": "leaflet",
@@ -110,7 +110,8 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
-              "outputPath": "dist/ui-ux-prototype"
+              "outputPath": "dist/ui-ux-prototype",
+              "tsConfig": "tsconfig.prototype.json"
             }
           },
           "defaultConfiguration": "production"

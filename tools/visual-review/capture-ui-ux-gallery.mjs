@@ -1,10 +1,11 @@
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 const root = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '');
 const require = createRequire(`${root}/apps/web/package.json`);
 const { chromium, firefox, expect } = require('@playwright/test');
-const output = `${root}/docs/evidence/ui-ux-gallery`;
+const output = resolve(process.env.VU_CAPTURE_DIR ?? `${root}/apps/web/test-results/ui-ux-gallery`);
 await mkdir(output, { recursive: true });
 const metadata = { capturedAt: new Date().toISOString(), url: 'http://127.0.0.1:4210', records: '71 fixtures sintéticas do gerador existente; relógio fixo 13/10/2026 18:00Z', views: [], checks: [], errors: [], tileStatuses: {} };
 const browser = await chromium.launch();

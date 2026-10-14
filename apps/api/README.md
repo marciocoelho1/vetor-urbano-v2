@@ -1,7 +1,7 @@
-# API do Vetor Urbano — módulo ainda não implementado
+# API Java
 
-Este diretório foi preservado da antiga `main` na consolidação de 11/10/2026. Não contém aplicação Spring Boot, `pom.xml`, Maven Wrapper, endpoints ou testes de integração.
+Este diretório reserva o espaço da futura API do Vetor Urbano. Ainda não há aplicação Spring Boot, Maven Wrapper, endpoints ou testes.
 
-`src/main/resources/db/migration/V1__Initial_Schema.sql` é um **rascunho não aplicado**, preservado sem alterações. Sua presença não comprova banco executável nem autorização para executá-lo. Categorias, estados, perfis e entidades divergem dos contratos em revisão; reconciliar em R0 antes de qualquer uso.
+O SQL não aplicado foi movido para [docs/archive/database/initial-schema-v1.sql](../../docs/archive/database/initial-schema-v1.sql). Ele é uma referência histórica, com diferenças de categorias e estados que precisam de reconciliação antes da criação de migrações reais.
 
-Direção atual: [escopo](../../docs/product/scope.md), [arquitetura](../../docs/architecture/overview.md), [PLAN](../../PLAN.md). A [análise histórica da modelagem](../../docs/archive/database/schema-review-v1.md) continua disponível. Nenhuma fase de backend/banco foi iniciada nesta consolidação.
+A implementação prevista usa Java e PostgreSQL/PostGIS. Contratos, versões e regras de acesso serão definidos na etapa de backend descrita no [plano](../../PLAN.md) e na [arquitetura](../../docs/architecture/overview.md).
