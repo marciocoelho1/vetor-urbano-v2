@@ -95,6 +95,23 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "ui-ux-prototype": {
+              "browser": "prototypes/ui-ux-gallery/main.ts",
+              "styles": [
+                "src/styles.scss",
+                "prototypes/ui-ux-gallery/ui-ux-gallery.scss",
+                {
+                  "input": "node_modules/leaflet/dist/leaflet.css",
+                  "bundleName": "leaflet",
+                  "inject": false
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "outputPath": "dist/ui-ux-prototype",
+              "tsConfig": "tsconfig.prototype.json"
             }
           },
           "defaultConfiguration": "production"
@@ -107,6 +124,9 @@
             },
             "development": {
               "buildTarget": "web:build:development"
+            },
+            "ui-ux-prototype": {
+              "buildTarget": "web:build:ui-ux-prototype"
             }
           },
           "defaultConfiguration": "development"

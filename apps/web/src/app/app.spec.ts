@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
-import type { SpreadsheetSheet } from './xlsx-export';
+import { Theme } from './core/theme/theme';
+import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
 
 const territorialFixture = {
   type: 'FeatureCollection',
@@ -141,6 +142,120 @@ describe('Vetor Urbano', () => {
     fixture.detectChanges();
   });
 
+  it('starts both maps in the page theme, including a map opened later', () => {
+    fixture.destroy();
+    TestBed.inject(Theme).dark.set(true);
+    fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const publicToggle = fixture.nativeElement.querySelector('[data-testid="map-theme-toggle"]');
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(fixture.nativeElement.querySelector('.map-frame').classList).toContain('map-dark');
+    publicToggle.click();
+    fixture.detectChanges();
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('false');
+    fixture.nativeElement.querySelector('button.nav-register').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="report-map-theme-toggle"]')
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(TestBed.inject(Theme).dark()).toBe(true);
+  });
+
+  it('keeps local map choices independent until the next page theme change', () => {
+    const theme = TestBed.inject(Theme);
+    const publicToggle = fixture.nativeElement.querySelector('[data-testid="map-theme-toggle"]');
+    publicToggle.click();
+    fixture.detectChanges();
+    expect(theme.dark()).toBe(false);
+    expect(localStorage.getItem('vu2.theme')).toBeNull();
+    fixture.nativeElement.querySelector('button.nav-register').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
+    fixture.detectChanges();
+    const reportToggle = fixture.nativeElement.querySelector(
+      '[data-testid="report-map-theme-toggle"]',
+    );
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(reportToggle.getAttribute('aria-pressed')).toBe('false');
+    theme.dark.set(true);
+    fixture.detectChanges();
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(reportToggle.getAttribute('aria-pressed')).toBe('true');
+    reportToggle.click();
+    fixture.detectChanges();
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(reportToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(theme.dark()).toBe(true);
+    theme.dark.set(false);
+    fixture.detectChanges();
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(reportToggle.getAttribute('aria-pressed')).toBe('false');
+    theme.dark.set(true);
+    fixture.detectChanges();
+    expect(publicToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(reportToggle.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('updates the existing vector maps when the page theme changes and preserves local independence', () => {
+    const createMap = () => ({
+      getLayer: () => ({ id: 'background' }),
+      isStyleLoaded: () => true,
+      remove: vi.fn(),
+      setPaintProperty: vi.fn(),
+    });
+    const publicMap = createMap();
+    const reportMap = createMap();
+    const app = fixture.componentInstance as unknown as {
+      map: typeof publicMap;
+      reportMap: typeof reportMap;
+      urbanMapStyle: unknown;
+    };
+    app.map = publicMap;
+    app.reportMap = reportMap;
+    app.urbanMapStyle = {
+      version: 8,
+      sources: {},
+      layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#e8eaed' } }],
+    };
+    const theme = TestBed.inject(Theme);
+    theme.dark.set(true);
+    fixture.detectChanges();
+    for (const map of [publicMap, reportMap]) {
+      expect(map.setPaintProperty).toHaveBeenLastCalledWith(
+        'background',
+        'background-color',
+        '#202832',
+      );
+    }
+    fixture.nativeElement.querySelector('[data-testid="map-theme-toggle"]').click();
+    fixture.detectChanges();
+    expect(publicMap.setPaintProperty).toHaveBeenLastCalledWith(
+      'background',
+      'background-color',
+      '#e8eaed',
+    );
+    expect(reportMap.setPaintProperty).toHaveBeenLastCalledWith(
+      'background',
+      'background-color',
+      '#202832',
+    );
+    theme.dark.set(false);
+    fixture.detectChanges();
+    for (const map of [publicMap, reportMap]) {
+      expect(map.setPaintProperty).toHaveBeenLastCalledWith(
+        'background',
+        'background-color',
+        '#e8eaed',
+      );
+    }
+    expect(app.map).toBe(publicMap);
+    expect(app.reportMap).toBe(reportMap);
+  });
+
   it('lets visitors hide filters and enter an expanded map mode with a keyboard exit', () => {
     const filterToggle = fixture.nativeElement.querySelector('[data-testid="filter-panel-toggle"]');
     filterToggle.click();
@@ -277,7 +392,7 @@ describe('Vetor Urbano', () => {
   });
 
   it('labels territorial polygons as source-attributed and lets the visitor filter by group', () => {
-    expect(fixture.nativeElement.textContent).toContain('Dados fictícios');
+    expect(fixture.nativeElement.textContent).toContain('ocorrências fictícias');
     fixture.nativeElement.querySelector('[data-module="territory"]').click();
     fixture.detectChanges();
 

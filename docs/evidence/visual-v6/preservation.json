@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-14",
+  "actionBindings": {
+    "before": 84,
+    "after": 87,
+    "missing": []
+  },
+  "unchanged": {
+    "apps/web/src/app/domain.ts": "2906da227856fe6e9f73f95392ff3fe33db2afc06309e3d1fd506700bf3889c5",
+    "apps/web/src/app/demo-occurrences.ts": "a4027bcf3b832356beefc05e3a708dac3cbcbcb36744817fc5716a89e6a59ff6",
+    "apps/web/src/app/theme.ts": "1257c0cb29685ec1377beed6bf06071624c08163fa559aff4e3ef3898770fcfe",
+    "apps/web/src/app/theme.scss": "d004b648b38d67612dd9d0b5655b1e5f64e2be8954abb052d912c91182a28d42",
+    "apps/web/src/app/theme-motion.ts": "a30e5b189819ad73de6e447e773bb962fff5d6b5001db605ba3f69e1d240b1e8",
+    "apps/web/src/app/panel-resize.ts": "f3a89e38f768d17844142195270511c9d99a1f94b72154238271d8848a6f6dbd",
+    "apps/web/package-lock.json": "9afdaa6ea92f0057e5244e3838468046086b0ee320165395bf9adadd5595629d"
+  }
+}

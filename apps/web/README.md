@@ -1,38 +1,33 @@
-# Aplicação web do Vetor Urbano
+# Aplicação web
 
-Demonstração Angular + SCSS em `apps/web/`, mantida na branch `main`. Ocorrências/POIs são sintéticos; importações manuais ficam na aba. Cadastro não envia dados. Não existe API, autenticação, moderação real ou persistência no servidor.
-
-## Execução local
+Frontend do Vetor Urbano, em Angular e SCSS. A demonstração usa ocorrências fictícias em memória; o formulário valida dados localmente e não os envia.
 
 Na raiz do repositório:
 
 ```bash
-cd apps/web
-npm ci
-npm start
-```
-
-Abra `http://localhost:4200/`. Os mapas atuais usam MapLibre/Alidade Bright personalizado e Leaflet/Alidade Bright raster como recuperação. Rede é necessária; outros hosts exigem configuração autorizada do provedor. O lockfile fixa as dependências usadas; não atualizar versões como parte da instalação.
-
-## Verificação
-
-Na raiz:
-
-```bash
+npm ci --prefix apps/web
+npm start --prefix apps/web
 bash scripts/verify.sh web
 ```
 
-Na pasta `apps/web/`, para a matriz Firefox/Chromium:
+Endereço local: **http://localhost:4201/**. Para testar os navegadores, instale Chromium e Firefox pelo Playwright e execute `npm run test:e2e --prefix apps/web -- --workers=1`.
 
-```bash
-npx playwright install firefox chromium
-npm run test:e2e -- --workers=1
-```
+## Organização
 
-O harness executa lint, testes de unidade e build de produção. Playwright verifica fluxos, falhas do mapa, teclado, lista alternativa e telas estreitas; alguns cenários dependem de tiles reais. As saídas em `dist/`, `test-results/` e caches são locais e ignoradas pelo Git. Testes ausentes não devem ser tratados como sucesso.
+| Pasta | Responsabilidade |
+|---|---|
+| `src/app/` | Componente principal, configuração e testes da interface |
+| `src/app/domain/` | Tipos e regras da consulta |
+| `src/app/data/` | Gerador de dados demonstrativos e seus testes |
+| `src/app/maps/` | Geometria, estilo e carregamento dos renderizadores |
+| `src/app/data-exchange/` | Importação de fontes e exportação XLSX |
+| `src/app/core/theme/` | Estado e transição do tema |
+| `src/app/ui/` | Diretivas de animação e redimensionamento |
+| `src/styles/` | Estilos globais, layout, controles e tokens |
+| `public/` | Mapas, pins, fontes, ícones e licenças |
+| `e2e/` | Testes Playwright |
+| `prototypes/` | Experimentos com build separado |
 
-## Organização e limites
+`npm run build --prefix apps/web` gera `apps/web/dist/web/browser/`. Dependências, build e resultados de testes são ignorados pelo Git.
 
-`src/app/` contém a interface, domínio demonstrativo, fixtures e módulos carregados sob demanda. `public/maps/` contém configuração cartográfica, territórios demonstrativos, estilo e pins; licenças ficam em `public/licenses/`. Nenhum código ou dependência do vídeo integra o frontend.
-
-Estado, evidências e gates: [PLAN.md](../../PLAN.md). Requisitos atuais: [escopo](../../docs/product/scope.md); decisões técnicas: [arquitetura](../../docs/architecture/overview.md). A estrutura anterior `vetor-urbano-web/` foi consolidada aqui. Leitor de tela, aparelho físico e backend/PostGIS continuam pendentes.
+[Operação e configuração](../../docs/operations/web.md) · [Arquitetura](../../docs/architecture/overview.md) · [Estado e pendências](../../PLAN.md)

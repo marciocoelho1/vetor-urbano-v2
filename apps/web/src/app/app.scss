@@ -1,4 +1,4 @@
-@use './visual-v2' as v2;
+@use '../styles/layout' as layout;
 
 :host {
   display: block;
@@ -6,4 +6,4 @@
   color: var(--color-text-main);
 }
 
-@include v2.layout;
+@include layout.layout;

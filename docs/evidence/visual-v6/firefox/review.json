@@ -1,0 +1,150 @@
+{
+  "status": "passed",
+  "capturedAt": "2026-10-14T16:18:41.876Z",
+  "browser": "firefox",
+  "basemap": "Alidade Bright raster real",
+  "errors": [],
+  "tileStatuses": {
+    "200": 18
+  },
+  "views": [
+    {
+      "file": "light-map-1920.png",
+      "width": 1920,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-map-1440.png",
+      "width": 1440,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-map-1280.png",
+      "width": 1280,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-map-1024.png",
+      "width": 1024,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-map-768.png",
+      "width": 768,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-map-390.png",
+      "width": 390,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-list-390.png",
+      "width": 390,
+      "theme": "light",
+      "view": "list"
+    },
+    {
+      "file": "light-map-320.png",
+      "width": 320,
+      "theme": "light",
+      "view": "map"
+    },
+    {
+      "file": "light-list-320.png",
+      "width": 320,
+      "theme": "light",
+      "view": "list"
+    },
+    {
+      "file": "dark-map-1920.png",
+      "width": 1920,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-map-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-map-1280.png",
+      "width": 1280,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-map-1024.png",
+      "width": 1024,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-map-768.png",
+      "width": 768,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-map-390.png",
+      "width": 390,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-list-390.png",
+      "width": 390,
+      "theme": "dark",
+      "view": "list"
+    },
+    {
+      "file": "dark-map-320.png",
+      "width": 320,
+      "theme": "dark",
+      "view": "map"
+    },
+    {
+      "file": "dark-list-320.png",
+      "width": 320,
+      "theme": "dark",
+      "view": "list"
+    },
+    {
+      "file": "dark-active-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "active"
+    },
+    {
+      "file": "dark-history-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "history"
+    },
+    {
+      "file": "dark-insights-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "insights"
+    },
+    {
+      "file": "dark-sources-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "sources"
+    },
+    {
+      "file": "dark-report-1440.png",
+      "width": 1440,
+      "theme": "dark",
+      "view": "report"
+    }
+  ]
+}

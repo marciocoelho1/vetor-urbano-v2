@@ -13,6 +13,9 @@ dist/
 target/
 .angular/cache/
 coverage/
+test-results/
+playwright-report/
+/docs/evidence/**/review-failure.png
 
 # Hermes working data (project skills remain versioned)
 .hermes/cache/

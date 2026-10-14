@@ -1,6 +1,6 @@
 # Fontes da versão visual 02
 
-Newsreader nos títulos e Manrope na interface, nos subtítulos e nos botões. Manrope foi escolhida após o responsável aprovar uma alternativa gratuita semelhante à Mori, sem integração futura para a fonte proprietária.
+Desde a escolha da proposta 6 em 14/10/2026, Manrope é usada nos títulos, textos e controles da interface principal. Newsreader permanece nas alternativas da galeria; seus arquivos e licenças foram preservados. Manrope foi escolhida após o responsável aprovar uma alternativa gratuita semelhante à Mori, sem integração futura para a fonte proprietária.
 
 Arquivos WOFF2 congelados em 11/10/2026 a partir da distribuição oficial Google Fonts; subconjuntos Latin e Latin Extended, com pesos variáveis 400–700. Latin inclui os caracteres portugueses usuais; Latin Extended amplia a cobertura. Não foram alterados os arquivos das fontes. Os arquivos TTF intermediários não integram o repositório.
 

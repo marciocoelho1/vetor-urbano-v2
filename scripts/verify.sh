@@ -12,7 +12,7 @@ usage() {
 Uso: bash scripts/verify.sh {docs|planning|web|api|all|help}
 Aliases de compatibilidade: frontend = web; backend = api.
 
-docs      Confere os arquivos de orientação/referência e a sintaxe deste Bash.
+docs      Confere orientação/referências, links Markdown locais e sintaxe Bash.
 planning  Confere docs + presença dos documentos atuais de produto/roadmap.
 web       Exige projeto e dependências locais; executa lint, test:ci e build.
 api       Exige Maven Wrapper, Java e Docker; executa Maven clean verify.
@@ -52,13 +52,16 @@ check_docs() {
   done
   bash -n "$VU_ROOT/scripts/verify.sh"
   bash -n "$VU_ROOT/harness.sh"
+  require_command python3
+  require_file scripts/check-doc-links.py
+  python3 "$VU_ROOT/scripts/check-doc-links.py"
   printf 'OK: arquivos de orientação presentes e sintaxe Bash válida. Aplicação não verificada.\n'
 }
 
 check_planning() {
   check_docs
   local vu_file
-  for vu_file in README.md CONTRIBUTING.md docs/development/repository-layout.md docs/product/scope.md docs/architecture/overview.md docs/product/implementation-2026-10.md docs/maps/territorial-sources.md; do
+  for vu_file in README.md CONTRIBUTING.md CHANGELOG.md docs/README.md docs/development/repository-layout.md docs/product/scope.md docs/product/interface.md docs/architecture/overview.md docs/operations/web.md docs/maps/territorial-sources.md; do
     require_file "$vu_file"
   done
   printf 'OK: documentos de produto e roadmap presentes. Conteúdo ainda exige revisão humana.\n'

@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   Component,
   computed,
+  effect,
   HostListener,
   inject,
   OnDestroy,
@@ -10,10 +11,10 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ViewMotion } from './view-motion';
-import { PanelResize } from './panel-resize';
-import { Theme } from './theme';
-import { applyUrbanMapTheme } from './urban-map-style';
+import { ViewMotion } from './ui/view-motion';
+import { PanelResize } from './ui/panel-resize';
+import { Theme } from './core/theme/theme';
+import { applyUrbanMapTheme } from './maps/urban-map-style';
 import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import {
@@ -30,9 +31,12 @@ import {
   type DemoRecord,
   type ImportedDataset,
   type SourceMetadata,
-} from './domain';
-import type { SpreadsheetSheet } from './xlsx-export';
-import { createMetropolitanDemoOccurrences, disperseDemoOccurrences } from './demo-occurrences';
+} from './domain/occurrences';
+import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
+import {
+  createMetropolitanDemoOccurrences,
+  disperseDemoOccurrences,
+} from './data/demo-occurrences';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
@@ -310,6 +314,15 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly categories = CATEGORIES;
   protected readonly territoryGroups = TERRITORY_GROUPS;
   protected readonly activeView = signal<ViewId>('map');
+  protected readonly consultationView = signal<'map' | 'list'>('map');
+  protected readonly compactConsultation = signal(
+    typeof window !== 'undefined' && window.innerWidth <= 960,
+  );
+
+  @HostListener('window:resize')
+  protected updateConsultationViewport(): void {
+    this.compactConsultation.set(window.innerWidth <= 960);
+  }
   protected readonly expandedModule = signal<ModuleId | null>('intelligence');
   protected readonly selectedCategory = signal<Category | null>(null);
   protected readonly activeFilters = signal<string[]>(['category:TRANSITO']);
@@ -367,8 +380,8 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly filtersCollapsed = signal(false);
   protected readonly radiusOptionsOpen = signal(false);
   protected readonly mapExpanded = signal(false);
-  protected readonly mapDark = signal(false);
-  protected readonly reportMapDark = signal(false);
+  protected readonly mapDark = signal(this.theme.dark());
+  protected readonly reportMapDark = signal(this.theme.dark());
   protected readonly selectedPointId = signal<string | null>(null);
   protected readonly expandedResultDetailIds = signal<string[]>([]);
   protected readonly selectedTerritoryId = signal<number | null>(null);
@@ -407,7 +420,7 @@ export class App implements AfterViewInit, OnDestroy {
   private useRasterMaps = false;
   private stopMapMonitoring?: () => void;
   private stopReportMapMonitoring?: () => void;
-  private radiusCircleFactory?: typeof import('./radius-geometry').createRadiusCircle;
+  private radiusCircleFactory?: typeof import('./maps/radius-geometry').createRadiusCircle;
   private territoryLoadPromise?: Promise<void>;
   private playbackTimer?: ReturnType<typeof setInterval>;
   private mapRefreshFrame?: number;
@@ -735,6 +748,16 @@ export class App implements AfterViewInit, OnDestroy {
     () => this.visiblePoints().filter((point) => point.kind === 'occurrence').length,
   );
 
+  constructor() {
+    effect(() => {
+      const dark = this.theme.dark();
+      this.mapDark.set(dark);
+      this.reportMapDark.set(dark);
+      this.applyMapTheme(this.map, dark);
+      this.applyMapTheme(this.reportMap, dark);
+    });
+  }
+
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
@@ -785,7 +808,10 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleFilters(): void {
     this.filtersCollapsed.update((collapsed) => !collapsed);
-    if (!this.filtersCollapsed()) this.radiusOptionsOpen.set(false);
+    if (!this.filtersCollapsed()) {
+      this.radiusOptionsOpen.set(false);
+      this.consultationView.set('map');
+    }
     try {
       localStorage.setItem('vu2.filtersCollapsed', String(this.filtersCollapsed()));
     } catch {
@@ -1096,6 +1122,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected beginMapPick(purpose: 'report' | 'radius'): void {
     this.mapPickPurpose.set(purpose);
+    this.consultationView.set('map');
     if (purpose === 'report') this.activeView.set('map');
     requestAnimationFrame(() => {
       this.map?.resize();
@@ -1357,7 +1384,7 @@ export class App implements AfterViewInit, OnDestroy {
       id: `${normalizeSearch(form.name).replace(/[^a-z0-9]+/g, '-') || 'fonte'}-${Date.now()}`,
     };
     try {
-      const { parseOpenDataset } = await import('./source-import');
+      const { parseOpenDataset } = await import('./data-exchange/source-import');
       const dataset = parseOpenDataset(this.sourceKind(), await file.text(), metadata);
       this.applyImportedDataset(dataset);
       this.sourceImportStatus.set(
@@ -1552,7 +1579,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected async exportXlsx(): Promise<void> {
     try {
       const sheets = this.buildReportSheets();
-      const { createXlsxWorkbook } = await import('./xlsx-export');
+      const { createXlsxWorkbook } = await import('./data-exchange/xlsx-export');
       const workbook = await createXlsxWorkbook(sheets);
       const workbookBuffer = new ArrayBuffer(workbook.byteLength);
       new Uint8Array(workbookBuffer).set(workbook);
@@ -1753,8 +1780,10 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.mapLibrariesPromise) {
       this.mapLibrariesPromise = Promise.all([
         import('maplibre-gl'),
-        import('./radius-geometry'),
-        import('./maplibre-style-loader').then(({ loadMapLibreStyles }) => loadMapLibreStyles()),
+        import('./maps/radius-geometry'),
+        import('./maps/maplibre-style-loader').then(({ loadMapLibreStyles }) =>
+          loadMapLibreStyles(),
+        ),
       ])
         .then(([maplibre, radiusGeometry]) => {
           this.maplibre = maplibre;
@@ -1773,7 +1802,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private loadUrbanStyle(): Promise<maplibregl.StyleSpecification> {
-    return import('./urban-map-style').then(({ loadUrbanMapStyle }) => loadUrbanMapStyle());
+    return import('./maps/urban-map-style').then(({ loadUrbanMapStyle }) => loadUrbanMapStyle());
   }
 
   private loadLeafletLibraries(): Promise<typeof import('leaflet')> {
@@ -1781,7 +1810,7 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.leafletLibrariesPromise) {
       this.leafletLibrariesPromise = Promise.all([
         import('leaflet/dist/leaflet-src.esm.js'),
-        import('./leaflet-style-loader').then(({ loadLeafletStyles }) => loadLeafletStyles()),
+        import('./maps/leaflet-style-loader').then(({ loadLeafletStyles }) => loadLeafletStyles()),
       ])
         .then(([leaflet]) => {
           this.leaflet = leaflet;

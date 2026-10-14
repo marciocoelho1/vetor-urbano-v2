@@ -1,0 +1,725 @@
+<svg class="gallery-svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="g-pin" viewBox="0 0 24 24">
+      <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </symbol>
+    <symbol id="g-calendar" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2" />
+    </symbol>
+    <symbol id="g-map" viewBox="0 0 24 24">
+      <path d="m3 5 6-2 6 3 6-2v16l-6 2-6-3-6 2Zm6-2v16m6-13v16" />
+    </symbol>
+    <symbol id="g-list" viewBox="0 0 24 24">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h1m-1 6h1m-1 6h1" />
+    </symbol>
+    <symbol id="g-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+    <symbol id="g-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6" /></symbol>
+  </defs>
+</svg>
+<div
+  class="gallery-root"
+  [attr.data-variant]="variant()"
+  [class.mobile-list]="mobileView() === 'list'"
+>
+  <a class="gallery-skip" href="#gallery-consultation">Ir para a consulta</a>
+
+  <ng-template #brand>
+    <a class="gallery-brand" href="#gallery-consultation">
+      <svg viewBox="0 0 32 38" aria-hidden="true">
+        <path d="M3 11 12 3h5v31h-6L2 15m14 19h4L30 8" />
+      </svg>
+      <span>Vetor Urbano<small>Informação para entender a cidade</small></span>
+    </a>
+  </ng-template>
+  <ng-template #navigation>
+    <nav class="gallery-navigation" aria-label="Navegação da proposta">
+      <a href="#gallery-consultation" aria-current="page"
+        ><svg class="g-icon" aria-hidden="true"><use href="#g-map" /></svg>Explorar</a
+      >
+      <button type="button" (click)="openModal('data')">
+        <svg class="g-icon" aria-hidden="true"><use href="#g-list" /></svg>Sobre os dados
+      </button>
+      <button type="button" (click)="openModal('help')">
+        Como consultar<svg class="g-icon nav-arrow" aria-hidden="true"><use href="#g-arrow" /></svg>
+      </button>
+    </nav>
+  </ng-template>
+  <ng-template #demoNotice>
+    <div class="gallery-demo" role="note">
+      <span class="demo-tag">Demonstração</span
+      ><span
+        >Ocorrências e sugestões de endereço fictícias. Não usar para decisões de segurança.</span
+      >
+    </div>
+  </ng-template>
+  <ng-template #mobileTabs>
+    <div class="gallery-mobile-tabs" role="group" aria-label="Visualização da consulta">
+      <button
+        type="button"
+        [attr.aria-pressed]="mobileView() === 'map'"
+        (click)="mobileView.set('map')"
+      >
+        <svg class="g-icon" aria-hidden="true"><use href="#g-map" /></svg>Mapa
+      </button>
+      <button
+        type="button"
+        [attr.aria-pressed]="mobileView() === 'list'"
+        (click)="mobileView.set('list')"
+      >
+        <svg class="g-icon" aria-hidden="true"><use href="#g-list" /></svg>Lista
+        <span>{{ records().length }}</span>
+      </button>
+    </div>
+  </ng-template>
+  <ng-template #searchField>
+    <div class="gallery-search">
+      <label class="search-label" for="gallery-place">Lugar ou endereço</label>
+      <div class="search-input-shell">
+        <svg class="g-icon" aria-hidden="true"><use href="#g-pin" /></svg>
+        <input
+          id="gallery-place"
+          type="text"
+          role="combobox"
+          autocomplete="off"
+          aria-autocomplete="list"
+          aria-controls="gallery-suggestions"
+          [attr.aria-expanded]="suggestionsOpen()"
+          [attr.aria-activedescendant]="
+            suggestionsOpen() && suggestions().length ? 'suggestion-' + suggestionIndex() : null
+          "
+          aria-describedby="gallery-address-hint"
+          placeholder="Busque um lugar ou endereço…"
+          [value]="query()"
+          (input)="setQuery($any($event.target).value)"
+          (focus)="suggestionsOpen.set(true)"
+          (blur)="closeSuggestions()"
+          (keydown)="searchKey($event)"
+        />
+        @if (place() || query()) {
+          <button
+            class="clear-search"
+            type="button"
+            aria-label="Limpar lugar da consulta"
+            (click)="clearPlace()"
+          >
+            <svg class="g-icon" aria-hidden="true"><use href="#g-close" /></svg>
+          </button>
+        }
+      </div>
+      <span id="gallery-address-hint" class="field-hint"
+        >Escolha uma sugestão fictícia ou um ponto no mapa.</span
+      >
+      @if (suggestionsOpen()) {
+        <div class="gallery-suggestions">
+          <p class="suggestions-heading">Sugestões de exemplo</p>
+          <div id="gallery-suggestions" role="listbox" aria-label="Sugestões fictícias de lugar">
+            @for (suggestion of suggestions(); track suggestion.id; let index = $index) {
+              <button
+                type="button"
+                role="option"
+                [id]="'suggestion-' + index"
+                [attr.aria-selected]="suggestionIndex() === index"
+                (mousedown)="$event.preventDefault()"
+                (click)="choosePlace(suggestion)"
+              >
+                <svg class="g-icon" aria-hidden="true"><use href="#g-pin" /></svg
+                ><span
+                  ><strong>{{ suggestion.label }}</strong
+                  ><small>{{ suggestion.hint }}</small></span
+                >
+              </button>
+            }
+          </div>
+          @if (!suggestions().length) {
+            <p class="no-suggestion">Nenhuma sugestão fictícia corresponde à busca.</p>
+            <button
+              type="button"
+              class="text-action"
+              (mousedown)="$event.preventDefault()"
+              (click)="beginMapPick()"
+            >
+              Escolher um ponto no mapa
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </ng-template>
+  <ng-template #periodField>
+    <label class="gallery-field"
+      ><span
+        ><svg class="g-icon" aria-hidden="true"><use href="#g-calendar" /></svg>Período</span
+      ><select
+        aria-label="Período da consulta"
+        [value]="days()"
+        (change)="setDays($any($event.target).value)"
+      >
+        <option value="1">Últimas 24 horas</option>
+        <option value="3">Últimos 3 dias</option>
+        <option value="7">Últimos 7 dias</option>
+      </select></label
+    >
+  </ng-template>
+  <ng-template #radiusField>
+    <label class="gallery-field radius-field"
+      ><span
+        >Raio <strong>{{ radiusLabel() }}</strong></span
+      ><input
+        aria-label="Raio da consulta em metros"
+        type="range"
+        min="100"
+        max="25000"
+        step="100"
+        [value]="radius()"
+        [disabled]="!place()"
+        [attr.aria-valuetext]="radiusLabel()"
+        (input)="setRadius($any($event.target).value)"
+      /><small>{{
+        place() ? 'Distância a partir do centro escolhido' : 'Escolha um lugar para usar o raio'
+      }}</small></label
+    >
+  </ng-template>
+  <ng-template #categoryFields>
+    <fieldset class="gallery-categories">
+      <legend>Categorias</legend>
+      <div class="category-chips">
+        @for (category of categoryOptions; track category.id) {
+          <button
+            type="button"
+            [attr.data-category]="category.id"
+            [attr.aria-pressed]="categories().includes(category.id)"
+            [style.--category-color]="category.color"
+            (click)="toggleCategory(category.id)"
+          >
+            <svg class="g-icon" aria-hidden="true">
+              <use [attr.href]="'ui-icons.svg#' + category.icon" /></svg
+            >{{ category.label
+            }}<span aria-hidden="true" class="chip-check">{{
+              categories().includes(category.id) ? '✓' : '+'
+            }}</span>
+          </button>
+        }
+      </div>
+    </fieldset>
+  </ng-template>
+  <ng-template #mapPanel>
+    <section class="gallery-map-pane" aria-label="Visualização no mapa">
+      <div class="map-panel-heading">
+        <div>
+          <span class="panel-eyebrow">Área da consulta</span>
+          <h2>{{ place()?.label ?? 'Todos os exemplos' }}</h2>
+        </div>
+        <button
+          type="button"
+          class="map-pick-button"
+          [attr.aria-pressed]="pickCenter()"
+          (click)="beginMapPick()"
+        >
+          <svg class="g-icon" aria-hidden="true"><use href="#g-pin" /></svg
+          >{{ pickCenter() ? 'Cancelar seleção' : 'Escolher no mapa' }}
+        </button>
+      </div>
+      <vu-gallery-map
+        [records]="records()"
+        [center]="place()?.coordinates ?? null"
+        [radius]="radius()"
+        [selectedId]="selected()?.id ?? null"
+        [camera]="camera()"
+        [pickCenter]="pickCenter()"
+        (selected)="selectRecord($event, true)"
+        (centerPicked)="chooseMapCenter($event)"
+        (cameraChanged)="camera.set($event)"
+      />
+      <div class="gallery-map-legend" aria-label="Legenda do mapa">
+        @for (category of categoryOptions; track category.id) {
+          <span
+            ><i [style.background]="category.color">{{ category.letter }}</i
+            >{{ category.label }}</span
+          >
+        }
+        <span class="legend-radius">{{
+          place() ? 'Raio: ' + radiusLabel() : 'Sem filtro de raio'
+        }}</span>
+      </div>
+    </section>
+  </ng-template>
+  <ng-template #resultsPanel>
+    <section class="gallery-results-pane" aria-label="Resultados da consulta">
+      <div class="results-heading">
+        <div>
+          <span class="panel-eyebrow">Na sua consulta</span>
+          <h2>
+            Ocorrências
+            <span class="results-count" role="status" aria-live="polite">{{
+              records().length
+            }}</span>
+          </h2>
+        </div>
+        @if (filtered()) {
+          <button class="text-action" type="button" (click)="resetFilters()">Limpar filtros</button>
+        }
+      </div>
+      <div class="results-context">
+        <span
+          >{{ place() ? radiusLabel() + ' do centro escolhido' : 'Todos os lugares de exemplo' }} ·
+          {{ days() === 1 ? '24 horas' : days() + ' dias' }}</span
+        ><label class="sort-label"
+          ><span class="visually-hidden">Ordenar resultados</span
+          ><select
+            aria-label="Ordenar resultados"
+            [value]="sort()"
+            (change)="sort.set($any($event.target).value)"
+          >
+            <option value="recent">Mais recentes</option>
+            <option value="distance" [disabled]="!place()">Mais próximas</option>
+          </select></label
+        >
+      </div>
+      <div class="gallery-results-list">
+        @for (record of records(); track record.id) {
+          <article class="gallery-result" [class.is-selected]="selectedId() === record.id">
+            <button
+              [id]="'result-' + record.id"
+              class="result-button"
+              type="button"
+              [attr.data-record-id]="record.id"
+              [attr.aria-expanded]="selectedId() === record.id"
+              [attr.aria-controls]="'details-' + record.id"
+              (click)="selectRecord(record.id)"
+            >
+              <span class="record-symbol" [style.--category-color]="category(record).color"
+                ><svg class="g-icon" aria-hidden="true">
+                  <use [attr.href]="'ui-icons.svg#' + category(record).icon" /></svg
+              ></span>
+              <span class="record-content"
+                ><span class="record-topline"
+                  ><span class="record-category" [style.color]="category(record).color">{{
+                    category(record).label
+                  }}</span
+                  ><span class="record-severity"
+                    >Intensidade {{ severity(record).toLowerCase() }}</span
+                  ></span
+                ><strong class="record-title">{{ record.typeLabel }}</strong
+                ><span class="record-place">{{ record.location }}</span
+                ><span class="record-meta"
+                  ><time [attr.datetime]="record.occurredAt">{{ recordDate(record) }}</time>
+                  @if (place()) {
+                    <span>{{ distance(record) }}</span>
+                  }
+                </span></span
+              ><svg class="g-icon record-arrow" aria-hidden="true"><use href="#g-arrow" /></svg>
+            </button>
+            <div
+              class="record-details"
+              [id]="'details-' + record.id"
+              [hidden]="selectedId() !== record.id"
+            >
+              <p>
+                Registro inteiramente fictício. Não representa um evento real nem confirma risco
+                neste lugar.
+              </p>
+              <dl>
+                <div>
+                  <dt>Origem</dt>
+                  <dd>Demonstração local</dd>
+                </div>
+                <div>
+                  <dt>Situação do exemplo</dt>
+                  <dd>{{ record.operationalStatus === 'EXPIRED' ? 'Expirado' : 'Encerrado' }}</dd>
+                </div>
+              </dl>
+              <button class="text-action" type="button" (click)="mobileView.set('map')">
+                Ver no mapa<svg class="g-icon" aria-hidden="true"><use href="#g-arrow" /></svg>
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="gallery-empty" role="status">
+            <svg class="g-icon" aria-hidden="true"><use href="ui-icons.svg#search" /></svg>
+            <h3>Nenhuma ocorrência nesta consulta.</h3>
+            <p>
+              {{
+                !categories().length
+                  ? 'Selecione pelo menos uma categoria para consultar os exemplos.'
+                  : 'Experimente ampliar o raio, o período ou escolher outro lugar.'
+              }}
+            </p>
+            <button type="button" class="primary-action" (click)="resetFilters()">
+              Limpar filtros
+            </button>
+          </div>
+        }
+      </div>
+      <p class="results-footnote">
+        Dados fictícios · horários de São Paulo · cenário de 13 out. 2026
+      </p>
+    </section>
+  </ng-template>
+
+  <ng-template #contemporaryLayout>
+    <header class="contemporary-header">
+      <ng-container [ngTemplateOutlet]="brand" /><ng-container [ngTemplateOutlet]="navigation" />
+    </header>
+    <main id="gallery-consultation" class="proposal-main contemporary-main" tabindex="-1">
+      <div class="proposal-intro">
+        <div>
+          <p class="proposal-eyebrow">Seu território, em contexto</p>
+          <h1>{{ design().title }}</h1>
+        </div>
+        <p class="intro-description">{{ design().description }}</p>
+      </div>
+      <ng-container [ngTemplateOutlet]="demoNotice" /><ng-container
+        [ngTemplateOutlet]="mobileTabs"
+      />
+      <div class="contemporary-workspace">
+        <ng-container [ngTemplateOutlet]="mapPanel" />
+        <div class="contemporary-right-stack">
+          <div class="embedded-query">
+            <ng-container [ngTemplateOutlet]="searchField" /><button
+              class="filter-disclosure"
+              type="button"
+              [attr.aria-expanded]="filtersOpen()"
+              aria-controls="contemporary-filters"
+              (click)="filtersOpen.set(!filtersOpen())"
+            >
+              <svg class="g-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg>Filtros
+              da consulta<span
+                >{{ categories().length }} categorias ·
+                {{ days() === 1 ? '24 horas' : days() + ' dias' }}</span
+              ><b aria-hidden="true">{{ filtersOpen() ? '−' : '+' }}</b>
+            </button>
+            <div id="contemporary-filters" class="embedded-filters" [hidden]="!filtersOpen()">
+              <div class="embedded-filter-pair">
+                <ng-container [ngTemplateOutlet]="periodField" /><ng-container
+                  [ngTemplateOutlet]="radiusField"
+                />
+              </div>
+              <ng-container [ngTemplateOutlet]="categoryFields" />
+            </div>
+          </div>
+          <ng-container [ngTemplateOutlet]="resultsPanel" />
+        </div>
+      </div>
+    </main>
+  </ng-template>
+
+  @switch (variant()) {
+    @case (1) {
+      <header class="institutional-header">
+        <ng-container [ngTemplateOutlet]="brand" /><ng-container [ngTemplateOutlet]="navigation" />
+      </header>
+      <main id="gallery-consultation" class="proposal-main institutional-main" tabindex="-1">
+        <div class="proposal-intro">
+          <div>
+            <p class="proposal-eyebrow">Rio e Baixada · estudo de consulta</p>
+            <h1>{{ design().title }}</h1>
+          </div>
+          <p class="intro-description">{{ design().description }}</p>
+        </div>
+        <ng-container [ngTemplateOutlet]="demoNotice" />
+        <div class="institutional-query">
+          <div class="query-primary">
+            <ng-container [ngTemplateOutlet]="searchField" /><ng-container
+              [ngTemplateOutlet]="periodField"
+            /><ng-container [ngTemplateOutlet]="radiusField" />
+          </div>
+          <div class="query-secondary">
+            <ng-container [ngTemplateOutlet]="categoryFields" /><span class="query-note"
+              >Combine os filtros para refinar a consulta.</span
+            >
+          </div>
+        </div>
+        <ng-container [ngTemplateOutlet]="mobileTabs" />
+        <div class="institutional-workspace">
+          <ng-container [ngTemplateOutlet]="mapPanel" /><ng-container
+            [ngTemplateOutlet]="resultsPanel"
+          />
+        </div>
+      </main>
+    }
+    @case (2) {
+      <div class="civic-shell">
+        <aside class="civic-sidebar">
+          <ng-container [ngTemplateOutlet]="brand" /><ng-container
+            [ngTemplateOutlet]="navigation"
+          />
+          <div class="sidebar-note">
+            <span class="sidebar-rule"></span>
+            <p>Uma cidade.<br />Muitos olhares.</p>
+            <small>Protótipo de consulta<br />Rio e Baixada</small>
+          </div>
+        </aside>
+        <main id="gallery-consultation" class="proposal-main civic-main" tabindex="-1">
+          <div class="proposal-intro">
+            <div>
+              <p class="proposal-eyebrow">Consulta de ocorrências</p>
+              <h1>{{ design().title }}</h1>
+              <p class="intro-description">{{ design().description }}</p>
+            </div>
+            <span class="civic-date"
+              >Cenário demonstrativo<br /><strong>13 outubro 2026</strong></span
+            >
+          </div>
+          <ng-container [ngTemplateOutlet]="demoNotice" />
+          <div class="civic-search-row"><ng-container [ngTemplateOutlet]="searchField" /></div>
+          <ng-container [ngTemplateOutlet]="mobileTabs" />
+          <div class="civic-workspace">
+            <div class="civic-left-stack">
+              <div class="civic-filters">
+                <h2>Refine a consulta</h2>
+                <div class="civic-filter-pair">
+                  <ng-container [ngTemplateOutlet]="periodField" /><ng-container
+                    [ngTemplateOutlet]="radiusField"
+                  />
+                </div>
+                <ng-container [ngTemplateOutlet]="categoryFields" />
+              </div>
+              <ng-container [ngTemplateOutlet]="resultsPanel" />
+            </div>
+            <ng-container [ngTemplateOutlet]="mapPanel" />
+          </div>
+        </main>
+      </div>
+    }
+    @case (3) {
+      <header class="compact-header">
+        <ng-container [ngTemplateOutlet]="brand" /><ng-container [ngTemplateOutlet]="navigation" />
+      </header>
+      <main id="gallery-consultation" class="proposal-main compact-main" tabindex="-1">
+        <div class="proposal-intro">
+          <div>
+            <p class="proposal-eyebrow">Vetor Urbano / Explorar</p>
+            <h1>{{ design().title }}</h1>
+          </div>
+          <span class="compact-total"
+            ><strong>{{ total }}</strong> registros fictícios disponíveis</span
+          >
+        </div>
+        <ng-container [ngTemplateOutlet]="demoNotice" />
+        <div class="compact-query">
+          <ng-container [ngTemplateOutlet]="searchField" /><ng-container
+            [ngTemplateOutlet]="periodField"
+          /><ng-container [ngTemplateOutlet]="radiusField" />
+        </div>
+        <div class="compact-category-row">
+          <ng-container [ngTemplateOutlet]="categoryFields" /><span class="query-note"
+            >Referência: 13 out. 2026</span
+          >
+        </div>
+        <ng-container [ngTemplateOutlet]="mobileTabs" />
+        <div class="compact-workspace">
+          <ng-container [ngTemplateOutlet]="mapPanel" /><ng-container
+            [ngTemplateOutlet]="resultsPanel"
+          />
+        </div>
+      </main>
+    }
+    @case (4) {
+      <header class="warm-header">
+        <ng-container [ngTemplateOutlet]="brand" /><ng-container [ngTemplateOutlet]="navigation" />
+      </header>
+      <main id="gallery-consultation" class="proposal-main warm-main" tabindex="-1">
+        <div class="proposal-intro">
+          <div>
+            <p class="proposal-eyebrow">Informação, território e contexto</p>
+            <h1>{{ design().title }}</h1>
+          </div>
+          <div class="warm-intro-aside">
+            <span class="warm-edition">Rio e Baixada / estudo 04</span>
+            <p class="intro-description">{{ design().description }}</p>
+          </div>
+        </div>
+        <ng-container [ngTemplateOutlet]="demoNotice" />
+        <div class="warm-query">
+          <section class="warm-query-step">
+            <h2><span>01</span> Onde consultar?</h2>
+            <ng-container [ngTemplateOutlet]="searchField" />
+          </section>
+          <section class="warm-query-step">
+            <h2><span>02</span> Qual recorte?</h2>
+            <div class="warm-period-radius">
+              <ng-container [ngTemplateOutlet]="periodField" /><ng-container
+                [ngTemplateOutlet]="radiusField"
+              />
+            </div>
+          </section>
+          <section class="warm-query-step">
+            <h2><span>03</span> O que encontrar?</h2>
+            <ng-container [ngTemplateOutlet]="categoryFields" />
+          </section>
+        </div>
+        <ng-container [ngTemplateOutlet]="mobileTabs" />
+        <div class="warm-workspace">
+          <ng-container [ngTemplateOutlet]="resultsPanel" /><ng-container
+            [ngTemplateOutlet]="mapPanel"
+          />
+        </div>
+      </main>
+    }
+    @case (5) {
+      <ng-container [ngTemplateOutlet]="contemporaryLayout" />
+    }
+    @case (6) {
+      <ng-container [ngTemplateOutlet]="contemporaryLayout" />
+    }
+  }
+
+  <aside
+    class="gallery-dock"
+    [attr.aria-label]="'Comparação das ' + variants.length + ' propostas'"
+  >
+    <div class="dock-main">
+      <span class="dock-caption">GALERIA <small>Protótipo</small></span
+      ><button
+        class="dock-arrow previous"
+        type="button"
+        aria-label="Proposta anterior"
+        (click)="switchVariant(variant() - 1)"
+      >
+        ←
+      </button>
+      <div class="dock-options">
+        @for (option of variants; track option.id) {
+          <button
+            type="button"
+            [attr.aria-label]="'Proposta ' + option.id + ': ' + option.name"
+            [attr.aria-pressed]="variant() === option.id"
+            [attr.title]="option.name"
+            (click)="switchVariant(option.id)"
+          >
+            <i [style.background]="option.color"></i
+            ><span class="dock-number">0{{ option.id }}</span
+            ><span class="dock-option-name">{{ option.short }}</span>
+          </button>
+        }
+      </div>
+      <button
+        class="dock-arrow"
+        type="button"
+        aria-label="Próxima proposta"
+        (click)="switchVariant(variant() + 1)"
+      >
+        →</button
+      ><button type="button" class="dock-compare" (click)="openModal('compare')">
+        Comparar<span aria-hidden="true"> ↗</span>
+      </button>
+    </div>
+    <div class="dock-secondary">
+      <p class="dock-label" aria-live="polite">
+        {{ variant() }}/{{ variants.length }} · {{ design().name }}
+      </p>
+      <details class="gallery-state">
+        <summary>Consulta preservada · {{ records().length }} resultados</summary>
+        <p>
+          {{ querySummary() }} · Ordenação:
+          {{ sort() === 'recent' ? 'mais recentes' : 'mais próximas' }} · Seleção:
+          {{ selected()?.typeLabel ?? 'nenhuma' }} · Vista móvel:
+          {{ mobileView() === 'map' ? 'Mapa' : 'Lista' }}
+        </p>
+      </details>
+    </div>
+  </aside>
+
+  <dialog #dialog class="gallery-dialog" aria-labelledby="gallery-dialog-title">
+    <button class="dialog-close" type="button" aria-label="Fechar diálogo" (click)="closeModal()">
+      <svg class="g-icon" aria-hidden="true"><use href="#g-close" /></svg>
+    </button>
+    @switch (modal()) {
+      @case ('compare') {
+        <p class="proposal-eyebrow">{{ variants.length }} propostas, a mesma consulta</p>
+        <h2 id="gallery-dialog-title">Escolha pelo que funciona para você.</h2>
+        <p class="dialog-intro">
+          Compare estrutura, leitura e filtros. Você também pode combinar elementos de propostas
+          diferentes.
+        </p>
+        <div class="comparison-grid">
+          @for (option of variants; track option.id) {
+            <button
+              class="comparison-option"
+              type="button"
+              [attr.data-preview]="option.id"
+              [attr.aria-pressed]="variant() === option.id"
+              [style.--preview-color]="option.color"
+              [style.--preview-surface]="option.surface"
+              (click)="chooseFromModal(option.id)"
+            >
+              <span class="mini-layout" aria-hidden="true"
+                ><i class="mini-navigation"></i><i class="mini-query"></i
+                ><i class="mini-map"><b></b><b></b><b></b></i
+                ><i class="mini-list"><b></b><b></b><b></b></i></span
+              ><span class="comparison-number">0{{ option.id }}</span
+              ><strong>{{ option.name }}</strong
+              ><span>{{ option.structure }}</span
+              ><small>{{ option.tradeoff }}</small>
+            </button>
+          }
+        </div>
+        <p class="dialog-footnote">
+          Trocar a proposta mantém os filtros e a seleção. Recarregar restaura o cenário inicial.
+        </p>
+      }
+      @case ('data') {
+        <p class="proposal-eyebrow">Origem e limites</p>
+        <h2 id="gallery-dialog-title">Dados para experimentar o visual.</h2>
+        <div class="about-copy">
+          <p>
+            Os {{ total }} registros são inteiramente fictícios e reaproveitam os geradores de
+            exemplos do Vetor Urbano. Não são ocorrências reais e não comprovam risco, cobertura
+            operacional ou condições atuais.
+          </p>
+          <p>
+            O cenário usa a referência de
+            <strong>13 de outubro de 2026, às 15h em São Paulo</strong>. Os períodos e distâncias
+            filtram os mesmos registros no mapa e na lista. A distância é em linha geográfica a
+            partir do centro escolhido.
+          </p>
+          <p>
+            As sugestões de endereço são exemplos locais simulados, sem consulta a um serviço de
+            endereços. Os nomes “Rua Exemplo”, “Praça Exemplo” e “Avenida Exemplo” são fictícios.
+          </p>
+          <p>
+            O mapa-base usa o provedor já adotado no protótipo: Stadia Maps / Alidade Bright,
+            OpenMapTiles e OpenStreetMap. Créditos ficam visíveis no mapa. O uso sem autenticação é
+            limitado ao desenvolvimento local e sujeito à disponibilidade e aos limites do provedor.
+          </p>
+        </div>
+      }
+      @case ('help') {
+        <p class="proposal-eyebrow">Consulta em poucos passos</p>
+        <h2 id="gallery-dialog-title">Encontre, refine, explore.</h2>
+        <ol class="help-steps">
+          <li>
+            <strong>Escolha um lugar.</strong>
+            <p>
+              Digite “Tijuca”, “Caxias” ou “Nova Iguaçu” e selecione uma sugestão fictícia. Você
+              também pode escolher um ponto diretamente no mapa.
+            </p>
+          </li>
+          <li>
+            <strong>Ajuste período, raio e categorias.</strong>
+            <p>
+              Os filtros são combinados. Se não encontrar resultados, amplie a consulta ou use
+              “Limpar filtros”.
+            </p>
+          </li>
+          <li>
+            <strong>Veja o mesmo resultado no mapa e na lista.</strong>
+            <p>
+              Abra uma ocorrência para consultar o contexto. No celular, use Mapa / Lista; suas
+              escolhas permanecem.
+            </p>
+          </li>
+          <li>
+            <strong>Compare as {{ variants.length }} propostas.</strong>
+            <p>
+              Use os números ou as setas na barra inferior. As teclas ← e → também trocam a proposta
+              quando você está fora dos controles e do mapa.
+            </p>
+          </li>
+        </ol>
+      }
+    }
+  </dialog>
+</div>

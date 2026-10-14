@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 
 const require = createRequire(
   new URL("../../apps/web/package.json", import.meta.url),
@@ -9,11 +10,10 @@ const { chromium, expect } = require("@playwright/test");
 const theme = process.env.VU_PREVIEW_THEME ?? "light";
 if (theme !== "light" && theme !== "dark")
   throw new Error("VU_PREVIEW_THEME precisa ser light ou dark.");
-const output = new URL(
-  theme === "dark"
-    ? "../../docs/evidence/dark-mode/"
-    : "../../docs/evidence/visual-v2/",
-  import.meta.url,
+const output = pathToFileURL(
+  resolve(process.env.VU_CAPTURE_DIR ?? fileURLToPath(new URL(
+    `../../apps/web/test-results/visual-review/${theme}/`, import.meta.url,
+  ))) + "/",
 );
 const baseURL = process.env.VU_PREVIEW_URL ?? "http://127.0.0.1:4201";
 await mkdir(output, { recursive: true });

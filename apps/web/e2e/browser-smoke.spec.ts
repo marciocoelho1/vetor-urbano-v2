@@ -157,6 +157,101 @@ test('toggles the basemap theme independently on each MapLibre map', async ({ pa
   ).toBe('#202832');
 });
 
+for (const engine of ['MapLibre', 'Leaflet']) {
+  test(`follows the page theme with temporary local choices on both ${engine} maps`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.addInitScript(() => localStorage.setItem('vu2.theme', 'dark'));
+    if (engine === 'Leaflet') {
+      await mockRasterTiles(page);
+      await page.addInitScript(() =>
+        Object.defineProperty(window, 'WebGL2RenderingContext', {
+          configurable: true,
+          value: undefined,
+        }),
+      );
+    }
+    const canvas = engine === 'Leaflet' ? '.leaflet-container' : ' canvas.maplibregl-canvas';
+    await page.goto('/');
+    await expect(page.locator(`#map-canvas${canvas}`)).toBeVisible();
+    await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+    const publicToggle = page.getByTestId('map-theme-toggle');
+    await expect(publicToggle).toHaveAttribute('aria-pressed', 'true');
+    await publicToggle.click();
+    await expect(publicToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    expect(await page.evaluate(() => localStorage.getItem('vu2.theme'))).toBe('dark');
+
+    await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
+    await page.locator('.category-option[data-category="TRANSITO"]').click();
+    await expect(page.locator(`#report-map-canvas${canvas}`)).toBeVisible();
+    await expect(page.locator('.report-map-status, .report-map-error')).toHaveCount(0);
+    const reportToggle = page.getByTestId('report-map-theme-toggle');
+    const renderedThemes = () =>
+      page.evaluate((engine) => {
+        const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+        if (engine === 'MapLibre')
+          return [app.map, app.reportMap].map(
+            (map) => map.getPaintProperty('background', 'background-color') === '#202832',
+          );
+        return ['#map-canvas', '#report-map-canvas'].map((selector) =>
+          getComputedStyle(
+            document.querySelector(`${selector} .leaflet-tile-pane`)!,
+          ).filter.includes('invert'),
+        );
+      }, engine);
+    await expect(reportToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(renderedThemes).toEqual([false, true]);
+    await page.evaluate((engine) => {
+      const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+      (window as any).__synchronizedMaps = (
+        engine === 'MapLibre' ? [app.map, app.reportMap] : [app.fallbackMap, app.reportFallbackMap]
+      ).map((map) => ({ map, center: map.getCenter(), zoom: map.getZoom() }));
+    }, engine);
+
+    const pageToggle = page.getByRole('button', { name: 'Modo escuro', exact: true });
+    await pageToggle.click();
+    await expect(publicToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(reportToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(renderedThemes).toEqual([false, false]);
+    await reportToggle.click();
+    await expect.poll(renderedThemes).toEqual([false, true]);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await pageToggle.click();
+    await expect.poll(renderedThemes).toEqual([true, true]);
+    await reportToggle.click();
+    await expect.poll(renderedThemes).toEqual([true, false]);
+    await pageToggle.click();
+    await expect.poll(renderedThemes).toEqual([false, false]);
+    await pageToggle.click();
+    await expect.poll(renderedThemes).toEqual([true, true]);
+    expect(
+      await page.evaluate((engine) => {
+        const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+        const maps =
+          engine === 'MapLibre'
+            ? [app.map, app.reportMap]
+            : [app.fallbackMap, app.reportFallbackMap];
+        return (window as any).__synchronizedMaps.every(
+          (before, index) =>
+            before.map === maps[index] &&
+            before.zoom === maps[index].getZoom() &&
+            before.center.lng === maps[index].getCenter().lng &&
+            before.center.lat === maps[index].getCenter().lat,
+        );
+      }, engine),
+    ).toBe(true);
+    await reportToggle.click();
+    await expect(reportToggle).toHaveAttribute('aria-pressed', 'false');
+    await page.reload();
+    await expect(publicToggle).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Registrar ocorrência', exact: true }).click();
+    await page.locator('.category-option[data-category="TRANSITO"]').click();
+    await expect(reportToggle).toHaveAttribute('aria-pressed', 'true');
+  });
+}
+
 test('recovers both maps when the vector style is unavailable', async ({ page }) => {
   await mockRasterTiles(page);
   await page.route('**/maps/urban-style.json', (route) =>
