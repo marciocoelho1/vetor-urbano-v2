@@ -7,3 +7,32 @@
 }
 
 @include layout.layout;
+
+.occurrence-references,
+.related-occurrences {
+  display: grid;
+  gap: 12px;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+
+  small {
+    display: block;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+  }
+}
+
+.related-occurrences .map-tool-button {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  text-align: left;
+}
+
+.query-counts {
+  display: block;
+  margin-top: 4px;
+}
+.consultation-sidebar .results-heading {
+  flex-shrink: 0;
+}
