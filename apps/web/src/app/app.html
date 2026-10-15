@@ -162,6 +162,13 @@
                 <option value="custom">Intervalo personalizado</option>
               </select></label
             >
+            <label class="risk-layer-toggle"
+              ><input
+                type="checkbox"
+                [checked]="territorySelected()"
+                (change)="toggleRiskLayer()"
+              />Exibir Áreas de Risco</label
+            >
             <button
               type="button"
               class="map-tool-button"
@@ -255,7 +262,7 @@
                 id="map-canvas"
                 class="map-canvas"
                 role="region"
-                aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as áreas territoriais seguem a classificação da fonte."
+                aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as Áreas de Risco seguem a classificação da fonte."
               ></div>
               <div class="map-top-controls">
                 <button
@@ -627,13 +634,13 @@
                       (click)="toggleModule('territory')"
                     >
                       <span class="module-glyph glyph-territory" aria-hidden="true">⬡</span
-                      ><span class="module-title">Áreas territoriais</span
+                      ><span class="module-title">Áreas de Risco</span
                       ><span class="chevron" aria-hidden="true">⌄</span>
                     </button>
                     @if (expandedModule() === 'territory') {
                       <div class="module-content" id="module-territory">
                         <fieldset class="filter-group">
-                          <legend>Áreas territoriais</legend>
+                          <legend>Áreas de Risco</legend>
                           @for (area of territoryGroups; track area.id) {
                             <label class="filter-choice territory-choice">
                               <input
@@ -751,11 +758,14 @@
                   @if (territoryStatus() === 'loading') {
                     <span aria-hidden="true">◌</span>Carregando polígonos atribuídos à fonte…
                   } @else if (territoryStatus() === 'error') {
-                    <span aria-hidden="true">ⓘ</span>A camada territorial está indisponível. Os
-                    filtros podem ser tentados novamente.
+                    <span aria-hidden="true">ⓘ</span>A camada de Áreas de Risco está indisponível.
+                    Os filtros podem ser tentados novamente.
                   } @else {
                     <span aria-hidden="true">ⓘ</span>Classificação da fonte · base julho de 2026 ·
                     não confirma a situação atual.
+                    @if (riskLayerWarning()) {
+                      <span>{{ riskLayerWarning() }}</span>
+                    }
                   }
                 </div>
               }
@@ -791,6 +801,11 @@
                   áreas carregadas · classificação da fonte
                 </span>
               }
+              @if (showSyntheticRiskAreas()) {
+                <span class="territory-legend-note"
+                  >2 polígonos fictícios separados da camada atribuída</span
+                >
+              }
               @if (useRadius() && !radiusInvalid()) {
                 <span class="radius-legend-note">
                   <i class="radius-legend-mark" aria-hidden="true"></i>
@@ -820,7 +835,7 @@
                     data-testid="map-search"
                     type="search"
                     autocomplete="off"
-                    placeholder="Buscar ocorrência, local ou área territorial…"
+                    placeholder="Buscar ocorrência, local ou Área de Risco…"
                     [value]="searchQuery()"
                     [attr.aria-expanded]="searchQuery().trim().length >= 2"
                     aria-controls="map-search-results"
@@ -871,12 +886,12 @@
                       </button>
                     }
                     @if (!searchResults().length && territoryStatus() === 'loading') {
-                      <p class="search-message" role="status">Buscando áreas territoriais…</p>
+                      <p class="search-message" role="status">Buscando Áreas de Risco…</p>
                     }
                     @if (!searchResults().length && territoryStatus() === 'error') {
                       <p class="search-message" role="status">
-                        Não foi possível carregar as áreas. Use “Tentar novamente” no filtro
-                        territorial.
+                        Não foi possível carregar as áreas. Use “Tentar novamente” no filtro de
+                        Áreas de Risco.
                       </p>
                     }
                     @if (
@@ -917,6 +932,149 @@
                 </button>
               </details>
             </section>
+            <details
+              class="risk-areas-panel"
+              role="region"
+              aria-label="Áreas de Risco disponíveis"
+              [open]="territorySelected() || showSyntheticRiskAreas()"
+            >
+              <summary>Áreas de Risco</summary>
+              <p class="query-note">
+                Polígonos de contexto; não entram nas contagens de ocorrências ou no calor. Cores
+                não comprovam risco ou segurança atual.
+              </p>
+              <label class="risk-layer-toggle"
+                ><input
+                  type="checkbox"
+                  [checked]="showSyntheticRiskAreas()"
+                  (change)="toggleSyntheticRiskAreas()"
+                />Exibir exemplos territoriais fictícios</label
+              >
+              @if (territorySelected() || showSyntheticRiskAreas()) {
+                <label class="field"
+                  >Buscar Área de Risco<input
+                    type="search"
+                    data-risk-area-search
+                    [value]="riskAreaQuery()"
+                    (input)="riskAreaQuery.set($any($event.target).value)"
+                /></label>
+                @if (territoryStatus() === 'loading') {
+                  <p role="status">Carregando Áreas de Risco…</p>
+                }
+                @if (territoryStatus() === 'error') {
+                  <p role="status">Não foi possível carregar as Áreas de Risco da fonte.</p>
+                  <button type="button" class="map-tool-button" (click)="retryTerritories()">
+                    Tentar novamente a camada
+                  </button>
+                }
+                @if (territorySelected() && riskLayerWarning()) {
+                  <p class="source-warning" role="note">{{ riskLayerWarning() }}</p>
+                }
+                @if (availableRiskAreas().length) {
+                  <ul class="risk-area-list">
+                    @for (area of availableRiskAreas().slice(0, 20); track area.id) {
+                      <li>
+                        <button type="button" class="map-tool-button" (click)="openRiskArea(area)">
+                          {{ area.properties.n }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                  <p class="query-note">
+                    {{ availableRiskAreas().length }} áreas disponíveis; até 20 nesta lista. Use a
+                    busca para localizar outras.
+                  </p>
+                } @else if (territoryStatus() !== 'loading' && territoryStatus() !== 'error') {
+                  <p>Nenhuma Área de Risco disponível para estes filtros.</p>
+                }
+              }
+              @if (selectedRiskArea(); as area) {
+                <section class="workspace-detail" aria-label="Detalhes da Área de Risco">
+                  <button
+                    type="button"
+                    class="detail-close"
+                    aria-label="Fechar detalhes da Área de Risco"
+                    (click)="closeRiskArea()"
+                  >
+                    ×
+                  </button>
+                  <h3 id="risk-area-detail-heading" tabindex="-1">{{ area.name }}</h3>
+                  @if (area.synthetic) {
+                    <p class="query-note">
+                      Polígono e informações inteiramente fictícios; não descrevem o local real.
+                    </p>
+                  }
+                  <dl class="detail-grid">
+                    <div>
+                      <dt>Grupo indicado segundo a fonte</dt>
+                      <dd>{{ area.group }}</dd>
+                    </div>
+                    <div>
+                      <dt>Fonte</dt>
+                      <dd>
+                        @if (area.sourceUrl) {
+                          <a [href]="area.sourceUrl" target="_blank" rel="noopener noreferrer"
+                            >{{ area.sourceName }} (abre em nova aba)</a
+                          >
+                        } @else {
+                          {{ area.sourceName }}
+                        }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Referência temporal da camada</dt>
+                      <dd>{{ riskDateLabel(area.referenceTime) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Última verificação</dt>
+                      <dd>
+                        {{ area.checkedAt ? formatDateTime(area.checkedAt) : 'Indisponível' }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Data de cadastro</dt>
+                      <dd>
+                        {{ area.registeredAt ? formatDateTime(area.registeredAt) : 'Indisponível' }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Início real da presença</dt>
+                      <dd>{{ riskDateLabel(area.presenceBeganAt) }}</dd>
+                    </div>
+                    <div>
+                      <dt>Versão</dt>
+                      <dd>{{ area.version }}</dd>
+                    </div>
+                    <div>
+                      <dt>Evidência de disputa</dt>
+                      <dd>
+                        {{
+                          area.evidence ||
+                            'Indisponível; divergência entre fontes não comprova disputa.'
+                        }}
+                      </dd>
+                    </div>
+                  </dl>
+                  @if (riskAreaWarning()) {
+                    <p class="source-warning" role="note">{{ riskAreaWarning() }}</p>
+                  }
+                  <p class="query-note">
+                    Referência da camada não é verificação individual do polígono. Cadastro não
+                    prova início da presença. Não confirma situação atual, controle, influência,
+                    segurança ou limites municipais oficiais.
+                  </p>
+                  <h4>Versões disponíveis</h4>
+                  @for (revision of area.revisions; track revision.version) {
+                    <p>
+                      {{ revision.version }} · {{ revision.group }} ·
+                      {{ riskDateLabel(revision.referenceTime) }} · {{ revision.note }}
+                    </p>
+                  } @empty {
+                    <p>Histórico de versões da fonte indisponível.</p>
+                  }
+                </section>
+              }
+            </details>
             <section id="map-results" class="results-panel" aria-labelledby="results-heading">
               <div class="results-heading">
                 <div>

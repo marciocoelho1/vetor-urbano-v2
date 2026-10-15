@@ -38,6 +38,14 @@ import {
   situationLabel,
   temporalInclusion,
 } from './domain/temporal';
+import {
+  riskAreaDetails,
+  riskAreaTemporalWarning,
+  type RiskAreaCode,
+  type RiskAreaDetails,
+} from './domain/risk-areas';
+import { SYNTHETIC_RISK_AREAS } from './data/demo-risk-areas';
+import type { FactTime } from './domain/temporal';
 import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
 import {
   createMetropolitanDemoOccurrences,
@@ -50,8 +58,8 @@ import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
 type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report';
-type TerritoryCode = 'CV' | 'TCP' | 'ADA' | 'MIL' | 'LJ' | 'MNI' | 'NEU';
-type TerritoryProperties = { n: string; f: TerritoryCode };
+type TerritoryCode = RiskAreaCode;
+type TerritoryProperties = { n: string; f: TerritoryCode; demoDetails?: RiskAreaDetails };
 type TerritoryFeature = Feature<Polygon | MultiPolygon, TerritoryProperties> & { id: number };
 type MapSearchResult =
   | { kind: 'occurrence'; key: string; title: string; subtitle: string; point: DemoPoint }
@@ -401,6 +409,42 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly selectedTerritoryId = signal<number | null>(null);
   protected readonly searchQuery = signal('');
   protected readonly territories = signal<TerritoryFeature[]>([]);
+  protected readonly showSyntheticRiskAreas = signal(false);
+  protected readonly riskAreaQuery = signal('');
+  protected readonly allRiskAreaFeatures = computed<TerritoryFeature[]>(() => [
+    ...this.territories(),
+    ...SYNTHETIC_RISK_AREAS,
+  ]);
+  protected readonly availableRiskAreas = computed(() => {
+    const selected = new Set(
+      this.activeFilters()
+        .filter((filter) => filter.startsWith('territory:'))
+        .map((filter) => filter.slice(10)),
+    );
+    const query = normalizeSearch(this.riskAreaQuery());
+    return this.allRiskAreaFeatures().filter(
+      (area) =>
+        (area.id < 0 ? this.showSyntheticRiskAreas() : selected.has(area.properties.f)) &&
+        (!query || normalizeSearch(area.properties.n).includes(query)),
+    );
+  });
+  protected readonly selectedRiskArea = computed(() => {
+    const area = this.allRiskAreaFeatures().find((area) => area.id === this.selectedTerritoryId());
+    return area ? riskAreaDetails(area.properties) : null;
+  });
+  protected readonly riskAreaWarning = computed(() => {
+    const details = this.selectedRiskArea();
+    return details
+      ? riskAreaTemporalWarning(details, this.resolvedDateRange(), this.visiblePoints())
+      : '';
+  });
+  protected readonly riskLayerWarning = computed(() =>
+    riskAreaTemporalWarning(
+      riskAreaDetails({ n: '', f: 'NEU' }),
+      this.resolvedDateRange(),
+      this.visiblePoints(),
+    ),
+  );
   protected readonly territoryStatus = signal<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   protected readonly reportStatus = signal('');
   protected readonly categoryChangeNotice = signal('');
@@ -500,6 +544,7 @@ export class App implements AfterViewInit, OnDestroy {
   private stopReportMapMonitoring?: () => void;
   private radiusCircleFactory?: typeof import('./maps/radius-geometry').createRadiusCircle;
   private territoryLoadPromise?: Promise<void>;
+  private riskAreaHoverPopup?: maplibregl.Popup;
   private playbackTimer?: ReturnType<typeof setInterval>;
   private mapRefreshFrame?: number;
   private mapResizeObserver?: ResizeObserver;
@@ -1191,12 +1236,50 @@ export class App implements AfterViewInit, OnDestroy {
     void this.initializeMap();
   }
 
+  protected toggleRiskLayer(): void {
+    const selected = this.territorySelected();
+    this.activeFilters.update((filters) =>
+      selected
+        ? filters.filter((filter) => !filter.startsWith('territory:'))
+        : [...filters, ...TERRITORY_GROUPS.map((group) => `territory:${group.id}`)],
+    );
+    if (!selected) void this.loadTerritories();
+    else this.selectedTerritoryId.set(null);
+    this.applyTerritoryFilter();
+  }
+
+  protected toggleSyntheticRiskAreas(): void {
+    this.showSyntheticRiskAreas.update((visible) => !visible);
+    if (!this.showSyntheticRiskAreas() && (this.selectedTerritoryId() ?? 0) < 0)
+      this.selectedTerritoryId.set(null);
+    this.installTerritoryLayer();
+    this.applyTerritoryFilter();
+  }
+
+  protected openRiskArea(area: TerritoryFeature): void {
+    this.selectTerritoryHighlight(area.id);
+    if (isPlatformBrowser(this.platformId))
+      requestAnimationFrame(() => document.getElementById('risk-area-detail-heading')?.focus());
+  }
+
+  protected closeRiskArea(): void {
+    this.selectTerritoryHighlight(null);
+    if (isPlatformBrowser(this.platformId))
+      document.querySelector<HTMLInputElement>('[data-risk-area-search]')?.focus();
+  }
+
+  protected riskDateLabel(time?: FactTime): string {
+    return time
+      ? formatFactTime({ id: 'reference-only', kind: 'poi', coordinates: [0, 0], factTime: time })
+      : 'Indisponível';
+  }
+
   protected focusTerritory(area: TerritoryFeature): void {
     const filter = `territory:${area.properties.f}`;
     if (!this.activeFilters().includes(filter)) {
       this.activeFilters.update((filters) => [...filters, filter]);
     }
-    this.selectTerritoryHighlight(area.id);
+    this.openRiskArea(area);
     this.applyTerritoryFilter();
     this.map?.fitBounds(this.getTerritoryBounds(area), { maxZoom: 15, padding: 56 });
     if (this.fallbackMap && this.leaflet) {
@@ -2022,7 +2105,7 @@ export class App implements AfterViewInit, OnDestroy {
               : `Tipo de ponto de interesse: ${reportValueLabel(value)}`;
           }
           if (kind === 'territory') {
-            return `Área territorial: ${TERRITORY_GROUP_BY_ID.get(value as TerritoryCode)?.label ?? value}`;
+            return `Área de Risco: ${TERRITORY_GROUP_BY_ID.get(value as TerritoryCode)?.label ?? value}`;
           }
           if (kind === 'status') return `Situação operacional: ${this.statusLabel(value)}`;
           return `${reportValueLabel(kind)}: ${reportValueLabel(value)}`;
@@ -2785,7 +2868,8 @@ export class App implements AfterViewInit, OnDestroy {
               typeof feature.properties?.n === 'string' &&
               TERRITORY_GROUP_BY_ID.has(feature.properties.f),
           );
-        if (!features.length) throw new Error('No usable territorial features');
+        if (!features.length && collection.features.length)
+          throw new Error('No usable territorial features');
         this.territories.set(features);
         this.territoryStatus.set('loaded');
         this.installTerritoryLayer();
@@ -2807,7 +2891,7 @@ export class App implements AfterViewInit, OnDestroy {
     if (
       !this.map ||
       !this.mapReady() ||
-      !this.territories().length ||
+      !this.allRiskAreaFeatures().length ||
       this.map.getSource('territory-source')
     ) {
       return;
@@ -2815,7 +2899,7 @@ export class App implements AfterViewInit, OnDestroy {
 
     this.map.addSource('territory-source', {
       type: 'geojson',
-      data: { type: 'FeatureCollection', features: this.territories() },
+      data: { type: 'FeatureCollection', features: this.allRiskAreaFeatures() },
     });
     const firstSymbolLayer = this.map
       .getStyle()
@@ -2843,6 +2927,10 @@ export class App implements AfterViewInit, OnDestroy {
             '#9B6BD6',
             'NEU',
             '#8C97A3',
+            'DEMO_DISPUTED',
+            '#D98232',
+            'DEMO_UNKNOWN',
+            '#8993A1',
             '#8C97A3',
           ],
           'fill-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 0.44, 0.22],
@@ -2873,6 +2961,10 @@ export class App implements AfterViewInit, OnDestroy {
             '#9B6BD6',
             'NEU',
             '#8C97A3',
+            'DEMO_DISPUTED',
+            '#D98232',
+            'DEMO_UNKNOWN',
+            '#8993A1',
             '#8C97A3',
           ],
           'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2.3, 1.1],
@@ -2882,36 +2974,28 @@ export class App implements AfterViewInit, OnDestroy {
       firstSymbolLayer,
     );
     this.map.on('click', 'territory-polygons-fill', (event) => {
-      if (this.useRadius() || this.mapPickPurpose()) return;
-      const properties = event.features?.[0]?.properties;
-      const code = properties?.['f'] as TerritoryCode | undefined;
-      const group = code ? TERRITORY_GROUP_BY_ID.get(code) : undefined;
-      if (!properties || !group || !this.map || !this.maplibre) return;
-
-      const content = document.createElement('div');
-      content.className = 'map-popup';
-      const title = document.createElement('strong');
-      title.textContent = String(properties['n'] ?? 'Área mapeada');
-      const label = document.createElement('p');
-      label.textContent = `Classificação da fonte: ${group.label}`;
-      const note = document.createElement('small');
-      note.textContent = 'Base informada: julho de 2026. Não confirma a situação atual.';
-      const source = document.createElement('a');
-      source.href = 'https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html';
-      source.target = '_blank';
-      source.rel = 'noopener noreferrer';
-      source.textContent = 'Fonte dos polígonos';
-      content.append(title, label, note, source);
+      if (this.useRadius() || this.mapPickPurpose() || !this.map || !this.maplibre) return;
+      const area = this.allRiskAreaFeatures().find((area) => area.id === event.features?.[0]?.id);
+      if (!area) return;
+      this.riskAreaHoverPopup?.remove();
+      this.openRiskArea(area);
       new this.maplibre.Popup({ closeButton: true, offset: 12 })
         .setLngLat(event.lngLat)
-        .setDOMContent(content)
+        .setDOMContent(this.createTerritoryPopup(area))
         .addTo(this.map);
     });
-    this.map.on('mouseenter', 'territory-polygons-fill', () => {
-      if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+    this.map.on('mouseenter', 'territory-polygons-fill', (event) => {
+      if (!this.map || !this.maplibre) return;
+      this.map.getCanvas().style.cursor = 'pointer';
+      this.riskAreaHoverPopup?.remove();
+      this.riskAreaHoverPopup = new this.maplibre.Popup({ closeButton: false, closeOnClick: false })
+        .setLngLat(event.lngLat)
+        .setText(String(event.features?.[0]?.properties?.['n'] ?? 'Área de Risco'))
+        .addTo(this.map);
     });
     this.map.on('mouseleave', 'territory-polygons-fill', () => {
       if (this.map) this.map.getCanvas().style.cursor = '';
+      this.riskAreaHoverPopup?.remove();
     });
     const selectedAreaId = this.selectedTerritoryId();
     if (selectedAreaId !== null) {
@@ -2932,6 +3016,7 @@ export class App implements AfterViewInit, OnDestroy {
     const selectedGroups = this.activeFilters()
       .filter((filter) => filter.startsWith('territory:'))
       .map((filter) => filter.slice('territory:'.length));
+    if (this.showSyntheticRiskAreas()) selectedGroups.push('DEMO_DISPUTED', 'DEMO_UNKNOWN');
     this.map.setFilter('territory-polygons-fill', [
       'in',
       ['get', 'f'],
@@ -2952,12 +3037,17 @@ export class App implements AfterViewInit, OnDestroy {
         .filter((filter) => filter.startsWith('territory:'))
         .map((filter) => filter.slice('territory:'.length)),
     );
+    if (this.showSyntheticRiskAreas()) {
+      selectedGroups.add('DEMO_DISPUTED');
+      selectedGroups.add('DEMO_UNKNOWN');
+    }
     const selectedId = this.selectedTerritoryId();
 
-    for (const area of this.territories()) {
+    for (const area of this.allRiskAreaFeatures()) {
       if (!selectedGroups.has(area.properties.f)) continue;
-      const group = TERRITORY_GROUP_BY_ID.get(area.properties.f);
-      if (!group) continue;
+      const group = TERRITORY_GROUP_BY_ID.get(area.properties.f) ?? {
+        color: area.id === -1 ? '#D98232' : '#8993A1',
+      };
       const isSelected = selectedId === area.id;
       this.leaflet
         .geoJSON(area, {
@@ -2968,9 +3058,12 @@ export class App implements AfterViewInit, OnDestroy {
             fillOpacity: isSelected ? 0.44 : 0.22,
           },
           onEachFeature: (_feature, layer) => {
+            const tooltip = document.createElement('span');
+            tooltip.textContent = area.properties.n;
+            layer.bindTooltip(tooltip);
             layer.on('click', (event) => {
               if (this.useRadius() || this.mapPickPurpose()) return;
-              this.focusTerritory(area);
+              this.openRiskArea(area);
               this.leaflet
                 ?.popup({ closeButton: true })
                 .setLatLng(event.latlng)
@@ -2988,16 +3081,18 @@ export class App implements AfterViewInit, OnDestroy {
     content.className = 'map-popup';
     const title = document.createElement('strong');
     title.textContent = area.properties.n;
-    const group = TERRITORY_GROUP_BY_ID.get(area.properties.f);
+    const details = riskAreaDetails(area.properties);
     const label = document.createElement('p');
-    label.textContent = `Classificação da fonte: ${group?.label ?? 'não informada'}`;
+    label.textContent = `Grupo indicado segundo a fonte: ${details.group}`;
     const note = document.createElement('small');
-    note.textContent = 'Base informada: julho de 2026. Não confirma a situação atual.';
-    const source = document.createElement('a');
-    source.href = 'https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html';
-    source.target = '_blank';
-    source.rel = 'noopener noreferrer';
-    source.textContent = 'Fonte dos polígonos';
+    note.textContent = `Referência: ${this.riskDateLabel(details.referenceTime)}. Não confirma a situação atual.`;
+    const source = document.createElement(details.sourceUrl ? 'a' : 'span');
+    source.textContent = `Fonte: ${details.sourceName}`;
+    if (details.sourceUrl) {
+      source.setAttribute('href', details.sourceUrl);
+      source.setAttribute('target', '_blank');
+      source.setAttribute('rel', 'noopener noreferrer');
+    }
     content.append(title, label, note, source);
     return content;
   }

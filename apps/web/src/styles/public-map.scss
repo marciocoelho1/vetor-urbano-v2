@@ -849,3 +849,45 @@ app-root .app-shell.map-view {
     margin-block: 0;
   }
 }
+
+.public-map .risk-areas-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  overflow-wrap: anywhere;
+}
+.public-map .risk-areas-panel summary {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.public-map .risk-layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.75rem;
+}
+.public-map .risk-area-list {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-left: 0;
+  list-style: none;
+}
+.public-map .risk-area-list button {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+.public-map .risk-areas-panel .workspace-detail {
+  position: relative;
+  padding: 14px;
+  margin-top: 16px;
+}
+.public-map .risk-areas-panel .workspace-detail h3 {
+  margin-right: 28px;
+}
