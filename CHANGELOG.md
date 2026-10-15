@@ -1,5 +1,11 @@
 # Histórico de mudanças
 
+## 2026-10-15 — Ticket 36: transparência dos documentos institucionais
+
+- Atualizados os quatro rascunhos para v1.2. Termos, privacidade e metodologia distinguem dados sintéticos, cobertura desejada e operação real; não afirmam coleta, cobertura ou tratamento operacional inexistentes.
+- Procedimento de correções agora informa que a demonstração não recebe pedidos nem dispõe de formulário, fila, protocolo ou acompanhamento. Não foi criada fila; envio/acompanhamento permanece pendente do Ticket 27.
+- `bash scripts/verify.sh web`: lint, 82 testes unitários e build passaram; bundle 598,33 kB, acima do orçamento em 98,33 kB. `bash scripts/verify.sh planning`: 186 links locais passaram. Playwright direcionado: 2/2 em Chromium/Firefox, incluindo teclado/foco e 390 px. Primeiro E2E falhou apenas por caixa da asserção; após ajuste, passou. `git diff --check` passou.
+
 ## 2026-10-15 — Ticket 06: dois modos de consulta e preservação de escolhas explícitas
 
 - Alternância entre Modo simples e Análise e Inteligência no topo com `data-mode-toggle` e aviso observável (`role="status"`).
