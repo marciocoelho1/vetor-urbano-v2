@@ -709,22 +709,25 @@ describe('Vetor Urbano', () => {
     }
   });
 
-  it('shows only operationally active reports and moves expired reports to unconfirmed history', () => {
+  it('consulta confirmações vigentes e preserva expiração como situação desconhecida', () => {
     const app = fixture.componentInstance as unknown as {
       activeRecords: () => { id: string }[];
-      historyRecords: () => { id: string; operationalStatus?: string }[];
+      historyRecords: () => { id: string; situation?: string }[];
       queryReferenceDate: { set: (date: Date) => void };
       allPoints: () => { id: string; expiresAt?: string }[];
     };
-    expect(app.activeRecords().map((record) => record.id)).toEqual(['demo-002']);
+    expect(app.activeRecords().map((record) => record.id)).toEqual([
+      'demo-002',
+      'demo-transito-007',
+    ]);
     const expiresAt = app.allPoints().find((record) => record.id === 'demo-002')?.expiresAt;
     expect(expiresAt).toBeTruthy();
 
     app.queryReferenceDate.set(new Date(Date.parse(expiresAt!) + 1000));
 
     expect(app.activeRecords()).toEqual([]);
-    expect(app.historyRecords().find((record) => record.id === 'demo-002')?.operationalStatus).toBe(
-      'EXPIRED',
+    expect(app.historyRecords().find((record) => record.id === 'demo-002')?.situation).toBe(
+      'UNKNOWN',
     );
   });
 
@@ -1336,7 +1339,7 @@ describe('Vetor Urbano', () => {
       'Outros registros',
       'Semáforos desligados',
       'Baixa',
-      'Resolvido',
+      'Encerrada',
     ]);
     expect(JSON.stringify(sheets)).not.toContain('TRANSITO');
   });

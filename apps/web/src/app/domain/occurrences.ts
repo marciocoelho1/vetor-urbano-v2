@@ -1,3 +1,9 @@
+import {
+  temporalInclusion,
+  type FactTime,
+  type Situation,
+  type SituationTransition,
+} from './temporal';
 export type DatePreset = '24h' | '1w' | '1m' | '3m' | '6m' | '1y';
 export type RecordKind = 'occurrence' | 'poi';
 export type OperationalStatus = 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'EXPIRED';
@@ -9,10 +15,28 @@ export interface OccurrenceClassification {
   subtype?: string;
 }
 
+export interface OccurrenceReference {
+  id: string;
+  sourceName: string;
+  title: string;
+  url?: string;
+  identifier?: string;
+}
+
+export interface OccurrenceField {
+  label: string;
+  value: string | number | null;
+  applicability?: 'APPLICABLE' | 'NOT_APPLICABLE';
+}
+
 export interface DemoRecord {
   id: string;
   kind: RecordKind;
   name?: string;
+  /** Context shared by distinct effects; never a publication identifier. */
+  happeningId?: string;
+  references?: OccurrenceReference[];
+  specificFields?: OccurrenceField[];
   description?: string;
   location?: string;
   municipality?: string;
@@ -31,7 +55,14 @@ export interface DemoRecord {
   exclusive?: boolean;
   severity?: string;
   occurredAt?: string;
+  factTime?: FactTime;
+  sourcePublishedAt?: string;
+  collectedAt?: string;
+  reviewedAt?: string;
+  systemPublishedAt?: string;
   insertedAt?: string;
+  situation?: Situation;
+  situationHistory?: SituationTransition[];
   operationalStatus?: OperationalStatus;
   lastCheckedAt?: string;
   expiresAt?: string;
@@ -48,6 +79,7 @@ export interface LocalFilters {
   poiTypes?: string[];
   exclusivePois?: boolean;
   operationalStatuses?: OperationalStatus[];
+  situations?: Situation[];
   start?: Date;
   end?: Date;
   timeStart?: string;
@@ -255,10 +287,7 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
       if (!collective && !exclusive) return false;
     } else {
       if (record.publicationStatus && record.publicationStatus !== 'PUBLISHED') return false;
-      if (
-        (filters.start || filters.end || filters.timeStart || filters.timeEnd) &&
-        (!record.occurredAt || !Number.isFinite(Date.parse(record.occurredAt)))
-      )
+      if ((filters.start || filters.end) && temporalInclusion(record, filters) === 'OUTSIDE')
         return false;
       const classifications = [record, ...(record.additionalClassifications ?? [])];
       const hasSelection = Boolean(
@@ -276,22 +305,12 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
       if (filters.groups?.length && !filters.groups.includes(record.group ?? '')) return false;
       if (filters.crimes?.length && !filters.crimes.includes(record.crime ?? '')) return false;
 
+      if (filters.situations?.length && !filters.situations.includes(record.situation ?? 'UNKNOWN'))
+        return false;
       if (filters.operationalStatuses?.length) {
         if (!filters.operationalStatuses.includes(record.operationalStatus ?? 'EXPIRED'))
           return false;
       }
-      if (
-        filters.start &&
-        record.occurredAt &&
-        Date.parse(record.occurredAt) < filters.start.getTime()
-      )
-        return false;
-      if (
-        filters.end &&
-        record.occurredAt &&
-        Date.parse(record.occurredAt) >= filters.end.getTime()
-      )
-        return false;
       if (
         record.occurredAt &&
         !timeInRange(record.occurredAt, filters.timeStart, filters.timeEnd)
