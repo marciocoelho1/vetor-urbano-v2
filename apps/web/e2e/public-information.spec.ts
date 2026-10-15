@@ -136,3 +136,82 @@ test('páginas públicas retornam ao histórico e preservam importação e triag
   await expect(page.locator('.history-record')).toHaveCount(1);
   await expect(page.locator('.workspace-detail')).toContainText('Canal fictício sem URL pública');
 });
+
+test('rodapé permite consultar termos, privacidade, metodologia e correções sem login com foco e retorno preservados', async ({
+  page,
+}, testInfo) => {
+  // 1. Termos de uso
+  const termsLink = page.getByRole('link', { name: 'Termos de uso', exact: true });
+  await expect(termsLink).toBeVisible();
+  await termsLink.focus();
+  await page.keyboard.press('Enter');
+  const termsHeading = page.getByRole('heading', { name: 'Termos de uso', exact: true });
+  await expect(termsHeading).toBeFocused();
+  const termsSection = page.getByRole('region', { name: 'Termos de uso', exact: true });
+  await expect(termsSection).toContainText('Rascunho de revisão local');
+  await expect(termsSection).toContainText('não constitui canal de emergência');
+  await expect(termsSection).toContainText('190');
+  await termsSection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
+  await expect(termsLink).toBeFocused();
+
+  // 2. Política de privacidade
+  const privacyLink = page.getByRole('link', { name: 'Privacidade', exact: true });
+  await privacyLink.click();
+  const privacyHeading = page.getByRole('heading', {
+    name: 'Política de privacidade',
+    exact: true,
+  });
+  await expect(privacyHeading).toBeFocused();
+  const privacySection = page.getByRole('region', { name: 'Política de privacidade', exact: true });
+  await expect(privacySection).toContainText('Rascunho de revisão local');
+  await expect(privacySection).toContainText('Não coleta de dados pessoais na consulta');
+  await expect(privacySection).toContainText('endereços residenciais privados');
+  await expect(privacySection).toContainText('60 dias ou 1 ano');
+  await privacySection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
+  await expect(privacyLink).toBeFocused();
+
+  // 3. Metodologia dos dados
+  const methodologyLink = page.getByRole('link', { name: 'Metodologia dos dados', exact: true });
+  await methodologyLink.click();
+  const methodHeading = page.getByRole('heading', { name: 'Metodologia dos dados', exact: true });
+  await expect(methodHeading).toBeFocused();
+  const methodSection = page.getByRole('region', { name: 'Metodologia dos dados', exact: true });
+  await expect(methodSection).toContainText('Rascunho de revisão local');
+  await expect(methodSection).toContainText('Clipping');
+  await expect(methodSection).toContainText('Ocorrência');
+  await expect(methodSection).toContainText('Acontecimento');
+  await expect(methodSection).toContainText('não recebem pinos inventados');
+  await expect(methodSection).not.toContainText(/peso|equação|amostra mínima|40\/40\/20/i);
+  await methodSection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
+  await expect(methodologyLink).toBeFocused();
+
+  // 4. Procedimento de correções
+  const correctionsLink = page.getByRole('link', {
+    name: 'Procedimento de correções',
+    exact: true,
+  });
+  await correctionsLink.click();
+  const correctionsHeading = page.getByRole('heading', {
+    name: 'Procedimento de correções',
+    exact: true,
+  });
+  await expect(correctionsHeading).toBeFocused();
+  const correctionsSection = page.getByRole('region', {
+    name: 'Procedimento de correções',
+    exact: true,
+  });
+  await expect(correctionsSection).toContainText('Rascunho de revisão local');
+  await expect(correctionsSection).toContainText('Distinção entre correção e novo registro');
+  await expect(correctionsSection).toContainText('não deve ser usada para relatar um novo fato');
+  await expect(correctionsSection).toContainText('revisores humanos');
+
+  // Testar responsividade móvel em 390px
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page.screenshot({ path: testInfo.outputPath('institutional-mobile.png'), fullPage: true });
+
+  await correctionsSection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
+  await expect(correctionsLink).toBeFocused();
+});

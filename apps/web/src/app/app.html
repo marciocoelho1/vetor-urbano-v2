@@ -2393,15 +2393,238 @@
         </button>
       </section>
     }
+    @if (activeView() === 'terms') {
+      <section class="workspace-view public-information" aria-labelledby="terms-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Documentos institucionais</p>
+            <h1 id="terms-heading" data-view-title="terms" tabindex="-1">Termos de uso</h1>
+            <p class="page-intro">
+              Versão demonstrativa v1.1 · 15/10/2026. Documento em revisão local para o protótipo
+              funcional.
+            </p>
+          </div>
+        </header>
+        <article class="workspace-card">
+          <span class="status-pill">Rascunho de revisão local</span>
+          <h2>Finalidade e natureza do serviço</h2>
+          <p>
+            O Vetor Urbano é uma plataforma de exploração visual e consolidação de informações
+            urbanas sobre mobilidade, segurança pública e contingências na Região Metropolitana do
+            Rio de Janeiro. Esta versão destina-se a estudos visuais e demonstrações técnicas com
+            dados sintéticos e fictícios.
+          </p>
+          <p>
+            O serviço <strong>não constitui canal de emergência ou socorro</strong> (para
+            emergências, acione diretamente 190 ou 193), nem substitui canais oficiais de denúncia e
+            registro policial.
+          </p>
+          <h2>Dados, fontes e responsabilidade</h2>
+          <p>
+            As ocorrências apresentadas refletem compilações de referências públicas identificadas.
+            A plataforma não garante completude, exatidão em tempo real ou validade jurídica de
+            qualquer registro.
+          </p>
+          <p>
+            Limitações operacionais, limites territoriais oficiais e parâmetros definitivos de
+            calibragem permanecem em processo de aprovação institucional. Nenhuma funcionalidade
+            demonstrativa deve ser interpretada como compromisso contratual de cobertura ou serviço
+            contínuo.
+          </p>
+        </article>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
+    @if (activeView() === 'privacy') {
+      <section class="workspace-view public-information" aria-labelledby="privacy-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Documentos institucionais</p>
+            <h1 id="privacy-heading" data-view-title="privacy" tabindex="-1">
+              Política de privacidade
+            </h1>
+            <p class="page-intro">
+              Versão demonstrativa v1.1 · 15/10/2026. Princípios de proteção de dados e privacidade
+              aplicados ao projeto.
+            </p>
+          </div>
+        </header>
+        <article class="workspace-card">
+          <span class="status-pill">Rascunho de revisão local</span>
+          <h2>Não coleta de dados pessoais na consulta</h2>
+          <p>
+            A consulta pública de ocorrências, mapa, lista e estatísticas não exige cadastro,
+            autenticação nem coleta de dados pessoais dos visitantes. Nenhum rastreamento de
+            navegação invasivo é realizado.
+          </p>
+          <h2>Proteção de informantes e separação de locais</h2>
+          <p>
+            Em conformidade com as diretrizes do projeto (RNF02), a localização de uma ocorrência é
+            rigorosamente separada da identidade e da localização do informante.
+          </p>
+          <p>
+            A plataforma
+            <strong>não armazena nem publica endereços residenciais privados</strong> ou informações
+            que permitam a identificação individual de vítimas, testemunhas ou colaboradores.
+          </p>
+          <h2>Retenção e ciclo de dados</h2>
+          <p>
+            Hipóteses operacionais em discussão (como retenção por 60 dias ou 1 ano) são propostas
+            de engenharia e não constituem política pública definitiva. Qualquer política de
+            retenção será formalizada após validação jurídica e aprovação dos órgãos responsáveis.
+          </p>
+          <h2>Acesso administrativo na demonstração local</h2>
+          <p>
+            O fluxo de contas na demonstração local opera com caixa de e-mail de teste, tokens de
+            confirmação e recuperação de uso único, e segundo fator (MFA) por aplicativo
+            autenticador. Nenhuma conta real ou serviço de mensageria externo está conectado.
+          </p>
+        </article>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
+    @if (activeView() === 'methodology') {
+      <section class="workspace-view public-information" aria-labelledby="methodology-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Documentos institucionais</p>
+            <h1 id="methodology-heading" data-view-title="methodology" tabindex="-1">
+              Metodologia dos dados
+            </h1>
+            <p class="page-intro">
+              Versão demonstrativa v1.1 · 15/10/2026. Entenda a estruturação, precisão e critérios
+              de tratamento dos dados.
+            </p>
+          </div>
+        </header>
+        <article class="workspace-card">
+          <span class="status-pill">Rascunho de revisão local</span>
+          <h2>Conceitos fundamentais do modelo de dados</h2>
+          <p>
+            Para garantir rigor técnico e evitar falsas equivalências, o sistema distingue três
+            entidades:
+          </p>
+          <ul>
+            <li>
+              <strong>Clipping:</strong> publicação ou notícia coletada de um veículo ou fonte, sem
+              validação ou georreferenciamento definitivos.
+            </li>
+            <li>
+              <strong>Ocorrência:</strong> fato singular temporalizado e localizado, classificado em
+              um dos três pilares (Trânsito, Segurança ou Contingência) e em um tipo/subtipo do
+              catálogo oficial.
+            </li>
+            <li>
+              <strong>Acontecimento:</strong> evento urbano amplo que congrega ou desdobra múltiplas
+              ocorrências correlacionadas (por exemplo, um protesto gerando interdições e
+              ocorrências de segurança).
+            </li>
+          </ul>
+          <h2>Precisão espacial e representação cartográfica</h2>
+          <p>
+            Registros com coordenadas exatas ou referências viárias precisas (precisão
+            <code>POINT</code>) são apresentados no mapa como marcadores e participam dos filtros de
+            raio e área visível.
+          </p>
+          <p>
+            Registros com precisão restrita a município ou bairro (precisão <code>TERRITORY</code>)
+            <strong>não recebem pinos inventados nem centroides artificiais</strong>. São
+            apresentados exclusivamente na lista com aviso explícito de precisão e são excluídos de
+            recortes espaciais geométricos que não possam sustentá-los.
+          </p>
+          <h2>Cobertura geográfica e Áreas de Risco</h2>
+          <p>
+            O recorte de demonstração contempla o Rio de Janeiro e a Baixada Fluminense com
+            geometrias sintéticas. A camada de Áreas de Risco utiliza polígonos independentes
+            baseados em fontes públicas, mantendo classificação neutra e sem interferir nas
+            contagens de ocorrências pontuais ou na mancha térmica.
+          </p>
+          <h2>Avaliação resumida (nota 1 a 5)</h2>
+          <p>
+            A nota de confiabilidade resume a consistência de confirmações independentes e a
+            precisão das referências. A metodologia avalia o suporte documental sem impor cálculos
+            automáticos de verdade, e o cálculo operacional permanece desativado até homologação
+            formal.
+          </p>
+        </article>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
+    @if (activeView() === 'corrections') {
+      <section class="workspace-view public-information" aria-labelledby="corrections-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Documentos institucionais</p>
+            <h1 id="corrections-heading" data-view-title="corrections" tabindex="-1">
+              Procedimento de correções
+            </h1>
+            <p class="page-intro">
+              Versão demonstrativa v1.1 · 15/10/2026. Como solicitar retificações de dados e
+              acompanhar revisões.
+            </p>
+          </div>
+        </header>
+        <article class="workspace-card">
+          <span class="status-pill">Rascunho de revisão local</span>
+          <h2>Distinção entre correção e novo registro</h2>
+          <p>
+            Uma <strong>solicitação de correção</strong> destina-se a apontar imprecisões de
+            localização, data/horário, tipificação ou fontes de uma ocorrência já catalogada.
+          </p>
+          <p>
+            A correção <strong>não deve ser usada para relatar um novo fato</strong>. Essa separação
+            previne duplicidade de registros e assegura a integridade da série histórica de dados.
+          </p>
+          <h2>Fluxo de envio e acompanhamento</h2>
+          <p>
+            Cada solicitação deve referenciar o identificador da ocorrência e fornecer elementos
+            verificáveis (como link público de errata ou informe oficial).
+          </p>
+          <p>
+            Todas as solicitações são submetidas à análise por revisores humanos antes de qualquer
+            alteração pública. O histórico de modificações é mantido de forma rastreável,
+            registrando a data e o motivo da retificação sem apagar o histórico original de revisão.
+          </p>
+          <h2>Canais disponíveis na demonstração</h2>
+          <p>
+            No ambiente de demonstração local, as correções são registradas em fila de triagem
+            interna. Na versão operacional futura, haverá formulário dedicado e código de protocolo
+            de acompanhamento.
+          </p>
+        </article>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
     <footer class="site-footer">
-      <a class="footer-brand" href="#mapa" (click)="openView('map')">Vetor Urbano</a
-      ><a
+      <a class="footer-brand" href="#mapa" (click)="openView('map')">Vetor Urbano</a>
+      <a
         id="public-sources-link"
         href="#conheca-fontes"
         (click)="openPublicPage('public-sources', $event)"
         >Conheça nossas fontes</a
-      ><span>Um estudo visual para explorar a cidade.</span
-      ><span>Versão 02 · dados demonstrativos</span>
+      >
+      <a id="terms-link" href="#termos-de-uso" (click)="openPublicPage('terms', $event)"
+        >Termos de uso</a
+      >
+      <a id="privacy-link" href="#privacidade" (click)="openPublicPage('privacy', $event)"
+        >Privacidade</a
+      >
+      <a id="methodology-link" href="#metodologia" (click)="openPublicPage('methodology', $event)"
+        >Metodologia dos dados</a
+      >
+      <a id="corrections-link" href="#correcoes" (click)="openPublicPage('corrections', $event)"
+        >Procedimento de correções</a
+      >
+      <span>Um estudo visual para explorar a cidade.</span>
+      <span>Versão 02 · dados demonstrativos</span>
     </footer>
   </main>
 </div>

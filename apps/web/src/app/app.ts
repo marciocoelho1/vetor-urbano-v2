@@ -65,7 +65,8 @@ import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
-type PublicPage = 'public-sources' | 'reliability';
+type PublicPage =
+  'public-sources' | 'reliability' | 'terms' | 'privacy' | 'methodology' | 'corrections';
 type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report' | PublicPage;
 type TerritoryCode = RiskAreaCode;
 type TerritoryProperties = { n: string; f: TerritoryCode; demoDetails?: RiskAreaDetails };
