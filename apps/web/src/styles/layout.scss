@@ -458,6 +458,10 @@
     gap: 26px;
     padding: 28px 0;
   }
+  .overview-row > [data-temporal-certainty] {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
   .overview-metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

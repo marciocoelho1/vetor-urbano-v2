@@ -32,6 +32,12 @@ import {
   type ImportedDataset,
   type SourceMetadata,
 } from './domain/occurrences';
+import {
+  formatFactTime,
+  resolveSituation,
+  situationLabel,
+  temporalInclusion,
+} from './domain/temporal';
 import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
 import {
   createMetropolitanDemoOccurrences,
@@ -332,7 +338,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly activeFilters = signal<string[]>(
     CATEGORIES.map((category) => `category:${category.id}`),
   );
-  protected readonly period = signal<DatePreset | 'custom'>('24h');
+  protected readonly period = signal<DatePreset | 'custom' | 'ongoing'>('24h');
   protected readonly queryReferenceDate = signal(new Date());
   protected readonly customRangeStart = signal('');
   protected readonly customRangeEnd = signal('');
@@ -444,6 +450,14 @@ export class App implements AfterViewInit, OnDestroy {
       typeLabel: 'Semáforos desligados',
       occurrenceType: 'SEMAFOROS',
       severity: 'BAIXA',
+      situation: 'CLOSED',
+      situationHistory: [
+        {
+          situation: 'CLOSED',
+          at: this.hoursAgo(2),
+          reason: 'Resolução explicitamente confirmada nesta simulação de semáforo.',
+        },
+      ],
       operationalStatus: 'RESOLVED',
       occurredAt: this.hoursAgo(3),
       insertedAt: this.hoursAgo(2),
@@ -464,6 +478,14 @@ export class App implements AfterViewInit, OnDestroy {
       occurrenceType: 'INTERDICAO',
       subtype: 'Parcial',
       severity: 'MODERADA',
+      situation: 'ONGOING',
+      situationHistory: [
+        {
+          situation: 'ONGOING',
+          at: this.hoursAgo(1),
+          reason: 'Confirmação fictícia de bloqueio parcial; validade sintética local de 4 horas.',
+        },
+      ],
       operationalStatus: 'ACTIVE',
       lastCheckedAt: this.hoursAgo(1),
       expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
@@ -486,6 +508,7 @@ export class App implements AfterViewInit, OnDestroy {
       typeLabel: 'Furto',
       occurrenceType: 'FURTO',
       severity: 'BAIXA',
+      situation: 'UNKNOWN', // No supported resolution was authored for this theft fixture.
       operationalStatus: 'RESOLVED',
       occurredAt: this.hoursAgo(31),
       insertedAt: this.hoursAgo(28),
@@ -505,6 +528,14 @@ export class App implements AfterViewInit, OnDestroy {
       typeLabel: 'Alagamento/inundação',
       occurrenceType: 'ALAGAMENTO',
       severity: 'MODERADA',
+      situation: 'ONGOING',
+      situationHistory: [
+        {
+          situation: 'ONGOING',
+          at: this.hoursAgo(36),
+          reason: 'Confirmação fictícia antiga de alagamento; expiração não comprova resolução.',
+        },
+      ],
       operationalStatus: 'EXPIRED',
       lastCheckedAt: this.hoursAgo(36),
       expiresAt: this.hoursAgo(24),
@@ -548,18 +579,14 @@ export class App implements AfterViewInit, OnDestroy {
     },
   ]);
 
-  protected readonly allPoints = computed(() => {
-    const now = this.queryReferenceDate().getTime();
-    return [...this.demoPoints, ...this.importedRecords()].map((point) =>
-      (point.operationalStatus === 'ACTIVE' || point.operationalStatus === 'MONITORING') &&
-      point.expiresAt &&
-      Date.parse(point.expiresAt) <= now
-        ? { ...point, operationalStatus: 'EXPIRED' as const }
-        : point,
-    );
-  });
+  protected readonly allPoints = computed(() =>
+    [...this.demoPoints, ...this.importedRecords()].map((point) =>
+      resolveSituation(point, this.queryReferenceDate()),
+    ),
+  );
   protected readonly resolvedDateRange = computed(() => {
     const selectedPeriod = this.period();
+    if (selectedPeriod === 'ongoing') return null;
     if (selectedPeriod !== 'custom')
       return calendarRange(selectedPeriod, this.queryReferenceDate());
     if (!this.customRangeStart() || !this.customRangeEnd()) return null;
@@ -617,6 +644,7 @@ export class App implements AfterViewInit, OnDestroy {
       crimes,
       types,
       poiTypes,
+      situations: this.period() === 'ongoing' ? ['ONGOING'] : undefined,
       exclusivePois: filters.includes('poi:EXCLUSIVO'),
       start: range?.start,
       end: range?.end,
@@ -643,9 +671,7 @@ export class App implements AfterViewInit, OnDestroy {
       ),
   );
   protected readonly activeRecords = computed(() =>
-    this.historyRecords().filter(
-      (point) => point.operationalStatus === 'ACTIVE' || point.operationalStatus === 'MONITORING',
-    ),
+    this.historyRecords().filter((point) => point.situation === 'ONGOING'),
   );
   protected readonly selectedDetail = computed(
     () => this.allPoints().find((point) => point.id === this.selectedPointId()) ?? null,
@@ -1081,9 +1107,9 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected selectPeriod(period: string): void {
-    const available = ['24h', '1w', '1m', '3m', '6m', '1y', 'custom'];
+    const available = ['24h', '1w', '1m', '3m', '6m', '1y', 'custom', 'ongoing'];
     if (!available.includes(period)) return;
-    this.period.set(period as DatePreset | 'custom');
+    this.period.set(period as DatePreset | 'custom' | 'ongoing');
     this.refreshMapData();
   }
 
@@ -1210,7 +1236,7 @@ export class App implements AfterViewInit, OnDestroy {
     );
     if (
       incompatible.length ||
-      !['24h', '1w', '1m', '3m', '6m', '1y', 'custom'].includes(search.period)
+      !['24h', '1w', '1m', '3m', '6m', '1y', 'custom', 'ongoing'].includes(search.period)
     ) {
       this.savedSearchNotice.set(
         'Consulta salva incompatível com o catálogo atual. Nenhum filtro foi aplicado. Recrie a consulta; a versão salva foi preservada.',
@@ -1219,7 +1245,7 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.savedSearchNotice.set('Consulta salva aplicada.');
     this.activeFilters.set([...new Set(search.filters)]);
-    this.period.set(search.period as DatePreset | 'custom');
+    this.period.set(search.period as DatePreset | 'custom' | 'ongoing');
     this.customRangeStart.set(search.customRangeStart ?? '');
     this.customRangeEnd.set(search.customRangeEnd ?? '');
     this.timeStart.set(search.timeStart ?? '');
@@ -1360,6 +1386,24 @@ export class App implements AfterViewInit, OnDestroy {
       .format(new Date())
       .replace(' ', 'T');
   }
+
+  protected readonly formatFactTime = formatFactTime;
+  protected readonly situationLabel = situationLabel;
+  protected temporalLabel(record: DemoRecord): string {
+    const range = this.resolvedDateRange();
+    if (!range) return 'Sem recorte temporal; confirmação de andamento vigente';
+    return temporalInclusion(record, range) === 'POSSIBLE'
+      ? 'Possivelmente dentro do período'
+      : 'Certamente dentro do período';
+  }
+  protected readonly temporalCounts = computed(() => {
+    const range = this.resolvedDateRange();
+    const points = this.visiblePoints().filter((point) => point.kind === 'occurrence');
+    const possible = range
+      ? points.filter((point) => temporalInclusion(point, range) === 'POSSIBLE').length
+      : 0;
+    return { certain: points.length - possible, possible };
+  });
 
   protected formatTime(iso: string): string {
     return new Intl.DateTimeFormat('pt-BR', {
@@ -1734,8 +1778,8 @@ export class App implements AfterViewInit, OnDestroy {
             point.group ? reportValueLabel(point.group) : 'Não informado',
             reportValueLabel(this.recordTypeLabel(point)),
             point.severity ? reportValueLabel(point.severity) : 'Não informada',
-            point.kind === 'poi' ? 'Não se aplica' : this.statusLabel(point.operationalStatus),
-            point.occurredAt ? formatDate(point.occurredAt) : 'Não se aplica',
+            point.kind === 'poi' ? 'Não se aplica' : this.situationLabel(point.situation),
+            point.kind === 'poi' ? 'Não se aplica' : this.formatFactTime(point),
             formatDate(point.insertedAt),
             point.location,
             point.coordinates[0],
@@ -2104,7 +2148,7 @@ export class App implements AfterViewInit, OnDestroy {
           const type = document.createElement('span');
           type.textContent = `${properties['typeLabel'] ?? properties['kind'] ?? 'Tipo não informado'} · ${properties['severity'] ?? 'severidade não informada'}`;
           const status = document.createElement('span');
-          status.textContent = this.statusLabel(properties['operationalStatus']);
+          status.textContent = properties['situationLabel'] ?? 'Desconhecida';
           const source = document.createElement('small');
           source.textContent = `Fonte: ${properties['sourceId'] ?? 'demonstração local'}`;
           const inserted = document.createElement('small');
@@ -2971,7 +3015,7 @@ export class App implements AfterViewInit, OnDestroy {
     const type = document.createElement('span');
     type.textContent = `${this.recordTypeLabel(point)} · ${point.severity ?? 'gravidade não informada'}`;
     const status = document.createElement('span');
-    status.textContent = this.statusLabel(point.operationalStatus);
+    status.textContent = this.situationLabel(point.situation);
     const source = document.createElement('small');
     source.textContent = `Fonte: ${point.sourceId ?? 'demonstração local'}`;
     const inserted = document.createElement('small');
@@ -3125,6 +3169,7 @@ export class App implements AfterViewInit, OnDestroy {
             occurredAt: point.occurredAt ?? '',
             severity: point.severity ?? '',
             operationalStatus: point.operationalStatus ?? '',
+            situationLabel: this.situationLabel(point.situation),
             sourceId: point.sourceId ?? 'demo',
             category: point.category ?? 'POI',
             selected: this.selectedPointId() === point.id,

@@ -1,3 +1,4 @@
+import type { FactTime } from '../domain/temporal';
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from '../domain/catalogue';
 import { distanceMeters, type Coordinates, type DemoRecord } from '../domain/occurrences';
 
@@ -107,6 +108,27 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
       const typeLabel = type.label;
       // Small distinct offsets keep categories close enough for density visualization.
       const offset = (categoryIndex + 1) * 0.0008;
+      // Explicit authored scenario: one old road closure has recent confirmation.
+      // The remaining generated records lack evidence of their current situation.
+      const confirmedOldClosure = category === 'TRANSITO' && index === 6;
+      let factTime: FactTime | undefined;
+      if (category === 'TRANSITO' && index === 8) {
+        factTime = {
+          precision: 'DAY',
+          date: new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(
+            new Date(hoursAgo(38)),
+          ),
+        };
+      }
+      if (category === 'TRANSITO' && index === 7) {
+        factTime = { precision: 'INTERVAL', start: hoursAgo(36), end: hoursAgo(32) };
+      }
+      if (category === 'TRANSITO' && index === 20) {
+        const previousMonth = new Date(reference);
+        previousMonth.setUTCDate(1);
+        previousMonth.setUTCMonth(previousMonth.getUTCMonth() - 1);
+        factTime = { precision: 'MONTH', month: previousMonth.toISOString().slice(0, 7) };
+      }
       return {
         id: `demo-${category.toLowerCase()}-${String(index + 1).padStart(3, '0')}`,
         kind: 'occurrence',
@@ -129,7 +151,24 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
         typeLabel,
         severity: ['BAIXA', 'MODERADA', 'ALTA'][index % 3],
         operationalStatus: index % 4 === 0 ? 'EXPIRED' : 'RESOLVED',
-        occurredAt: hoursAgo(6 + index * 4 + categoryIndex),
+        occurredAt: factTime ? undefined : hoursAgo(6 + index * 4 + categoryIndex),
+        factTime,
+        situation: confirmedOldClosure ? 'ONGOING' : 'UNKNOWN',
+        lastCheckedAt: confirmedOldClosure ? hoursAgo(1) : undefined,
+        situationHistory: confirmedOldClosure
+          ? [
+              {
+                situation: 'ONGOING',
+                at: hoursAgo(1),
+                reason:
+                  'Confirmação fictícia de bloqueio antigo; validade sintética local de 4 horas.',
+              },
+            ]
+          : [],
+        sourcePublishedAt: hoursAgo(1),
+        collectedAt: hoursAgo(0.75),
+        reviewedAt: hoursAgo(0.5),
+        systemPublishedAt: hoursAgo(0.25),
         insertedAt: hoursAgo(5 + index * 4 + categoryIndex),
         sourceId: 'demo',
         coordinates: [
