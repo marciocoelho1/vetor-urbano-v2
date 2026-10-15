@@ -36,6 +36,7 @@ import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
 import {
   createMetropolitanDemoOccurrences,
   disperseDemoOccurrences,
+  relateDemoOccurrences,
 } from './data/demo-occurrences';
 
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
@@ -547,10 +548,11 @@ export class App implements AfterViewInit, OnDestroy {
       coordinates: [-43.196, -22.895],
     },
   ]);
+  private readonly relatedDemoPoints = relateDemoOccurrences(this.demoPoints);
 
   protected readonly allPoints = computed(() => {
     const now = this.queryReferenceDate().getTime();
-    return [...this.demoPoints, ...this.importedRecords()].map((point) =>
+    return [...this.relatedDemoPoints, ...this.importedRecords()].map((point) =>
       (point.operationalStatus === 'ACTIVE' || point.operationalStatus === 'MONITORING') &&
       point.expiresAt &&
       Date.parse(point.expiresAt) <= now
@@ -647,6 +649,53 @@ export class App implements AfterViewInit, OnDestroy {
       (point) => point.operationalStatus === 'ACTIVE' || point.operationalStatus === 'MONITORING',
     ),
   );
+  private readonly relatedDetailIds = signal<Record<string, string>>({});
+  protected readonly happeningCount = computed(
+    () =>
+      new Set(
+        this.visiblePoints()
+          .filter((point) => point.kind === 'occurrence')
+          .map((point) => point.happeningId ?? point.id),
+      ).size,
+  );
+  protected resultDetail(point: DemoPoint): DemoPoint {
+    return this.allPoints().find((item) => item.id === this.relatedDetailIds()[point.id]) ?? point;
+  }
+  protected relatedOccurrences(point: DemoPoint): DemoPoint[] {
+    if (point.kind !== 'occurrence') return [];
+    return this.allPoints().filter(
+      (item) =>
+        item.kind === 'occurrence' &&
+        item.id !== point.id &&
+        (item.happeningId ?? item.id) === (point.happeningId ?? point.id) &&
+        (!item.publicationStatus || item.publicationStatus === 'PUBLISHED'),
+    );
+  }
+  protected isInQuery(point: DemoPoint): boolean {
+    return this.visiblePoints().some((item) => item.id === point.id);
+  }
+  protected happeningSummary(point: DemoPoint): string {
+    const family = [point, ...this.relatedOccurrences(point)];
+    const inQuery = family.filter((item) => this.isInQuery(item)).length;
+    return `${family.length} ${family.length === 1 ? 'ocorrência' : 'ocorrências'} · 1 acontecimento; ${inQuery} ${inQuery === 1 ? 'ocorrência' : 'ocorrências'} · 1 acontecimento no recorte`;
+  }
+  protected showRelated(point: DemoPoint, rootId?: string): void {
+    if (rootId) this.relatedDetailIds.update((ids) => ({ ...ids, [rootId]: point.id }));
+    else this.selectedPointId.set(point.id);
+    setTimeout(() =>
+      document
+        .getElementById(
+          rootId ? `map-result-detail-heading-${rootId}` : `${this.activeView()}-detail-heading`,
+        )
+        ?.focus(),
+    );
+  }
+  protected publicReliability(point: DemoPoint): string {
+    const score = point.reliabilityScore;
+    return score !== undefined && Number.isInteger(score) && score >= 1 && score <= 5
+      ? `${score} / 5`
+      : 'Não informada';
+  }
   protected readonly selectedDetail = computed(
     () => this.allPoints().find((point) => point.id === this.selectedPointId()) ?? null,
   );
@@ -1008,6 +1057,16 @@ export class App implements AfterViewInit, OnDestroy {
     const expanded = this.expandedResultDetailIds();
     if (expanded.includes(pointId)) {
       this.expandedResultDetailIds.set(expanded.filter((id) => id !== pointId));
+      this.relatedDetailIds.update((ids) => {
+        const copy = { ...ids };
+        delete copy[pointId];
+        return copy;
+      });
+      setTimeout(() =>
+        document
+          .querySelector<HTMLButtonElement>(`[data-result-detail-toggle="${CSS.escape(pointId)}"]`)
+          ?.focus(),
+      );
       return;
     }
     if (this.visibleOpenResultDetailCount() >= 5) return;
@@ -2977,6 +3036,28 @@ export class App implements AfterViewInit, OnDestroy {
     const inserted = document.createElement('small');
     inserted.textContent = `Inserido às ${this.formatTime(point.insertedAt)}`;
     content.append(title, description, location, type, status, source, inserted);
+    const details = document.createElement('button');
+    details.type = 'button';
+    details.textContent = 'Abrir detalhes da ocorrência';
+    details.addEventListener('click', () => {
+      this.selectedPointId.set(point.id);
+      this.relatedDetailIds.update((ids) => {
+        const copy = { ...ids };
+        delete copy[point.id];
+        return copy;
+      });
+      if (!this.isResultDetailOpen(point.id)) {
+        const ids = this.expandedResultDetailIds();
+        this.expandedResultDetailIds.set([...ids.slice(-4), point.id]);
+      }
+      this.fallbackMap?.closePopup();
+      setTimeout(() => {
+        const heading = document.getElementById(`map-result-detail-heading-${point.id}`);
+        heading?.scrollIntoView({ block: 'nearest' });
+        heading?.focus();
+      });
+    });
+    content.append(details);
     return content;
   }
 

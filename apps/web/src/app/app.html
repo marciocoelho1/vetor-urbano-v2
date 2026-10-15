@@ -889,7 +889,11 @@
               <div class="results-heading">
                 <div>
                   <h2 id="results-heading">Resultados visíveis</h2>
-                  <p>Os mesmos registros alimentam o mapa e esta lista.</p>
+                  <p>
+                    Os mesmos registros alimentam o mapa e esta lista.<span class="query-counts"
+                      >{{ eventCount() }} ocorrências · {{ happeningCount() }} acontecimentos</span
+                    >
+                  </p>
                 </div>
                 <span>{{ visiblePoints().length }} itens</span>
               </div>
@@ -957,84 +961,16 @@
                           >
                             ×
                           </button>
-                          <h3 [attr.id]="'map-result-detail-heading-' + point.id">
-                            {{ point.name }}
+                          <h3 tabindex="-1" [attr.id]="'map-result-detail-heading-' + point.id">
+                            {{ resultDetail(point).name }}
                           </h3>
-                          <p>{{ point.description || 'Sem descrição adicional.' }}</p>
-                          @if (point.sourceId === 'demo') {
-                            <p class="query-note">
-                              Dados fictícios: ocorrência, fonte e nota são exemplos sem validade
-                              operacional.
-                            </p>
-                          }
-                          <dl class="detail-grid">
-                            <div>
-                              <dt>Tipo</dt>
-                              <dd>{{ recordTypeLabel(point) }}</dd>
-                            </div>
-                            <div>
-                              <dt>Subtipo</dt>
-                              <dd>{{ recordSubtypeLabel(point) }}</dd>
-                            </div>
-                            <div>
-                              <dt>Categoria</dt>
-                              <dd>{{ point.category || 'Ponto de interesse' }}</dd>
-                            </div>
-                            <div>
-                              <dt>Severidade informada</dt>
-                              <dd>{{ point.severity || 'Não informada' }}</dd>
-                            </div>
-                            <div>
-                              <dt>Estado</dt>
-                              <dd>{{ statusLabel(point.operationalStatus) }}</dd>
-                            </div>
-                            <div>
-                              <dt>Local</dt>
-                              <dd>{{ point.location }}</dd>
-                            </div>
-                            <div>
-                              <dt>Data do fato</dt>
-                              <dd>
-                                {{
-                                  point.occurredAt
-                                    ? formatDateTime(point.occurredAt)
-                                    : 'Não se aplica'
-                                }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>Última checagem</dt>
-                              <dd>
-                                {{
-                                  point.lastCheckedAt
-                                    ? formatDateTime(point.lastCheckedAt)
-                                    : 'Não informada'
-                                }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>Fonte</dt>
-                              <dd>{{ sourceLabel(point) }}</dd>
-                            </div>
-                          </dl>
-                          @if (point.kind === 'occurrence') {
-                            <details class="query-note">
-                              <summary>Confiabilidade da ocorrência — como interpretar</summary>
-                              <p>
-                                {{ point.reliabilityScore ?? 'Não informada' }} / 5.
-                                {{
-                                  point.sourceId === 'demo'
-                                    ? 'Nota fictícia para demonstração; rubrica operacional pendente.'
-                                    : 'Avalia o suporte das evidências.'
-                                }}
-                                Não é probabilidade de verdade nem nota da fonte.
-                              </p>
-                            </details>
-                          }
-                          <p class="query-note">
-                            Aprovação editorial ou importação não confirma que o fato continua
-                            ativo.
-                          </p>
+                          <ng-container
+                            [ngTemplateOutlet]="occurrenceDetails"
+                            [ngTemplateOutletContext]="{
+                              $implicit: resultDetail(point),
+                              rootId: point.id,
+                            }"
+                          />
                         </aside>
                       }
                     </li>
@@ -1174,30 +1110,11 @@
             >
               ×
             </button>
-            <h2 id="active-detail-heading">{{ detail.name }}</h2>
-            <p>{{ detail.description }}</p>
-            <dl class="detail-grid">
-              <div>
-                <dt>Estado operacional</dt>
-                <dd>{{ statusLabel(detail.operationalStatus) }}</dd>
-              </div>
-              <div>
-                <dt>Última checagem</dt>
-                <dd>
-                  {{
-                    detail.lastCheckedAt ? formatDateTime(detail.lastCheckedAt) : 'Não informada'
-                  }}
-                </dd>
-              </div>
-              <div>
-                <dt>Expiração prevista</dt>
-                <dd>{{ detail.expiresAt ? formatDateTime(detail.expiresAt) : 'Não definida' }}</dd>
-              </div>
-              <div>
-                <dt>Fonte</dt>
-                <dd>{{ detail.sourceId }}</dd>
-              </div>
-            </dl>
+            <h2 tabindex="-1" id="active-detail-heading">{{ detail.name }}</h2>
+            <ng-container
+              [ngTemplateOutlet]="occurrenceDetails"
+              [ngTemplateOutletContext]="{ $implicit: detail }"
+            />
           </aside>
         }
       </section>
@@ -1312,45 +1229,11 @@
             >
               ×
             </button>
-            <h2 id="history-detail-heading">{{ detail.name }}</h2>
-            <p>{{ detail.description || 'Sem descrição.' }}</p>
-            <dl class="detail-grid">
-              <div>
-                <dt>Fato</dt>
-                <dd>
-                  {{ detail.occurredAt ? formatDateTime(detail.occurredAt) : 'Não informado' }}
-                </dd>
-              </div>
-              <div>
-                <dt>Inserção/importação</dt>
-                <dd>
-                  {{ detail.insertedAt ? formatDateTime(detail.insertedAt) : 'Não informada' }}
-                </dd>
-              </div>
-              <div>
-                <dt>Tipo / grupo</dt>
-                <dd>{{ recordTypeLabel(detail) }} · {{ detail.group || '—' }}</dd>
-              </div>
-              <div>
-                <dt>Severidade informada</dt>
-                <dd>{{ detail.severity || 'Não informada' }}</dd>
-              </div>
-              <div>
-                <dt>Local</dt>
-                <dd>{{ detail.location }}</dd>
-              </div>
-              <div>
-                <dt>Fonte</dt>
-                <dd>{{ detail.sourceId || 'demo' }}</dd>
-              </div>
-            </dl>
-            <button
-              class="map-tool-button"
-              type="button"
-              (click)="focusPoint(detail); openView('map')"
-            >
-              Centralizar no mapa
-            </button>
+            <h2 tabindex="-1" id="history-detail-heading">{{ detail.name }}</h2>
+            <ng-container
+              [ngTemplateOutlet]="occurrenceDetails"
+              [ngTemplateOutletContext]="{ $implicit: detail }"
+            />
           </aside>
         }
       </section>
@@ -2170,3 +2053,140 @@
     </footer>
   </main>
 </div>
+
+<ng-template #occurrenceDetails let-point let-rootId="rootId">
+  <p>{{ point.description || 'Sem descrição adicional.' }}</p>
+  @if (point.sourceId === 'demo') {
+    <p class="query-note">
+      Dados fictícios: ocorrência, fonte e nota são exemplos sem validade operacional.
+    </p>
+  }
+  <dl class="detail-grid">
+    <div>
+      <dt>Tipo</dt>
+      <dd>{{ recordTypeLabel(point) }}</dd>
+    </div>
+    <div>
+      <dt>Subtipo</dt>
+      <dd>{{ recordSubtypeLabel(point) }}</dd>
+    </div>
+    <div>
+      <dt>Categoria</dt>
+      <dd>{{ point.category || 'Ponto de interesse' }}</dd>
+    </div>
+    <div>
+      <dt>Severidade informada</dt>
+      <dd>{{ point.severity || 'Não informada' }}</dd>
+    </div>
+    <div>
+      <dt>Estado</dt>
+      <dd>{{ statusLabel(point.operationalStatus) }}</dd>
+    </div>
+    <div>
+      <dt>Local</dt>
+      <dd>{{ point.location }}</dd>
+    </div>
+    <div>
+      <dt>Data do fato</dt>
+      <dd>
+        {{
+          point.occurredAt
+            ? formatDateTime(point.occurredAt)
+            : point.kind === 'poi'
+              ? 'Não se aplica'
+              : 'Não informado'
+        }}
+      </dd>
+    </div>
+    <div>
+      <dt>Última checagem</dt>
+      <dd>
+        {{ point.lastCheckedAt ? formatDateTime(point.lastCheckedAt) : 'Não informada' }}
+      </dd>
+    </div>
+    <div>
+      <dt>Fonte</dt>
+      <dd>{{ sourceLabel(point) }}</dd>
+    </div>
+  </dl>
+  @if (point.kind === 'occurrence') {
+    <p class="query-note">
+      <strong>Confiabilidade da ocorrência: {{ publicReliability(point) }}</strong>
+    </p>
+    <details class="query-note">
+      <summary>Entenda nossa avaliação de confiabilidade</summary>
+      <p>
+        {{
+          point.sourceId === 'demo'
+            ? 'Nota fictícia para demonstração; rubrica operacional pendente.'
+            : 'Avalia o suporte das evidências.'
+        }}
+        Não é probabilidade de verdade nem nota da fonte.
+      </p>
+    </details>
+  }
+  <p class="query-note">
+    Aprovação editorial ou importação não confirma que o fato continua ativo.
+  </p>
+  @if (point.kind === 'occurrence') {
+    <p class="query-note">{{ happeningSummary(point) }}</p>
+    @if (!isInQuery(point)) {
+      <p class="query-note">Contexto fora do recorte; não incluído nos totais.</p>
+    }
+    @if (point.specificFields?.length) {
+      <h4>Campos específicos</h4>
+      <dl class="detail-grid">
+        @for (field of point.specificFields; track field.label) {
+          <div>
+            <dt>{{ field.label }}</dt>
+            <dd>
+              {{
+                field.applicability === 'NOT_APPLICABLE'
+                  ? 'Não se aplica'
+                  : (field.value ?? 'Não informado')
+              }}
+            </dd>
+          </div>
+        }
+      </dl>
+    }
+    <h4>Fontes e referências</h4>
+    @if (point.references?.length) {
+      <ul class="occurrence-references">
+        @for (reference of point.references; track reference.id) {
+          <li>
+            {{ reference.sourceName }} ·
+            @if (reference.url) {
+              <a [href]="reference.url" target="_blank" rel="noopener noreferrer"
+                >{{ reference.title }} (abre em nova aba)</a
+              >
+            } @else {
+              <span>{{ reference.title }}</span>
+            }
+            @if (reference.identifier) {
+              <small>{{ reference.identifier }}</small>
+            }
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>Referência não informada.</p>
+    }
+    @if (relatedOccurrences(point).length) {
+      <h4>Ocorrências do mesmo acontecimento</h4>
+      <p class="query-note">Situações independentes; relacionados não alteram os filtros.</p>
+      <ul class="related-occurrences">
+        @for (related of relatedOccurrences(point); track related.id) {
+          <li>
+            <button type="button" class="map-tool-button" (click)="showRelated(related, rootId)">
+              {{ related.name }}</button
+            ><small
+              >{{ statusLabel(related.operationalStatus) }} ·
+              {{ isInQuery(related) ? 'No recorte' : 'Contexto fora do recorte' }}</small
+            >
+          </li>
+        }
+      </ul>
+    }
+  }
+</ng-template>

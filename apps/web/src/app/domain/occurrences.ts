@@ -3,10 +3,28 @@ export type RecordKind = 'occurrence' | 'poi';
 export type OperationalStatus = 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'EXPIRED';
 export type Coordinates = [longitude: number, latitude: number];
 
+export interface OccurrenceReference {
+  id: string;
+  sourceName: string;
+  title: string;
+  url?: string;
+  identifier?: string;
+}
+
+export interface OccurrenceField {
+  label: string;
+  value: string | number | null;
+  applicability?: 'APPLICABLE' | 'NOT_APPLICABLE';
+}
+
 export interface DemoRecord {
   id: string;
   kind: RecordKind;
   name?: string;
+  /** Context shared by distinct effects; never a publication identifier. */
+  happeningId?: string;
+  references?: OccurrenceReference[];
+  specificFields?: OccurrenceField[];
   description?: string;
   location?: string;
   category?: string;

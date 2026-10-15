@@ -141,3 +141,63 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
     }),
   );
 }
+
+/** Enriches existing fixtures without increasing occurrence or publication counts. */
+export function relateDemoOccurrences<T extends DemoRecord>(records: T[]): T[] {
+  return records.map((record) => {
+    if (record.kind !== 'occurrence') return record;
+    const reference = (suffix: string) => ({
+      id: `${record.id}-${suffix}`,
+      sourceName: 'Fonte fictícia — Demonstração local',
+      title: `Publicação fictícia ${suffix}`,
+      identifier: `DEMO:${record.id}:${suffix}`,
+      url: `https://example.invalid/publicacoes/${record.id}/${suffix}`,
+    });
+    const common = {
+      ...record,
+      happeningId: record.id,
+      references: [reference('A')],
+    };
+    if (record.id === 'demo-002')
+      return {
+        ...common,
+        happeningId: 'demo-acontecimento-arvore',
+        references: [reference('A'), reference('B')],
+        description:
+          'Bloqueio parcial fictício causado pela queda de uma árvore no recorte demonstrativo. Duas publicações descrevem o mesmo efeito.',
+        specificFields: [
+          { label: 'Pessoas afetadas', value: null },
+          { label: 'Veículos envolvidos', value: null, applicability: 'NOT_APPLICABLE' as const },
+          { label: 'Faixas bloqueadas', value: 1 },
+          { label: 'Via / trecho', value: 'Via fictícia do recorte urbano demonstrativo' },
+        ],
+      };
+    if (record.id === 'demo-contingencia-004' || record.id === 'demo-contingencia-001') {
+      const tree = record.id === 'demo-contingencia-004';
+      return {
+        ...common,
+        happeningId: 'demo-acontecimento-arvore',
+        name: `${tree ? 'Queda de árvore' : 'Interrupção de energia'} · demonstração fictícia`,
+        description: tree
+          ? 'Queda de árvore fictícia; retirada concluída. O bloqueio e a interrupção de energia têm situações independentes.'
+          : 'Interrupção fictícia de energia após queda de árvore; restabelecimento não informado.',
+        occurrenceType: tree ? 'ARVORE' : 'ENERGIA',
+        typeLabel: tree ? 'Queda de árvore' : 'Interrupção de energia',
+        operationalStatus: tree ? ('RESOLVED' as const) : ('EXPIRED' as const),
+        specificFields: [{ label: tree ? 'Pessoas afetadas' : 'Imóveis afetados', value: null }],
+      };
+    }
+    if (record.occurrenceType === 'ACIDENTE' && record.id === 'demo-transito-001')
+      return {
+        ...common,
+        specificFields: [
+          {
+            label: 'Característica adicional',
+            value: 'Capotamento após colisão; mesma ocorrência',
+          },
+          { label: 'Feridos', value: null },
+        ],
+      };
+    return common;
+  });
+}
