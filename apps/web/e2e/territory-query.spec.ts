@@ -68,3 +68,56 @@ test('território inclui lista sem pin e câmera só filtra mediante ação expl
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `test-results/ticket05-${testInfo.project.name}-mobile.png` });
 });
+
+test('MapLibre real mantém registros territoriais na lista e exclui precisão incompatível do recorte espacial', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    const prototype = window.WebGL2RenderingContext?.prototype;
+    if (!prototype) return;
+    const getParameter = prototype.getParameter;
+    prototype.getParameter = function (parameter: number) {
+      if (parameter === 0x9246) return 'GPU acelerada simulada para QA';
+      return getParameter.call(this, parameter);
+    };
+  });
+  // The renderer and occurrence layers are real; the authored basemap avoids network variability.
+  await page.route('**/maps/urban-style.json', (route) =>
+    route.fulfill({
+      json: {
+        version: 8,
+        name: 'Vetor Urbano — fundo sintético para QA',
+        sources: {},
+        sprite: 'maps/occurrence-pins',
+        layers: [
+          { id: 'background', type: 'background', paint: { 'background-color': '#edf0f2' } },
+        ],
+      },
+    }),
+  );
+  await page.goto('/');
+  await expect(page.locator('#map-canvas canvas.maplibregl-canvas')).toBeVisible();
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await page.getByLabel('Período da consulta').selectOption('1m');
+  await page
+    .getByRole('combobox', { name: 'Município (demonstração)', exact: true })
+    .selectOption('Rio de Janeiro');
+  await page
+    .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
+    .selectOption('Setor demonstrativo');
+  await expect(page.locator('.spatial-result-counts')).toContainText('2 apenas em lista');
+  const rows = page.locator('.result-list > li');
+  const total = await rows.count();
+  await page.getByRole('button', { name: 'Usar área visível', exact: true }).click();
+  await expect(rows).toHaveCount(total - 2);
+  await expect(page.locator('.spatial-result-counts')).toContainText('0 apenas em lista');
+  await page.getByRole('button', { name: 'Ver mancha térmica', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Ver marcadores', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Ver marcadores', exact: true }).click();
+  await page.getByRole('button', { name: 'Remover área visível aplicada', exact: true }).click();
+  await expect(rows).toHaveCount(total);
+  expect(errors).toEqual([]);
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+});
