@@ -1,3 +1,4 @@
+import { factTimeBounds, type FactTime } from '../domain/temporal';
 import type {
   AggregateStatistic,
   DemoRecord,
@@ -196,6 +197,22 @@ function parseEventGeoJson(text: string, source: SourceMetadata): DemoRecord[] {
       );
     }
 
+    const factTime: FactTime = /^\d{4}-\d{2}$/.test(occurredAt)
+      ? { precision: 'MONTH', month: occurredAt }
+      : /^\d{4}-\d{2}-\d{2}$/.test(occurredAt)
+        ? { precision: 'DAY', date: occurredAt }
+        : { precision: 'EXACT', instant: new Date(occurredAt).toISOString() };
+    if (
+      !factTimeBounds({
+        id: 'import-validation',
+        kind: 'occurrence',
+        coordinates: [longitude, latitude],
+        factTime,
+      })
+    ) {
+      throw new Error(`Feature ${index + 1}: precisão ou data do fato inválida.`);
+    }
+
     return {
       id:
         typeof featureRecord['id'] === 'string' ? featureRecord['id'] : `${source.id}-${index + 1}`,
@@ -211,7 +228,9 @@ function parseEventGeoJson(text: string, source: SourceMetadata): DemoRecord[] {
         safeProperties['tipoTransito'] ??
         safeProperties['tipoContingencia'],
       severity: safeProperties['severidade'],
-      occurredAt: new Date(occurredAt).toISOString(),
+      occurredAt: factTime.precision === 'EXACT' ? factTime.instant : undefined,
+      factTime,
+      situation: 'UNKNOWN',
       operationalStatus: 'EXPIRED',
       coordinates: [longitude, latitude],
       sourceId: source.id,

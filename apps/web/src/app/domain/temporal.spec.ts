@@ -1,3 +1,4 @@
+import { parseOpenDataset } from '../data-exchange/source-import';
 import { describe, expect, it } from 'vitest';
 import { filterRecords, type DemoRecord } from './occurrences';
 import { temporalInclusion, resolveSituation, situationLabel, formatFactTime } from './temporal';
@@ -92,4 +93,35 @@ describe('situação de produto independente do legado', () => {
       ),
     ).toBe('CERTAIN');
   });
+});
+
+it('importa dia histórico sem inventar meia-noite nem converter estado legado em confirmação', () => {
+  const imported = parseOpenDataset(
+    'events-geojson',
+    JSON.stringify({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [-43.2, -22.9] },
+          properties: {
+            nome: 'Fato fictício',
+            categoria: 'TRANSITO',
+            ocorridoEm: '2026-10-14',
+            statusOperacional: 'ACTIVE',
+          },
+        },
+      ],
+    }),
+    {
+      id: 'demo',
+      name: 'Fonte fictícia',
+      url: 'https://example.invalid',
+      license: 'Fixture sintética',
+      referenceDate: '2026-10',
+      limitations: 'Sem validade operacional.',
+    },
+  );
+  expect(formatFactTime(imported.records[0]!)).toBe('14/10/2026 (hora não informada)');
+  expect(resolveSituation(imported.records[0]!, range.end).situation).toBe('UNKNOWN');
 });

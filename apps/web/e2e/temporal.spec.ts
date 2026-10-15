@@ -46,10 +46,9 @@ test('consulta preserva precisão temporal e expira confirmação sem encerrar',
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: /^Lista/ }).click();
   await expect(period).toBeVisible();
-  await page.screenshot({
-    path: `test-results/temporal-mobile-${browserName}.png`,
-    fullPage: true,
-  });
+  await page
+    .locator('.consultation-quick-disclosure')
+    .screenshot({ path: `test-results/temporal-mobile-${browserName}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
