@@ -1,0 +1,101 @@
+{
+  "timeout_seconds": 3600,
+  "codex_speed": "standard",
+  "codex_speed_note": "Use Codex default; não definir service_tier porque standard não é anunciado como override pelo CLI atual.",
+  "queue": ["reconciliation", "06", "36", "07", "10", "integrated-review", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "25", "26", "27", "23", "24", "28", "29", "30", "31", "32", "33", "34", "35"],
+  "adapters": {
+    "codex": {"binary": "codex", "args": ["exec", "--ephemeral"], "models_args": ["models"]},
+    "antigravity": {"binary": "agy", "args": [], "models_args": ["models"], "mode": "accept-edits"}
+  },
+  "profiles": {
+    "sol_medium": {"tool": "codex", "model": "gpt-6.1-sol", "effort": "medium"},
+    "luna_medium": {"tool": "codex", "model": "gpt-6-luna", "effort": "medium"},
+    "gemini_medium": {"tool": "antigravity", "model": "gemini-3.8-flash-medium", "effort": "medium"},
+    "gemini_high": {"tool": "antigravity", "model": "gemini-3.8-flash-high", "effort": "high"},
+    "sol_reviewer": {"tool": "codex", "model": "gpt-6.1-sol", "effort": "medium"}
+  },
+  "phase_profiles": {
+    "reconciliation": "luna_medium",
+    "06": "gemini_high",
+    "36": "luna_medium",
+    "07": "gemini_high",
+    "10": "gemini_medium",
+    "integrated_review": "sol_reviewer"
+  },
+  "review_profile": "sol_reviewer",
+  "ticket_profiles": {
+    "12": "sol_medium", "13": "sol_medium", "14": "sol_medium", "15": "sol_medium",
+    "16": "gemini_medium", "17": "gemini_high", "18": "gemini_high", "19": "luna_medium",
+    "20": "gemini_high", "21": "gemini_high", "22": "luna_medium", "23": "sol_medium",
+    "24": "sol_medium", "25": "gemini_high", "26": "gemini_high", "27": "luna_medium",
+    "28": "gemini_medium", "29": "gemini_medium", "30": "gemini_high", "31": "gemini_high",
+    "32": "gemini_high", "33": "luna_medium", "34": "gemini_medium", "35": "gemini_high"
+  },
+  "dependencies": {
+    "02": ["01"], "03": ["01"], "04": ["01"], "05": ["03"],
+    "06": ["04", "05"], "07": ["02", "05"], "08": ["04", "05"], "09": ["01"],
+    "10": ["01"], "11": ["02"], "12": ["02", "04", "05"], "13": ["12"], "14": ["13"],
+    "15": ["14"], "16": ["14"], "17": ["16"], "18": ["17"], "19": ["14"],
+    "20": ["17"], "21": ["20"], "22": ["20"], "23": ["17"], "24": ["17"],
+    "25": ["08", "14"], "26": ["09", "14"], "27": ["26"], "28": ["06", "14"],
+    "29": ["06", "14"], "30": ["29"], "31": ["30"], "32": ["06", "14"],
+    "33": ["06", "14"], "34": ["30"], "35": ["10", "18"], "36": ["11"]
+  },
+  "ticket_stages": {
+    "12": ["contrato da consulta", "migrações e modelo persistido", "API e validação espacial", "integração HTTP e navegador"],
+    "15": ["recuperação de acesso", "alteração de credenciais", "exclusão com confirmação e preservação dos registros coletivos"]
+  },
+  "execution_groups": [["29", "30"]],
+  "ticket_checks": {
+    "12": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "13": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "14": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "15": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "16": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "17": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "18": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "19": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "20": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "21": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "22": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "23": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "24": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "25": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "26": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "27": [["bash", "scripts/verify.sh", "api"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "28": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "29": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "30": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "31": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "32": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "33": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "34": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "35": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox"]}, ["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]]
+  },
+  "phase_checks": {
+    "07": [
+      ["bash", "scripts/verify.sh", "web"],
+      {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/clustering-and-overlap.spec.ts"]},
+      ["git", "diff", "--check"]
+    ],
+    "10": [
+      ["bash", "scripts/verify.sh", "web"],
+      {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/query-updates-and-states.spec.ts"]},
+      ["git", "diff", "--check"]
+    ]
+  },
+  "ticket_files": {
+    "12": ".scratch/consulta-coerente/issues/12-consulta-persistida.md", "13": ".scratch/consulta-coerente/issues/13-cadastro-confirmacao.md",
+    "14": ".scratch/consulta-coerente/issues/14-acesso-sessao-mfa.md", "15": ".scratch/consulta-coerente/issues/15-ciclo-conta.md",
+    "16": ".scratch/consulta-coerente/issues/16-gestao-fontes.md", "17": ".scratch/consulta-coerente/issues/17-revisar-publicar.md",
+    "18": ".scratch/consulta-coerente/issues/18-corrigir-retirar.md", "19": ".scratch/consulta-coerente/issues/19-consultar-logs.md",
+    "20": ".scratch/consulta-coerente/issues/20-coleta-recente.md", "21": ".scratch/consulta-coerente/issues/21-coleta-retroativa.md",
+    "22": ".scratch/consulta-coerente/issues/22-painel-operacao.md", "23": ".scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md",
+    "24": ".scratch/consulta-coerente/issues/24-reavaliar-fontes.md", "25": ".scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md",
+    "26": ".scratch/consulta-coerente/issues/26-versoes-areas-risco.md", "27": ".scratch/consulta-coerente/issues/27-solicitar-correcao.md",
+    "28": ".scratch/consulta-coerente/issues/28-historico-avancado.md", "29": ".scratch/consulta-coerente/issues/29-relatorios-recorte.md",
+    "30": ".scratch/consulta-coerente/issues/30-sintese-deterministica.md", "31": ".scratch/consulta-coerente/issues/31-comparar-recortes.md",
+    "32": ".scratch/consulta-coerente/issues/32-mancha-termica.md", "33": ".scratch/consulta-coerente/issues/33-exportar-xlsx.md",
+    "34": ".scratch/consulta-coerente/issues/34-exportar-pdf.md", "35": ".scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md"
+  }
+}
