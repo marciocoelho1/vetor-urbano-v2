@@ -1,0 +1,68 @@
+import { expect, test } from '@playwright/test';
+
+test('território inclui lista sem pin e câmera só filtra mediante ação explícita', async ({
+  page,
+}) => {
+  await page.clock.setSystemTime(new Date('2026-10-15T15:00:00Z'));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() =>
+    Object.defineProperty(window, 'WebGL2RenderingContext', { value: undefined }),
+  );
+  await page.route('https://tiles.stadiamaps.com/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"/>',
+    }),
+  );
+  await page.goto('/');
+  await page.getByLabel('Período da consulta').selectOption('1m');
+  await page
+    .getByRole('combobox', { name: 'Município (demonstração)', exact: true })
+    .selectOption('Rio de Janeiro');
+  await page
+    .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
+    .selectOption('Setor demonstrativo');
+  await expect(page.locator('.spatial-result-counts')).toContainText('2 apenas em lista');
+  const rows = page.locator('.result-list > li');
+  const total = await rows.count();
+  await expect(page.locator('#map-canvas .occurrence-pin')).toHaveCount(total - 2);
+  const listOnly = rows.filter({ hasText: 'Localização somente territorial' });
+  await expect(listOnly).toHaveCount(2);
+  await listOnly.first().locator('[data-result-detail-toggle]').click();
+  const selectedTitle = await listOnly.first().locator('.record-copy strong').textContent();
+  const input = page.getByTestId('map-search');
+  await input.fill('Central do Brasil');
+  await page.getByRole('button', { name: /Central do Brasil · referência fictícia/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Somente a câmera' })).toBeVisible();
+  await expect(rows).toHaveCount(total);
+  await expect(page.locator('.result-inline-detail')).toContainText(selectedTitle!);
+  await page.locator('#map-canvas').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.locator('.map-frame').scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click({ timeout: 10_000 });
+  await expect(rows).toHaveCount(total);
+  await page.getByRole('button', { name: 'Usar área visível', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Remover área visível aplicada', exact: true }),
+  ).toBeVisible();
+  await expect(rows.filter({ hasText: 'Localização somente territorial' })).toHaveCount(0);
+  expect(await rows.count()).toBeLessThan(total - 2);
+  await expect(page.locator('#map-canvas .occurrence-pin')).toHaveCount(await rows.count());
+  await page.getByRole('button', { name: 'Remover área visível aplicada', exact: true }).click();
+  await expect(rows).toHaveCount(total);
+  await input.fill('Fora do recorte');
+  await page.getByRole('button', { name: /Fora do recorte · referência fictícia/ }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Fora da cobertura sintética' }),
+  ).toBeVisible();
+  await expect(rows).toHaveCount(total);
+  await page.getByRole('button', { name: 'Voltar ao recorte demonstrativo', exact: true }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Fora da cobertura sintética' }),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: new RegExp(`^Lista ${total}`) }).click();
+  await expect(rows).toHaveCount(total);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

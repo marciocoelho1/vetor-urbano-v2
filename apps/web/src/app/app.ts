@@ -19,6 +19,8 @@ import type * as maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import {
   calendarRange,
+  isMappedRecord,
+  type QueryBounds,
   filterRecords,
   localDateTimeToInstant,
   INITIAL_RADIUS_METERS,
@@ -38,6 +40,11 @@ import {
   disperseDemoOccurrences,
 } from './data/demo-occurrences';
 
+import {
+  DEMO_LOCATION_REFERENCES,
+  demoRecordBounds,
+  type DemoLocationReference,
+} from './data/demo-locations';
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
@@ -48,6 +55,13 @@ type TerritoryProperties = { n: string; f: TerritoryCode };
 type TerritoryFeature = Feature<Polygon | MultiPolygon, TerritoryProperties> & { id: number };
 type MapSearchResult =
   | { kind: 'occurrence'; key: string; title: string; subtitle: string; point: DemoPoint }
+  | {
+      kind: 'reference';
+      key: string;
+      title: string;
+      subtitle: string;
+      reference: DemoLocationReference;
+    }
   | { kind: 'territory'; key: string; title: string; subtitle: string; area: TerritoryFeature };
 type DemoPoint = DemoRecord & {
   id: string;
@@ -56,7 +70,7 @@ type DemoPoint = DemoRecord & {
   location: string;
   kind: 'occurrence' | 'poi';
   insertedAt: string;
-  coordinates: [number, number];
+  coordinates: Coordinates | null;
 };
 
 type SavedSearch = {
@@ -71,6 +85,9 @@ type SavedSearch = {
   useRadius?: boolean;
   radiusMeters?: number;
   center?: { longitude: string; latitude: string };
+  municipality?: string;
+  neighborhood?: string;
+  bounds?: QueryBounds;
 };
 type ClipStatus = 'PENDING' | 'LINKED' | 'DUPLICATE' | 'DISMISSED';
 type DemoClip = {
@@ -402,6 +419,38 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly reportMapErrorDetails = signal('');
   protected readonly coordinates = signal({ longitude: '', latitude: '' });
   protected readonly reportFields = signal<Record<string, string>>({});
+  protected readonly selectedMunicipality = signal('');
+  protected readonly selectedNeighborhood = signal('');
+  protected readonly visibleAreaBounds = signal<QueryBounds | null>(null);
+  protected readonly spatialQueryNotice = signal('');
+  protected readonly outsideCoverage = signal(false);
+  protected readonly queryMunicipalities = computed(() =>
+    [
+      ...new Set(
+        this.allPoints()
+          .map((point) => point.municipality)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+  );
+  protected readonly queryNeighborhoods = computed(() =>
+    [
+      ...new Set(
+        this.allPoints()
+          .filter((point) => point.municipality === this.selectedMunicipality())
+          .map((point) => point.neighborhood)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+  );
+  protected readonly mappedOccurrenceCount = computed(
+    () =>
+      this.visiblePoints().filter((point) => point.kind === 'occurrence' && isMappedRecord(point))
+        .length,
+  );
+  protected readonly listOnlyOccurrenceCount = computed(
+    () => this.eventCount() - this.mappedOccurrenceCount(),
+  );
   protected readonly queryFilterSummary = computed(() => {
     const entries = this.activeFilters().map((filter) => {
       const [kind, value] = filter.split(':');
@@ -463,9 +512,28 @@ export class App implements AfterViewInit, OnDestroy {
         label: `Raio: ${this.radiusMeters()} m`,
         removeLabel: 'Remover filtro por raio',
       });
+    if (this.selectedMunicipality())
+      entries.push({
+        id: 'municipality',
+        label: `Município: ${this.selectedMunicipality()}`,
+        removeLabel: 'Remover município',
+      });
+    if (this.selectedNeighborhood())
+      entries.push({
+        id: 'neighborhood',
+        label: `Bairro: ${this.selectedNeighborhood()}`,
+        removeLabel: 'Remover bairro',
+      });
+    if (this.visibleAreaBounds())
+      entries.push({
+        id: 'bounds',
+        label: 'Área visível aplicada',
+        removeLabel: 'Remover área visível aplicada',
+      });
     return entries;
   });
   private readonly platformId = inject(PLATFORM_ID);
+  private pendingQueryCamera?: () => void;
   private map?: maplibregl.Map;
   private urbanMapStyle?: maplibregl.StyleSpecification;
   private leaflet?: typeof import('leaflet');
@@ -610,7 +678,25 @@ export class App implements AfterViewInit, OnDestroy {
       reliabilityScore: 3,
       coordinates: [-43.196, -22.895],
     },
-  ]);
+  ]).map((point) => {
+    const municipality = point.location.split(', ').at(-1)!;
+    const neighborhood = point.location.startsWith('Recorte urbano demonstrativo')
+      ? 'Setor demonstrativo'
+      : point.location.split(', ')[0]!;
+    const listOnly = ['demo-transito-008', 'demo-contingencia-008'].includes(point.id);
+    return {
+      ...point,
+      municipality,
+      neighborhood,
+      locationPrecision: listOnly ? ('TERRITORY' as const) : ('POINT' as const),
+      coordinates: listOnly ? null : point.coordinates,
+      description:
+        point.description +
+        (listOnly
+          ? ' Localização somente territorial no setor fictício; não há coordenadas sustentadas.'
+          : ''),
+    };
+  });
 
   protected readonly allPoints = computed(() => {
     const now = this.queryReferenceDate().getTime();
@@ -677,6 +763,9 @@ export class App implements AfterViewInit, OnDestroy {
     const center = this.searchCenter();
     return filterRecords(this.allPoints(), {
       categories,
+      municipalities: this.selectedMunicipality() ? [this.selectedMunicipality()] : undefined,
+      neighborhoods: this.selectedNeighborhood() ? [this.selectedNeighborhood()] : undefined,
+      bounds: this.visibleAreaBounds() ?? undefined,
       groups,
       crimes,
       types,
@@ -1027,6 +1116,121 @@ export class App implements AfterViewInit, OnDestroy {
     this.historyQuery.set(query);
   }
 
+  protected selectQueryMunicipality(value: string): void {
+    if (value && !this.queryMunicipalities().includes(value)) return;
+    this.selectedMunicipality.set(value);
+    this.selectedNeighborhood.set('');
+    this.frameQueryTerritory();
+    this.refreshMapData();
+  }
+
+  protected selectQueryNeighborhood(value: string): void {
+    if (value && !this.queryNeighborhoods().includes(value)) return;
+    this.selectedNeighborhood.set(value);
+    this.frameQueryTerritory();
+    this.refreshMapData();
+  }
+
+  private frameQueryTerritory(): void {
+    const records = this.allPoints().filter(
+      (point) =>
+        (!this.selectedMunicipality() || point.municipality === this.selectedMunicipality()) &&
+        (!this.selectedNeighborhood() || point.neighborhood === this.selectedNeighborhood()),
+    );
+    const bounds = demoRecordBounds(records);
+    if (bounds) this.frameDemoBounds(bounds);
+    this.spatialQueryNotice.set(
+      'Território demonstrativo aplicado. Enquadramento pelas fixtures, sem limites municipais ou de bairro oficiais.',
+    );
+    this.outsideCoverage.set(false);
+  }
+
+  private frameDemoBounds([west, south, east, north]: QueryBounds): void {
+    if (!this.map && !this.fallbackMap) {
+      this.pendingQueryCamera = () => this.frameDemoBounds([west, south, east, north]);
+      return;
+    }
+    this.map?.fitBounds(
+      [
+        [west, south],
+        [east, north],
+      ],
+      { padding: 35, maxZoom: 14, duration: 0 },
+    );
+    this.fallbackMap?.fitBounds(
+      [
+        [south, west],
+        [north, east],
+      ],
+      { padding: [35, 35], maxZoom: 14, animate: false },
+    );
+  }
+
+  private positionDemoReference(reference: DemoLocationReference): void {
+    if (!this.map && !this.fallbackMap) {
+      this.pendingQueryCamera = () => this.positionDemoReference(reference);
+      this.spatialQueryNotice.set('Referência fictícia aguardando o mapa. Filtros mantidos.');
+      return;
+    }
+    this.map?.jumpTo({ center: reference.coordinates, zoom: 14 });
+    this.fallbackMap?.setView([reference.coordinates[1], reference.coordinates[0]], 14, {
+      animate: false,
+    });
+    this.outsideCoverage.set(!reference.withinCoverage);
+    this.spatialQueryNotice.set(
+      reference.withinCoverage
+        ? 'Somente a câmera foi posicionada pela referência fictícia. Os filtros foram mantidos; use Usar área visível para aplicar um recorte.'
+        : 'Fora da cobertura sintética da demonstração. Os filtros e resultados foram mantidos. Isto não delimita a cobertura metropolitana oficial.',
+    );
+  }
+
+  protected applyVisibleQueryArea(): void {
+    const camera = this.map?.getBounds() ?? this.fallbackMap?.getBounds();
+    if (!camera) {
+      this.spatialQueryNotice.set(
+        'A câmera ainda não está disponível. A lista e os filtros territoriais continuam disponíveis.',
+      );
+      return;
+    }
+    const bounds: QueryBounds = [
+      camera.getWest(),
+      camera.getSouth(),
+      camera.getEast(),
+      camera.getNorth(),
+    ];
+    const coverage = demoRecordBounds(this.allPoints());
+    if (
+      !coverage ||
+      bounds[2] < coverage[0] ||
+      bounds[0] > coverage[2] ||
+      bounds[3] < coverage[1] ||
+      bounds[1] > coverage[3]
+    ) {
+      this.outsideCoverage.set(true);
+      this.spatialQueryNotice.set(
+        'Fora da cobertura sintética da demonstração. Nenhum filtro espacial foi aplicado.',
+      );
+      return;
+    }
+    this.visibleAreaBounds.set(bounds);
+    this.outsideCoverage.set(false);
+    this.spatialQueryNotice.set(
+      'Área visível aplicada explicitamente. Registros somente territoriais não têm precisão para este recorte. Mover a câmera agora preserva a área aplicada.',
+    );
+    this.refreshMapData();
+  }
+
+  protected returnToDemoCoverage(): void {
+    const bounds = demoRecordBounds(this.allPoints());
+    if (bounds) this.frameDemoBounds(bounds);
+    this.outsideCoverage.set(false);
+    this.spatialQueryNotice.set('Câmera de volta ao recorte demonstrativo. Filtros mantidos.');
+  }
+
+  protected recordHasMapLocation(record: DemoPoint): boolean {
+    return isMappedRecord(record);
+  }
+
   protected setSavedSearchName(name: string): void {
     this.savedSearchName.set(name);
   }
@@ -1049,14 +1253,17 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected selectMapSearchResult(result: MapSearchResult): void {
     if (result.kind === 'occurrence') this.focusPoint(result.point);
+    else if (result.kind === 'reference') this.positionDemoReference(result.reference);
     else this.focusTerritory(result.area);
     this.searchQuery.set('');
   }
 
   protected focusPoint(point: DemoPoint): void {
     this.selectedPointId.set(point.id);
-    this.map?.flyTo({ center: point.coordinates, zoom: 14.5 });
-    this.fallbackMap?.flyTo([point.coordinates[1], point.coordinates[0]], 15.5);
+    if (isMappedRecord(point)) {
+      this.map?.flyTo({ center: point.coordinates, zoom: 14.5 });
+      this.fallbackMap?.flyTo([point.coordinates[1], point.coordinates[0]], 15.5);
+    }
     this.refreshMapData();
   }
 
@@ -1146,7 +1353,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected removeQueryFilter(id: string): void {
-    if (id === 'period') this.period.set('24h');
+    if (id === 'municipality') {
+      this.selectedMunicipality.set('');
+      this.selectedNeighborhood.set('');
+    } else if (id === 'neighborhood') this.selectedNeighborhood.set('');
+    else if (id === 'bounds') this.visibleAreaBounds.set(null);
+    else if (id === 'period') this.period.set('24h');
     else if (id === 'timeStart') this.timeStart.set('');
     else if (id === 'timeEnd') this.timeEnd.set('');
     else if (id === 'radius') this.useRadius.set(false);
@@ -1162,6 +1374,9 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected clearQueryFilters(): void {
+    this.selectedMunicipality.set('');
+    this.selectedNeighborhood.set('');
+    this.visibleAreaBounds.set(null);
     this.activeFilters.set(CATEGORIES.map((category) => `category:${category.id}`));
     this.period.set('24h');
     this.customRangeStart.set('');
@@ -1298,6 +1513,9 @@ export class App implements AfterViewInit, OnDestroy {
       useRadius: this.useRadius(),
       radiusMeters: this.radiusMeters(),
       center: { ...this.searchCenter() },
+      municipality: this.selectedMunicipality(),
+      neighborhood: this.selectedNeighborhood(),
+      bounds: this.visibleAreaBounds() ?? undefined,
     };
     const searches = [...this.savedSearches(), saved];
     this.savedSearches.set(searches);
@@ -1323,6 +1541,9 @@ export class App implements AfterViewInit, OnDestroy {
       return;
     }
     this.savedSearchNotice.set('Consulta salva aplicada.');
+    this.selectedMunicipality.set(search.municipality ?? '');
+    this.selectedNeighborhood.set(search.neighborhood ?? '');
+    this.visibleAreaBounds.set(search.bounds ?? null);
     this.activeFilters.set([...new Set(search.filters)]);
     this.period.set(search.period as DatePreset | 'custom');
     this.customRangeStart.set(search.customRangeStart ?? '');
@@ -1843,8 +2064,8 @@ export class App implements AfterViewInit, OnDestroy {
             point.occurredAt ? formatDate(point.occurredAt) : 'Não se aplica',
             formatDate(point.insertedAt),
             point.location,
-            point.coordinates[0],
-            point.coordinates[1],
+            point.coordinates?.[0] ?? 'Não disponível',
+            point.coordinates?.[1] ?? 'Não disponível',
             sourceName(point.sourceId),
           ]),
         ],
@@ -2074,6 +2295,9 @@ export class App implements AfterViewInit, OnDestroy {
           this.mapError.set(false);
           this.mapErrorDetails.set('');
           this.mapReady.set(true);
+          const pendingCamera = this.pendingQueryCamera;
+          this.pendingQueryCamera = undefined;
+          pendingCamera?.();
         },
         (error) => {
           if (this.map !== map) return;
@@ -2224,7 +2448,7 @@ export class App implements AfterViewInit, OnDestroy {
           if (this.useRadius() || this.mapPickPurpose() || !this.map) return;
           const id = event.features?.[0]?.properties?.['recordId'];
           const point = this.visiblePoints().find((point) => point.id === id);
-          if (!point) return;
+          if (!point || !isMappedRecord(point)) return;
           new maplibre.Popup({ closeButton: true, offset: [0, -40] })
             .setLngLat(point.coordinates)
             .setDOMContent(this.createRasterPointPopup(point))
@@ -2298,6 +2522,9 @@ export class App implements AfterViewInit, OnDestroy {
           if (this.fallbackMap !== map) return;
           loadedTiles += 1;
           this.mapReady.set(true);
+          const pendingCamera = this.pendingQueryCamera;
+          this.pendingQueryCamera = undefined;
+          pendingCamera?.();
           this.mapError.set(false);
           this.mapErrorDetails.set('');
         })
@@ -2933,7 +3160,16 @@ export class App implements AfterViewInit, OnDestroy {
         subtitle: `${TERRITORY_GROUP_BY_ID.get(area.properties.f)?.label ?? 'Classificação da fonte'} · Base jul/2026`,
         area,
       }));
-    return [...occurrences, ...areas];
+    const references = DEMO_LOCATION_REFERENCES.filter((reference) =>
+      normalizeSearch(reference.label).includes(normalized),
+    ).map((reference) => ({
+      kind: 'reference' as const,
+      key: `reference:${reference.id}`,
+      title: reference.label,
+      subtitle: 'Exemplo sintético: posiciona somente a câmera',
+      reference,
+    }));
+    return [...references, ...occurrences, ...areas];
   }
 
   private updateFallbackMapLayers(): void {
@@ -2958,7 +3194,7 @@ export class App implements AfterViewInit, OnDestroy {
     }
     eventHeatLayer.clearLayers();
     poiHeatLayer.clearLayers();
-    const visible = this.visiblePoints();
+    const visible = this.visiblePoints().filter(isMappedRecord);
     const ids = new Set(visible.map((point) => point.id));
     for (const [id, marker] of this.fallbackPointMarkers) {
       if (ids.has(id)) continue;
@@ -3213,6 +3449,7 @@ export class App implements AfterViewInit, OnDestroy {
     return {
       type: 'FeatureCollection',
       features: this.visiblePoints()
+        .filter(isMappedRecord)
         .filter((point) => !kind || point.kind === kind)
         .map((point) => ({
           type: 'Feature',

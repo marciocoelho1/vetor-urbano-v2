@@ -229,6 +229,10 @@
                   }}</span>
                 </div>
                 <span class="map-region">Região Metropolitana do Rio · dados fictícios</span>
+                <span class="spatial-result-counts"
+                  >{{ mappedOccurrenceCount() }} mapeadas · {{ listOnlyOccurrenceCount() }} apenas
+                  em lista</span
+                >
               </div>
             </div>
             <div
@@ -797,6 +801,48 @@
           </section>
           <aside class="consultation-sidebar" aria-label="Consulta e resultados">
             <section class="consultation-query" aria-label="Busca e filtros da consulta">
+              <div class="query-territory-fields">
+                <label class="field"
+                  >Município (demonstração)
+                  <select
+                    [value]="selectedMunicipality()"
+                    (change)="selectQueryMunicipality($any($event.target).value)"
+                  >
+                    <option value="">Todos os municípios dos exemplos</option>
+                    @for (municipality of queryMunicipalities(); track municipality) {
+                      <option [value]="municipality">{{ municipality }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="field"
+                  >Bairro (demonstração)
+                  <select
+                    [value]="selectedNeighborhood()"
+                    [disabled]="!selectedMunicipality()"
+                    (change)="selectQueryNeighborhood($any($event.target).value)"
+                  >
+                    <option value="">Todos os bairros dos exemplos</option>
+                    @for (neighborhood of queryNeighborhoods(); track neighborhood) {
+                      <option [value]="neighborhood">{{ neighborhood }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+              <p class="query-note">
+                Recortes e referências sintéticos; sem geocodificador ou limites oficiais. Exemplos:
+                Central do Brasil e Fora do recorte.
+              </p>
+              <button class="map-tool-button" type="button" (click)="applyVisibleQueryArea()">
+                Usar área visível
+              </button>
+              @if (spatialQueryNotice()) {
+                <p class="query-note" role="status">{{ spatialQueryNotice() }}</p>
+              }
+              @if (outsideCoverage()) {
+                <button class="map-tool-button" type="button" (click)="returnToDemoCoverage()">
+                  Voltar ao recorte demonstrativo
+                </button>
+              }
               <div class="map-search-wrap">
                 <label class="consultation-search-label" for="map-search"
                   >Buscar ocorrências, locais e áreas</label
@@ -911,7 +957,10 @@
               <div class="results-heading">
                 <div>
                   <h2 id="results-heading">Resultados visíveis</h2>
-                  <p>Os mesmos registros alimentam o mapa e esta lista.</p>
+                  <p>
+                    A lista reúne o recorte completo; o mapa mostra localizações com precisão
+                    compatível.
+                  </p>
                 </div>
                 <span>{{ visiblePoints().length }} itens</span>
               </div>
@@ -946,6 +995,11 @@
                                   formatTime(point.occurredAt || point.insertedAt)
                             }}</span
                           >
+                          @if (!recordHasMapLocation(point)) {
+                            <span class="location-precision"
+                              >Localização somente territorial · disponível apenas em lista</span
+                            >
+                          }
                         </div>
                         <span class="record-tag">{{
                           point.sourceId === 'demo' ? 'Fictício' : 'Fonte'

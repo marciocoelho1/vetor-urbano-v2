@@ -2,6 +2,25 @@
 app-root .public-map {
   --public-map-height: 100dvh;
   --map-control-size: 44px;
+  .query-territory-fields {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .query-territory-fields select {
+    width: 100%;
+    min-width: 0;
+  }
+  .spatial-result-counts {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+  .map-meta-bar > div:first-child {
+    flex-wrap: wrap;
+  }
+  .location-precision {
+    color: var(--color-text-warning);
+  }
 
   .query-filter-summary {
     display: flex;
@@ -292,6 +311,13 @@ app-root .public-map {
     gap: 6px;
     padding-right: 38px;
     margin: 0;
+  }
+  // The transparent space reserved for native zoom must not capture its clicks.
+  .map-top-controls > .map-top-actions {
+    pointer-events: none;
+  }
+  .map-top-actions > button {
+    pointer-events: auto;
   }
   .map-filter-toggle,
   .map-theme-toggle,

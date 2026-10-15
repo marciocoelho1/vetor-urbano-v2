@@ -3,7 +3,12 @@ import { PLATFORM_ID } from '@angular/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from '../app';
 import { DEMO_LAND_AREAS, disperseDemoOccurrences } from './demo-occurrences';
-import { distanceMeters, filterRecords, type DemoRecord } from '../domain/occurrences';
+import {
+  distanceMeters,
+  filterRecords,
+  isMappedRecord,
+  type DemoRecord,
+} from '../domain/occurrences';
 
 const approvedSecurityCoordinates = [
   [-43.1817, -22.9264],
@@ -53,7 +58,23 @@ describe('metropolitan demonstration dataset', () => {
     expect(occurrences).toHaveLength(75);
     expect(records.filter((point) => point.kind === 'poi')).toHaveLength(2);
     expect(new Set(occurrences.map((point) => point.id)).size).toBe(75);
-    expect(new Set(occurrences.map((point) => point.coordinates.join(','))).size).toBe(75);
+    expect(
+      new Set(occurrences.filter(isMappedRecord).map((point) => point.coordinates.join(','))).size,
+    ).toBe(73);
+    expect(occurrences.filter((point) => !isMappedRecord(point))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'demo-transito-008',
+          coordinates: null,
+          locationPrecision: 'TERRITORY',
+        }),
+        expect.objectContaining({
+          id: 'demo-contingencia-008',
+          coordinates: null,
+          locationPrecision: 'TERRITORY',
+        }),
+      ]),
+    );
     for (const category of ['TRANSITO', 'SEGURANCA', 'CONTINGENCIA']) {
       const points = filterRecords(records, { categories: [category] });
       expect(points).toHaveLength(25);
@@ -76,7 +97,7 @@ describe('metropolitan demonstration dataset', () => {
       'São Gonçalo',
     ]);
     for (const category of ['TRANSITO', 'SEGURANCA', 'CONTINGENCIA']) {
-      const points = records.filter((point) => point.category === category);
+      const points = records.filter(isMappedRecord).filter((point) => point.category === category);
       let maximumDistance = 0;
       for (const point of points) {
         expect(municipalities.has(point.location!.split(', ')[1]!)).toBe(true);
@@ -95,10 +116,10 @@ describe('metropolitan demonstration dataset', () => {
     expect(
       records.filter((point) => point.category === 'SEGURANCA').map((point) => point.coordinates),
     ).toEqual(approvedSecurityCoordinates);
-    const randomized = records.filter((point) =>
-      ['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? ''),
-    );
-    expect(randomized).toHaveLength(50);
+    const randomized = records
+      .filter(isMappedRecord)
+      .filter((point) => ['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? ''));
+    expect(randomized).toHaveLength(48);
     for (const point of randomized) {
       const [longitude, latitude] = point.coordinates;
       expect(
@@ -110,9 +131,9 @@ describe('metropolitan demonstration dataset', () => {
             latitude <= area.bounds[3],
         ),
       ).toBe(true);
-      for (const other of records.filter(
-        (other) => other.kind === 'occurrence' && other.id !== point.id,
-      )) {
+      for (const other of records
+        .filter(isMappedRecord)
+        .filter((other) => other.kind === 'occurrence' && other.id !== point.id)) {
         expect(distanceMeters(point.coordinates, other.coordinates)).toBeGreaterThanOrEqual(900);
       }
     }
@@ -130,6 +151,10 @@ describe('metropolitan demonstration dataset', () => {
     const large = filterRecords(records, { categories: ['TRANSITO'], center, radiusMeters: 25000 });
     expect(large.length).toBeGreaterThan(small.length);
     expect(large.some((point) => point.location!.endsWith('Duque de Caxias'))).toBe(true);
-    expect(large.every((point) => distanceMeters(center, point.coordinates) <= 25000)).toBe(true);
+    expect(
+      large.every(
+        (point) => isMappedRecord(point) && distanceMeters(center, point.coordinates) <= 25000,
+      ),
+    ).toBe(true);
   });
 });

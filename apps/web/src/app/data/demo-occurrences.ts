@@ -1,5 +1,10 @@
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from '../domain/catalogue';
-import { distanceMeters, type Coordinates, type DemoRecord } from '../domain/occurrences';
+import {
+  distanceMeters,
+  isMappedRecord,
+  type Coordinates,
+  type DemoRecord,
+} from '../domain/occurrences';
 
 type DemoOccurrence = DemoRecord & {
   name: string;
@@ -66,10 +71,15 @@ function seededRandom(id: string): () => number {
 /** Keeps security coordinates intact and separates other fixtures by at least 900 m. */
 export function disperseDemoOccurrences<T extends DemoRecord>(records: T[]): T[] {
   const occupied = records
+    .filter(isMappedRecord)
     .filter((point) => point.category === 'SEGURANCA')
     .map((point) => point.coordinates);
   return records.map((point) => {
-    if (point.kind !== 'occurrence' || !['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? ''))
+    if (
+      !isMappedRecord(point) ||
+      point.kind !== 'occurrence' ||
+      !['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? '')
+    )
       return point;
     const municipality = point.location!.split(', ')[1]!;
     const areas = DEMO_LAND_AREAS.filter((area) => area.municipality === municipality);

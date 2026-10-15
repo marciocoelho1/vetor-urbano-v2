@@ -2,6 +2,7 @@ export type DatePreset = '24h' | '1w' | '1m' | '3m' | '6m' | '1y';
 export type RecordKind = 'occurrence' | 'poi';
 export type OperationalStatus = 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'EXPIRED';
 export type Coordinates = [longitude: number, latitude: number];
+export type QueryBounds = [west: number, south: number, east: number, north: number];
 export interface OccurrenceClassification {
   category: string;
   occurrenceType: string;
@@ -14,6 +15,9 @@ export interface DemoRecord {
   name?: string;
   description?: string;
   location?: string;
+  municipality?: string;
+  neighborhood?: string;
+  locationPrecision?: 'POINT' | 'TERRITORY';
   category?: string;
   group?: string;
   crime?: string;
@@ -31,7 +35,7 @@ export interface DemoRecord {
   operationalStatus?: OperationalStatus;
   lastCheckedAt?: string;
   expiresAt?: string;
-  coordinates: Coordinates;
+  coordinates: Coordinates | null;
   sourceId?: string;
   properties?: Record<string, string>;
 }
@@ -50,6 +54,9 @@ export interface LocalFilters {
   timeEnd?: string;
   center?: Coordinates;
   radiusMeters?: number;
+  municipalities?: string[];
+  neighborhoods?: string[];
+  bounds?: QueryBounds;
 }
 
 export interface SourceMetadata {
@@ -82,6 +89,17 @@ export const MINIMUM_RADIUS_METERS = 100;
 export const INITIAL_RADIUS_METERS = 1000;
 export const MAXIMUM_RADIUS_METERS = 25_000;
 export const RADIUS_STEP_METERS = 100;
+
+export function isMappedRecord<T extends DemoRecord>(
+  record: T,
+): record is T & { coordinates: Coordinates } {
+  return (
+    record.locationPrecision !== 'TERRITORY' &&
+    Array.isArray(record.coordinates) &&
+    record.coordinates.length === 2 &&
+    record.coordinates.every(Number.isFinite)
+  );
+}
 
 function zonedParts(date: Date, timeZone = TIME_ZONE): Record<string, number> {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -215,6 +233,20 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
   const seen = new Set<string>();
   return records.filter((record) => {
     if (seen.has(record.id)) return false;
+    if (
+      filters.municipalities?.length &&
+      !filters.municipalities.includes(record.municipality ?? '')
+    )
+      return false;
+    if (filters.neighborhoods?.length && !filters.neighborhoods.includes(record.neighborhood ?? ''))
+      return false;
+    if (filters.bounds) {
+      if (!isMappedRecord(record)) return false;
+      const [west, south, east, north] = filters.bounds;
+      const [longitude, latitude] = record.coordinates;
+      if (longitude < west || longitude > east || latitude < south || latitude > north)
+        return false;
+    }
 
     if (record.kind === 'poi') {
       const collective =
@@ -269,6 +301,7 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
     }
 
     if (filters.center && filters.radiusMeters !== undefined && filters.radiusMeters > 0) {
+      if (!isMappedRecord(record)) return false;
       if (distanceMeters(filters.center, record.coordinates) > filters.radiusMeters) return false;
     }
 

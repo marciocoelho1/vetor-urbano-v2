@@ -56,6 +56,45 @@ const records: DemoRecord[] = [
 ];
 
 describe('frontend domain rules', () => {
+  it('filtra território sem inventar pin e exige precisão compatível em raio ou área explícita', () => {
+    const point: DemoRecord = {
+      id: 'precise',
+      kind: 'occurrence',
+      category: 'TRANSITO',
+      municipality: 'Rio de Janeiro',
+      neighborhood: 'Setor fictício',
+      locationPrecision: 'POINT',
+      coordinates: [-43.2, -22.9],
+    };
+    const territory: DemoRecord = {
+      ...point,
+      id: 'list-only',
+      locationPrecision: 'TERRITORY',
+      coordinates: null,
+    };
+    const other: DemoRecord = { ...point, id: 'other-town', municipality: 'Niterói' };
+    const filters = {
+      categories: ['TRANSITO'],
+      municipalities: ['Rio de Janeiro'],
+      neighborhoods: ['Setor fictício'],
+    };
+    expect(filterRecords([point, territory, other], filters).map((record) => record.id)).toEqual([
+      'precise',
+      'list-only',
+    ]);
+    expect(
+      filterRecords([point, territory], {
+        ...filters,
+        center: [-43.2, -22.9],
+        radiusMeters: 1000,
+      }).map((record) => record.id),
+    ).toEqual(['precise']);
+    expect(
+      filterRecords([point, territory], { ...filters, bounds: [-43.3, -23, -43.1, -22.8] }).map(
+        (record) => record.id,
+      ),
+    ).toEqual(['precise']);
+  });
   it('combina tipos por OU e pilar por E, aceitando característica adicional uma única vez', () => {
     const theft = {
       id: 'furto',
