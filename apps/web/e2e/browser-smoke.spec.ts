@@ -285,7 +285,7 @@ test('keeps the list and an honest error state when both map providers fail', as
   await expect(page.locator('#map-canvas.leaflet-container')).toBeVisible();
   await expect(page.locator('#map-canvas .leaflet-tile-loaded')).toHaveCount(0);
   await expect(page.locator('.map-fallback')).toBeVisible();
-  await expect(page.locator('.result-list > li')).toHaveCount(25);
+  await expect(page.locator('.result-list > li')).toHaveCount(17);
   await page.getByRole('button', { name: 'Registrar ocorrência' }).click();
   await page.locator('.category-option[data-category="TRANSITO"]').click();
   await expect(page.locator('.report-map-error')).toContainText('indisponível');
@@ -973,10 +973,11 @@ for (const engine of ['vector', 'raster'] as const) {
     await page.getByLabel('Filtrar por raio').check();
     await expect(center).toHaveText(beforeDrag!);
     await page.getByLabel('Filtrar por raio').uncheck();
-    await expect(page.locator('.result-list > li')).toHaveCount(25);
+    await expect(page.locator('.result-list > li')).toHaveCount(17);
     await page.getByTestId('filter-panel-toggle').click();
     await page.getByRole('checkbox', { name: 'Segurança', exact: true }).check();
     await page.getByRole('checkbox', { name: 'Contingência', exact: true }).check();
+    await page.getByLabel('Período da consulta').selectOption('1m');
     await expect(page.locator('.result-list > li')).toHaveCount(75);
     await page.getByRole('button', { name: 'Ver mancha térmica' }).click();
     await page.evaluate(() => {

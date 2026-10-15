@@ -1,3 +1,4 @@
+import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from '../domain/catalogue';
 import { distanceMeters, type Coordinates, type DemoRecord } from '../domain/occurrences';
 
 type DemoOccurrence = DemoRecord & {
@@ -36,19 +37,6 @@ const ANCHORS: { location: string; coordinates: Coordinates }[] = [
   { location: 'Neves, São Gonçalo', coordinates: [-43.089, -22.85] },
   { location: 'Centro, São Gonçalo', coordinates: [-43.046, -22.826] },
 ];
-
-const SCENARIOS = {
-  TRANSITO: ['Sinalização', 'Interdição', 'Colisão', 'Congestionamento', 'Pane'],
-  SEGURANCA: ['Furto', 'Ameaça', 'Estelionato', 'Roubo de veículo', 'Roubo a transeunte'],
-  CONTINGENCIA: [
-    'Alagamento',
-    'Deslizamento',
-    'Incêndio',
-    'Falha de infraestrutura',
-    'Queda de árvore',
-  ],
-} as const;
-const CRIMES = ['FURTO', 'AMEACA', 'ESTELIONATO', 'ROUBO_VEICULO', 'ROUBO_TRANSEUNTE'];
 
 // Authored, conservative inland rectangles, not official municipal boundaries.
 // Never sample the RMRJ's bounding box: it includes Guanabara Bay.
@@ -114,7 +102,9 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
     new Date(reference.getTime() - hours * 3_600_000).toISOString();
   return (['TRANSITO', 'SEGURANCA', 'CONTINGENCIA'] as const).flatMap((category, categoryIndex) =>
     ANCHORS.slice(category === 'TRANSITO' ? 2 : 1).map((anchor, index) => {
-      const typeLabel = SCENARIOS[category][index % 5]!;
+      const types = OCCURRENCE_CATALOGUE.filter((type) => type.category === category);
+      const type = types[index % types.length]!;
+      const typeLabel = type.label;
       // Small distinct offsets keep categories close enough for density visualization.
       const offset = (categoryIndex + 1) * 0.0008;
       return {
@@ -131,7 +121,11 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
             : category === 'CONTINGENCIA'
               ? 'CALAMIDADE_PUBLICA'
               : 'OUTROS_REGISTROS',
-        crime: category === 'SEGURANCA' ? CRIMES[index % 5] : undefined,
+        crime: type.id === 'FURTO' ? 'FURTO' : undefined,
+        occurrenceType: type.id,
+        subtype: type.subtypes.length && index % 2 === 0 ? type.subtypes[0] : UNKNOWN_SUBTYPE,
+        publicationStatus: 'PUBLISHED',
+        reliabilityScore: 3,
         typeLabel,
         severity: ['BAIXA', 'MODERADA', 'ALTA'][index % 3],
         operationalStatus: index % 4 === 0 ? 'EXPIRED' : 'RESOLVED',

@@ -200,7 +200,7 @@ test('keeps the last choice after rapid clicks without leaking snapshots or chan
         (window as any).ng.getComponent(document.querySelector('app-root')).fallbackMap,
     ),
   ).toBe(true);
-  await expect(page.locator('.result-list > li')).toHaveCount(25);
+  await expect(page.locator('.result-list > li')).toHaveCount(17);
   expect(errors).toEqual([]);
 });
 

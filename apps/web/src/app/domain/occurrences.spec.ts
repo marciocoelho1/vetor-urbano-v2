@@ -56,6 +56,31 @@ const records: DemoRecord[] = [
 ];
 
 describe('frontend domain rules', () => {
+  it('consulta recente exclui datas ausentes, futuras e registros sem publicação aprovada', () => {
+    const base: DemoRecord = {
+      id: 'published',
+      kind: 'occurrence',
+      category: 'TRANSITO',
+      coordinates: [-43.2, -22.9],
+      occurredAt: '2026-10-14T15:00:00Z',
+      publicationStatus: 'PUBLISHED',
+    };
+    const examples: DemoRecord[] = [
+      base,
+      { ...base, id: 'pending', publicationStatus: 'PENDING' },
+      { ...base, id: 'dismissed', publicationStatus: 'DISMISSED' },
+      { ...base, id: 'withdrawn', publicationStatus: 'WITHDRAWN' },
+      { ...base, id: 'undated', occurredAt: undefined },
+      { ...base, id: 'invalid', occurredAt: 'data desconhecida' },
+      { ...base, id: 'at-end', occurredAt: '2026-10-15T15:00:00Z' },
+      { ...base, id: 'old', occurredAt: '2026-10-14T14:59:59Z' },
+    ];
+    const result = filterRecords(examples, {
+      categories: ['TRANSITO'],
+      ...calendarRange('24h', new Date('2026-10-15T15:00:00Z')),
+    });
+    expect(result.map((record) => record.id)).toEqual(['published']);
+  });
   it('uses a clamped calendar month in São Paulo rather than a fixed number of days', () => {
     const range = calendarRange('1m', new Date('2026-03-31T15:00:00.000Z'));
 

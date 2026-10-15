@@ -38,6 +38,8 @@ import {
   disperseDemoOccurrences,
 } from './data/demo-occurrences';
 
+import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
+
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
 type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report';
@@ -312,6 +314,8 @@ const CATEGORIES: { id: Category; label: string; icon: string }[] = [
 export class App implements AfterViewInit, OnDestroy {
   protected readonly theme = inject(Theme);
   protected readonly categories = CATEGORIES;
+  protected readonly occurrenceCatalogue = OCCURRENCE_CATALOGUE;
+  protected readonly savedSearchNotice = signal('');
   protected readonly territoryGroups = TERRITORY_GROUPS;
   protected readonly activeView = signal<ViewId>('map');
   protected readonly consultationView = signal<'map' | 'list'>('map');
@@ -325,8 +329,10 @@ export class App implements AfterViewInit, OnDestroy {
   }
   protected readonly expandedModule = signal<ModuleId | null>('intelligence');
   protected readonly selectedCategory = signal<Category | null>(null);
-  protected readonly activeFilters = signal<string[]>(['category:TRANSITO']);
-  protected readonly period = signal<DatePreset | 'custom'>('1m');
+  protected readonly activeFilters = signal<string[]>(
+    CATEGORIES.map((category) => `category:${category.id}`),
+  );
+  protected readonly period = signal<DatePreset | 'custom'>('24h');
   protected readonly queryReferenceDate = signal(new Date());
   protected readonly customRangeStart = signal('');
   protected readonly customRangeEnd = signal('');
@@ -435,12 +441,15 @@ export class App implements AfterViewInit, OnDestroy {
       kind: 'occurrence',
       category: 'TRANSITO',
       group: 'OUTROS_REGISTROS',
-      typeLabel: 'Sinalização',
+      typeLabel: 'Semáforos desligados',
+      occurrenceType: 'SEMAFOROS',
       severity: 'BAIXA',
       operationalStatus: 'RESOLVED',
       occurredAt: this.hoursAgo(3),
       insertedAt: this.hoursAgo(2),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.1812, -22.9035],
     },
     {
@@ -451,7 +460,9 @@ export class App implements AfterViewInit, OnDestroy {
       kind: 'occurrence',
       category: 'TRANSITO',
       group: 'ALERTA',
-      typeLabel: 'Interdição',
+      typeLabel: 'Interdição/bloqueio',
+      occurrenceType: 'INTERDICAO',
+      subtype: 'Parcial',
       severity: 'MODERADA',
       operationalStatus: 'ACTIVE',
       lastCheckedAt: this.hoursAgo(1),
@@ -459,6 +470,8 @@ export class App implements AfterViewInit, OnDestroy {
       occurredAt: this.hoursAgo(16),
       insertedAt: this.hoursAgo(15),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.1748, -22.9194],
     },
     {
@@ -471,11 +484,14 @@ export class App implements AfterViewInit, OnDestroy {
       group: 'CRIMES',
       crime: 'FURTO',
       typeLabel: 'Furto',
+      occurrenceType: 'FURTO',
       severity: 'BAIXA',
       operationalStatus: 'RESOLVED',
       occurredAt: this.hoursAgo(31),
       insertedAt: this.hoursAgo(28),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.1817, -22.9264],
     },
     {
@@ -486,7 +502,8 @@ export class App implements AfterViewInit, OnDestroy {
       kind: 'occurrence',
       category: 'CONTINGENCIA',
       group: 'CALAMIDADE_PUBLICA',
-      typeLabel: 'Alagamento',
+      typeLabel: 'Alagamento/inundação',
+      occurrenceType: 'ALAGAMENTO',
       severity: 'MODERADA',
       operationalStatus: 'EXPIRED',
       lastCheckedAt: this.hoursAgo(36),
@@ -494,6 +511,8 @@ export class App implements AfterViewInit, OnDestroy {
       occurredAt: this.hoursAgo(52),
       insertedAt: this.hoursAgo(50),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.2032, -22.9097],
     },
     ...createMetropolitanDemoOccurrences(new Date()),
@@ -508,6 +527,8 @@ export class App implements AfterViewInit, OnDestroy {
       exclusive: false,
       insertedAt: this.hoursAgo(24),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.1794, -22.9128],
     },
     {
@@ -521,6 +542,8 @@ export class App implements AfterViewInit, OnDestroy {
       exclusive: false,
       insertedAt: this.hoursAgo(24),
       sourceId: 'demo',
+      publicationStatus: 'PUBLISHED',
+      reliabilityScore: 3,
       coordinates: [-43.196, -22.895],
     },
   ]);
@@ -580,6 +603,9 @@ export class App implements AfterViewInit, OnDestroy {
     const crimes = filters
       .filter((filter) => filter.startsWith('crime:'))
       .map((filter) => filter.slice('crime:'.length));
+    const types = filters
+      .filter((filter) => filter.startsWith('type:'))
+      .map((filter) => filter.slice(5));
     const poiTypes = filters
       .filter((filter) => filter.startsWith('poi:') && filter !== 'poi:EXCLUSIVO')
       .map((filter) => filter.slice('poi:'.length));
@@ -589,6 +615,7 @@ export class App implements AfterViewInit, OnDestroy {
       categories,
       groups,
       crimes,
+      types,
       poiTypes,
       exclusivePois: filters.includes('poi:EXCLUSIVO'),
       start: range?.start,
@@ -1054,7 +1081,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected selectPeriod(period: string): void {
-    const available = ['1w', '1m', '3m', '6m', '1y', 'custom'];
+    const available = ['24h', '1w', '1m', '3m', '6m', '1y', 'custom'];
     if (!available.includes(period)) return;
     this.period.set(period as DatePreset | 'custom');
     this.refreshMapData();
@@ -1174,6 +1201,23 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected applySavedSearch(search: SavedSearch): void {
+    const incompatible = search.filters.filter(
+      (filter) =>
+        filter.startsWith('group:') ||
+        filter.startsWith('crime:') ||
+        (filter.startsWith('type:') &&
+          !OCCURRENCE_CATALOGUE.some((type) => filter === `type:${type.id}`)),
+    );
+    if (
+      incompatible.length ||
+      !['24h', '1w', '1m', '3m', '6m', '1y', 'custom'].includes(search.period)
+    ) {
+      this.savedSearchNotice.set(
+        'Consulta salva incompatível com o catálogo atual. Nenhum filtro foi aplicado. Recrie a consulta; a versão salva foi preservada.',
+      );
+      return;
+    }
+    this.savedSearchNotice.set('Consulta salva aplicada.');
     this.activeFilters.set([...new Set(search.filters)]);
     this.period.set(search.period as DatePreset | 'custom');
     this.customRangeStart.set(search.customRangeStart ?? '');
@@ -1347,6 +1391,16 @@ export class App implements AfterViewInit, OnDestroy {
     return (
       record.typeLabel ?? record.crime ?? record.group ?? record.poiType ?? 'Tipo não informado'
     );
+  }
+
+  protected recordSubtypeLabel(record: DemoPoint): string {
+    return record.subtype ?? UNKNOWN_SUBTYPE;
+  }
+
+  protected sourceLabel(record: DemoPoint): string {
+    return record.sourceId === 'demo'
+      ? 'Fonte fictícia — Demonstração local'
+      : (record.sourceId ?? 'Não informada');
   }
 
   protected markerCode(record: DemoPoint): string {
@@ -1745,6 +1799,8 @@ export class App implements AfterViewInit, OnDestroy {
           const kind = filter.slice(0, separator);
           const value = filter.slice(separator + 1);
           if (kind === 'category') return `Categoria: ${reportValueLabel(value)}`;
+          if (kind === 'type')
+            return `Tipo: ${OCCURRENCE_CATALOGUE.find((type) => type.id === value)?.label ?? value}`;
           if (kind === 'group') return `Grupo: ${reportValueLabel(value)}`;
           if (kind === 'crime') return `Tipo de crime: ${reportValueLabel(value)}`;
           if (kind === 'poi') {

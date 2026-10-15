@@ -127,6 +127,9 @@
               ><svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg
               >Filtros</span
             >
+            @if (savedSearchNotice()) {
+              <p role="status">{{ savedSearchNotice() }}</p>
+            }
             <div class="category-shortcuts" role="group" aria-label="Categorias da consulta">
               @for (category of categories; track category.id) {
                 <button
@@ -149,7 +152,8 @@
             <label class="quick-period"
               ><span class="visually-hidden">Período da consulta</span
               ><select [value]="period()" (change)="selectQuickPeriod($any($event.target).value)">
-                <option value="1w">Última semana</option>
+                <option value="24h">Últimas 24 horas</option>
+                <option value="1w">Últimos 7 dias</option>
                 <option value="1m">Último mês</option>
                 <option value="3m">Últimos 3 meses</option>
                 <option value="6m">Últimos 6 meses</option>
@@ -425,7 +429,8 @@
                           <div class="period-options">
                             @for (
                               option of [
-                                { id: '1w', label: '1 sem.' },
+                                { id: '24h', label: '24 horas' },
+                                { id: '1w', label: '7 dias' },
                                 { id: '1m', label: '1 mês' },
                                 { id: '3m', label: '3 meses' },
                                 { id: '6m', label: '6 meses' },
@@ -496,54 +501,15 @@
                         </fieldset>
                         <fieldset class="filter-group">
                           <legend>Tipos de ocorrência</legend>
-                          @for (
-                            option of [
-                              { id: 'CRIMES', label: 'Crimes' },
-                              { id: 'CALAMIDADE_PUBLICA', label: 'Calamidade pública' },
-                              { id: 'ASSUNTOS_SEGURANCA', label: 'Assuntos diversos de segurança' },
-                              { id: 'ATIVIDADE_POLICIAL', label: 'Atividade policial' },
-                              { id: 'ORDEM_PUBLICA', label: 'Ordem pública' },
-                              { id: 'ALERTA', label: 'Alerta' },
-                              { id: 'OUTROS_REGISTROS', label: 'Outros registros' },
-                            ];
-                            track option.id
-                          ) {
+                          @for (option of occurrenceCatalogue; track option.id) {
                             <label class="filter-choice"
                               ><input
                                 type="checkbox"
-                                [checked]="isFilterActive('group:' + option.id)"
-                                (change)="toggleFilter('group:' + option.id)"
+                                [checked]="isFilterActive('type:' + option.id)"
+                                (change)="toggleFilter('type:' + option.id)"
                               /><span>{{ option.label }}</span></label
                             >
                           }
-                          <details class="advanced-filter">
-                            <summary>Opções avançadas <span aria-hidden="true">＋</span></summary>
-                            <div class="advanced-options">
-                              @for (
-                                crime of [
-                                  { id: 'FURTO', label: 'Furto' },
-                                  { id: 'ROUBO_TRANSEUNTE', label: 'Roubo a transeunte' },
-                                  { id: 'ESTELIONATO', label: 'Estelionato' },
-                                  { id: 'AMEACA', label: 'Ameaça' },
-                                  { id: 'LESAO_CORPORAL_DOLOSA', label: 'Lesão corporal dolosa' },
-                                  { id: 'ROUBO_VEICULO', label: 'Roubo de veículo' },
-                                  { id: 'FURTO_VEICULO', label: 'Furto de veículo' },
-                                  { id: 'ROUBO_COLETIVO', label: 'Roubo em transporte coletivo' },
-                                  { id: 'ROUBO_CARGA', label: 'Roubo de carga' },
-                                  { id: 'HOMICIDIO_DOLOSO', label: 'Homicídio doloso' },
-                                ];
-                                track crime.id
-                              ) {
-                                <label class="filter-choice"
-                                  ><input
-                                    type="checkbox"
-                                    [checked]="isFilterActive('crime:' + crime.id)"
-                                    (change)="toggleFilter('crime:' + crime.id)"
-                                  /><span>{{ crime.label }}</span></label
-                                >
-                              }
-                            </div>
-                          </details>
                         </fieldset>
                         <fieldset class="filter-group">
                           <legend>Análise de alertas</legend>
@@ -995,10 +961,20 @@
                             {{ point.name }}
                           </h3>
                           <p>{{ point.description || 'Sem descrição adicional.' }}</p>
+                          @if (point.sourceId === 'demo') {
+                            <p class="query-note">
+                              Dados fictícios: ocorrência, fonte e nota são exemplos sem validade
+                              operacional.
+                            </p>
+                          }
                           <dl class="detail-grid">
                             <div>
                               <dt>Tipo</dt>
                               <dd>{{ recordTypeLabel(point) }}</dd>
+                            </div>
+                            <div>
+                              <dt>Subtipo</dt>
+                              <dd>{{ recordSubtypeLabel(point) }}</dd>
                             </div>
                             <div>
                               <dt>Categoria</dt>
@@ -1038,9 +1014,23 @@
                             </div>
                             <div>
                               <dt>Fonte</dt>
-                              <dd>{{ point.sourceId || 'Demonstração local' }}</dd>
+                              <dd>{{ sourceLabel(point) }}</dd>
                             </div>
                           </dl>
+                          @if (point.kind === 'occurrence') {
+                            <details class="query-note">
+                              <summary>Confiabilidade da ocorrência — como interpretar</summary>
+                              <p>
+                                {{ point.reliabilityScore ?? 'Não informada' }} / 5.
+                                {{
+                                  point.sourceId === 'demo'
+                                    ? 'Nota fictícia para demonstração; rubrica operacional pendente.'
+                                    : 'Avalia o suporte das evidências.'
+                                }}
+                                Não é probabilidade de verdade nem nota da fonte.
+                              </p>
+                            </details>
+                          }
                           <p class="query-note">
                             Aprovação editorial ou importação não confirma que o fato continua
                             ativo.
@@ -1528,6 +1518,9 @@
               Salvar filtros atuais
             </button>
           </div>
+          @if (savedSearchNotice()) {
+            <p role="status">{{ savedSearchNotice() }}</p>
+          }
           @if (savedSearches().length) {
             <ul>
               @for (search of savedSearches(); track search.id) {

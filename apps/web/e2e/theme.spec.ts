@@ -152,7 +152,7 @@ test('keeps all dark views readable on desktop/mobile without recreating the map
         (window as any).ng.getComponent(document.querySelector('app-root')).fallbackMap,
     ),
   ).toBe(true);
-  await expect(page.locator('.result-list > li')).toHaveCount(25);
+  await expect(page.locator('.result-list > li')).toHaveCount(17);
   for (const width of [1024, 961, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 1600 });
     await page.evaluate(() => scrollTo(0, 0));

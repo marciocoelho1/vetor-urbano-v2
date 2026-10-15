@@ -408,8 +408,8 @@ describe('Vetor Urbano', () => {
     fixture.nativeElement.querySelector('input[data-filter="poi:HOSPITAL_PUBLICO"]')?.click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.result-total strong').textContent).toBe('25');
-    expect(fixture.nativeElement.textContent).toContain('26 itens');
+    expect(fixture.nativeElement.querySelector('.result-total strong').textContent).toBe('17');
+    expect(fixture.nativeElement.textContent).toContain('18 itens');
     expect(fixture.nativeElement.textContent).toContain('Unidade de saúde demonstrativa');
   });
 
@@ -420,7 +420,7 @@ describe('Vetor Urbano', () => {
     };
     app.activeFilters.set(['category:SEGURANCA', 'group:CRIMES', 'crime:ROUBO_VEICULO']);
 
-    expect(app.visiblePoints().map((point) => point.id)).toContain('demo-003');
+    expect(app.visiblePoints().map((point) => point.id)).toContain('demo-seguranca-001');
   });
 
   it('does not treat collective information points as client-exclusive points', () => {
@@ -819,7 +819,7 @@ describe('Vetor Urbano', () => {
       applySavedSearch: (search: Record<string, unknown>) => void;
       resolvedDateRange: () => { start: Date; end: Date } | null;
     };
-    app.activeFilters.set(['category:SEGURANCA', 'group:CRIMES', 'crime:FURTO']);
+    app.activeFilters.set(['category:SEGURANCA', 'type:FURTO']);
     app.period.set('custom');
     app.customRangeStart.set('2026-10-10T09:00');
     app.customRangeEnd.set('2026-10-10T12:00');
@@ -847,7 +847,7 @@ describe('Vetor Urbano', () => {
     });
     app.activeFilters.set([]);
     app.applySavedSearch(saved[0]!);
-    expect(app.activeFilters()).toEqual(['category:SEGURANCA', 'group:CRIMES', 'crime:FURTO']);
+    expect(app.activeFilters()).toEqual(['category:SEGURANCA', 'type:FURTO']);
     expect(app.resolvedDateRange()).not.toBeNull();
   });
 
@@ -1309,11 +1309,13 @@ describe('Vetor Urbano', () => {
     };
     const sheets = app.buildReportSheets();
     const [summary, records] = sheets;
-    const sample = records?.rows.slice(1).find((row) => row.includes('Sinalização'));
+    const sample = records?.rows.slice(1).find((row) => row.includes('Semáforos desligados'));
 
     expect(summary?.rows[1]?.[0]).toBe('Gerado em (horário de Brasília)');
     expect(summary?.rows[3]?.[0]).toBe('Início do período (horário de Brasília)');
-    expect(summary?.rows[5]?.[1]).toBe('Categoria: Trânsito');
+    expect(summary?.rows[5]?.[1]).toBe(
+      'Categoria: Trânsito · Categoria: Segurança · Categoria: Contingência',
+    );
     expect(records?.rows[0]).toEqual([
       'ID do registro',
       'Título do registro',
@@ -1332,7 +1334,7 @@ describe('Vetor Urbano', () => {
     expect(sample?.slice(2, 7)).toEqual([
       'Trânsito',
       'Outros registros',
-      'Sinalização',
+      'Semáforos desligados',
       'Baixa',
       'Resolvido',
     ]);

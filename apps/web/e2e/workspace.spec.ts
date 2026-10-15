@@ -19,22 +19,23 @@ test.beforeEach(async ({ page }) => {
 test('keeps quick filters, metrics and the accessible list in sync', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#map-filter-panel')).toBeHidden();
-  await expect(page.locator('.overview-metric strong')).toHaveText(['25', '25', '0', '0']);
+  await expect(page.locator('.overview-metric strong')).toHaveText(['17', '7', '5', '5']);
   await page.locator('[data-quick-category="SEGURANCA"]').click();
-  await expect(page.locator('.overview-metric strong')).toHaveText(['50', '25', '25', '0']);
-  await expect(page.locator('.result-list > li')).toHaveCount(50);
+  await expect(page.locator('.overview-metric strong')).toHaveText(['12', '7', '0', '5']);
+  await expect(page.locator('.result-list > li')).toHaveCount(12);
   await page.getByTestId('filter-panel-toggle').click();
-  await expect(page.getByRole('checkbox', { name: 'Segurança', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Segurança', exact: true })).not.toBeChecked();
   await page.getByRole('checkbox', { name: 'Segurança', exact: true }).uncheck();
   await expect(page.locator('[data-quick-category="SEGURANCA"]')).toHaveAttribute(
     'aria-pressed',
     'false',
   );
   await page.locator('[data-quick-category="TRANSITO"]').click();
+  await page.locator('[data-quick-category="CONTINGENCIA"]').click();
   await expect(page.locator('.empty-state')).toContainText('Nenhum resultado');
   await expect(page.locator('.overview-metric strong')).toHaveText(['0', '0', '0', '0']);
   await page.locator('[data-quick-category="TRANSITO"]').click();
-  await expect(page.locator('.result-list > li')).toHaveCount(25);
+  await expect(page.locator('.result-list > li')).toHaveCount(7);
 });
 
 test('opens the custom interval and focuses its first field from the quick period control', async ({
@@ -227,7 +228,7 @@ test('uses filters and radius in the expanded map with keyboard and preserves it
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByTestId('filter-panel-toggle').click();
   await page.getByRole('checkbox', { name: 'Segurança', exact: true }).check();
-  await expect(page.locator('.overview-metric strong')).toHaveText(['50', '25', '25', '0']);
+  await expect(page.locator('.overview-metric strong')).toHaveText(['17', '7', '5', '5']);
   await page.getByLabel('Período da consulta').selectOption('custom');
   const start = page.getByLabel('Início (horário de Brasília)', { exact: true });
   await expect(start).toBeFocused();

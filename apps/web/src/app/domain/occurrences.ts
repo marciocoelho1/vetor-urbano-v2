@@ -1,4 +1,4 @@
-export type DatePreset = '1w' | '1m' | '3m' | '6m' | '1y';
+export type DatePreset = '24h' | '1w' | '1m' | '3m' | '6m' | '1y';
 export type RecordKind = 'occurrence' | 'poi';
 export type OperationalStatus = 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'EXPIRED';
 export type Coordinates = [longitude: number, latitude: number];
@@ -14,6 +14,10 @@ export interface DemoRecord {
   crime?: string;
   poiType?: string;
   typeLabel?: string;
+  occurrenceType?: string;
+  subtype?: string;
+  publicationStatus?: 'PUBLISHED' | 'PENDING' | 'DISMISSED' | 'WITHDRAWN';
+  reliabilityScore?: number;
   exclusive?: boolean;
   severity?: string;
   occurredAt?: string;
@@ -30,6 +34,7 @@ export interface LocalFilters {
   categories?: string[];
   groups?: string[];
   crimes?: string[];
+  types?: string[];
   poiTypes?: string[];
   exclusivePois?: boolean;
   operationalStatuses?: OperationalStatus[];
@@ -120,6 +125,8 @@ function daysInMonth(year: number, month: number): number {
 }
 
 export function calendarRange(preset: DatePreset, reference: Date): { start: Date; end: Date } {
+  if (preset === '24h')
+    return { start: new Date(reference.getTime() - 86_400_000), end: new Date(reference) };
   const local = zonedParts(reference);
   const end = new Date(reference);
   let year = local['year']!;
@@ -132,7 +139,7 @@ export function calendarRange(preset: DatePreset, reference: Date): { start: Dat
     month = prior.getUTCMonth() + 1;
     day = prior.getUTCDate();
   } else {
-    const monthCounts: Record<Exclude<DatePreset, '1w'>, number> = {
+    const monthCounts: Record<Exclude<DatePreset, '24h' | '1w'>, number> = {
       '1m': 1,
       '3m': 3,
       '6m': 6,
@@ -209,6 +216,14 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
       const exclusive = record.exclusive === true && filters.exclusivePois === true;
       if (!collective && !exclusive) return false;
     } else {
+      if (record.publicationStatus && record.publicationStatus !== 'PUBLISHED') return false;
+      if (
+        (filters.start || filters.end || filters.timeStart || filters.timeEnd) &&
+        (!record.occurredAt || !Number.isFinite(Date.parse(record.occurredAt)))
+      )
+        return false;
+      if (filters.types?.length && !filters.types.includes(record.occurrenceType ?? ''))
+        return false;
       const categoryMatch = filters.categories?.includes(record.category ?? '') === true;
       const groupSelected = filters.groups?.includes(record.group ?? '') === true;
       const crimeRefinesGroup =

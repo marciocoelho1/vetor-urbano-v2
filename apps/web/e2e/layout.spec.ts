@@ -153,7 +153,7 @@ test('keeps the same map, query and selection when switching mobile views and op
   await page.getByRole('button', { name: /^Lista \d+/ }).click();
   await expect(page.locator('#map-results')).toBeVisible();
   await page.locator('[data-quick-category="SEGURANCA"]').click();
-  await expect(page.locator('.result-list > li')).toHaveCount(50);
+  await expect(page.locator('.result-list > li')).toHaveCount(12);
   await page.locator('[data-result-detail-toggle]').first().click();
   await expect(page.locator('.result-inline-detail')).toHaveCount(1);
   await page.getByRole('button', { name: 'Mapa', exact: true }).click();
@@ -162,7 +162,7 @@ test('keeps the same map, query and selection when switching mobile views and op
   await page.getByRole('button', { name: 'Filtros avançados e camadas' }).click();
   await expect(page.locator('.map-column')).toBeVisible();
   await expect(page.locator('#map-filter-panel')).toBeVisible();
-  await expect(page.getByRole('checkbox', { name: 'Segurança', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Segurança', exact: true })).not.toBeChecked();
   await page.getByRole('button', { name: 'Fechar filtros e camadas' }).click();
   await page.getByRole('button', { name: 'Mapa', exact: true }).click();
   await page.getByTestId('map-expand-toggle').click();
