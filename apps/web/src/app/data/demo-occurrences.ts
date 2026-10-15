@@ -79,7 +79,8 @@ export function disperseDemoOccurrences<T extends DemoRecord>(records: T[]): T[]
     if (
       !isMappedRecord(point) ||
       point.kind !== 'occurrence' ||
-      !['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? '')
+      !['TRANSITO', 'CONTINGENCIA'].includes(point.category ?? '') ||
+      point.id === 'demo-contingencia-004'
     )
       return point;
     const municipality = point.location!.split(', ')[1]!;
@@ -193,6 +194,7 @@ export function createMetropolitanDemoOccurrences(reference: Date): DemoOccurren
 
 /** Enriches existing fixtures without increasing occurrence or publication counts. */
 export function relateDemoOccurrences<T extends DemoRecord>(records: T[]): T[] {
+  const treeAnchor = records.find((record) => record.id === 'demo-002');
   return records.map((record) => {
     if (record.kind !== 'occurrence') return record;
     const reference = (suffix: string) => ({
@@ -235,6 +237,12 @@ export function relateDemoOccurrences<T extends DemoRecord>(records: T[]): T[] {
         typeLabel: tree ? 'Queda de árvore' : 'Interrupção de energia',
         operationalStatus: tree ? ('RESOLVED' as const) : ('EXPIRED' as const),
         situation: tree ? ('CLOSED' as const) : ('UNKNOWN' as const),
+        ...(tree && treeAnchor
+          ? {
+              location: treeAnchor.location,
+              coordinates: treeAnchor.coordinates,
+            }
+          : {}),
         situationHistory: tree
           ? [
               {

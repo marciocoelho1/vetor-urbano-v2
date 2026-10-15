@@ -60,7 +60,12 @@ describe('metropolitan demonstration dataset', () => {
     expect(new Set(occurrences.map((point) => point.id)).size).toBe(75);
     expect(
       new Set(occurrences.filter(isMappedRecord).map((point) => point.coordinates.join(','))).size,
-    ).toBe(73);
+    ).toBe(72);
+    const coincidents = occurrences.filter(
+      (point) => point.id === 'demo-002' || point.id === 'demo-contingencia-004',
+    );
+    expect(coincidents).toHaveLength(2);
+    expect(coincidents[0].coordinates).toEqual(coincidents[1].coordinates);
     expect(occurrences.filter((point) => !isMappedRecord(point))).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -133,7 +138,15 @@ describe('metropolitan demonstration dataset', () => {
       ).toBe(true);
       for (const other of records
         .filter(isMappedRecord)
-        .filter((other) => other.kind === 'occurrence' && other.id !== point.id)) {
+        .filter(
+          (other) =>
+            other.kind === 'occurrence' &&
+            other.id !== point.id &&
+            !(
+              (point.id === 'demo-contingencia-004' && other.id === 'demo-002') ||
+              (point.id === 'demo-002' && other.id === 'demo-contingencia-004')
+            ),
+        )) {
         expect(distanceMeters(point.coordinates, other.coordinates)).toBeGreaterThanOrEqual(900);
       }
     }

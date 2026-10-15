@@ -91,6 +91,10 @@ type DemoPoint = DemoRecord & {
   coordinates: Coordinates | null;
 };
 
+type MappedDemoPoint = DemoPoint & {
+  coordinates: Coordinates;
+};
+
 type SavedSearch = {
   id: string;
   name: string;
@@ -2698,7 +2702,18 @@ export class App implements AfterViewInit, OnDestroy {
           type: 'geojson',
           data: this.radiusGeoJson(),
         });
-        this.map?.addSource('demo-points', { type: 'geojson', data: this.toGeoJson() });
+        this.map?.addSource('demo-points', {
+          type: 'geojson',
+          data: this.toGeoJson('occurrence'),
+          cluster: true,
+          clusterMaxZoom: 11,
+          clusterRadius: 50,
+        });
+        this.map?.addSource('demo-pois', {
+          type: 'geojson',
+          data: this.toGeoJson('poi'),
+          cluster: false,
+        });
         this.map?.addSource('heat-occurrences', {
           type: 'geojson',
           data: this.toGeoJson('occurrence'),
@@ -2724,6 +2739,32 @@ export class App implements AfterViewInit, OnDestroy {
           },
         });
         this.map?.addLayer({
+          id: 'demo-occurrence-clusters',
+          type: 'circle',
+          source: 'demo-points',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#24765b',
+            'circle-radius': ['step', ['get', 'point_count'], 16, 5, 20, 10, 24],
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+          },
+        });
+        this.map?.addLayer({
+          id: 'demo-occurrence-cluster-count',
+          type: 'symbol',
+          source: 'demo-points',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 12,
+          },
+          paint: {
+            'text-color': '#ffffff',
+          },
+        });
+        this.map?.addLayer({
           id: 'demo-points-glow',
           type: 'circle',
           source: 'demo-points',
@@ -2738,7 +2779,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.map?.addLayer({
           id: 'demo-points-dot',
           type: 'circle',
-          source: 'demo-points',
+          source: 'demo-pois',
           filter: ['==', ['get', 'kind'], 'poi'],
           paint: {
             'circle-radius': [
@@ -2766,7 +2807,7 @@ export class App implements AfterViewInit, OnDestroy {
           id: 'demo-occurrence-pins',
           type: 'symbol',
           source: 'demo-points',
-          filter: ['==', ['get', 'kind'], 'occurrence'],
+          filter: ['all', ['==', ['get', 'kind'], 'occurrence'], ['!', ['has', 'point_count']]],
           layout: {
             'icon-image': ['get', 'category'],
             'icon-size': ['case', ['==', ['get', 'selected'], true], 1.15, 1],
@@ -2779,7 +2820,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.map?.addLayer({
           id: 'demo-points-code',
           type: 'symbol',
-          source: 'demo-points',
+          source: 'demo-pois',
           filter: ['==', ['get', 'kind'], 'poi'],
           layout: {
             'text-field': ['get', 'markerCode'],
@@ -2793,6 +2834,31 @@ export class App implements AfterViewInit, OnDestroy {
             'text-halo-color': '#f4f4f5',
             'text-halo-width': 0.5,
           },
+        });
+        this.map?.on('click', 'demo-occurrence-clusters', async (event) => {
+          if (!this.map) return;
+          const features = this.map.queryRenderedFeatures(event.point, {
+            layers: ['demo-occurrence-clusters'],
+          });
+          const clusterId = features[0]?.properties?.['cluster_id'];
+          if (clusterId === undefined) return;
+          const source = this.map.getSource('demo-points') as maplibregl.GeoJSONSource;
+          try {
+            const zoom = await source.getClusterExpansionZoom(clusterId);
+            const coords = (features[0].geometry as GeoJSON.Point).coordinates as [number, number];
+            this.map.easeTo({
+              center: coords,
+              zoom: Math.max(zoom, (this.map?.getZoom() ?? 10) + 2),
+            });
+          } catch {
+            this.map.zoomIn();
+          }
+        });
+        this.map?.on('mouseenter', 'demo-occurrence-clusters', () => {
+          if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+        });
+        this.map?.on('mouseleave', 'demo-occurrence-clusters', () => {
+          if (this.map) this.map.getCanvas().style.cursor = '';
         });
         this.map?.on('click', 'demo-points-dot', (event) => {
           if (this.useRadius() || this.mapPickPurpose()) return;
@@ -2822,6 +2888,25 @@ export class App implements AfterViewInit, OnDestroy {
         });
         this.map?.on('click', 'demo-occurrence-pins', (event) => {
           if (this.useRadius() || this.mapPickPurpose() || !this.map) return;
+          const coords = (event.features?.[0]?.geometry as GeoJSON.Point).coordinates as [
+            number,
+            number,
+          ];
+          const coincidentPoints = this.visiblePoints()
+            .filter(isMappedRecord)
+            .filter(
+              (point) =>
+                point.kind === 'occurrence' &&
+                Math.abs(point.coordinates[0] - coords[0]) < 0.0001 &&
+                Math.abs(point.coordinates[1] - coords[1]) < 0.0001,
+            );
+          if (coincidentPoints.length > 1) {
+            new maplibre.Popup({ closeButton: true, offset: [0, -40] })
+              .setLngLat(coords)
+              .setDOMContent(this.createCoincidentPointsPopup(coincidentPoints))
+              .addTo(this.map);
+            return;
+          }
           const id = event.features?.[0]?.properties?.['recordId'];
           const point = this.visiblePoints().find((point) => point.id === id);
           if (!point || !isMappedRecord(point)) return;
@@ -2919,6 +3004,10 @@ export class App implements AfterViewInit, OnDestroy {
 
       map.on('click', (event) => {
         this.handleMapClick(event.latlng.lng, event.latlng.lat, event.originalEvent.button);
+      });
+      map.on('zoomend', () => {
+        if (this.fallbackMap !== map) return;
+        this.updateFallbackMapLayers();
       });
       this.observeMapSize();
       map.whenReady(() => {
@@ -3582,25 +3671,22 @@ export class App implements AfterViewInit, OnDestroy {
     }
     eventHeatLayer.clearLayers();
     poiHeatLayer.clearLayers();
-    const visible = this.visiblePoints().filter(isMappedRecord);
-    const ids = new Set(visible.map((point) => point.id));
-    for (const [id, marker] of this.fallbackPointMarkers) {
-      if (ids.has(id)) continue;
-      pointsLayer.removeLayer(marker);
-      this.fallbackPointMarkers.delete(id);
-    }
+    pointsLayer.clearLayers();
+    this.fallbackPointMarkers.clear();
 
-    for (const point of visible) {
-      const [longitude, latitude] = point.coordinates;
-      const color =
-        point.kind === 'poi'
-          ? '#a3e635'
-          : point.category === 'TRANSITO'
-            ? '#22c55e'
-            : point.category === 'SEGURANCA'
-              ? '#ef4444'
-              : '#facc15';
-      if (showHeat) {
+    const visible: MappedDemoPoint[] = this.visiblePoints().filter(isMappedRecord);
+
+    if (showHeat) {
+      for (const point of visible) {
+        const [longitude, latitude] = point.coordinates;
+        const color =
+          point.kind === 'poi'
+            ? '#a3e635'
+            : point.category === 'TRANSITO'
+              ? '#22c55e'
+              : point.category === 'SEGURANCA'
+                ? '#ef4444'
+                : '#facc15';
         leaflet
           .circleMarker([latitude, longitude], {
             radius: point.kind === 'occurrence' ? 26 : 22,
@@ -3612,58 +3698,133 @@ export class App implements AfterViewInit, OnDestroy {
             interactive: false,
           })
           .addTo(point.kind === 'occurrence' ? eventHeatLayer : poiHeatLayer);
-        continue;
       }
-      let marker = this.fallbackPointMarkers.get(point.id);
-      if (!marker) {
+    } else {
+      // 1. POIs are never clustered
+      const pois = visible.filter((point) => point.kind === 'poi');
+      for (const poi of pois) {
+        const [longitude, latitude] = poi.coordinates;
         const element = document.createElement('span');
-        if (point.kind === 'occurrence') {
-          const image = document.createElement('img');
-          image.src = `maps/pins/${point.category!.toLowerCase()}.svg`;
-          image.alt = '';
-          image.width = 32;
-          image.height = 44;
-          element.append(image);
-        } else {
-          element.className = 'fallback-poi-code';
-          element.textContent = this.markerCode(point);
-        }
-        marker = leaflet.marker([latitude, longitude], {
-          title: `${point.name} · ocorrência fictícia`,
-          alt: point.name,
+        element.className = 'fallback-poi-code';
+        element.textContent = this.markerCode(poi);
+
+        const marker = leaflet.marker([latitude, longitude], {
+          title: `${poi.name} · ponto de interesse fictício`,
+          alt: poi.name,
           bubblingMouseEvents: true,
           icon: leaflet.divIcon({
             html: element,
             className: 'occurrence-pin',
-            iconSize: point.kind === 'occurrence' ? [32, 44] : [18, 18],
-            iconAnchor: point.kind === 'occurrence' ? [16, 42] : [9, 9],
-            popupAnchor: [0, -38],
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
+            popupAnchor: [0, -18],
           }),
         });
         marker.on('click', () => {
           if (this.useRadius() || this.mapPickPurpose()) return;
-          this.selectedPointId.set(point.id);
+          this.selectedPointId.set(poi.id);
           this.refreshMapData();
           leaflet
-            .popup({ closeButton: true, offset: [0, -38] })
-            .setLatLng(marker!.getLatLng())
-            .setContent(
-              this.createRasterPointPopup(
-                this.allPoints().find((current) => current.id === point.id)!,
-              ),
-            )
+            .popup({ closeButton: true, offset: [0, -18] })
+            .setLatLng(marker.getLatLng())
+            .setContent(this.createRasterPointPopup(poi))
             .openOn(map);
         });
         marker.addTo(pointsLayer);
-        this.fallbackPointMarkers.set(point.id, marker);
+        this.fallbackPointMarkers.set(poi.id, marker);
+        if (this.selectedPointId() === poi.id) {
+          marker.getElement()?.classList.add('is-selected');
+        }
       }
-      const position = marker.getLatLng();
-      if (position.lng !== longitude || position.lat !== latitude)
-        marker.setLatLng([latitude, longitude]);
-      const image = marker.getElement()?.querySelector('img');
-      if (image && !image.src.endsWith(`/${point.category!.toLowerCase()}.svg`))
-        image.src = `maps/pins/${point.category!.toLowerCase()}.svg`;
-      marker.getElement()?.classList.toggle('is-selected', this.selectedPointId() === point.id);
+
+      // 2. Occurrences: check zoom for clustering
+      const occurrences = visible.filter((point) => point.kind === 'occurrence');
+      const currentZoom = map.getZoom();
+
+      if (currentZoom <= 12.5) {
+        // Zoomed out: Cluster nearby occurrences using screen distance
+        const clusters: { center: [number, number]; points: MappedDemoPoint[] }[] = [];
+
+        for (const point of occurrences) {
+          const pt = map.latLngToLayerPoint([point.coordinates[1], point.coordinates[0]]);
+          let added = false;
+          for (const cluster of clusters) {
+            const clusterPt = map.latLngToLayerPoint([cluster.center[1], cluster.center[0]]);
+            const distance = Math.hypot(pt.x - clusterPt.x, pt.y - clusterPt.y);
+            if (distance < 55) {
+              cluster.points.push(point);
+              const count = cluster.points.length;
+              const sumLng = cluster.points.reduce((acc, p) => acc + p.coordinates[0], 0);
+              const sumLat = cluster.points.reduce((acc, p) => acc + p.coordinates[1], 0);
+              cluster.center = [sumLng / count, sumLat / count];
+              added = true;
+              break;
+            }
+          }
+          if (!added) {
+            clusters.push({
+              center: [point.coordinates[0], point.coordinates[1]],
+              points: [point],
+            });
+          }
+        }
+
+        for (const cluster of clusters) {
+          if (cluster.points.length > 1) {
+            const clusterElement = document.createElement('div');
+            clusterElement.className = 'occurrence-cluster';
+            clusterElement.setAttribute('data-testid', 'occurrence-cluster');
+            clusterElement.setAttribute('data-cluster-count', String(cluster.points.length));
+            clusterElement.textContent = String(cluster.points.length);
+
+            const marker = leaflet.marker([cluster.center[1], cluster.center[0]], {
+              title: `${cluster.points.length} ocorrências agrupadas`,
+              icon: leaflet.divIcon({
+                html: clusterElement,
+                className: '',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+              }),
+            });
+            marker.on('click', () => {
+              map.setView(
+                [cluster.center[1], cluster.center[0]],
+                Math.min(map.getMaxZoom(), currentZoom + 2),
+              );
+            });
+            marker.addTo(pointsLayer);
+            marker.getElement()?.setAttribute('data-testid', 'occurrence-cluster');
+          } else {
+            const point = cluster.points[0];
+            this.renderLeafletOccurrencePin(point, pointsLayer, map, [point]);
+          }
+        }
+      } else {
+        // Zoomed in (> 12): Render individual pins or coincident pins
+        const groups: MappedDemoPoint[][] = [];
+        for (const point of occurrences) {
+          let foundGroup = false;
+          for (const group of groups) {
+            const first = group[0];
+            if (
+              Math.abs(first.coordinates[0] - point.coordinates[0]) < 0.0001 &&
+              Math.abs(first.coordinates[1] - point.coordinates[1]) < 0.0001
+            ) {
+              group.push(point);
+              foundGroup = true;
+              break;
+            }
+          }
+          if (!foundGroup) {
+            groups.push([point]);
+          }
+        }
+
+        for (const group of groups) {
+          const mainPoint = group[0];
+          this.renderLeafletOccurrencePin(mainPoint, pointsLayer, map, group);
+        }
+      }
     }
 
     if (this.useRadius() && !this.radiusInvalid()) {
@@ -3688,6 +3849,155 @@ export class App implements AfterViewInit, OnDestroy {
     } else radiusLayer.clearLayers();
   }
 
+  private renderLeafletOccurrencePin(
+    point: MappedDemoPoint,
+    layer: LeafletLayerGroup,
+    map: LeafletMap,
+    group: MappedDemoPoint[],
+  ): void {
+    const leaflet = this.leaflet;
+    if (!leaflet) return;
+    const [longitude, latitude] = point.coordinates;
+    const isCoincident = group.length > 1;
+
+    const element = document.createElement('span');
+    const image = document.createElement('img');
+    image.src = `maps/pins/${point.category!.toLowerCase()}.svg`;
+    image.alt = '';
+    image.width = 32;
+    image.height = 44;
+    element.append(image);
+
+    if (isCoincident) {
+      element.setAttribute('data-testid', 'coincident-marker');
+      element.setAttribute('data-coincident-count', String(group.length));
+      const badge = document.createElement('span');
+      badge.className = 'coincident-badge';
+      badge.setAttribute('data-testid', 'coincident-badge');
+      badge.textContent = String(group.length);
+      element.append(badge);
+    }
+
+    const title = isCoincident
+      ? `${point.name} (+${group.length - 1} sobrepostas) · ocorrência fictícia`
+      : `${point.name} · ocorrência fictícia`;
+
+    const marker = leaflet.marker([latitude, longitude], {
+      title,
+      alt: point.name,
+      bubblingMouseEvents: true,
+      icon: leaflet.divIcon({
+        html: element,
+        className: isCoincident ? 'occurrence-pin is-coincident' : 'occurrence-pin',
+        iconSize: [32, 44],
+        iconAnchor: [16, 42],
+        popupAnchor: [0, -38],
+      }),
+    });
+
+    marker.on('click', () => {
+      if (this.useRadius() || this.mapPickPurpose()) return;
+      if (isCoincident) {
+        leaflet
+          .popup({ closeButton: true, offset: [0, -38] })
+          .setLatLng([latitude, longitude])
+          .setContent(this.createCoincidentPointsPopup(group))
+          .openOn(map);
+      } else {
+        this.selectedPointId.set(point.id);
+        this.refreshMapData();
+        leaflet
+          .popup({ closeButton: true, offset: [0, -38] })
+          .setLatLng([latitude, longitude])
+          .setContent(this.createRasterPointPopup(point))
+          .openOn(map);
+      }
+    });
+
+    marker.addTo(layer);
+    if (isCoincident) {
+      marker.getElement()?.setAttribute('data-testid', 'coincident-marker');
+      marker.getElement()?.setAttribute('data-coincident-count', String(group.length));
+    }
+    for (const item of group) {
+      this.fallbackPointMarkers.set(item.id, marker);
+    }
+
+    const isSelected = group.some((p) => p.id === this.selectedPointId());
+    if (isSelected) {
+      marker.getElement()?.classList.add('is-selected');
+    }
+  }
+
+  private createCoincidentPointsPopup(points: DemoPoint[]): HTMLElement {
+    const content = document.createElement('div');
+    content.className = 'map-popup coincident-pins-expansion';
+    content.setAttribute('data-testid', 'coincident-pins-expansion');
+
+    const title = document.createElement('strong');
+    title.className = 'coincident-title';
+    title.textContent = `Ocorrências sobrepostas (${points.length})`;
+
+    const description = document.createElement('p');
+    description.className = 'coincident-desc';
+    description.textContent =
+      'Existem registros com a mesma coordenada geográfica cadastrada. Selecione um item para visualizar seus detalhes:';
+
+    const list = document.createElement('ul');
+    list.className = 'coincident-list';
+
+    for (const point of points) {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'coincident-select-btn';
+      button.setAttribute('data-coincident-select', point.id);
+      button.setAttribute('data-testid', `coincident-select-${point.id}`);
+
+      const name = document.createElement('span');
+      name.className = 'coincident-item-name';
+      name.textContent = point.name;
+
+      const meta = document.createElement('span');
+      meta.className = 'coincident-item-meta';
+      meta.textContent = `${this.recordTypeLabel(point)} · ${point.location}`;
+
+      button.append(name, meta);
+      button.addEventListener('click', () => {
+        this.selectAndFocusRecordDetail(point.id);
+      });
+
+      item.append(button);
+      list.append(item);
+    }
+
+    content.append(title, description, list);
+    return content;
+  }
+
+  private selectAndFocusRecordDetail(pointId: string): void {
+    this.selectedPointId.set(pointId);
+    this.relatedDetailIds.update((ids) => {
+      const copy = { ...ids };
+      delete copy[pointId];
+      return copy;
+    });
+    if (!this.isResultDetailOpen(pointId)) {
+      const ids = this.expandedResultDetailIds();
+      this.expandedResultDetailIds.set([...ids.slice(-4), pointId]);
+    }
+    this.fallbackMap?.closePopup();
+    if (this.map) {
+      const popups = document.querySelectorAll('.maplibregl-popup');
+      popups.forEach((popup) => popup.remove());
+    }
+    setTimeout(() => {
+      const heading = document.getElementById(`map-result-detail-heading-${pointId}`);
+      heading?.scrollIntoView({ block: 'nearest' });
+      heading?.focus();
+    });
+  }
+
   private createRasterPointPopup(point: DemoPoint): HTMLElement {
     const content = document.createElement('div');
     content.className = 'map-popup';
@@ -3710,22 +4020,7 @@ export class App implements AfterViewInit, OnDestroy {
     details.type = 'button';
     details.textContent = 'Abrir detalhes da ocorrência';
     details.addEventListener('click', () => {
-      this.selectedPointId.set(point.id);
-      this.relatedDetailIds.update((ids) => {
-        const copy = { ...ids };
-        delete copy[point.id];
-        return copy;
-      });
-      if (!this.isResultDetailOpen(point.id)) {
-        const ids = this.expandedResultDetailIds();
-        this.expandedResultDetailIds.set([...ids.slice(-4), point.id]);
-      }
-      this.fallbackMap?.closePopup();
-      setTimeout(() => {
-        const heading = document.getElementById(`map-result-detail-heading-${point.id}`);
-        heading?.scrollIntoView({ block: 'nearest' });
-        heading?.focus();
-      });
+      this.selectAndFocusRecordDetail(point.id);
     });
     content.append(details);
     return content;
@@ -3774,14 +4069,30 @@ export class App implements AfterViewInit, OnDestroy {
     const radiusSource = this.map?.getSource('search-radius-source') as
       maplibregl.GeoJSONSource | undefined;
     radiusSource?.setData(this.radiusGeoJson());
-    const source = this.map?.getSource('demo-points') as maplibregl.GeoJSONSource | undefined;
-    if (!source) return;
-    source.setData(this.toGeoJson());
-    const occurrenceSource = this.map?.getSource('heat-occurrences') as
+    const occurrenceSource = this.map?.getSource('demo-points') as
       maplibregl.GeoJSONSource | undefined;
     occurrenceSource?.setData(this.toGeoJson('occurrence'));
-    const poiSource = this.map?.getSource('heat-pois') as maplibregl.GeoJSONSource | undefined;
+    const poiSource = this.map?.getSource('demo-pois') as maplibregl.GeoJSONSource | undefined;
     poiSource?.setData(this.toGeoJson('poi'));
+    const occurrenceHeatSource = this.map?.getSource('heat-occurrences') as
+      maplibregl.GeoJSONSource | undefined;
+    occurrenceHeatSource?.setData(this.toGeoJson('occurrence'));
+    const poiHeatSource = this.map?.getSource('heat-pois') as maplibregl.GeoJSONSource | undefined;
+    poiHeatSource?.setData(this.toGeoJson('poi'));
+    if (this.map?.getLayer('demo-occurrence-clusters')) {
+      this.map.setLayoutProperty(
+        'demo-occurrence-clusters',
+        'visibility',
+        this.heatmap() ? 'none' : 'visible',
+      );
+    }
+    if (this.map?.getLayer('demo-occurrence-cluster-count')) {
+      this.map.setLayoutProperty(
+        'demo-occurrence-cluster-count',
+        'visibility',
+        this.heatmap() ? 'none' : 'visible',
+      );
+    }
     if (this.map?.getLayer('demo-occurrence-pins')) {
       this.map.setLayoutProperty(
         'demo-occurrence-pins',
@@ -3856,12 +4167,24 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private toGeoJson(kind?: DemoPoint['kind']): FeatureCollection<Point> {
+    const points: MappedDemoPoint[] = this.visiblePoints()
+      .filter(isMappedRecord)
+      .filter((point) => !kind || point.kind === kind);
+
+    const occurrenceCounts = new Map<string, number>();
+    for (const point of points) {
+      if (point.kind === 'occurrence') {
+        const key = `${point.coordinates[0].toFixed(5)},${point.coordinates[1].toFixed(5)}`;
+        occurrenceCounts.set(key, (occurrenceCounts.get(key) ?? 0) + 1);
+      }
+    }
+
     return {
       type: 'FeatureCollection',
-      features: this.visiblePoints()
-        .filter(isMappedRecord)
-        .filter((point) => !kind || point.kind === kind)
-        .map((point) => ({
+      features: points.map((point) => {
+        const key = `${point.coordinates[0].toFixed(5)},${point.coordinates[1].toFixed(5)}`;
+        const coincidentCount = point.kind === 'occurrence' ? (occurrenceCounts.get(key) ?? 1) : 1;
+        return {
           type: 'Feature',
           id: point.id,
           geometry: { type: 'Point', coordinates: point.coordinates },
@@ -3881,8 +4204,10 @@ export class App implements AfterViewInit, OnDestroy {
             sourceId: point.sourceId ?? 'demo',
             category: point.category ?? 'POI',
             selected: this.selectedPointId() === point.id,
+            coincidentCount,
           },
-        })),
+        };
+      }),
     };
   }
 

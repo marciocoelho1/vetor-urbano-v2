@@ -101,6 +101,7 @@ describe('Vetor Urbano', () => {
   let mapLibreStyleAppendSpy: ReturnType<typeof vi.spyOn> | undefined;
 
   afterEach(() => {
+    vi.useRealTimers();
     mapLibreStyleAppendSpy?.mockRestore();
     mapLibreStyleAppendSpy = undefined;
     vi.unstubAllGlobals();
@@ -109,6 +110,8 @@ describe('Vetor Urbano', () => {
   });
 
   beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-15T15:00:00Z'));
     sessionStorage.clear();
     localStorage.clear();
     const append = document.head.append.bind(document.head);

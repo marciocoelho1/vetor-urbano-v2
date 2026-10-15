@@ -122,6 +122,108 @@ h6 {
 #map-canvas .occurrence-pin.is-selected img {
   transform: scale(1.15);
 }
+#map-canvas .occurrence-pin.is-coincident {
+  position: relative;
+}
+#map-canvas .coincident-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--color-error);
+  color: #fff;
+  font-family: var(--font-interface);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border: 1.5px solid var(--color-bg-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+#map-canvas .occurrence-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-interface);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 2px solid var(--color-bg-surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 150ms ease-out;
+}
+#map-canvas .occurrence-cluster:hover {
+  transform: scale(1.1);
+}
+.coincident-pins-expansion {
+  max-width: 280px;
+}
+.coincident-pins-expansion .coincident-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--color-text-main);
+}
+.coincident-pins-expansion .coincident-desc {
+  margin: 4px 0 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+.coincident-pins-expansion .coincident-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.coincident-pins-expansion .coincident-select-btn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-main);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out;
+}
+.coincident-pins-expansion .coincident-select-btn:hover {
+  background: var(--color-bg-muted);
+  border-color: var(--accent);
+}
+.coincident-pins-expansion .coincident-select-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.coincident-pins-expansion .coincident-item-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+.coincident-pins-expansion .coincident-item-meta {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
 #map-canvas .fallback-poi-code {
   display: grid;
   width: 18px;

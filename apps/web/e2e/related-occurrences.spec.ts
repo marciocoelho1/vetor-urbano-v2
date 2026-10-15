@@ -50,7 +50,10 @@ test('pin e lista abrem o mesmo detalhe e característica não duplica acidente'
   await expect(pin).toBeVisible();
   await page.locator('[data-result-point="demo-002"]').click();
   await pin.click();
-  await page.getByRole('button', { name: 'Abrir detalhes da ocorrência' }).click();
+  await page
+    .locator('[data-coincident-select="demo-002"], button:has-text("Abrir detalhes da ocorrência")')
+    .first()
+    .click();
   const detail = page.locator('[data-result-detail="demo-002"]');
   await expect(detail).toContainText('3 ocorrências · 1 acontecimento');
   await expect(detail.getByRole('link', { name: /Publicação fictícia/ })).toHaveCount(2);
