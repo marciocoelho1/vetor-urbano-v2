@@ -801,6 +801,82 @@ app-root {
   .empty-state span:last-child {
     font-size: 0.875rem;
   }
+  .empty-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .empty-action-btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 6px;
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--color-bg-muted);
+    }
+  }
+
+  .query-error-state,
+  .query-loading-state {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    border-radius: 8px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    text-align: center;
+    margin: 12px;
+  }
+  .query-error-state {
+    border-color: #ef4444;
+  }
+  .query-error-icon {
+    font-size: 1.5rem;
+    color: #ef4444;
+  }
+  .query-error-title {
+    color: var(--color-text-main);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .query-error-description {
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    max-width: 320px;
+  }
+  .query-loading-state {
+    border-color: var(--accent-subtle, #6366f1);
+  }
+  .query-timestamp {
+    display: inline-block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    margin-left: 8px;
+  }
+  .result-led.is-error {
+    background: #ef4444;
+  }
+  .result-led.is-loading {
+    background: var(--accent);
+  }
+  .query-error-note {
+    color: #ef4444;
+    font-size: 0.75rem;
+  }
 
   .report-header {
     padding-bottom: 18px;

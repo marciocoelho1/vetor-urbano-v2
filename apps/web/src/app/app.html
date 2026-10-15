@@ -194,7 +194,8 @@
               type="button"
               class="map-tool-button"
               (click)="refreshLocalQuery()"
-              aria-label="Atualizar referência da consulta"
+              aria-label="Atualizar consulta sem perder contexto"
+              data-testid="refresh-query-btn"
             >
               Atualizar
             </button>
@@ -233,6 +234,37 @@
             <span class="mode-notice-text">{{ modeNotice() }}</span>
           </div>
         }
+        @if (pendingUpdateAvailable()) {
+          <aside class="query-update-banner" role="status" data-testid="query-update-notice">
+            <div class="query-update-content">
+              <span class="query-update-badge" aria-hidden="true">Atualização</span>
+              <div class="query-update-text">
+                <strong
+                  >Existem novas publicações disponíveis para esta consulta (simulação).</strong
+                >
+                <span>Você pode atualizar os dados mantendo seus filtros e a posição do mapa.</span>
+              </div>
+            </div>
+            <div class="query-update-actions">
+              <button
+                type="button"
+                class="update-action-btn"
+                (click)="refreshLocalQuery()"
+                data-testid="apply-query-update-btn"
+              >
+                Atualizar consulta
+              </button>
+              <button
+                type="button"
+                class="update-dismiss-btn"
+                (click)="dismissPendingUpdate()"
+                aria-label="Dispensar aviso de atualização"
+              >
+                ×
+              </button>
+            </div>
+          </aside>
+        }
         <section class="query-filter-summary" aria-label="Filtros aplicados">
           <div class="query-filter-chips">
             @if (period() === '24h') {
@@ -264,16 +296,32 @@
             <div class="map-meta-bar">
               <div>
                 <div class="result-total">
-                  <span class="result-led" aria-hidden="true"></span
-                  ><strong>{{ eventCount() }}</strong
-                  >&nbsp;<span>{{
-                    isDemonstrationOnly() ? 'ocorrências fictícias' : 'ocorrências na consulta'
-                  }}</span>
+                  @if (queryError()) {
+                    <span class="result-led is-error" aria-hidden="true"></span>
+                    <strong data-testid="query-error-state">Consulta indisponível</strong>&nbsp;
+                    <span class="query-error-note"
+                      >A falha na consulta não confirma ausência de ocorrências nem segurança.</span
+                    >
+                  } @else if (queryLoading()) {
+                    <span class="result-led is-loading" aria-hidden="true"></span>
+                    <strong data-testid="query-loading-state">Consultando ocorrências…</strong>
+                  } @else {
+                    <span class="result-led" aria-hidden="true"></span>
+                    <strong data-testid="event-count">{{ eventCount() }}</strong
+                    >&nbsp;<span>{{
+                      isDemonstrationOnly() ? 'ocorrências fictícias' : 'ocorrências na consulta'
+                    }}</span>
+                  }
                 </div>
                 <span class="map-region">Região Metropolitana do Rio · dados fictícios</span>
-                <span class="spatial-result-counts"
-                  >{{ mappedOccurrenceCount() }} mapeadas · {{ listOnlyOccurrenceCount() }} apenas
-                  em lista</span
+                @if (!queryError() && !queryLoading()) {
+                  <span class="spatial-result-counts"
+                    >{{ mappedOccurrenceCount() }} mapeadas · {{ listOnlyOccurrenceCount() }} apenas
+                    em lista</span
+                  >
+                }
+                <span class="query-timestamp" data-testid="query-timestamp"
+                  >Consulta às {{ formatQueryTimestamp(queryReferenceDate()) }}</span
                 >
               </div>
             </div>
@@ -789,7 +837,10 @@
                 <div class="map-fallback" role="status">
                   <span class="fallback-mark" aria-hidden="true">⌖</span>
                   <strong>Não foi possível carregar o mapa</strong>
-                  <span>Os resultados continuam disponíveis na lista de resultados.</span>
+                  <span
+                    >Os resultados continuam disponíveis na lista de resultados. A falha no mapa não
+                    indica ausência de ocorrências nem comprovação de segurança.</span
+                  >
                   @if (mapErrorDetails()) {
                     <small class="map-error-details"
                       >Detalhe técnico: {{ mapErrorDetails() }}</small
@@ -1196,9 +1247,37 @@
                     >
                   </p>
                 </div>
-                <span>{{ visiblePoints().length }} itens</span>
+                @if (queryError()) {
+                  <span>Erro</span>
+                } @else if (queryLoading()) {
+                  <span>Carregando…</span>
+                } @else {
+                  <span>{{ visiblePoints().length }} itens</span>
+                }
               </div>
-              @if (visiblePoints().length) {
+              @if (queryError()) {
+                <div class="query-error-state" role="alert" data-testid="query-error-banner">
+                  <span class="query-error-icon" aria-hidden="true">⚠</span>
+                  <strong class="query-error-title">Não foi possível recuperar ocorrências</strong>
+                  <p class="query-error-description">
+                    {{ queryErrorMessage() }} Esta falha não indica ausência de ocorrências nem
+                    comprovação de segurança.
+                  </p>
+                  <button
+                    type="button"
+                    class="empty-action-btn"
+                    (click)="retryQuery()"
+                    data-testid="retry-query-btn"
+                  >
+                    Tentar carregar novamente
+                  </button>
+                </div>
+              } @else if (queryLoading()) {
+                <div class="query-loading-state" role="status" data-testid="query-loading-banner">
+                  <strong>Consultando ocorrências…</strong>
+                  <p>Aguarde enquanto os registros são atualizados.</p>
+                </div>
+              } @else if (visiblePoints().length) {
                 <ul class="result-list">
                   @for (point of visiblePoints(); track point.id) {
                     <li>
@@ -1284,9 +1363,39 @@
                   }
                 </ul>
               } @else {
-                <div class="empty-state">
-                  <span aria-hidden="true">⌕</span><strong>Nenhum resultado nesta combinação</strong
-                  ><span>Ative uma camada ou amplie o período para explorar a demonstração.</span>
+                <div class="empty-state" data-testid="consultation-empty">
+                  <span aria-hidden="true">⌕</span>
+                  <strong>Não encontramos ocorrências publicadas para estes filtros</strong>
+                  <span
+                    >Nenhum registro coincide com o recorte temporal, territorial e temático
+                    atual.</span
+                  >
+                  <div class="empty-state-actions">
+                    <button
+                      type="button"
+                      class="empty-action-btn"
+                      (click)="expandQueryPeriod()"
+                      data-testid="empty-expand-period-btn"
+                    >
+                      Ampliar período
+                    </button>
+                    <button
+                      type="button"
+                      class="empty-action-btn"
+                      (click)="expandQueryTerritory()"
+                      data-testid="empty-expand-territory-btn"
+                    >
+                      Ampliar território
+                    </button>
+                    <button
+                      type="button"
+                      class="empty-action-btn"
+                      (click)="clearQueryFilters()"
+                      data-testid="empty-clear-filters-btn"
+                    >
+                      Remover filtros
+                    </button>
+                  </div>
                 </div>
               }
               @if (visibleOpenResultDetailCount() >= 5) {

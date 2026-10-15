@@ -169,6 +169,99 @@
     font-weight: 500;
     line-height: 1.4;
   }
+  .query-update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    margin: 10px 0;
+    border: 1px solid var(--accent-subtle, rgba(99, 102, 241, 0.3));
+    border-radius: 8px;
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+    font-size: 0.8125rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+    .query-update-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .query-update-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .query-update-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      strong {
+        font-weight: 600;
+        color: var(--color-text-main);
+      }
+      span {
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+      }
+    }
+
+    .query-update-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .update-action-btn {
+      min-height: 32px;
+      padding: 6px 14px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 150ms ease-out;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+
+    .update-dismiss-btn {
+      min-height: 32px;
+      width: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--color-text-muted);
+      font: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+
+      &:hover {
+        color: var(--color-text-main);
+        border-color: var(--color-border-main);
+      }
+    }
+  }
   .skip-link {
     color: var(--color-bg-surface);
   }

@@ -1503,4 +1503,108 @@ describe('Vetor Urbano', () => {
     expect(app.activeFilters()).toContain('subtype:ROUBO:A pedestre');
     expect(app.modeNotice()).toBe('Filtros avançados reaplicados.');
   });
+
+  it('ticket 10: exibe aviso de atualizacao disponivel na sessao aberta e atualiza mantendo filtros', () => {
+    const app = fixture.componentInstance as unknown as {
+      pendingUpdateAvailable: () => boolean;
+      simulatePendingUpdate: () => void;
+      dismissPendingUpdate: () => void;
+      refreshLocalQuery: () => void;
+      activeFilters: () => string[];
+      toggleFilter: (id: string) => void;
+      period: () => string;
+      queryReferenceDate: () => Date;
+    };
+
+    app.toggleFilter('category:SEGURANCA');
+    const initialFilters = [...app.activeFilters()];
+    expect(app.pendingUpdateAvailable()).toBe(false);
+
+    app.simulatePendingUpdate();
+    expect(app.pendingUpdateAvailable()).toBe(true);
+    fixture.detectChanges();
+
+    const banner = fixture.nativeElement.querySelector('[data-testid="query-update-notice"]');
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toContain(
+      'Existem novas publicações disponíveis para esta consulta',
+    );
+
+    vi.setSystemTime(new Date('2026-10-15T15:30:00Z'));
+    app.refreshLocalQuery();
+    fixture.detectChanges();
+
+    expect(app.pendingUpdateAvailable()).toBe(false);
+    expect(app.activeFilters()).toEqual(initialFilters);
+    expect(app.queryReferenceDate().toISOString()).toBe('2026-10-15T15:30:00.000Z');
+  });
+
+  it('ticket 10: lida com consulta vazia oferecendo ampliacao de periodo, territorio e limpeza de filtros', () => {
+    const app = fixture.componentInstance as unknown as {
+      visiblePoints: () => unknown[];
+      period: () => string;
+      expandQueryPeriod: () => void;
+      expandQueryTerritory: () => void;
+      clearQueryFilters: () => void;
+      activeFilters: () => string[];
+      useRadius: () => boolean;
+      radiusMeters: () => number;
+      setRadiusMeters: (val: string) => void;
+      selectQueryMunicipality: (m: string) => void;
+      selectedMunicipality: () => string | null;
+      setTimeRange: (axis: 'start' | 'end', val: string) => void;
+    };
+
+    app.setTimeRange('start', '03:00');
+    app.setTimeRange('end', '03:01');
+    fixture.detectChanges();
+
+    const emptyElement = fixture.nativeElement.querySelector('[data-testid="consultation-empty"]');
+    expect(emptyElement).not.toBeNull();
+    expect(emptyElement.textContent).toContain(
+      'Não encontramos ocorrências publicadas para estes filtros',
+    );
+
+    expect(app.period()).toBe('24h');
+    app.expandQueryPeriod();
+    expect(app.period()).toBe('1w');
+
+    app.selectQueryMunicipality('Niterói');
+    expect(app.selectedMunicipality()).toBe('Niterói');
+    app.expandQueryTerritory();
+    expect(app.selectedMunicipality()).toBe('');
+
+    app.clearQueryFilters();
+    expect(app.period()).toBe('24h');
+  });
+
+  it('ticket 10: erro na consulta nao exibe zero valido nem afirmacao de seguranca e permite tentar novamente', () => {
+    const app = fixture.componentInstance as unknown as {
+      queryError: () => boolean;
+      queryErrorMessage: () => string;
+      simulateQueryError: (msg?: string) => void;
+      retryQuery: () => void;
+      eventCount: () => number;
+    };
+
+    expect(app.queryError()).toBe(false);
+    app.simulateQueryError('Falha no serviço de dados simulados.');
+    fixture.detectChanges();
+
+    expect(app.queryError()).toBe(true);
+
+    const errorState = fixture.nativeElement.querySelector('[data-testid="query-error-state"]');
+    expect(errorState).not.toBeNull();
+    expect(errorState.textContent).toContain('Consulta indisponível');
+
+    const errorBanner = fixture.nativeElement.querySelector('[data-testid="query-error-banner"]');
+    expect(errorBanner).not.toBeNull();
+    expect(errorBanner.textContent).toContain(
+      'Esta falha não indica ausência de ocorrências nem comprovação de segurança',
+    );
+
+    app.retryQuery();
+    fixture.detectChanges();
+    expect(app.queryError()).toBe(false);
+  });
 });

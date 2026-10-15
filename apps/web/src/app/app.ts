@@ -343,6 +343,10 @@ export class App implements AfterViewInit, OnDestroy {
   );
   protected readonly period = signal<DatePreset | 'custom' | 'ongoing'>('24h');
   protected readonly queryReferenceDate = signal(new Date());
+  protected readonly pendingUpdateAvailable = signal(false);
+  protected readonly queryLoading = signal(false);
+  protected readonly queryError = signal(false);
+  protected readonly queryErrorMessage = signal('');
   protected readonly customRangeStart = signal('');
   protected readonly customRangeEnd = signal('');
   protected readonly timeStart = signal('');
@@ -1145,6 +1149,17 @@ export class App implements AfterViewInit, OnDestroy {
     } catch {
       this.filtersCollapsed.set(true);
     }
+    (window as unknown as Record<string, unknown>)['vetorUrbano'] = {
+      simulatePendingUpdate: () => this.simulatePendingUpdate(),
+      dismissPendingUpdate: () => this.dismissPendingUpdate(),
+      simulateQueryLoading: (durationMs?: number) => this.simulateQueryLoading(durationMs),
+      simulateQueryError: (msg?: string) => this.simulateQueryError(msg),
+      retryQuery: () => this.retryQuery(),
+      refreshLocalQuery: () => this.refreshLocalQuery(),
+      expandQueryPeriod: () => this.expandQueryPeriod(),
+      expandQueryTerritory: () => this.expandQueryTerritory(),
+      clearQueryFilters: () => this.clearQueryFilters(),
+    };
     void this.initializeMap();
   }
 
@@ -1710,7 +1725,85 @@ export class App implements AfterViewInit, OnDestroy {
     this.refreshMapData();
   }
 
+  protected formatQueryTimestamp(date: Date): string {
+    return new Intl.DateTimeFormat('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'America/Sao_Paulo',
+    }).format(date);
+  }
+
+  protected simulatePendingUpdate(): void {
+    this.pendingUpdateAvailable.set(true);
+  }
+
+  protected dismissPendingUpdate(): void {
+    this.pendingUpdateAvailable.set(false);
+  }
+
+  protected simulateQueryLoading(durationMs = 400): void {
+    this.queryLoading.set(true);
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        this.queryLoading.set(false);
+      }, durationMs);
+    }
+  }
+
+  protected simulateQueryError(message?: string): void {
+    this.queryLoading.set(false);
+    this.queryError.set(true);
+    this.queryErrorMessage.set(message ?? 'Falha temporária ao recuperar ocorrências publicadas.');
+  }
+
+  protected retryQuery(): void {
+    this.queryError.set(false);
+    this.queryErrorMessage.set('');
+    this.refreshLocalQuery();
+  }
+
+  protected expandQueryPeriod(): void {
+    const current = this.period();
+    if (current === '24h') {
+      this.period.set('1w');
+    } else if (current === '1w') {
+      this.period.set('1m');
+    } else if (current === '1m') {
+      this.period.set('3m');
+    } else if (current === '3m') {
+      this.period.set('6m');
+    } else {
+      this.period.set('1y');
+    }
+    this.querySummaryNotice.set('Período ampliado para expandir os resultados.');
+    this.refreshMapData();
+  }
+
+  protected expandQueryTerritory(): void {
+    if (this.useRadius()) {
+      if (this.radiusMeters() < MAXIMUM_RADIUS_METERS) {
+        this.radiusMeters.set(MAXIMUM_RADIUS_METERS);
+      } else {
+        this.useRadius.set(false);
+      }
+    }
+    this.selectedMunicipality.set('');
+    this.selectedNeighborhood.set('');
+    this.visibleAreaBounds.set(null);
+    this.activeFilters.update((filters) =>
+      filters.filter(
+        (filter) => !filter.startsWith('municipality:') && !filter.startsWith('neighborhood:'),
+      ),
+    );
+    this.querySummaryNotice.set('Território ampliado para toda a Região Metropolitana.');
+    this.refreshMapData();
+  }
+
   protected refreshLocalQuery(): void {
+    this.pendingUpdateAvailable.set(false);
+    this.queryError.set(false);
+    this.queryErrorMessage.set('');
     this.queryReferenceDate.set(new Date());
     this.refreshMapData();
   }
