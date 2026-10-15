@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 import { Theme } from './core/theme/theme';
 import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
+import type { Coordinates } from './domain/occurrences';
 
 const territorialFixture = {
   type: 'FeatureCollection',
@@ -714,24 +715,68 @@ describe('Vetor Urbano', () => {
 
   it('consulta confirmações vigentes e preserva expiração como situação desconhecida', () => {
     const app = fixture.componentInstance as unknown as {
-      activeRecords: () => { id: string }[];
+      activeRecords: () => { id: string; situation?: string; isOngoing?: boolean }[];
       historyRecords: () => { id: string; situation?: string }[];
       queryReferenceDate: { set: (date: Date) => void };
-      allPoints: () => { id: string; expiresAt?: string }[];
+      allPoints: () => { id: string; coordinates?: Coordinates; expiresAt?: string }[];
+      setInformesCoordinate: (axis: 'longitude' | 'latitude', value: string) => void;
     };
-    expect(app.activeRecords().map((record) => record.id)).toEqual([
-      'demo-002',
-      'demo-transito-007',
-    ]);
-    const expiresAt = app.allPoints().find((record) => record.id === 'demo-002')?.expiresAt;
+    const demo002 = app.allPoints().find((record) => record.id === 'demo-002');
+    expect(demo002).toBeTruthy();
+    if (demo002?.coordinates) {
+      app.setInformesCoordinate('longitude', String(demo002.coordinates[0]));
+      app.setInformesCoordinate('latitude', String(demo002.coordinates[1]));
+    }
+
+    const initialRecord = app.activeRecords().find((record) => record.id === 'demo-002');
+    expect(initialRecord?.situation).toBe('ONGOING');
+    expect(initialRecord?.isOngoing).toBe(true);
+
+    const expiresAt = demo002?.expiresAt;
     expect(expiresAt).toBeTruthy();
 
     app.queryReferenceDate.set(new Date(Date.parse(expiresAt!) + 1000));
 
-    expect(app.activeRecords()).toEqual([]);
+    const expiredRecord = app.activeRecords().find((record) => record.id === 'demo-002');
+    expect(expiredRecord?.situation).toBe('UNKNOWN');
+    expect(expiredRecord?.isOngoing).toBe(false);
     expect(app.historyRecords().find((record) => record.id === 'demo-002')?.situation).toBe(
       'UNKNOWN',
     );
+  });
+
+  it('limita o raio dos informes ao teto de 5 km e atualiza o centro por escolha manual', () => {
+    const app = fixture.componentInstance as unknown as {
+      informesRadiusMeters: () => number;
+      informesCenter: () => { longitude: string; latitude: string };
+      setInformesRadius: (value: number | string) => void;
+      setInformesCoordinate: (axis: 'longitude' | 'latitude', value: string) => void;
+      beginMapPick: (purpose: 'active') => void;
+      acceptMapPick: (lng: number, lat: number) => void;
+      activeView: () => string;
+      mapPickPurpose: () => string | null;
+      activeRecords: () => { id: string; distanceMeters?: number }[];
+    };
+
+    expect(app.informesRadiusMeters()).toBe(5000);
+    // Tenta ultrapassar o limite de 5 km
+    app.setInformesRadius(15000);
+    expect(app.informesRadiusMeters()).toBe(5000);
+
+    // Ajusta raio para 2 km
+    app.setInformesRadius(2000);
+    expect(app.informesRadiusMeters()).toBe(2000);
+
+    // Escolha manual via mapa
+    app.beginMapPick('active');
+    expect(app.mapPickPurpose()).toBe('active');
+    expect(app.activeView()).toBe('map');
+
+    // Clica no mapa em Engenho de Dentro [-43.3, -22.891]
+    app.acceptMapPick(-43.3, -22.891);
+    expect(app.mapPickPurpose()).toBeNull();
+    expect(app.activeView()).toBe('active');
+    expect(app.informesCenter()).toEqual({ longitude: '-43.3', latitude: '-22.891' });
   });
 
   it('accepts a map-picked radius center without sending a request', () => {

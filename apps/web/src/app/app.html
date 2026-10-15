@@ -811,7 +811,9 @@
                   {{
                     mapPickPurpose() === 'radius'
                       ? 'definir o centro da busca'
-                      : 'escolher o local do registro'
+                      : mapPickPurpose() === 'active'
+                        ? 'definir o centro dos Informes ativos'
+                        : 'escolher o local do registro'
                   }}.
                   <button type="button" class="inline-retry" (click)="cancelMapPick()">
                     Cancelar
@@ -1362,37 +1364,145 @@
             <p class="eyebrow">Acompanhamento · protótipo local</p>
             <h1 id="active-heading" data-view-title="active" tabindex="-1">Informes ativos</h1>
             <p class="page-intro">
-              Confirmações vigentes nesta demonstração local. A situação é distinta de aprovação
-              editorial.
+              Ocorrências das últimas 24 horas (inclusive encerradas) e vigentes antigas em um raio
+              de até 5 km do ponto selecionado.
             </p>
           </div>
-          <span class="account-badge">{{ activeRecords().length }} em acompanhamento</span>
+          <span class="account-badge" data-testid="informes-badge">
+            {{ activeRecords().length }}
+            {{ activeRecords().length === 1 ? 'informe próximo' : 'informes próximos' }}
+          </span>
         </header>
+
         <aside class="workspace-notice" role="note">
-          Expiração significa falta de confirmação recente, não resolução. Nenhuma fonte está
-          conectada automaticamente e não há garantia de tempo real.
+          Expiração significa falta de confirmação recente, não resolução. Ponto central e raio de
+          até 5 km com escolha manual sempre disponível. Informações puramente territoriais não
+          entram na proximidade sem coordenadas precisas.
         </aside>
+
+        <div
+          class="informes-controls-card"
+          role="region"
+          aria-label="Parâmetros de proximidade dos Informes ativos"
+        >
+          <div class="informes-controls-row">
+            <div class="informes-control-group">
+              <label for="informes-radius-input" class="informes-label">
+                Raio de busca (máximo 5 km)
+              </label>
+              <div class="informes-radius-field">
+                <input
+                  id="informes-radius-input"
+                  data-testid="informes-radius-input"
+                  type="number"
+                  class="informes-input radius-input"
+                  min="100"
+                  max="5000"
+                  step="100"
+                  [value]="informesRadiusMeters()"
+                  (input)="setInformesRadius($any($event.target).value, $any($event.target))"
+                  aria-describedby="informes-radius-hint"
+                />
+                <span class="informes-radius-unit">m</span>
+                <span class="informes-radius-badge" data-testid="informes-radius-badge">
+                  {{ formatDistance(informesRadiusMeters()) }}
+                </span>
+              </div>
+              <p id="informes-radius-hint" class="informes-hint">
+                Raio inicial e máximo de 5.000 m (5 km). Não herda o teto antigo de 25 km do mapa.
+              </p>
+            </div>
+
+            <div class="informes-control-group">
+              <span class="informes-label">Ponto central de referência (WGS84)</span>
+              <div class="informes-coords-row">
+                <label class="informes-coord-label">
+                  Long:
+                  <input
+                    id="informes-lng-input"
+                    data-testid="informes-lng-input"
+                    type="text"
+                    class="informes-input coord-input"
+                    [value]="informesCenter().longitude"
+                    (input)="setInformesCoordinate('longitude', $any($event.target).value)"
+                  />
+                </label>
+                <label class="informes-coord-label">
+                  Lat:
+                  <input
+                    id="informes-lat-input"
+                    data-testid="informes-lat-input"
+                    type="text"
+                    class="informes-input coord-input"
+                    [value]="informesCenter().latitude"
+                    (input)="setInformesCoordinate('latitude', $any($event.target).value)"
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="map-tool-button informes-pick-btn"
+                  data-testid="informes-pick-map-btn"
+                  (click)="beginMapPick('active')"
+                >
+                  Escolher local no mapa
+                </button>
+              </div>
+              <p class="informes-hint">
+                Escolha manual sempre disponível. Registros sem precisão geográfica suficiente são
+                excluídos da proximidade.
+              </p>
+            </div>
+          </div>
+        </div>
+
         @if (activeRecords().length) {
-          <div class="workspace-list">
+          <div class="workspace-list" data-testid="informes-list">
             @for (record of activeRecords(); track record.id) {
-              <article class="workspace-record">
+              <article
+                class="workspace-record"
+                [class.is-ongoing]="record.isOngoing"
+                [attr.data-testid]="'informes-record-' + record.id"
+              >
                 <div class="record-status">
-                  <span class="status-pill active-status">{{
-                    situationLabel(record.situation)
-                  }}</span
-                  ><span
-                    >Última checagem:
+                  <span
+                    class="status-pill active-status"
+                    [class.ongoing-highlight]="record.isOngoing"
+                    [class.resolved-status]="record.isClosed"
+                    [class.unknown-status]="record.isUnknown"
+                    data-testid="informes-record-situation"
+                  >
+                    {{ situationLabel(record.situation) }}
+                  </span>
+                  @if (record.isOngoing) {
+                    <span class="ongoing-badge" data-testid="ongoing-badge">Em andamento</span>
+                  }
+                  @if (record.isUncertainTime) {
+                    <span class="uncertain-badge" data-testid="uncertain-time-badge">
+                      Horário incerto
+                    </span>
+                  }
+                  @if (record.isUncertainSituation) {
+                    <span class="uncertain-badge" data-testid="uncertain-situation-badge">
+                      Situação incerta
+                    </span>
+                  }
+                  <span class="distance-pill" data-testid="informes-record-distance">
+                    {{ record.distanceLabel }} do ponto
+                  </span>
+                  <span>
+                    Última checagem:
                     {{
                       record.lastCheckedAt ? formatDateTime(record.lastCheckedAt) : 'não informada'
-                    }}</span
-                  >
+                    }}
+                  </span>
                 </div>
                 <h2>{{ record.name }}</h2>
                 <p>{{ record.description }}</p>
                 <div class="record-meta">
-                  <span>{{ record.location }}</span
-                  ><span>{{ recordTypeLabel(record) }}</span
-                  ><span>Gravidade informada: {{ record.severity || 'não informada' }}</span>
+                  <span>{{ record.location }}</span>
+                  <span>{{ recordTypeLabel(record) }}</span>
+                  <span>{{ formatFactTime(record) }}</span>
+                  <span>Gravidade informada: {{ record.severity || 'não informada' }}</span>
                 </div>
                 <div class="record-actions">
                   <button type="button" class="map-tool-button" (click)="showDetails(record)">
@@ -1410,9 +1520,20 @@
             }
           </div>
         } @else {
-          <div class="workspace-empty">
-            <strong>Nenhum informe ativo nesta sessão.</strong
-            ><span>Novas fontes ainda não foram conectadas.</span>
+          <div class="workspace-empty" data-testid="informes-empty">
+            <strong>
+              Nenhum informe ativo encontrado neste raio de
+              {{ formatDistance(informesRadiusMeters()) }}.
+            </strong>
+            <span> Altere o ponto de referência manual ou aumente o raio até o teto de 5 km. </span>
+            <button
+              type="button"
+              class="map-tool-button"
+              data-testid="informes-reset-btn"
+              (click)="resetInformesCenter()"
+            >
+              Restaurar centro de referência
+            </button>
           </div>
         }
         @if (selectedDetail(); as detail) {

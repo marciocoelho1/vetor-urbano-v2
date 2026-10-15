@@ -41,6 +41,13 @@ import {
   temporalInclusion,
 } from './domain/temporal';
 import {
+  formatDistance,
+  INFORMES_INITIAL_RADIUS_METERS,
+  INFORMES_MAXIMUM_RADIUS_METERS,
+  INFORMES_MINIMUM_RADIUS_METERS,
+  queryActiveReports,
+} from './domain/active-reports';
+import {
   riskAreaDetails,
   riskAreaTemporalWarning,
   type RiskAreaCode,
@@ -346,7 +353,24 @@ export class App implements AfterViewInit, OnDestroy {
     longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),
     latitude: String(CENTRAL_DO_BRASIL_CENTER[1]),
   });
-  protected readonly mapPickPurpose = signal<'report' | 'radius' | null>(null);
+  protected readonly mapPickPurpose = signal<'report' | 'radius' | 'active' | null>(null);
+  protected readonly formatDistance = formatDistance;
+  protected readonly informesRadiusMeters = signal(INFORMES_INITIAL_RADIUS_METERS);
+  protected readonly informesCenter = signal({
+    longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),
+    latitude: String(CENTRAL_DO_BRASIL_CENTER[1]),
+  });
+  protected readonly informesRadiusError = computed(() => {
+    const radius = this.informesRadiusMeters();
+    if (
+      !Number.isFinite(radius) ||
+      radius < INFORMES_MINIMUM_RADIUS_METERS ||
+      radius > INFORMES_MAXIMUM_RADIUS_METERS
+    ) {
+      return `O raio dos Informes ativos precisa estar entre ${INFORMES_MINIMUM_RADIUS_METERS} e ${INFORMES_MAXIMUM_RADIUS_METERS} m (máximo de 5 km).`;
+    }
+    return null;
+  });
   protected readonly savedSearches = signal<SavedSearch[]>([]);
   protected readonly savedSearchName = signal('');
   protected readonly historyQuery = signal('');
@@ -894,8 +918,29 @@ export class App implements AfterViewInit, OnDestroy {
         (left, right) => Date.parse(right.occurredAt ?? '') - Date.parse(left.occurredAt ?? ''),
       ),
   );
+  protected readonly activeReportItems = computed(() => {
+    const center = this.informesCenter();
+    const longitude = Number(center.longitude);
+    const latitude = Number(center.latitude);
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return [];
+    return queryActiveReports(this.allPoints(), {
+      center: [longitude, latitude],
+      radiusMeters: this.informesRadiusMeters(),
+      referenceTime: this.queryReferenceDate(),
+    });
+  });
   protected readonly activeRecords = computed(() =>
-    this.historyRecords().filter((point) => point.situation === 'ONGOING'),
+    this.activeReportItems().map((item) => ({
+      ...item.record,
+      distanceMeters: item.distanceMeters,
+      distanceLabel: item.distanceLabel,
+      isOngoing: item.isOngoing,
+      isClosed: item.isClosed,
+      isUnknown: item.isUnknown,
+      isUncertainTime: item.isUncertainTime,
+      isUncertainSituation: item.isUncertainSituation,
+      temporalStatus: item.temporalStatus,
+    })),
   );
   private readonly relatedDetailIds = signal<Record<string, string>>({});
   protected readonly happeningCount = computed(
@@ -1494,7 +1539,11 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected cancelMapPick(): void {
+    const purpose = this.mapPickPurpose();
     this.mapPickPurpose.set(null);
+    if (purpose === 'active') {
+      this.activeView.set('active');
+    }
   }
 
   protected retryMap(): void {
@@ -1708,10 +1757,36 @@ export class App implements AfterViewInit, OnDestroy {
     this.refreshMapData();
   }
 
-  protected beginMapPick(purpose: 'report' | 'radius'): void {
+  protected setInformesCoordinate(axis: 'longitude' | 'latitude', value: string): void {
+    this.informesCenter.update((center) => ({ ...center, [axis]: value }));
+  }
+
+  protected setInformesRadius(value: string | number, target?: HTMLInputElement): void {
+    const radius = Number(value);
+    if (Number.isFinite(radius)) {
+      const clamped = Math.min(
+        INFORMES_MAXIMUM_RADIUS_METERS,
+        Math.max(INFORMES_MINIMUM_RADIUS_METERS, radius),
+      );
+      this.informesRadiusMeters.set(clamped);
+      if (target && target.value !== String(clamped)) {
+        target.value = String(clamped);
+      }
+    }
+  }
+
+  protected resetInformesCenter(): void {
+    this.informesCenter.set({
+      longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),
+      latitude: String(CENTRAL_DO_BRASIL_CENTER[1]),
+    });
+    this.informesRadiusMeters.set(INFORMES_INITIAL_RADIUS_METERS);
+  }
+
+  protected beginMapPick(purpose: 'report' | 'radius' | 'active'): void {
     this.mapPickPurpose.set(purpose);
     this.consultationView.set('map');
-    if (purpose === 'report') this.activeView.set('map');
+    if (purpose === 'report' || purpose === 'active') this.activeView.set('map');
     requestAnimationFrame(() => {
       this.map?.resize();
       this.fallbackMap?.invalidateSize();
@@ -1726,6 +1801,9 @@ export class App implements AfterViewInit, OnDestroy {
       this.pointConfirmed.set(true);
       this.reportStatus.set('Ponto escolhido no mapa e confirmado para esta demonstração.');
       this.activeView.set('report');
+    } else if (purpose === 'active') {
+      this.informesCenter.set({ longitude: String(longitude), latitude: String(latitude) });
+      this.activeView.set('active');
     } else {
       this.searchCenter.set({ longitude: String(longitude), latitude: String(latitude) });
       this.useRadius.set(true);
