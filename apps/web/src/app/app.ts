@@ -53,11 +53,14 @@ import {
   relateDemoOccurrences,
 } from './data/demo-occurrences';
 
+import { SOURCE_PLACEHOLDER, SYNTHETIC_PUBLIC_SOURCES } from './data/demo-sources';
+
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
-type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report';
+type PublicPage = 'public-sources' | 'reliability';
+type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report' | PublicPage;
 type TerritoryCode = RiskAreaCode;
 type TerritoryProperties = { n: string; f: TerritoryCode; demoDetails?: RiskAreaDetails };
 type TerritoryFeature = Feature<Polygon | MultiPolygon, TerritoryProperties> & { id: number };
@@ -96,14 +99,6 @@ type DemoClip = {
   status: ClipStatus;
   eventId?: string;
   referenceUrl?: string;
-};
-type SourceCard = {
-  id: string;
-  name: string;
-  url?: string;
-  format: string;
-  state: string;
-  note: string;
 };
 type LeafletMap = import('leaflet').Map;
 type LeafletLayerGroup = import('leaflet').LayerGroup;
@@ -189,48 +184,6 @@ const TERRITORY_GROUPS: TerritoryGroup[] = [
   { id: 'NEU', label: 'Área classificada como neutra pela fonte', color: '#8C97A3', count: 21 },
 ];
 const TERRITORY_GROUP_BY_ID = new Map(TERRITORY_GROUPS.map((group) => [group.id, group]));
-const OPEN_SOURCES: SourceCard[] = [
-  {
-    id: 'isp-rj',
-    name: 'ISP-RJ',
-    url: 'https://www.ispdados.rj.gov.br/estatistica.html',
-    format: 'CSV agregado',
-    state: 'IMPORTAÇÃO MANUAL',
-    note: 'Séries por território e período; não converter totais em pontos individuais.',
-  },
-  {
-    id: 'fogo-cruzado',
-    name: 'Fogo Cruzado',
-    url: 'https://api.fogocruzado.org.br/docs',
-    format: 'API de eventos',
-    state: 'AUTORIZAÇÃO NECESSÁRIA',
-    note: 'A conexão automática não está ativada; credenciais nunca ficam no navegador.',
-  },
-  {
-    id: 'ott',
-    name: 'OTT360',
-    url: 'https://ondetemtiroteio.com/website/ott/index.html',
-    format: 'Feed/API a confirmar',
-    state: 'FORMATO PENDENTE',
-    note: 'Exige autorização, termos de reutilização e contrato de atualização.',
-  },
-  {
-    id: 'cor-rio',
-    name: 'COR-Rio / órgãos municipais',
-    url: 'https://cor.rio/',
-    format: 'Boletim/feed a confirmar',
-    state: 'FORMATO PENDENTE',
-    note: 'Não há conexão com sistemas internos nem confirmação automática de resolução.',
-  },
-  {
-    id: 'clippings',
-    name: 'Publicações e imprensa',
-
-    format: 'Referência revisada',
-    state: 'REVISÃO MANUAL',
-    note: 'Guardar referência e metadados; direitos de texto integral dependem de licença.',
-  },
-];
 const DEMO_AGGREGATES: AggregateStatistic[] = [
   {
     territory: 'Centro (exemplo sintético)',
@@ -390,7 +343,10 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly clipTarget = signal<Record<string, string>>({});
   protected readonly clipsQuery = signal('');
   protected readonly clipDraft = signal({ title: '', publisher: '', referenceUrl: '' });
-  protected readonly sourceCards = OPEN_SOURCES;
+  protected readonly sourcePlaceholder = SOURCE_PLACEHOLDER;
+  protected readonly syntheticSources = SYNTHETIC_PUBLIC_SOURCES;
+  protected readonly sourceCards = [SOURCE_PLACEHOLDER, ...SYNTHETIC_PUBLIC_SOURCES];
+  private publicPageOrigins: { view: ViewId; focusId: string; scrollY: number }[] = [];
   protected readonly aggregateData = computed(() =>
     this.importedAggregates().length ? this.importedAggregates() : DEMO_AGGREGATES,
   );
@@ -1000,6 +956,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected openView(view: ViewId): void {
+    this.publicPageOrigins = [];
     this.activeView.set(view);
     this.mapExpanded.set(false);
     this.reportStatus.set('');
@@ -1015,6 +972,35 @@ export class App implements AfterViewInit, OnDestroy {
       if (view === 'report' && this.selectedCategory()) void this.initializeReportMap();
       if (view !== 'report') this.disposeReportMap();
       document.querySelector<HTMLElement>(`[data-view-title="${view}"]`)?.focus();
+    });
+  }
+
+  protected openPublicPage(page: PublicPage, event: Event): void {
+    event.preventDefault();
+    if (this.activeView() === page) return;
+    const element = event.currentTarget as HTMLElement;
+    this.publicPageOrigins.push({
+      view: this.activeView(),
+      focusId: element.id,
+      scrollY: window.scrollY,
+    });
+    this.activeView.set(page);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(`[data-view-title="${page}"]`)?.focus(),
+    );
+  }
+
+  protected returnFromPublicPage(): void {
+    const origin = this.publicPageOrigins.pop();
+    this.activeView.set(origin?.view ?? 'map');
+    requestAnimationFrame(() => {
+      if (this.activeView() === 'map') {
+        this.map?.resize();
+        this.fallbackMap?.invalidateSize();
+      }
+      window.scrollTo(0, origin?.scrollY ?? 0);
+      const target = origin ? document.getElementById(origin.focusId) : null;
+      (target ?? document.getElementById('main-content'))?.focus({ preventScroll: true });
     });
   }
 
