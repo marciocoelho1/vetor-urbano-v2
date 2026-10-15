@@ -36,3 +36,21 @@
 .consultation-sidebar .results-heading {
   flex-shrink: 0;
 }
+
+.public-information {
+  max-width: 960px;
+  margin-inline: auto;
+
+  > h2 {
+    margin-top: 24px;
+  }
+  > .map-tool-button {
+    margin-top: 24px;
+  }
+  .workspace-card p {
+    line-height: 1.7;
+  }
+  a {
+    overflow-wrap: anywhere;
+  }
+}

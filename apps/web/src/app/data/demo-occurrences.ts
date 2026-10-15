@@ -187,7 +187,8 @@ export function relateDemoOccurrences<T extends DemoRecord>(records: T[]): T[] {
     if (record.kind !== 'occurrence') return record;
     const reference = (suffix: string) => ({
       id: `${record.id}-${suffix}`,
-      sourceName: 'Fonte fictícia — Demonstração local',
+      sourceName:
+        suffix === 'B' ? 'Canal fictício sem URL pública' : 'Fonte fictícia — Demonstração local',
       title: `Publicação fictícia ${suffix}`,
       identifier: `DEMO:${record.id}:${suffix}`,
       url: `https://example.invalid/publicacoes/${record.id}/${suffix}`,
