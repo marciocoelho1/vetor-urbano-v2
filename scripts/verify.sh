@@ -15,7 +15,7 @@ Aliases de compatibilidade: frontend = web; backend = api.
 docs      Confere orientação/referências, links Markdown locais e sintaxe Bash.
 planning  Confere docs + presença dos documentos atuais de produto/roadmap.
 web       Exige projeto e dependências locais; executa lint, test:ci e build.
-api       Exige Maven Wrapper, Java e Docker; executa Maven clean verify.
+api       Exige Maven Wrapper, JDK e Docker ou Podman com API compatível; executa clean verify.
 all       Executa planning, web e api; exige as duas aplicações.
 
 Sem argumento: mostra esta ajuda. Não assume que algum teste passou.
@@ -23,7 +23,7 @@ Status: 0 = comando concluído; 2 = uso/pré-requisito ausente;
 outros erros = status devolvido pela ferramenta que falhou.
 
 docs/planning conferem estrutura, não qualidade dos requisitos nem produto.
-web está disponível; api/all ficam bloqueados até existir a aplicação Java.
+web está disponível; api/all executam testes unitários e de integração com PostgreSQL/PostGIS real.
 HELP
 }
 
@@ -95,11 +95,27 @@ NODE
 check_api() {
   require_file apps/api/pom.xml
   require_command java
-  require_command docker
+  require_command javac
   require_file apps/api/mvnw
   require_file apps/api/.mvn/wrapper/maven-wrapper.properties
   [[ -x apps/api/mvnw ]] || blocked 'apps/api/mvnw precisa de permissão de execução.'
-  docker info >/dev/null 2>&1 || blocked 'Docker não está acessível; necessário aos testes de integração PostgreSQL/PostGIS via Testcontainers.'
+  if command -v docker >/dev/null 2>&1; then
+    docker info >/dev/null 2>&1 || blocked 'Docker não está acessível; necessário aos testes PostgreSQL/PostGIS via Testcontainers.'
+  elif command -v podman >/dev/null 2>&1; then
+    podman info >/dev/null 2>&1 || blocked 'Podman não está acessível para iniciar PostgreSQL/PostGIS via Testcontainers.'
+    require_command curl
+    local vu_docker_host="${DOCKER_HOST:-unix://${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
+    [[ "$vu_docker_host" == unix://* ]] || blocked 'Para Podman, DOCKER_HOST precisa apontar para um socket Unix da API compatível com Docker.'
+    local vu_podman_socket="${vu_docker_host#unix://}"
+    [[ -S "$vu_podman_socket" ]] || blocked "Socket da API Podman ausente: $vu_podman_socket. Inicie o serviço Podman e informe DOCKER_HOST=unix://<socket>."
+    if ! curl --fail --silent --show-error --unix-socket "$vu_podman_socket" http://d/_ping | grep -qx 'OK'; then
+      blocked "API Podman não respondeu em $vu_podman_socket; necessário para Testcontainers."
+    fi
+    export DOCKER_HOST="$vu_docker_host"
+    export TESTCONTAINERS_RYUK_DISABLED="${TESTCONTAINERS_RYUK_DISABLED:-true}"
+  else
+    blocked 'Docker ou Podman não está disponível; necessário aos testes PostgreSQL/PostGIS via Testcontainers.'
+  fi
   (
     cd -- "$VU_ROOT/apps/api"
     ./mvnw -B -ntp \

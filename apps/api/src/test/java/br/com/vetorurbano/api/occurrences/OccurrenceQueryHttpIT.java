@@ -1,0 +1,277 @@
+package br.com.vetorurbano.api.occurrences;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.server.context.WebServerApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+@Testcontainers
+class OccurrenceQueryHttpIT {
+    private static final DockerImageName POSTGIS_IMAGE = DockerImageName
+            .parse("postgis/postgis:17-3.5")
+            .asCompatibleSubstituteFor("postgres");
+    private static final JsonMapper JSON = JsonMapper.builder().build();
+
+    @Container
+    private static final PostgreSQLContainer<?> POSTGIS = new PostgreSQLContainer<>(POSTGIS_IMAGE)
+            .withDatabaseName("vetor_urbano_http_test")
+            .withUsername("vetor_http_test")
+            .withPassword("vetor_http_test");
+
+    private final HttpClient http = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    @Test
+    void realHttpReturnsOnlyPublishedOccurrencesAndSurvivesApiRestart() throws Exception {
+        JsonNode firstResponse;
+        try (var application = startApi()) {
+            var response = get(application, allDefaultWindow());
+            assertEquals(200, response.statusCode());
+            firstResponse = JSON.readTree(response.body());
+            assertDefaultCounts(firstResponse);
+            assertEquals(4, firstResponse.path("items").size());
+            assertFalse(response.body().contains("Controle não publicado"));
+            assertFalse(response.body().contains("internalEvaluation"));
+
+            var territorialRecord = findItem(firstResponse, "vu-demo-occurrence-territory-001");
+            assertEquals("TERRITORY", territorialRecord.path("locationPrecision").asString());
+            assertTrue(territorialRecord.path("coordinates").isNull());
+
+            var transitResponse = get(application, allDefaultWindow() + "&category=TRANSITO");
+            assertEquals(200, transitResponse.statusCode());
+            var transit = JSON.readTree(transitResponse.body());
+            assertEquals(1, transit.path("counts").path("occurrences").asInt());
+            assertEquals(1, transit.path("counts").path("happenings").asInt());
+            assertEquals(2, transit.path("relatedItems").size());
+            assertEquals("POSSIBLE", findIn(transit.path("relatedItems"), "vu-demo-occurrence-contingency-001").path("temporalMatch").asString());
+            assertFalse(transitResponse.body().contains("pending-control"));
+            assertEquals(
+                    3,
+                    findItem(transit, "vu-demo-occurrence-traffic-001").path("clippings").size());
+
+            var sourceResponse = get(application, allDefaultWindow() + "&sourceId=vu-demo-source-002");
+            assertEquals(1, JSON.readTree(sourceResponse.body()).path("counts").path("occurrences").asInt());
+            var textResponse = get(application, allDefaultWindow() + "&text=colisao&minReliability=3");
+            assertEquals(1, JSON.readTree(textResponse.body()).path("counts").path("occurrences").asInt());
+            var situationResponse = get(application, allDefaultWindow() + "&situation=ONGOING");
+            assertEquals(1, JSON.readTree(situationResponse.body()).path("counts").path("occurrences").asInt());
+        }
+
+        try (var restartedApplication = startApi()) {
+            var afterRestart = get(restartedApplication, allDefaultWindow());
+            assertEquals(200, afterRestart.statusCode());
+            var body = JSON.readTree(afterRestart.body());
+            assertDefaultCounts(body);
+            assertEquals(
+                    3,
+                    findItem(body, "vu-demo-occurrence-traffic-001").path("clippings").size());
+        }
+    }
+
+    @Test
+    void httpHonorsOffsetHalfOpenIntervalsAndPostgisDistanceBoundary() throws Exception {
+        try (var application = startApi()) {
+            var endExclusive = get(application,
+                    "periodStart=2026-10-14T14:00:00Z"
+                            + "&periodEnd=2026-10-14T15:00:00Z"
+                            + "&category=TRANSITO");
+            assertEquals(200, endExclusive.statusCode());
+            var empty = JSON.readTree(endExclusive.body());
+            assertEquals(0, empty.path("counts").path("occurrences").asInt());
+            assertEquals(0, empty.path("counts").path("happenings").asInt());
+            assertEquals(0, empty.path("items").size());
+
+            var offsetInterval = get(application,
+                    "periodStart=2026-10-15T05:00:00-03:00"
+                            + "&periodEnd=2026-10-15T10:00:00-03:00"
+                            + "&category=CONTINGENCIA");
+            assertEquals(200, offsetInterval.statusCode());
+            var temporal = JSON.readTree(offsetInterval.body());
+            assertEquals(2, temporal.path("counts").path("occurrences").asInt());
+            assertEquals(1, temporal.path("counts").path("temporallyCertain").asInt());
+            assertEquals(1, temporal.path("counts").path("temporallyPossible").asInt());
+            assertEquals(
+                    "POSSIBLE",
+                    findItem(temporal, "vu-demo-occurrence-contingency-001")
+                            .path("temporalMatch")
+                            .asString());
+            assertEquals(
+                    "2026-10-14T14:00:00Z",
+                    findItem(temporal, "vu-demo-occurrence-contingency-001")
+                            .path("temporal")
+                            .path("occurredFrom")
+                            .asString());
+
+            // 08:00–10:00 -03 = 11:00–13:00Z: excludes the exact fact at 09:00Z.
+            var laterWindow = get(application,
+                    "periodStart=2026-10-15T08:00:00-03:00"
+                            + "&periodEnd=2026-10-15T10:00:00-03:00"
+                            + "&category=CONTINGENCIA");
+            var later = JSON.readTree(laterWindow.body());
+            assertEquals("OUTSIDE", findIn(later.path("relatedItems"), "vu-demo-occurrence-traffic-001").path("temporalMatch").asString());
+            assertEquals(200, laterWindow.statusCode());
+            assertEquals(1, later.path("counts").path("occurrences").asInt());
+            assertEquals(0, later.path("counts").path("temporallyCertain").asInt());
+            assertEquals(1, later.path("counts").path("temporallyPossible").asInt());
+            var utcWindow = get(application,
+                    "periodStart=2026-10-15T08:00:00Z&periodEnd=2026-10-15T13:00:00Z"
+                            + "&category=CONTINGENCIA");
+            assertEquals(temporal.path("items"), JSON.readTree(utcWindow.body()).path("items"));
+
+            var base = "periodStart=2026-10-14T15:00:00Z"
+                    + "&periodEnd=2026-10-15T10:00:00Z"
+                    + "&category=CONTINGENCIA"
+                    + "&longitude=-43.1915&latitude=-22.9033";
+            var atBoundary = get(application, base + "&radiusMeters=1000");
+            var beforeBoundary = get(application, base + "&radiusMeters=999");
+            assertEquals(200, atBoundary.statusCode());
+            assertEquals(200, beforeBoundary.statusCode());
+            assertEquals(
+                    2,
+                    JSON.readTree(atBoundary.body()).path("counts").path("occurrences").asInt());
+            assertEquals(
+                    1,
+                    JSON.readTree(beforeBoundary.body()).path("counts").path("occurrences").asInt());
+            assertEquals(
+                    1,
+                    JSON.readTree(beforeBoundary.body()).path("counts").path("mappedOccurrences").asInt());
+        }
+    }
+
+    @Test
+    void httpCombinesFiltersAndPreservesExistingDailyAndVisibleAreaSemantics() throws Exception {
+        try (var application = startApi()) {
+            var combined = get(application, allDefaultWindow()
+                    + "&category=TRANSITO&category=SEGURANCA&type=ACIDENTE"
+                    + "&subtype=ACIDENTE:COLISAO&sourceId=vu-demo-source-002"
+                    + "&municipality=Rio%20de%20Janeiro&neighborhood=Centro"
+                    + "&minReliability=3&maxReliability=3&situation=UNKNOWN&text=COLISAO");
+            assertEquals(200, combined.statusCode());
+            assertEquals(1, JSON.readTree(combined.body()).path("counts").path("occurrences").asInt());
+            var mismatch = get(application, allDefaultWindow() + "&type=FURTO&subtype=ACIDENTE:NAO_INFORMADO");
+            assertEquals(200, mismatch.statusCode());
+            assertEquals(0, JSON.readTree(mismatch.body()).path("items").size());
+            var clock = get(application, allDefaultWindow() + "&timeStart=05:00&timeEnd=07:00");
+            assertEquals(200, clock.statusCode());
+            assertEquals(2, JSON.readTree(clock.body()).path("items").size());
+            var wrap = get(application, allDefaultWindow() + "&timeStart=22:00&timeEnd=07:00");
+            assertEquals(2, JSON.readTree(wrap.body()).path("items").size());
+            var bounds = get(application, allDefaultWindow() + "&west=-43.20&south=-22.91&east=-43.17&north=-22.90");
+            assertEquals(200, bounds.statusCode());
+            assertEquals(3, JSON.readTree(bounds.body()).path("counts").path("mappedOccurrences").asInt());
+            assertEquals(0, JSON.readTree(bounds.body()).path("counts").path("listOnlyOccurrences").asInt());
+            var ongoing = get(application, "situation=ONGOING");
+            assertEquals(200, ongoing.statusCode());
+            assertEquals(1, JSON.readTree(ongoing.body()).path("items").size());
+            for (var invalid : java.util.List.of("timeStart=25:00", "west=-43", "timeEnd=7:00", "subtype=bad%20value")) {
+                var response = get(application, allDefaultWindow() + "&" + invalid);
+                assertEquals(400, response.statusCode(), invalid);
+                assertFalse(JSON.readTree(response.body()).has("counts"));
+            }
+            assertEquals(400, get(application, "situation=UNKNOWN").statusCode());
+        }
+    }
+
+    @Test
+    void invalidHttpQueriesReturnBadRequestInsteadOfAValidZero() throws Exception {
+        try (var application = startApi()) {
+            var response = get(application,
+                    "periodStart=2026-10-15T15:00:00Z"
+                            + "&periodEnd=2026-10-14T15:00:00Z");
+            assertEquals(400, response.statusCode());
+            var body = JSON.readTree(response.body());
+            assertEquals("INVALID_QUERY", body.path("error").path("code").asString());
+            assertFalse(body.has("counts"));
+        }
+    }
+
+    @Test
+    void unavailableDatabaseReturns503WithoutCountsAndRecovers() throws Exception {
+        try (var application = startApi()) {
+            assertEquals(200, get(application, allDefaultWindow()).statusCode());
+            var docker = org.testcontainers.DockerClientFactory.instance().client();
+            docker.pauseContainerCmd(POSTGIS.getContainerId()).exec();
+            try {
+                var response = get(application, allDefaultWindow());
+                assertEquals(503, response.statusCode());
+                var body = JSON.readTree(response.body());
+                assertEquals("QUERY_UNAVAILABLE", body.path("error").path("code").asString());
+                assertFalse(body.has("counts"));
+                assertFalse(response.body().contains("jdbc"));
+            } finally {
+                docker.unpauseContainerCmd(POSTGIS.getContainerId()).exec();
+            }
+            assertEquals(200, get(application, allDefaultWindow()).statusCode());
+        }
+    }
+
+    private ConfigurableApplicationContext startApi() {
+        return new SpringApplicationBuilder(br.com.vetorurbano.api.VetorUrbanoApiApplication.class)
+                .profiles("local")
+                .run(
+                        "--server.address=127.0.0.1",
+                        "--server.port=0",
+                        "--spring.datasource.url=" + POSTGIS.getJdbcUrl() + "&socketTimeout=2",
+                        "--spring.datasource.hikari.connection-timeout=1500",
+                        "--spring.datasource.username=" + POSTGIS.getUsername(),
+                        "--spring.datasource.password=" + POSTGIS.getPassword());
+    }
+
+    private HttpResponse<String> get(
+            ConfigurableApplicationContext application,
+            String query) throws Exception {
+        assertTrue(application instanceof WebServerApplicationContext);
+        var server = ((WebServerApplicationContext) application).getWebServer();
+        assertNotNull(server);
+        var uri = URI.create("http://127.0.0.1:" + server.getPort() + "/api/v1/occurrences?" + query);
+        var request = HttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String allDefaultWindow() {
+        return "periodStart=2026-10-14T15:00:00Z&periodEnd=2026-10-15T15:00:00Z";
+    }
+
+    private static void assertDefaultCounts(JsonNode body) {
+        var counts = body.path("counts");
+        assertEquals(4, counts.path("occurrences").asInt());
+        assertEquals(2, counts.path("happenings").asInt());
+        assertEquals(3, counts.path("mappedOccurrences").asInt());
+        assertEquals(1, counts.path("listOnlyOccurrences").asInt());
+        assertEquals(3, counts.path("temporallyCertain").asInt());
+        assertEquals(1, counts.path("temporallyPossible").asInt());
+    }
+
+    private static JsonNode findItem(JsonNode response, String id) {
+        return findIn(response.path("items"), id);
+    }
+
+    private static JsonNode findIn(JsonNode items, String id) {
+        for (var item : items) {
+            if (id.equals(item.path("id").asString())) {
+                return item;
+            }
+        }
+        throw new AssertionError("Expected occurrence " + id + " in HTTP response.");
+    }
+}

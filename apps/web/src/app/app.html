@@ -265,6 +265,12 @@
             </div>
           </aside>
         }
+        @if (persistedQueryEnabled) {
+          <p class="query-note" role="status" data-testid="persisted-query-notice">
+            Consulta persistida local · dados inteiramente sintéticos · acesso de desenvolvimento,
+            sem autenticação. Nenhum módulo está liberado como produto integrado.
+          </p>
+        }
         <section class="query-filter-summary" aria-label="Filtros aplicados">
           <div class="query-filter-chips">
             @if (period() === '24h') {
@@ -688,7 +694,7 @@
                           <fieldset class="filter-group" data-testid="advanced-source-group">
                             <legend>Fontes de dados</legend>
                             <p class="filter-hint">Filtro por fonte catalogada ou informe.</p>
-                            @for (source of availableSources; track source.id) {
+                            @for (source of availableSources(); track source.id) {
                               <label class="filter-choice">
                                 <input
                                   type="checkbox"
@@ -1336,9 +1342,12 @@
                   <p>
                     A lista reúne o recorte completo; o mapa mostra localizações com precisão
                     compatível.
-                    <span class="query-counts"
-                      >{{ eventCount() }} ocorrências · {{ happeningCount() }} acontecimentos</span
-                    >
+                    @if (!queryError() && !queryLoading()) {
+                      <span class="query-counts"
+                        >{{ eventCount() }} ocorrências ·
+                        {{ happeningCount() }} acontecimentos</span
+                      >
+                    }
                   </p>
                 </div>
                 @if (queryError()) {
@@ -1513,41 +1522,53 @@
         aria-label="Resumo da consulta"
         tabindex="-1"
       >
-        <p class="query-note" data-temporal-certainty>
-          @if (period() === 'ongoing') {
-            {{ temporalCounts().certain }} com confirmação vigente, independentemente do início.
-          } @else {
-            {{ temporalCounts().certain }} certamente e
-            {{ temporalCounts().possible }} possivelmente dentro do período.
-          }
-          Referência: {{ formatDateTime(queryReferenceDate().toISOString()) }}. Datas do fato; fim
-          exclusivo.
-        </p>
-        <div class="overview-metrics">
-          <article class="overview-metric">
-            <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
-            ><strong>{{ eventCount().toLocaleString('pt-BR') }}</strong
-            ><span>Ocorrências</span><small>Na consulta atual</small>
-          </article>
-          @for (metric of categoryMetrics(); track metric.id) {
+        @if (persistedQueryEnabled && (queryLoading() || queryError())) {
+          <p class="query-note" role="status">
+            A consulta atual ainda não está disponível. O mapa conserva o último resultado
+            carregado; ele não confirma os filtros atuais nem ausência de ocorrências.
+          </p>
+        } @else {
+          <p class="query-note" data-temporal-certainty>
+            @if (period() === 'ongoing') {
+              @if (persistedQueryEnabled) {
+                {{ temporalCounts().certain }} com situação publicada Em andamento, sem recorte do
+                início.
+              } @else {
+                {{ temporalCounts().certain }} com confirmação vigente, independentemente do início.
+              }
+            } @else {
+              {{ temporalCounts().certain }} certamente e
+              {{ temporalCounts().possible }} possivelmente dentro do período.
+            }
+            Referência: {{ formatDateTime(queryReferenceDate().toISOString()) }}. Datas do fato; fim
+            exclusivo.
+          </p>
+          <div class="overview-metrics">
             <article class="overview-metric">
-              <svg class="ui-icon" aria-hidden="true">
-                <use
-                  [attr.href]="
-                    'ui-icons.svg#' +
-                    (metric.id === 'TRANSITO'
-                      ? 'car'
-                      : metric.id === 'SEGURANCA'
-                        ? 'shield'
-                        : 'alert')
-                  "
-                /></svg
-              ><strong>{{ metric.count.toLocaleString('pt-BR') }}</strong
-              ><span>{{ metric.label }}</span
-              ><small>Na consulta atual</small>
+              <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
+              ><strong>{{ eventCount().toLocaleString('pt-BR') }}</strong
+              ><span>Ocorrências</span><small>Na consulta atual</small>
             </article>
-          }
-        </div>
+            @for (metric of categoryMetrics(); track metric.id) {
+              <article class="overview-metric">
+                <svg class="ui-icon" aria-hidden="true">
+                  <use
+                    [attr.href]="
+                      'ui-icons.svg#' +
+                      (metric.id === 'TRANSITO'
+                        ? 'car'
+                        : metric.id === 'SEGURANCA'
+                          ? 'shield'
+                          : 'alert')
+                    "
+                  /></svg
+                ><strong>{{ metric.count.toLocaleString('pt-BR') }}</strong
+                ><span>{{ metric.label }}</span
+                ><small>Na consulta atual</small>
+              </article>
+            }
+          </div>
+        }
         <article class="overview-report">
           <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#chart" /></svg>
           <h2>O contexto além do mapa.</h2>

@@ -19,10 +19,15 @@ A resposta distingue ocorrências, acontecimentos, registros mapeados/apenas em 
 
 Versões escolhidas pelo executor conforme o ticket: Java 25 local, Spring Boot 4.1.1, Maven Wrapper 3.3.4/Maven 3.9.11 e PostgreSQL 17/PostGIS 3.5. O container disponível respondeu em loopback como PostgreSQL 17.5/PostGIS 3.5.2. Os testes devem usar contêiner PostGIS real.
 
+**Retificação na etapa de compilação (15/10):** o host fornece runtime Java 25, sem `javac`; por isso o build local passou a usar JDK 21, extraído da imagem Maven já armazenada. O contrato técnico foi atualizado para refletir essa escolha. Java 25 permanece disponível apenas como runtime do host.
+
 ## Revisão própria e próximos passos
 
 Revisão própria do contrato: mantive o recorte somente leitura local, fixtures inteiramente sintéticas, sem fontes reais, credenciais, publicação, coleta, usuário, autorização ou escrita. Identificadores e campos mínimos acompanham ocorrências/acontecimentos/referências e precisão temporal/espacial do código atual. Nenhum parâmetro operacional além dos limites já existentes no controle de raio foi inventado.
 
-Infraestrutura previamente conferida nesta retomada: Java 25.0.4; Podman rootless 5.8.7 com API Docker compatível acessível via socket; HTTP em `127.0.0.1`; Chromium e Firefox instalados; PostgreSQL/PostGIS real em `127.0.0.1:55432`. Maven de host não está instalado; será usado o Maven Wrapper e Testcontainers com o socket Podman. O teste final ainda não foi iniciado nesta etapa.
+Infraestrutura previamente conferida nesta etapa: runtime Java 25.0.4 sem `javac`; Podman rootless 5.8.7 com API Docker compatível acessível via socket; HTTP em `127.0.0.1`; Chromium e Firefox instalados; PostgreSQL/PostGIS real em `127.0.0.1:55432`. Maven de host não está instalado; será usado o Maven Wrapper e Testcontainers com o socket Podman. O teste final ainda não tinha sido iniciado neste checkpoint inicial; resultados posteriores estão no [progresso do Ticket 12](ticket-12-progress-2026-10-15.md).
 
 Estado: contrato v1 registrado; modelo/migração, API, navegador, testes e aceite completo do Ticket 12 continuam pendentes. Sem revisão independente declarada.
+
+
+**Continuidade:** o estado acima é o checkpoint inicial do contrato. A conclusão local e as evidências finais dos seis critérios estão no [progresso do Ticket 12](ticket-12-progress-2026-10-15.md#conclusão-local-após-retomada--15102026).

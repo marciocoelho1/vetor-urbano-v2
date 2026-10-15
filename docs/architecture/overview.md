@@ -1,13 +1,17 @@
 # Arquitetura
 
-O Vetor Urbano tem hoje uma aplicação Angular executada no navegador. Dados e regras funcionam localmente; não existe serviço Java ou banco de dados integrado.
+O Vetor Urbano tem uma aplicação Angular demonstrativa e uma API Java de leitura local. Em `http://127.0.0.1:4201/?consulta=api`, o navegador consulta ocorrências publicadas no PostgreSQL/PostGIS real com migrações e dados sintéticos. A ativação é explícita em loopback; sem o parâmetro, permanece a demonstração com dados locais.
 
 ## Fluxo atual
 
 ```text
-Dados demonstrativos + importações manuais
-    → estado e regras de consulta no Angular
-    → mapa, lista, indicadores e exportação
+Consulta persistida local (?consulta=api)
+    → API Java GET /api/v1/occurrences
+    → PostgreSQL/PostGIS + Flyway (dados sintéticos)
+    → lista e mapa com precisão preservada
+
+Demonstração sem o parâmetro: dados locais + importações manuais
+    → regras no Angular → mapa, lista, indicadores e exportação
 ```
 
 Mapa e lista compartilham o resultado filtrado. As 75 ocorrências e os dois pontos de interesse são fictícios. Arquivos importados ficam na memória da aba; tema e filtros salvos usam armazenamento local do navegador. Não há coleta automática, geocodificação real ou envio do cadastro.
@@ -28,20 +32,20 @@ A galeria tem entrada e `tsconfig` próprios em `apps/web/prototypes/`. O build 
 
 ## Convenções de dados
 
-- GeoJSON usa `[longitude, latitude]`, WGS 84; a proposta de banco usa SRID 4326.
-- Raio é expresso em metros. A demonstração calcula distância no cliente; o backend deverá validar consultas espaciais com PostGIS.
+- GeoJSON usa `[longitude, latitude]`, WGS 84; o banco usa SRID 4326.
+- Raio é expresso em metros. A demonstração calcula distância no cliente; a consulta persistida usa distância geodésica inclusiva no PostGIS, sem reaplicar a aproximação do cliente.
 - Instantes usam UTC; a apresentação usa `America/Sao_Paulo`.
 - Localização da ocorrência e identidade de quem informa são conceitos separados.
 - Eventos geolocalizados e estatísticas agregadas mantêm unidades e origem próprias.
 
-## Backend previsto
+## Backend local de leitura
 
-A direção proposta é um serviço Spring Boot, com pacotes por funcionalidade, API HTTP JSON, PostgreSQL/PostGIS e migrações versionadas. A primeira integração deverá demonstrar leitura persistida com testes no banco real. Cadastro, autorização, sessões, MFA e moderação entram após a definição das regras de acesso.
+A API usa Spring Boot 4.1.1, Java 21, PostgreSQL 17/PostGIS 3.5 e Flyway. A fatia do Ticket 12 implementa `GET /api/v1/occurrences`, migração versionada e dados fictícios locais; o navegador consome esse endpoint no modo local explícito, inclusive relações fora do recorte sem alterar as contagens. Cadastro, autorização, sessões, MFA e moderação dependem das regras de acesso e dos tickets correspondentes.
 
-Versões Java/Spring/PostgreSQL, catálogos e contrato HTTP ainda precisam de decisão. O [contrato preliminar P1.1](../archive/architecture/proposal-2026-10.md#5-contrato-preliminar-p11--somente-leitura) e a [especificação de implementação](../archive/planning/implementation-2026-10.md) são propostas preservadas para reconciliação em R0, sem endpoints ativos.
+Contrato HTTP atual e versões estão no [api-query-v1](api-query-v1.md). O [contrato preliminar P1.1](../archive/architecture/proposal-2026-10.md#5-contrato-preliminar-p11--somente-leitura) e a [especificação de implementação](../archive/planning/implementation-2026-10.md) permanecem referências históricas; não são requisitos para a API atual.
 
 ## Verificação e operação
 
-O projeto tem testes unitários e Playwright para Chromium/Firefox. O executor local é `scripts/verify.sh`; ainda não há workflow de CI ou deploy. Build de produção não significa serviço pronto para operação: persistência, segurança, cobertura territorial e testes em dispositivos reais continuam pendentes.
+O projeto tem testes unitários e Playwright para Chromium/Firefox. O executor local é `scripts/verify.sh`; ainda não há workflow de CI ou deploy. Build de produção não significa serviço pronto para operação: segurança operacional, cobertura territorial e testes em dispositivos reais continuam pendentes. A persistência de leitura sintética tem verificações HTTP/PostGIS e navegador próprias do Ticket 12.
 
 Consulte o [plano](../../PLAN.md) para resultados atuais e o [guia de operação web](../operations/web.md) para preparar o artefato estático.

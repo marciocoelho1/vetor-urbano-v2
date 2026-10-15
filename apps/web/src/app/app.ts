@@ -9,6 +9,7 @@ import {
   OnDestroy,
   PLATFORM_ID,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ViewMotion } from './ui/view-motion';
@@ -32,6 +33,7 @@ import {
   type DatePreset,
   type DemoRecord,
   type ImportedDataset,
+  type LocalFilters,
   type SourceMetadata,
 } from './domain/occurrences';
 import {
@@ -69,6 +71,13 @@ import {
   type DemoLocationReference,
 } from './data/demo-locations';
 import { SOURCE_PLACEHOLDER, SYNTHETIC_PUBLIC_SOURCES } from './data/demo-sources';
+import {
+  fetchPersistedQuery,
+  isLocalPersistedQuery,
+  persistedQueryParameters,
+  persistedRecord,
+  type PersistedQueryResponse,
+} from './data/persisted-query';
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
@@ -341,7 +350,15 @@ export class App implements AfterViewInit, OnDestroy {
     return min !== null && max !== null && min > max;
   });
   protected readonly periodExplicitlyChosenInSimple = signal(false);
-  protected readonly availableSources = [SOURCE_PLACEHOLDER, ...SYNTHETIC_PUBLIC_SOURCES];
+  protected readonly persistedQueryEnabled = isLocalPersistedQuery();
+  private readonly persistedResponse = signal<PersistedQueryResponse | null>(null);
+  private readonly persistedRetry = signal(0);
+  private readonly persistedOptions = signal<DemoPoint[]>([]);
+  private readonly persistedSources = signal<{ id: string; name: string }[]>([]);
+  protected readonly availableSources = computed(() => {
+    if (!this.persistedQueryEnabled) return [SOURCE_PLACEHOLDER, ...SYNTHETIC_PUBLIC_SOURCES];
+    return this.persistedSources();
+  });
   protected readonly situationOptions: { id: Situation; label: string }[] = [
     { id: 'ONGOING', label: 'Em andamento' },
     { id: 'CLOSED', label: 'Encerrada' },
@@ -499,7 +516,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly queryMunicipalities = computed(() =>
     [
       ...new Set(
-        this.allPoints()
+        (this.persistedQueryEnabled ? this.persistedOptions() : this.allPoints())
           .map((point) => point.municipality)
           .filter((value): value is string => Boolean(value)),
       ),
@@ -508,7 +525,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly queryNeighborhoods = computed(() =>
     [
       ...new Set(
-        this.allPoints()
+        (this.persistedQueryEnabled ? this.persistedOptions() : this.allPoints())
           .filter((point) => point.municipality === this.selectedMunicipality())
           .map((point) => point.neighborhood)
           .filter((value): value is string => Boolean(value)),
@@ -571,7 +588,7 @@ export class App implements AfterViewInit, OnDestroy {
         };
       }
       if (kind === 'source') {
-        const sourceName = this.availableSources.find((s) => s.id === value)?.name ?? value;
+        const sourceName = this.availableSources().find((s) => s.id === value)?.name ?? value;
         return {
           id: filter,
           label: `fonte: ${sourceName}`,
@@ -883,11 +900,15 @@ export class App implements AfterViewInit, OnDestroy {
   });
   private readonly relatedDemoPoints = relateDemoOccurrences(this.demoPoints);
 
-  protected readonly allPoints = computed(() =>
-    [...this.relatedDemoPoints, ...this.importedRecords()].map((point) =>
+  protected readonly allPoints = computed(() => {
+    if (this.persistedQueryEnabled) {
+      const response = this.persistedResponse();
+      return [...(response?.items ?? []), ...(response?.relatedItems ?? [])].map(persistedRecord);
+    }
+    return [...this.relatedDemoPoints, ...this.importedRecords()].map((point) =>
       resolveSituation(point, this.queryReferenceDate()),
-    ),
-  );
+    );
+  });
   protected readonly resolvedDateRange = computed(() => {
     const selectedPeriod = this.period();
     if (selectedPeriod === 'ongoing') return null;
@@ -911,6 +932,8 @@ export class App implements AfterViewInit, OnDestroy {
     const longitude = Number(center.longitude);
     const latitude = Number(center.latitude);
     return (
+      !center.longitude.trim() ||
+      !center.latitude.trim() ||
       !Number.isFinite(longitude) ||
       !Number.isFinite(latitude) ||
       longitude < -180 ||
@@ -922,8 +945,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.radiusMeters() > MAXIMUM_RADIUS_METERS
     );
   });
-  protected readonly visiblePoints = computed(() => {
-    if (this.customRangeInvalid() || this.radiusInvalid() || this.scoreRangeInvalid()) return [];
+  private readonly queryFilters = computed<LocalFilters | null>(() => {
+    if (this.customRangeInvalid() || this.radiusInvalid() || this.scoreRangeInvalid()) return null;
     const filters = this.activeFilters();
     const categories = filters
       .filter((filter) => filter.startsWith('category:'))
@@ -984,7 +1007,7 @@ export class App implements AfterViewInit, OnDestroy {
         ? this.maxScore()!
         : undefined;
 
-    return filterRecords(this.allPoints(), {
+    return {
       categories,
       municipalities: this.selectedMunicipality() ? [this.selectedMunicipality()] : undefined,
       neighborhoods: this.selectedNeighborhood() ? [this.selectedNeighborhood()] : undefined,
@@ -1006,7 +1029,13 @@ export class App implements AfterViewInit, OnDestroy {
       timeEnd: this.timeEnd() || undefined,
       center: this.useRadius() ? [Number(center.longitude), Number(center.latitude)] : undefined,
       radiusMeters: this.useRadius() ? this.radiusMeters() : undefined,
-    });
+    };
+  });
+  protected readonly visiblePoints = computed(() => {
+    if (this.persistedQueryEnabled)
+      return (this.persistedResponse()?.items ?? []).map(persistedRecord);
+    const filters = this.queryFilters();
+    return filters ? filterRecords(this.allPoints(), filters) : [];
   });
   protected readonly historyRecords = computed(() =>
     this.allPoints()
@@ -1224,6 +1253,77 @@ export class App implements AfterViewInit, OnDestroy {
   );
 
   constructor() {
+    effect((onCleanup) => {
+      if (!this.persistedQueryEnabled) return;
+      const filters = this.queryFilters();
+      this.persistedRetry();
+      const abort = new AbortController();
+      onCleanup(() => abort.abort());
+      untracked(() => {
+        this.queryError.set(false);
+        this.queryErrorMessage.set('');
+        if (!filters) {
+          this.persistedResponse.set(null);
+          this.queryLoading.set(false);
+          this.queryError.set(true);
+          this.queryErrorMessage.set('Revise o período, raio ou intervalo de notas inválido.');
+          this.refreshMapData();
+          return;
+        }
+        this.queryLoading.set(true);
+        void fetchPersistedQuery(persistedQueryParameters(filters), abort.signal)
+          .then((response) => {
+            if (abort.signal.aborted) return;
+            // No category selected means an empty selection, not all categories.
+            if (!filters.categories?.length) {
+              response = {
+                ...response,
+                items: [],
+                relatedItems: [],
+                counts: {
+                  occurrences: 0,
+                  happenings: 0,
+                  mappedOccurrences: 0,
+                  listOnlyOccurrences: 0,
+                  temporallyCertain: 0,
+                  temporallyPossible: 0,
+                },
+              };
+            }
+            this.persistedResponse.set(response);
+            this.persistedSources.update((sources) => [
+              ...new Map(
+                [
+                  ...sources,
+                  ...[...response.items, ...response.relatedItems].flatMap((item) =>
+                    item.clippings.map((clip) => clip.source),
+                  ),
+                ].map((source) => [source.id, source]),
+              ).values(),
+            ]);
+            this.persistedOptions.update((options) => [
+              ...new Map(
+                [
+                  ...options,
+                  ...response.items.map(persistedRecord),
+                  ...response.relatedItems.map(persistedRecord),
+                ].map((point) => [point.id, point]),
+              ).values(),
+            ]);
+            this.queryLoading.set(false);
+            this.refreshMapData();
+          })
+          .catch((error: unknown) => {
+            if (abort.signal.aborted) return;
+            this.queryLoading.set(false);
+            this.queryError.set(true);
+            this.queryErrorMessage.set(
+              error instanceof Error ? error.message : 'A consulta local falhou.',
+            );
+            this.refreshMapData();
+          });
+      });
+    });
     effect(() => {
       const dark = this.theme.dark();
       this.mapDark.set(dark);
@@ -1945,6 +2045,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.queryError.set(false);
     this.queryErrorMessage.set('');
     this.queryReferenceDate.set(new Date());
+    if (this.persistedQueryEnabled) this.persistedRetry.update((value) => value + 1);
     this.refreshMapData();
   }
 
@@ -2423,6 +2524,11 @@ export class App implements AfterViewInit, OnDestroy {
       : 'Certamente dentro do período';
   }
   protected readonly temporalCounts = computed(() => {
+    if (this.persistedQueryEnabled)
+      return {
+        certain: this.persistedResponse()?.counts.temporallyCertain ?? 0,
+        possible: this.persistedResponse()?.counts.temporallyPossible ?? 0,
+      };
     const range = this.resolvedDateRange();
     const points = this.visiblePoints().filter((point) => point.kind === 'occurrence');
     const possible = range

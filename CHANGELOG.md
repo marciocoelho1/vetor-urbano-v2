@@ -1,5 +1,12 @@
 # Histórico de mudanças
 
+## 2026-10-15 — Ticket 12 concluído em desenvolvimento local
+
+- Completada a fundação Java/Flyway/PostGIS do Luna com navegador local explícito (`?consulta=api`), filtros no servidor, relações públicas fora do recorte, referências sem duplicação, precisão preservada e estados de carregamento/vazio/erro com retry. Leitura somente de publicadas; sem fallback para fixtures.
+- Corrigida a expectativa temporal por conversão de fuso, preservando início incluído/fim excluído; ambas as janelas têm asserções. Borda geodésica real (1000/999 m), 400/503 e persistência após reinício comprovados. Falhas ao abrir transação também retornam 503; relacionados mantêm inclusão temporal correta.
+- Verificações: API 8 unitários + 2 migrações + 5 HTTP; web lint + 88 unitários + build 606,17 kB (aviso +106,17 kB); Playwright da integração 6/6 Chromium/Firefox e regressão afetada 26/26. Planejamento e revisão do diff registrados no [histórico do 12](docs/history/ticket-12-progress-2026-10-15.md#conclusão-local-após-retomada--15102026).
+- Aceite restrito a leitura local com dados sintéticos. Dependência técnica do 13 liberada; parâmetros de cadastro/confirmação continuam a fechar no próprio incremento. Ticket 07 e trabalho preexistente preservados, sem novo aceite.
+
 ## 2026-10-15 — Ticket 36: transparência dos documentos institucionais
 
 - Atualizados os quatro rascunhos para v1.2. Termos, privacidade e metodologia distinguem dados sintéticos, cobertura desejada e operação real; não afirmam coleta, cobertura ou tratamento operacional inexistentes.
