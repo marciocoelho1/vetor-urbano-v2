@@ -1535,8 +1535,8 @@
               Fontes abertas e triagem
             </h1>
             <p class="page-intro">
-              O protótipo não consulta APIs externas. As integrações abaixo são pontos de entrada
-              documentados, não conexões ativas.
+              Demonstração local de importação e triagem. O G1 é apenas um placeholder não avaliado,
+              com coleta desativada.
             </p>
           </div>
           <span class="account-badge"
@@ -2142,8 +2142,106 @@
         }
       </form>
     }
+    @if (activeView() === 'public-sources') {
+      <section class="workspace-view public-information" aria-labelledby="public-sources-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Origem das informações</p>
+            <h1 id="public-sources-heading" data-view-title="public-sources" tabindex="-1">
+              Conheça nossas fontes
+            </h1>
+            <p class="page-intro">
+              O veículo indicado ainda não foi avaliado ou integrado à coleta. Os exemplos da
+              consulta são fictícios.
+            </p>
+          </div>
+        </header>
+        <h2>Fonte indicada</h2>
+        <article class="workspace-card source-card">
+          <span class="status-pill">{{ sourcePlaceholder.state }}</span>
+          <h3>
+            <a [href]="sourcePlaceholder.url" target="_blank" rel="noopener noreferrer">{{
+              sourcePlaceholder.name
+            }}</a>
+          </h3>
+          <p>{{ sourcePlaceholder.note }}</p>
+        </article>
+        <h2>Exemplos com dados fictícios</h2>
+        <div class="source-grid">
+          @for (source of syntheticSources; track source.id) {
+            <article class="workspace-card source-card">
+              <span class="status-pill">{{ source.state }}</span>
+              <h3>
+                @if (source.url) {
+                  <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{
+                    source.name
+                  }}</a>
+                } @else {
+                  {{ source.name }}
+                }
+              </h3>
+              <p>{{ source.note }}</p>
+            </article>
+          }
+        </div>
+        <p class="query-note">
+          A URL de uma fonte é opcional. Cada ocorrência mantém referências rastreáveis à
+          publicação, por URL ou identificador. As atribuições da base cartográfica e das camadas
+          territoriais permanecem nos mapas.
+        </p>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
+    @if (activeView() === 'reliability') {
+      <section class="workspace-view public-information" aria-labelledby="reliability-heading">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Como interpretar a consulta</p>
+            <h1 id="reliability-heading" data-view-title="reliability" tabindex="-1">
+              Entenda nossa avaliação de confiabilidade
+            </h1>
+            <p class="page-intro">
+              A nota de 1 a 5 resume o suporte das referências para uma ocorrência. Na demonstração,
+              as notas são fictícias.
+            </p>
+          </div>
+        </header>
+        <article class="workspace-card">
+          <h2>Informações sustentadas por referências</h2>
+          <p>
+            Consideramos a qualidade e precisão das informações disponíveis, a confirmação
+            independente e as divergências entre referências. Uma publicação depende de revisão
+            humana.
+          </p>
+          <p>
+            Reproduções de uma mesma origem não são confirmações independentes. A quantidade de
+            publicações, por si só, não aumenta a confiabilidade.
+          </p>
+          <h2>O que a nota permite concluir</h2>
+          <p>
+            A nota não é uma probabilidade matemática de verdade e não confirma que o fato continua
+            em andamento. Consulte a situação, as datas e as referências da ocorrência para
+            compreender seu contexto.
+          </p>
+          <p>
+            Uma informação ausente continua indicada como não informada. A nota não substitui os
+            dados necessários para compreender o fato.
+          </p>
+        </article>
+        <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
+          Voltar à consulta de origem
+        </button>
+      </section>
+    }
     <footer class="site-footer">
       <a class="footer-brand" href="#mapa" (click)="openView('map')">Vetor Urbano</a
+      ><a
+        id="public-sources-link"
+        href="#conheca-fontes"
+        (click)="openPublicPage('public-sources', $event)"
+        >Conheça nossas fontes</a
       ><span>Um estudo visual para explorar a cidade.</span
       ><span>Versão 02 · dados demonstrativos</span>
     </footer>
@@ -2253,17 +2351,14 @@
     <p class="query-note">
       <strong>Confiabilidade da ocorrência: {{ publicReliability(point) }}</strong>
     </p>
-    <details class="query-note">
-      <summary>Entenda nossa avaliação de confiabilidade</summary>
-      <p>
-        {{
-          point.sourceId === 'demo'
-            ? 'Nota fictícia para demonstração; rubrica operacional pendente.'
-            : 'Avalia o suporte das evidências.'
-        }}
-        Não é probabilidade de verdade nem nota da fonte.
-      </p>
-    </details>
+    <p class="query-note">
+      <a
+        [id]="'evaluation-link-' + (rootId ?? activeView()) + '-' + point.id"
+        href="#avaliacao-confiabilidade"
+        (click)="openPublicPage('reliability', $event)"
+        >Entenda nossa avaliação de confiabilidade</a
+      >
+    </p>
   }
   <p class="query-note">
     Aprovação editorial ou importação não confirma que o fato continua ativo.
