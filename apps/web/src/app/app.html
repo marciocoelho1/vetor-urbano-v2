@@ -2183,6 +2183,16 @@
       <dd>{{ point.location }}</dd>
     </div>
     <div>
+      <dt>Precisão da localização</dt>
+      <dd>
+        {{
+          recordHasMapLocation(point)
+            ? 'Ponto com coordenadas informadas'
+            : 'Somente território conhecido; sem posição suficiente para pin, raio, área visível ou calor.'
+        }}
+      </dd>
+    </div>
+    <div>
       <dt>Data do fato</dt>
       <dd>
         {{ point.kind === 'poi' ? 'Não se aplica' : formatFactTime(point) }}

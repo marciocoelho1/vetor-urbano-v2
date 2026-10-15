@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('território inclui lista sem pin e câmera só filtra mediante ação explícita', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.clock.setSystemTime(new Date('2026-10-15T15:00:00Z'));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() =>
@@ -61,8 +61,10 @@ test('território inclui lista sem pin e câmera só filtra mediante ação expl
   await expect(
     page.getByRole('status').filter({ hasText: 'Fora da cobertura sintética' }),
   ).toHaveCount(0);
+  await page.screenshot({ path: `test-results/ticket05-${testInfo.project.name}-desktop.png` });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: new RegExp(`^Lista ${total}`) }).click();
   await expect(rows).toHaveCount(total);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/ticket05-${testInfo.project.name}-mobile.png` });
 });
