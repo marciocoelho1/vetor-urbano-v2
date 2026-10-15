@@ -2,6 +2,11 @@ export type DatePreset = '24h' | '1w' | '1m' | '3m' | '6m' | '1y';
 export type RecordKind = 'occurrence' | 'poi';
 export type OperationalStatus = 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'EXPIRED';
 export type Coordinates = [longitude: number, latitude: number];
+export interface OccurrenceClassification {
+  category: string;
+  occurrenceType: string;
+  subtype?: string;
+}
 
 export interface DemoRecord {
   id: string;
@@ -16,6 +21,7 @@ export interface DemoRecord {
   typeLabel?: string;
   occurrenceType?: string;
   subtype?: string;
+  additionalClassifications?: OccurrenceClassification[];
   publicationStatus?: 'PUBLISHED' | 'PENDING' | 'DISMISSED' | 'WITHDRAWN';
   reliabilityScore?: number;
   exclusive?: boolean;
@@ -222,17 +228,21 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
         (!record.occurredAt || !Number.isFinite(Date.parse(record.occurredAt)))
       )
         return false;
-      if (filters.types?.length && !filters.types.includes(record.occurrenceType ?? ''))
+      const classifications = [record, ...(record.additionalClassifications ?? [])];
+      const hasSelection = Boolean(
+        filters.categories?.length || filters.types?.length || filters.groups?.length,
+      );
+      if (
+        !hasSelection ||
+        !classifications.some(
+          (classification) =>
+            (!filters.categories || filters.categories.includes(classification.category ?? '')) &&
+            (!filters.types?.length || filters.types.includes(classification.occurrenceType ?? '')),
+        )
+      )
         return false;
-      const categoryMatch = filters.categories?.includes(record.category ?? '') === true;
-      const groupSelected = filters.groups?.includes(record.group ?? '') === true;
-      const crimeRefinesGroup =
-        groupSelected &&
-        record.group === 'CRIMES' &&
-        (filters.crimes?.length ?? 0) > 0 &&
-        !filters.crimes?.includes(record.crime ?? '');
-      const groupMatch = groupSelected && !crimeRefinesGroup;
-      if (!categoryMatch && !groupMatch) return false;
+      if (filters.groups?.length && !filters.groups.includes(record.group ?? '')) return false;
+      if (filters.crimes?.length && !filters.crimes.includes(record.crime ?? '')) return false;
 
       if (filters.operationalStatuses?.length) {
         if (!filters.operationalStatuses.includes(record.operationalStatus ?? 'EXPIRED'))

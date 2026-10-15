@@ -316,6 +316,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly categories = CATEGORIES;
   protected readonly occurrenceCatalogue = OCCURRENCE_CATALOGUE;
   protected readonly savedSearchNotice = signal('');
+  protected readonly querySummaryNotice = signal('');
   protected readonly territoryGroups = TERRITORY_GROUPS;
   protected readonly activeView = signal<ViewId>('map');
   protected readonly consultationView = signal<'map' | 'list'>('map');
@@ -401,6 +402,69 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly reportMapErrorDetails = signal('');
   protected readonly coordinates = signal({ longitude: '', latitude: '' });
   protected readonly reportFields = signal<Record<string, string>>({});
+  protected readonly queryFilterSummary = computed(() => {
+    const entries = this.activeFilters().map((filter) => {
+      const [kind, value] = filter.split(':');
+      const name =
+        kind === 'type'
+          ? (OCCURRENCE_CATALOGUE.find((type) => type.id === value)?.label ?? value)
+          : kind === 'territory'
+            ? (TERRITORY_GROUP_BY_ID.get(value as TerritoryCode)?.label ?? value)
+            : reportValueLabel(value);
+      const kindLabel =
+        (
+          {
+            category: 'pilar',
+            type: 'tipo',
+            territory: 'área',
+            poi: 'ponto de interesse',
+            group: 'grupo',
+            crime: 'classificação legada',
+          } as Record<string, string>
+        )[kind ?? ''] ?? 'filtro';
+      return {
+        id: filter,
+        label: `${kindLabel}: ${name}`,
+        removeLabel: `Remover ${kindLabel} ${name}`,
+      };
+    });
+    if (this.period() !== '24h')
+      entries.push({
+        id: 'period',
+        label:
+          this.period() === 'custom'
+            ? `Intervalo: ${this.customRangeStart() || 'incompleto'} a ${this.customRangeEnd() || 'incompleto'}`
+            : ((
+                {
+                  '1w': 'Últimos 7 dias',
+                  '1m': 'Último mês',
+                  '3m': 'Últimos 3 meses',
+                  '6m': 'Últimos 6 meses',
+                  '1y': 'Último ano',
+                } as Record<string, string>
+              )[this.period()] ?? this.period()),
+        removeLabel: 'Remover período e voltar às últimas 24 horas',
+      });
+    if (this.timeStart())
+      entries.push({
+        id: 'timeStart',
+        label: `Horário a partir de ${this.timeStart()}`,
+        removeLabel: 'Remover horário inicial',
+      });
+    if (this.timeEnd())
+      entries.push({
+        id: 'timeEnd',
+        label: `Horário até ${this.timeEnd()}`,
+        removeLabel: 'Remover horário final',
+      });
+    if (this.useRadius())
+      entries.push({
+        id: 'radius',
+        label: `Raio: ${this.radiusMeters()} m`,
+        removeLabel: 'Remover filtro por raio',
+      });
+    return entries;
+  });
   private readonly platformId = inject(PLATFORM_ID);
   private map?: maplibregl.Map;
   private urbanMapStyle?: maplibregl.StyleSpecification;
@@ -1066,6 +1130,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected toggleFilter(filter: string): void {
+    this.querySummaryNotice.set('');
     this.activeFilters.update((filters) =>
       filters.includes(filter) ? filters.filter((item) => item !== filter) : [...filters, filter],
     );
@@ -1080,9 +1145,49 @@ export class App implements AfterViewInit, OnDestroy {
     return this.activeFilters().includes(filter);
   }
 
+  protected removeQueryFilter(id: string): void {
+    if (id === 'period') this.period.set('24h');
+    else if (id === 'timeStart') this.timeStart.set('');
+    else if (id === 'timeEnd') this.timeEnd.set('');
+    else if (id === 'radius') this.useRadius.set(false);
+    else this.activeFilters.update((filters) => filters.filter((filter) => filter !== id));
+    this.querySummaryNotice.set(
+      id === 'period'
+        ? 'Período restaurado: últimas 24 horas.'
+        : 'Filtro removido. Resultados atualizados.',
+    );
+    this.refreshMapData();
+    if (id.startsWith('territory:')) this.applyTerritoryFilter();
+    this.focusQueryClearButton();
+  }
+
+  protected clearQueryFilters(): void {
+    this.activeFilters.set(CATEGORIES.map((category) => `category:${category.id}`));
+    this.period.set('24h');
+    this.customRangeStart.set('');
+    this.customRangeEnd.set('');
+    this.timeStart.set('');
+    this.timeEnd.set('');
+    this.useRadius.set(false);
+    this.querySummaryNotice.set(
+      'Filtros limpos: três pilares e últimas 24 horas. A câmera foi mantida.',
+    );
+    this.refreshMapData();
+    this.applyTerritoryFilter();
+    this.focusQueryClearButton();
+  }
+
+  private focusQueryClearButton(): void {
+    if (isPlatformBrowser(this.platformId))
+      setTimeout(() =>
+        document.querySelector<HTMLButtonElement>('[data-clear-query-filters]')?.focus(),
+      );
+  }
+
   protected selectPeriod(period: string): void {
     const available = ['24h', '1w', '1m', '3m', '6m', '1y', 'custom'];
     if (!available.includes(period)) return;
+    this.querySummaryNotice.set('');
     this.period.set(period as DatePreset | 'custom');
     this.refreshMapData();
   }
