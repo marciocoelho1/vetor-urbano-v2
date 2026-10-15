@@ -200,6 +200,28 @@
             <span>{{ visiblePoints().length }}</span>
           </button>
         </div>
+        <section class="query-filter-summary" aria-label="Filtros aplicados">
+          <div class="query-filter-chips">
+            @if (period() === '24h') {
+              <span>Últimas 24 horas</span>
+            }
+            @for (filter of queryFilterSummary(); track filter.id) {
+              <button
+                type="button"
+                [attr.aria-label]="filter.removeLabel"
+                (click)="removeQueryFilter(filter.id)"
+              >
+                {{ filter.label }} <span aria-hidden="true">×</span>
+              </button>
+            }
+            <button type="button" data-clear-query-filters (click)="clearQueryFilters()">
+              Limpar filtros
+            </button>
+          </div>
+          @if (querySummaryNotice()) {
+            <span class="query-filter-notice" role="status">{{ querySummaryNotice() }}</span>
+          }
+        </section>
         <div
           class="map-layout"
           [class.filters-collapsed]="filtersCollapsed()"
