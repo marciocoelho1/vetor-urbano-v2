@@ -65,25 +65,44 @@
           ocorrência
         </button>
       </nav>
-      <button
-        class="theme-toggle"
-        type="button"
-        aria-label="Modo escuro"
-        [attr.aria-pressed]="theme.dark()"
-        [title]="theme.dark() ? 'Ativar modo claro' : 'Ativar modo escuro'"
-        (click)="theme.toggle($event)"
-      >
-        <svg class="theme-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <g class="theme-moon"><path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" /></g>
-          <g class="theme-sun">
-            <circle cx="12" cy="12" r="4" />
-            <path
-              class="theme-rays"
-              d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
-            />
-          </g>
-        </svg>
-      </button>
+      <div class="topbar-actions">
+        <button
+          class="mode-toggle-button"
+          type="button"
+          data-mode-toggle
+          [attr.aria-pressed]="consultationMode() === 'advanced'"
+          (click)="toggleConsultationMode()"
+          [title]="
+            consultationMode() === 'advanced'
+              ? 'Alternar para Modo simples'
+              : 'Alternar para Análise e Inteligência'
+          "
+        >
+          <span class="mode-caption">Modo:</span>
+          <strong>{{
+            consultationMode() === 'advanced' ? 'Análise e Inteligência' : 'Modo simples'
+          }}</strong>
+        </button>
+        <button
+          class="theme-toggle"
+          type="button"
+          aria-label="Modo escuro"
+          [attr.aria-pressed]="theme.dark()"
+          [title]="theme.dark() ? 'Ativar modo claro' : 'Ativar modo escuro'"
+          (click)="theme.toggle($event)"
+        >
+          <svg class="theme-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <g class="theme-moon"><path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" /></g>
+            <g class="theme-sun">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                class="theme-rays"
+                d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+              />
+            </g>
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -159,7 +178,9 @@
                 <option value="3m">Últimos 3 meses</option>
                 <option value="6m">Últimos 6 meses</option>
                 <option value="1y">Último ano</option>
-                <option value="custom">Intervalo personalizado</option>
+                @if (consultationMode() === 'advanced') {
+                  <option value="custom">Intervalo personalizado</option>
+                }
               </select></label
             >
             <label class="risk-layer-toggle"
@@ -207,6 +228,11 @@
             <span>{{ visiblePoints().length }}</span>
           </button>
         </div>
+        @if (modeNotice()) {
+          <div class="mode-notice-banner" role="status" data-mode-notice>
+            <span class="mode-notice-text">{{ modeNotice() }}</span>
+          </div>
+        }
         <section class="query-filter-summary" aria-label="Filtros aplicados">
           <div class="query-filter-chips">
             @if (period() === '24h') {
@@ -470,16 +496,9 @@
                           <legend>Filtro por período</legend>
                           <div class="period-options">
                             @for (
-                              option of [
-                                { id: '24h', label: '24 horas' },
-                                { id: '1w', label: '7 dias' },
-                                { id: 'ongoing', label: 'Em andamento' },
-                                { id: '1m', label: '1 mês' },
-                                { id: '3m', label: '3 meses' },
-                                { id: '6m', label: '6 meses' },
-                                { id: '1y', label: '1 ano' },
-                                { id: 'custom', label: 'Intervalo' },
-                              ];
+                              option of consultationMode() === 'advanced'
+                                ? advancedPeriodOptions
+                                : simplePeriodOptions;
                               track option.id
                             ) {
                               <label class="period-option"
@@ -494,7 +513,7 @@
                               >
                             }
                           </div>
-                          @if (period() === 'custom') {
+                          @if (period() === 'custom' && consultationMode() === 'advanced') {
                             <div class="period-custom-options">
                               <label class="field"
                                 >Início (horário de Brasília)
@@ -549,11 +568,53 @@
                               ><input
                                 type="checkbox"
                                 [checked]="isFilterActive('type:' + option.id)"
+                                [attr.data-filter]="'type:' + option.id"
                                 (change)="toggleFilter('type:' + option.id)"
                               /><span>{{ option.label }}</span></label
                             >
                           }
                         </fieldset>
+                        @if (consultationMode() === 'advanced') {
+                          <fieldset class="filter-group" data-testid="advanced-subtypes-group">
+                            <legend>Subtipos de ocorrência</legend>
+                            <p class="filter-hint">Detalhamento por tipo selecionado.</p>
+                            @for (typeOption of catalogueTypesWithSubtypes(); track typeOption.id) {
+                              <div class="subtype-group" [attr.data-subtype-type]="typeOption.id">
+                                <span class="subtype-type-title">{{ typeOption.label }}</span>
+                                @for (subtype of typeOption.subtypes; track subtype) {
+                                  <label class="filter-choice subtype-choice">
+                                    <input
+                                      type="checkbox"
+                                      [checked]="
+                                        isFilterActive('subtype:' + typeOption.id + ':' + subtype)
+                                      "
+                                      [attr.data-filter]="
+                                        'subtype:' + typeOption.id + ':' + subtype
+                                      "
+                                      (change)="
+                                        toggleFilter('subtype:' + typeOption.id + ':' + subtype)
+                                      "
+                                    /><span>{{ subtype }}</span>
+                                  </label>
+                                }
+                                <label class="filter-choice subtype-choice">
+                                  <input
+                                    type="checkbox"
+                                    [checked]="
+                                      isFilterActive('subtype:' + typeOption.id + ':Não informado')
+                                    "
+                                    [attr.data-filter]="
+                                      'subtype:' + typeOption.id + ':Não informado'
+                                    "
+                                    (change)="
+                                      toggleFilter('subtype:' + typeOption.id + ':Não informado')
+                                    "
+                                  /><span>Não informado</span>
+                                </label>
+                              </div>
+                            }
+                          </fieldset>
+                        }
                         <fieldset class="filter-group">
                           <legend>Análise de alertas</legend>
                           @for (category of categories; track category.id) {

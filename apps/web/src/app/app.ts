@@ -290,6 +290,15 @@ const CATEGORIES: { id: Category; label: string; icon: string }[] = [
   { id: 'CONTINGENCIA', label: 'Contingência', icon: '⌁' },
 ];
 
+export type ConsultationMode = 'simple' | 'advanced';
+
+interface SuspendedAdvancedFilters {
+  subtypes: string[];
+  customPeriod?: boolean;
+  customRangeStart?: string;
+  customRangeEnd?: string;
+}
+
 @Component({
   imports: [CommonModule, FormsModule, ViewMotion, PanelResize],
   selector: 'app-root',
@@ -303,6 +312,9 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly savedSearchNotice = signal('');
   protected readonly querySummaryNotice = signal('');
   protected readonly territoryGroups = TERRITORY_GROUPS;
+  protected readonly consultationMode = signal<ConsultationMode>('simple');
+  protected readonly modeNotice = signal<string>('');
+  private readonly suspendedAdvancedFilters = signal<SuspendedAdvancedFilters | null>(null);
   protected readonly activeView = signal<ViewId>('map');
   protected readonly consultationView = signal<'map' | 'list'>('map');
   protected readonly compactConsultation = signal(
@@ -458,9 +470,53 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly listOnlyOccurrenceCount = computed(
     () => this.eventCount() - this.mappedOccurrenceCount(),
   );
+  protected readonly simplePeriodOptions = [
+    { id: '24h', label: '24 horas' },
+    { id: '1w', label: '7 dias' },
+    { id: 'ongoing', label: 'Em andamento' },
+    { id: '1m', label: '1 mês' },
+    { id: '3m', label: '3 meses' },
+    { id: '6m', label: '6 meses' },
+    { id: '1y', label: '1 ano' },
+  ] as const;
+
+  protected readonly advancedPeriodOptions = [
+    ...this.simplePeriodOptions,
+    { id: 'custom', label: 'Intervalo' },
+  ] as const;
+
+  protected readonly catalogueTypesWithSubtypes = computed(() => {
+    const activeTypeFilters = this.activeFilters()
+      .filter((filter) => filter.startsWith('type:'))
+      .map((filter) => filter.slice(5));
+
+    const activeCategories = this.activeFilters()
+      .filter((filter) => filter.startsWith('category:'))
+      .map((filter) => filter.slice(9));
+
+    return OCCURRENCE_CATALOGUE.filter((type) => {
+      if (type.subtypes.length === 0) return false;
+      if (activeTypeFilters.length > 0) {
+        return activeTypeFilters.includes(type.id);
+      }
+      return activeCategories.includes(type.category);
+    });
+  });
+
   protected readonly queryFilterSummary = computed(() => {
     const entries = this.activeFilters().map((filter) => {
       const [kind, value] = filter.split(':');
+      if (kind === 'subtype') {
+        const parts = filter.split(':');
+        const typeId = parts[1];
+        const subName = parts.slice(2).join(':');
+        const typeLabel = OCCURRENCE_CATALOGUE.find((type) => type.id === typeId)?.label ?? typeId;
+        return {
+          id: filter,
+          label: `subtipo: ${typeLabel} · ${subName}`,
+          removeLabel: `Remover subtipo ${subName}`,
+        };
+      }
       const name =
         kind === 'type'
           ? (OCCURRENCE_CATALOGUE.find((type) => type.id === value)?.label ?? value)
@@ -787,6 +843,12 @@ export class App implements AfterViewInit, OnDestroy {
     const types = filters
       .filter((filter) => filter.startsWith('type:'))
       .map((filter) => filter.slice(5));
+    const subtypes =
+      this.consultationMode() === 'advanced'
+        ? filters
+            .filter((filter) => filter.startsWith('subtype:'))
+            .map((filter) => filter.slice('subtype:'.length))
+        : undefined;
     const poiTypes = filters
       .filter((filter) => filter.startsWith('poi:') && filter !== 'poi:EXCLUSIVO')
       .map((filter) => filter.slice('poi:'.length));
@@ -800,6 +862,7 @@ export class App implements AfterViewInit, OnDestroy {
       groups,
       crimes,
       types,
+      subtypes: subtypes?.length ? subtypes : undefined,
       poiTypes,
       situations: this.period() === 'ongoing' ? ['ONGOING'] : undefined,
       exclusivePois: filters.includes('poi:EXCLUSIVO'),
@@ -1019,6 +1082,12 @@ export class App implements AfterViewInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
       this.filtersCollapsed.set(localStorage.getItem('vu2.filtersCollapsed') !== 'false');
+      const savedMode =
+        localStorage.getItem('vetor-consultation-mode') ??
+        localStorage.getItem('vu2.consultationMode');
+      if (savedMode === 'advanced' || savedMode === 'simple') {
+        this.consultationMode.set(savedMode);
+      }
       const saved = JSON.parse(localStorage.getItem('vu2.savedSearches') ?? '[]') as SavedSearch[];
       if (Array.isArray(saved)) this.savedSearches.set(saved);
       const clips = JSON.parse(localStorage.getItem('vu2.demoClips') ?? 'null') as
@@ -1045,6 +1114,19 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected openView(view: ViewId): void {
+    if (this.consultationMode() === 'simple' && (view === 'history' || view === 'insights')) {
+      this.consultationMode.set('advanced');
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          localStorage.setItem('vetor-consultation-mode', 'advanced');
+        } catch {
+          // ignore
+        }
+      }
+      this.modeNotice.set(
+        `Modo Análise e Inteligência ativado para acessar ${view === 'history' ? 'Histórico' : 'Relatórios'}.`,
+      );
+    }
     this.publicPageOrigins = [];
     this.activeView.set(view);
     this.mapExpanded.set(false);
@@ -1730,7 +1812,124 @@ export class App implements AfterViewInit, OnDestroy {
     }
   }
 
+  protected toggleConsultationMode(): void {
+    if (this.consultationMode() === 'simple') {
+      this.consultationMode.set('advanced');
+      try {
+        localStorage.setItem('vetor-consultation-mode', 'advanced');
+      } catch {
+        // ignore
+      }
+
+      const suspended = this.suspendedAdvancedFilters();
+      if (suspended) {
+        let removedIncompatible = false;
+        let reappliedCount = 0;
+        const toReapply: string[] = [];
+
+        for (const subtypeFilter of suspended.subtypes) {
+          const parts = subtypeFilter.split(':');
+          const typeId = parts[1];
+          const activeTypeFilters = this.activeFilters().filter((f) => f.startsWith('type:'));
+          let isTypeActive = false;
+          if (activeTypeFilters.length > 0) {
+            isTypeActive = this.activeFilters().includes(`type:${typeId}`);
+          } else {
+            const item = OCCURRENCE_CATALOGUE.find((t) => t.id === typeId);
+            isTypeActive = item
+              ? this.activeFilters().includes(`category:${item.category}`)
+              : false;
+          }
+
+          if (isTypeActive) {
+            toReapply.push(subtypeFilter);
+            reappliedCount++;
+          } else {
+            removedIncompatible = true;
+          }
+        }
+
+        if (toReapply.length > 0) {
+          this.activeFilters.update((filters) => [...filters, ...toReapply]);
+        }
+
+        if (suspended.customPeriod) {
+          if (this.period() === '24h') {
+            this.period.set('custom');
+            if (suspended.customRangeStart) this.customRangeStart.set(suspended.customRangeStart);
+            if (suspended.customRangeEnd) this.customRangeEnd.set(suspended.customRangeEnd);
+            reappliedCount++;
+          }
+        }
+
+        if (removedIncompatible) {
+          this.modeNotice.set('Subtipo incompatível com o tipo selecionado foi removido.');
+        } else if (reappliedCount > 0) {
+          this.modeNotice.set('Filtros avançados reaplicados.');
+        } else {
+          this.modeNotice.set('Modo Análise e Inteligência ativo.');
+        }
+
+        this.suspendedAdvancedFilters.set(null);
+      } else {
+        this.modeNotice.set('Modo Análise e Inteligência ativo.');
+      }
+    } else {
+      this.consultationMode.set('simple');
+      try {
+        localStorage.setItem('vetor-consultation-mode', 'simple');
+      } catch {
+        // ignore
+      }
+
+      if (this.activeView() === 'history' || this.activeView() === 'insights') {
+        this.openView('map');
+      }
+
+      if (this.heatmap()) {
+        this.heatmap.set(false);
+      }
+
+      const activeSubtypes = this.activeFilters().filter((f) => f.startsWith('subtype:'));
+      const isCustomPeriod = this.period() === 'custom';
+
+      if (activeSubtypes.length > 0 || isCustomPeriod) {
+        this.suspendedAdvancedFilters.set({
+          subtypes: activeSubtypes,
+          customPeriod: isCustomPeriod,
+          customRangeStart: isCustomPeriod ? this.customRangeStart() : undefined,
+          customRangeEnd: isCustomPeriod ? this.customRangeEnd() : undefined,
+        });
+
+        this.activeFilters.update((filters) => filters.filter((f) => !f.startsWith('subtype:')));
+
+        if (isCustomPeriod) {
+          this.period.set('24h');
+        }
+
+        this.modeNotice.set('Filtros avançados suspensos no Modo simples.');
+      } else {
+        this.modeNotice.set('Modo simples ativo.');
+      }
+    }
+
+    this.refreshMapData();
+  }
+
   protected toggleHeatmap(): void {
+    if (this.consultationMode() === 'simple') {
+      this.consultationMode.set('advanced');
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          localStorage.setItem('vetor-consultation-mode', 'advanced');
+        } catch {
+          // ignore
+        }
+      }
+      this.modeNotice.set(
+        'Mancha térmica é um recurso de Análise e Inteligência. Modo avançado ativado.',
+      );
+    }
     this.heatmap.update((active) => !active);
     this.updateMapLayers();
   }

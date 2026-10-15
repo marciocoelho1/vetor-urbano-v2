@@ -235,6 +235,23 @@ app-root {
     margin: 0;
     accent-color: var(--accent);
   }
+  .subtype-group {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-left: 2px solid var(--color-border-subtle);
+    background: var(--color-bg-muted);
+    border-radius: 0 6px 6px 0;
+  }
+  .subtype-type-title {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: var(--color-text-main);
+  }
+  .subtype-choice {
+    padding-left: 6px;
+  }
   .period-options {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));

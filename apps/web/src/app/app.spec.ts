@@ -1396,4 +1396,63 @@ describe('Vetor Urbano', () => {
       }
     }
   });
+
+  it('alternates between simple and advanced modes, suspending and reconciling filters', () => {
+    localStorage.clear();
+    const app = fixture.componentInstance as unknown as {
+      consultationMode: { (): string; set: (val: string) => void };
+      modeNotice: { (): string };
+      toggleConsultationMode: () => void;
+      toggleFilter: (filter: string) => void;
+      selectQueryMunicipality: (municipality: string) => void;
+      selectedMunicipality: { (): string };
+      activeFilters: { (): string[] };
+    };
+
+    expect(app.consultationMode()).toBe('simple');
+
+    // Switch to advanced mode
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    expect(localStorage.getItem('vetor-consultation-mode')).toBe('advanced');
+
+    // Select type and subtype in advanced mode
+    app.toggleFilter('type:FURTO');
+    app.toggleFilter('subtype:FURTO:De veículo');
+    expect(app.activeFilters()).toContain('subtype:FURTO:De veículo');
+
+    // Switch back to simple mode: advanced filters suspended
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('simple');
+    expect(app.activeFilters()).not.toContain('subtype:FURTO:De veículo');
+    expect(app.modeNotice()).toBe('Filtros avançados suspensos no Modo simples.');
+
+    // In simple mode, change type to ROUBO and change municipality to Niterói
+    app.toggleFilter('type:FURTO');
+    app.toggleFilter('type:ROUBO');
+    app.selectQueryMunicipality('Niterói');
+    expect(app.selectedMunicipality()).toBe('Niterói');
+
+    // Switch to advanced mode: incompatible subtype removed, new municipality preserved
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    expect(app.selectedMunicipality()).toBe('Niterói');
+    expect(app.activeFilters()).not.toContain('subtype:FURTO:De veículo');
+    expect(app.modeNotice()).toBe('Subtipo incompatível com o tipo selecionado foi removido.');
+
+    // Now select compatible subtype for ROUBO
+    app.toggleFilter('subtype:ROUBO:A pedestre');
+    expect(app.activeFilters()).toContain('subtype:ROUBO:A pedestre');
+
+    // Switch to simple mode
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('simple');
+    expect(app.modeNotice()).toBe('Filtros avançados suspensos no Modo simples.');
+
+    // Switch back to advanced with compatible type retained
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    expect(app.activeFilters()).toContain('subtype:ROUBO:A pedestre');
+    expect(app.modeNotice()).toBe('Filtros avançados reaplicados.');
+  });
 });

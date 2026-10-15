@@ -540,6 +540,10 @@ app-root .public-map {
     top: 0;
     padding: 14px 0;
     background: var(--color-bg-surface);
+    pointer-events: none;
+    & > * {
+      pointer-events: auto;
+    }
   }
   .filter-heading h2 {
     font-size: 22px;

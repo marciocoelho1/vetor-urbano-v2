@@ -141,6 +141,20 @@ describe('frontend domain rules', () => {
         types: ['ACIDENTE'],
       }).map((record) => record.id),
     ).toEqual(['acidente-caracteristicas']);
+    expect(
+      filterRecords([collisionWithRollover, accident], {
+        categories: ['TRANSITO'],
+        types: ['ACIDENTE'],
+        subtypes: ['Colisão'],
+      }).map((record) => record.id),
+    ).toEqual(['acidente-caracteristicas']);
+    expect(
+      filterRecords([accident], {
+        categories: ['TRANSITO'],
+        types: ['ACIDENTE'],
+        subtypes: ['Colisão'],
+      }),
+    ).toEqual([]);
     const crossPillar = {
       ...accident,
       additionalClassifications: [{ category: 'SEGURANCA', occurrenceType: 'FURTO' }],

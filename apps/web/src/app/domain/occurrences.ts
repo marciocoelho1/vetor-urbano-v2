@@ -76,6 +76,7 @@ export interface LocalFilters {
   groups?: string[];
   crimes?: string[];
   types?: string[];
+  subtypes?: string[];
   poiTypes?: string[];
   exclusivePois?: boolean;
   operationalStatuses?: OperationalStatus[];
@@ -302,6 +303,18 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
         )
       )
         return false;
+      if (filters.subtypes?.length) {
+        const matchesSubtype = classifications.some((classification) => {
+          const sub = classification.subtype ?? 'Não informado';
+          const type = classification.occurrenceType ?? '';
+          return (
+            filters.subtypes!.includes(sub) ||
+            filters.subtypes!.includes(`${type}:${sub}`) ||
+            filters.subtypes!.includes(`subtype:${type}:${sub}`)
+          );
+        });
+        if (!matchesSubtype) return false;
+      }
       if (filters.groups?.length && !filters.groups.includes(record.group ?? '')) return false;
       if (filters.crimes?.length && !filters.crimes.includes(record.crime ?? '')) return false;
 
