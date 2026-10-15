@@ -56,6 +56,65 @@ const records: DemoRecord[] = [
 ];
 
 describe('frontend domain rules', () => {
+  it('combina tipos por OU e pilar por E, aceitando característica adicional uma única vez', () => {
+    const theft = {
+      id: 'furto',
+      kind: 'occurrence' as const,
+      category: 'SEGURANCA',
+      occurrenceType: 'FURTO',
+      coordinates: [-43.2, -22.9] as [number, number],
+    };
+    const robbery = { ...theft, id: 'roubo', occurrenceType: 'ROUBO' };
+    const accident = { ...theft, id: 'acidente', category: 'TRANSITO', occurrenceType: 'ACIDENTE' };
+    const collisionWithRollover = {
+      ...accident,
+      id: 'acidente-caracteristicas',
+      subtype: 'Colisão',
+      additionalClassifications: [
+        { category: 'TRANSITO', occurrenceType: 'ACIDENTE', subtype: 'Capotamento' },
+      ],
+    };
+    const extraTheft = {
+      ...robbery,
+      id: 'roubo-com-furto',
+      additionalClassifications: [{ category: 'SEGURANCA', occurrenceType: 'FURTO' }],
+    };
+    expect(
+      filterRecords([theft, robbery, accident], {
+        categories: ['SEGURANCA', 'TRANSITO'],
+        types: ['ROUBO', 'FURTO'],
+      }).map((record) => record.id),
+    ).toEqual(['furto', 'roubo']);
+    expect(
+      filterRecords([theft, robbery, accident], {
+        categories: ['TRANSITO'],
+        types: ['ROUBO', 'FURTO'],
+      }),
+    ).toEqual([]);
+    expect(
+      filterRecords([extraTheft, extraTheft], { categories: ['SEGURANCA'], types: ['FURTO'] }).map(
+        (record) => record.id,
+      ),
+    ).toEqual(['roubo-com-furto']);
+    expect(
+      filterRecords([collisionWithRollover, collisionWithRollover], {
+        categories: ['TRANSITO'],
+        types: ['ACIDENTE'],
+      }).map((record) => record.id),
+    ).toEqual(['acidente-caracteristicas']);
+    const crossPillar = {
+      ...accident,
+      additionalClassifications: [{ category: 'SEGURANCA', occurrenceType: 'FURTO' }],
+    };
+    expect(filterRecords([crossPillar], { categories: ['TRANSITO'], types: ['FURTO'] })).toEqual(
+      [],
+    );
+    expect(
+      filterRecords([crossPillar], { categories: ['SEGURANCA'], types: ['FURTO'] }).map(
+        (record) => record.id,
+      ),
+    ).toEqual(['acidente']);
+  });
   it('consulta recente exclui datas ausentes, futuras e registros sem publicação aprovada', () => {
     const base: DemoRecord = {
       id: 'published',
@@ -88,7 +147,7 @@ describe('frontend domain rules', () => {
     expect(range.end.toISOString()).toBe('2026-03-31T15:00:00.000Z');
   });
 
-  it('uses a half-open date interval and does not let a crime refinement remove a broad category result', () => {
+  it('combines legacy group and crime refinements with the category using AND', () => {
     const result = filterRecords(records, {
       categories: ['SEGURANCA'],
       groups: ['CRIMES'],
@@ -97,7 +156,7 @@ describe('frontend domain rules', () => {
       end: new Date('2026-10-11T00:00:00.000Z'),
     });
 
-    expect(result.map((record) => record.id)).toEqual(['security-theft']);
+    expect(result.map((record) => record.id)).toEqual([]);
   });
 
   it('interprets manually entered date-times in America/Sao_Paulo', () => {

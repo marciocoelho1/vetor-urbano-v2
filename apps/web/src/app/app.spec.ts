@@ -413,14 +413,14 @@ describe('Vetor Urbano', () => {
     expect(fixture.nativeElement.textContent).toContain('Unidade de saúde demonstrativa');
   });
 
-  it('keeps broad category results when an advanced crime layer is refined', () => {
+  it('refines broad category results with the selected approved type', () => {
     const app = fixture.componentInstance as unknown as {
       activeFilters: { set: (filters: string[]) => void };
       visiblePoints: () => { id: string }[];
     };
-    app.activeFilters.set(['category:SEGURANCA', 'group:CRIMES', 'crime:ROUBO_VEICULO']);
+    app.activeFilters.set(['category:SEGURANCA', 'type:FURTO']);
 
-    expect(app.visiblePoints().map((point) => point.id)).toContain('demo-seguranca-001');
+    expect(app.visiblePoints().map((point) => point.id)).toContain('demo-seguranca-002');
   });
 
   it('does not treat collective information points as client-exclusive points', () => {
