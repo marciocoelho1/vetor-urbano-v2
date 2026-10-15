@@ -350,4 +350,82 @@ describe('frontend domain rules', () => {
       ),
     ).toThrow(/WGS84/i);
   });
+
+  it('filtra registros por texto, fonte, faixa de nota e situação', () => {
+    const item1: DemoRecord = {
+      id: 'item-1',
+      kind: 'occurrence',
+      category: 'TRANSITO',
+      name: 'Colisão entre dois veículos',
+      description: 'Bloqueio parcial da via expressa.',
+      location: 'Avenida Brasil, Rio de Janeiro',
+      sourceId: 'demo',
+      reliabilityScore: 4,
+      situation: 'ONGOING',
+      coordinates: [-43.2, -22.9],
+    };
+    const item2: DemoRecord = {
+      id: 'item-2',
+      kind: 'occurrence',
+      category: 'TRANSITO',
+      name: 'Semáforo apagado no cruzamento',
+      description: 'Tráfego lento no local.',
+      location: 'Rua das Flores, Niterói',
+      sourceId: 'demo-no-url',
+      reliabilityScore: 2,
+      situation: 'CLOSED',
+      coordinates: [-43.1, -22.8],
+    };
+    const item3: DemoRecord = {
+      id: 'item-3',
+      kind: 'occurrence',
+      category: 'SEGURANCA',
+      name: 'Furto de celular',
+      description: 'Ocorrência registrada sem feridos.',
+      location: 'Centro, Duque de Caxias',
+      sourceId: 'demo',
+      reliabilityScore: 3,
+      situation: 'UNKNOWN',
+      coordinates: [-43.3, -22.7],
+    };
+    const list = [item1, item2, item3];
+
+    // Filtro por texto
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], textQuery: 'colisão' }).map((r) => r.id),
+    ).toEqual(['item-1']);
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], textQuery: 'Niterói' }).map((r) => r.id),
+    ).toEqual(['item-2']);
+    expect(filterRecords(list, { categories: ['TRANSITO'], textQuery: 'inexistente' })).toEqual([]);
+
+    // Filtro por fonte
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], sources: ['demo'] }).map((r) => r.id),
+    ).toEqual(['item-1']);
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], sources: ['demo-no-url'] }).map((r) => r.id),
+    ).toEqual(['item-2']);
+
+    // Filtro por faixa de nota
+    expect(filterRecords(list, { categories: ['TRANSITO'], minScore: 3 }).map((r) => r.id)).toEqual(
+      ['item-1'],
+    );
+    expect(filterRecords(list, { categories: ['TRANSITO'], maxScore: 2 }).map((r) => r.id)).toEqual(
+      ['item-2'],
+    );
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], minScore: 2, maxScore: 4 }).map((r) => r.id),
+    ).toEqual(['item-1', 'item-2']);
+    expect(filterRecords(list, { categories: ['TRANSITO'], minScore: 5 })).toEqual([]);
+
+    // Filtro por situação
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], situations: ['ONGOING'] }).map((r) => r.id),
+    ).toEqual(['item-1']);
+    expect(
+      filterRecords(list, { categories: ['TRANSITO'], situations: ['CLOSED'] }).map((r) => r.id),
+    ).toEqual(['item-2']);
+    expect(filterRecords(list, { categories: ['TRANSITO'], situations: ['UNKNOWN'] })).toEqual([]);
+  });
 });

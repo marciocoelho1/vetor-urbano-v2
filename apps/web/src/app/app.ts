@@ -39,6 +39,7 @@ import {
   resolveSituation,
   situationLabel,
   temporalInclusion,
+  type Situation,
 } from './domain/temporal';
 import {
   formatDistance,
@@ -305,9 +306,14 @@ export type ConsultationMode = 'simple' | 'advanced';
 
 interface SuspendedAdvancedFilters {
   subtypes: string[];
+  sources?: string[];
+  situations?: string[];
   customPeriod?: boolean;
   customRangeStart?: string;
   customRangeEnd?: string;
+  textFilter?: string;
+  minScore?: number | null;
+  maxScore?: number | null;
 }
 
 @Component({
@@ -326,6 +332,21 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly consultationMode = signal<ConsultationMode>('simple');
   protected readonly modeNotice = signal<string>('');
   private readonly suspendedAdvancedFilters = signal<SuspendedAdvancedFilters | null>(null);
+  protected readonly advancedTextFilter = signal<string>('');
+  protected readonly minScore = signal<number | null>(null);
+  protected readonly maxScore = signal<number | null>(null);
+  protected readonly scoreRangeInvalid = computed(() => {
+    const min = this.minScore();
+    const max = this.maxScore();
+    return min !== null && max !== null && min > max;
+  });
+  protected readonly periodExplicitlyChosenInSimple = signal(false);
+  protected readonly availableSources = [SOURCE_PLACEHOLDER, ...SYNTHETIC_PUBLIC_SOURCES];
+  protected readonly situationOptions: { id: Situation; label: string }[] = [
+    { id: 'ONGOING', label: 'Em andamento' },
+    { id: 'CLOSED', label: 'Encerrada' },
+    { id: 'UNKNOWN', label: 'Desconhecida' },
+  ];
   protected readonly activeView = signal<ViewId>('map');
   protected readonly consultationView = signal<'map' | 'list'>('map');
   protected readonly compactConsultation = signal(
@@ -549,6 +570,22 @@ export class App implements AfterViewInit, OnDestroy {
           removeLabel: `Remover subtipo ${subName}`,
         };
       }
+      if (kind === 'source') {
+        const sourceName = this.availableSources.find((s) => s.id === value)?.name ?? value;
+        return {
+          id: filter,
+          label: `fonte: ${sourceName}`,
+          removeLabel: `Remover fonte ${sourceName}`,
+        };
+      }
+      if (kind === 'situation') {
+        const sitLabel = situationLabel(value as Situation);
+        return {
+          id: filter,
+          label: `situação: ${sitLabel}`,
+          removeLabel: `Remover situação ${sitLabel}`,
+        };
+      }
       const name =
         kind === 'type'
           ? (OCCURRENCE_CATALOGUE.find((type) => type.id === value)?.label ?? value)
@@ -564,6 +601,8 @@ export class App implements AfterViewInit, OnDestroy {
             poi: 'ponto de interesse',
             group: 'grupo',
             crime: 'classificação legada',
+            source: 'fonte',
+            situation: 'situação',
           } as Record<string, string>
         )[kind ?? ''] ?? 'filtro';
       return {
@@ -626,6 +665,29 @@ export class App implements AfterViewInit, OnDestroy {
         label: 'Área visível aplicada',
         removeLabel: 'Remover área visível aplicada',
       });
+    if (this.consultationMode() === 'advanced' && this.advancedTextFilter()) {
+      entries.push({
+        id: 'advancedText',
+        label: `texto: "${this.advancedTextFilter()}"`,
+        removeLabel: 'Remover busca por texto',
+      });
+    }
+    if (
+      this.consultationMode() === 'advanced' &&
+      (this.minScore() !== null || this.maxScore() !== null)
+    ) {
+      const min = this.minScore();
+      const max = this.maxScore();
+      let label = 'nota: ';
+      if (min !== null && max !== null) label += `${min} a ${max}`;
+      else if (min !== null) label += `≥ ${min}`;
+      else if (max !== null) label += `≤ ${max}`;
+      entries.push({
+        id: 'advancedScore',
+        label,
+        removeLabel: 'Remover filtro por faixa de nota',
+      });
+    }
     return entries;
   });
   private readonly platformId = inject(PLATFORM_ID);
@@ -861,7 +923,7 @@ export class App implements AfterViewInit, OnDestroy {
     );
   });
   protected readonly visiblePoints = computed(() => {
-    if (this.customRangeInvalid() || this.radiusInvalid()) return [];
+    if (this.customRangeInvalid() || this.radiusInvalid() || this.scoreRangeInvalid()) return [];
     const filters = this.activeFilters();
     const categories = filters
       .filter((filter) => filter.startsWith('category:'))
@@ -881,11 +943,47 @@ export class App implements AfterViewInit, OnDestroy {
             .filter((filter) => filter.startsWith('subtype:'))
             .map((filter) => filter.slice('subtype:'.length))
         : undefined;
+    const sources =
+      this.consultationMode() === 'advanced'
+        ? filters
+            .filter((filter) => filter.startsWith('source:'))
+            .map((filter) => filter.slice('source:'.length))
+        : undefined;
+
+    let situations: Situation[] | undefined;
+    if (this.consultationMode() === 'advanced') {
+      const activeSituations = filters
+        .filter((filter) => filter.startsWith('situation:'))
+        .map((filter) => filter.slice('situation:'.length) as Situation);
+
+      if (this.period() === 'ongoing') {
+        situations =
+          activeSituations.length > 0
+            ? activeSituations.filter((s) => s === 'ONGOING')
+            : ['ONGOING'];
+      } else {
+        situations = activeSituations.length > 0 ? activeSituations : undefined;
+      }
+    } else {
+      situations = this.period() === 'ongoing' ? ['ONGOING'] : undefined;
+    }
+
     const poiTypes = filters
       .filter((filter) => filter.startsWith('poi:') && filter !== 'poi:EXCLUSIVO')
       .map((filter) => filter.slice('poi:'.length));
     const range = this.resolvedDateRange();
     const center = this.searchCenter();
+    const textQuery =
+      this.consultationMode() === 'advanced' ? this.advancedTextFilter() : undefined;
+    const minScore =
+      this.consultationMode() === 'advanced' && this.minScore() !== null
+        ? this.minScore()!
+        : undefined;
+    const maxScore =
+      this.consultationMode() === 'advanced' && this.maxScore() !== null
+        ? this.maxScore()!
+        : undefined;
+
     return filterRecords(this.allPoints(), {
       categories,
       municipalities: this.selectedMunicipality() ? [this.selectedMunicipality()] : undefined,
@@ -895,8 +993,12 @@ export class App implements AfterViewInit, OnDestroy {
       crimes,
       types,
       subtypes: subtypes?.length ? subtypes : undefined,
+      sources: sources?.length ? sources : undefined,
+      textQuery,
+      minScore,
+      maxScore,
       poiTypes,
-      situations: this.period() === 'ongoing' ? ['ONGOING'] : undefined,
+      situations,
       exclusivePois: filters.includes('poi:EXCLUSIVO'),
       start: range?.start,
       end: range?.end,
@@ -1663,11 +1765,19 @@ export class App implements AfterViewInit, OnDestroy {
       this.selectedNeighborhood.set('');
     } else if (id === 'neighborhood') this.selectedNeighborhood.set('');
     else if (id === 'bounds') this.visibleAreaBounds.set(null);
-    else if (id === 'period') this.period.set('24h');
-    else if (id === 'timeStart') this.timeStart.set('');
+    else if (id === 'period') {
+      this.period.set('24h');
+      if (this.consultationMode() === 'simple') {
+        this.periodExplicitlyChosenInSimple.set(true);
+      }
+    } else if (id === 'timeStart') this.timeStart.set('');
     else if (id === 'timeEnd') this.timeEnd.set('');
     else if (id === 'radius') this.useRadius.set(false);
-    else this.activeFilters.update((filters) => filters.filter((filter) => filter !== id));
+    else if (id === 'advancedText') this.advancedTextFilter.set('');
+    else if (id === 'advancedScore') {
+      this.minScore.set(null);
+      this.maxScore.set(null);
+    } else this.activeFilters.update((filters) => filters.filter((filter) => filter !== id));
     this.querySummaryNotice.set(
       id === 'period'
         ? 'Período restaurado: últimas 24 horas.'
@@ -1689,6 +1799,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.timeStart.set('');
     this.timeEnd.set('');
     this.useRadius.set(false);
+    this.advancedTextFilter.set('');
+    this.minScore.set(null);
+    this.maxScore.set(null);
+    this.suspendedAdvancedFilters.set(null);
+    if (this.consultationMode() === 'simple') {
+      this.periodExplicitlyChosenInSimple.set(true);
+    }
     this.querySummaryNotice.set(
       'Filtros limpos: três pilares e últimas 24 horas. A câmera foi mantida.',
     );
@@ -1704,11 +1821,31 @@ export class App implements AfterViewInit, OnDestroy {
       );
   }
 
+  protected setAdvancedTextFilter(query: string): void {
+    this.advancedTextFilter.set(query);
+    this.refreshMapData();
+  }
+
+  protected setMinScore(value: string): void {
+    const parsed = value ? parseInt(value, 10) : null;
+    this.minScore.set(Number.isFinite(parsed) ? parsed : null);
+    this.refreshMapData();
+  }
+
+  protected setMaxScore(value: string): void {
+    const parsed = value ? parseInt(value, 10) : null;
+    this.maxScore.set(Number.isFinite(parsed) ? parsed : null);
+    this.refreshMapData();
+  }
+
   protected selectPeriod(period: string): void {
     const available = ['24h', '1w', '1m', '3m', '6m', '1y', 'custom', 'ongoing'];
     if (!available.includes(period)) return;
     this.querySummaryNotice.set('');
     this.period.set(period as DatePreset | 'custom' | 'ongoing');
+    if (this.consultationMode() === 'simple') {
+      this.periodExplicitlyChosenInSimple.set(true);
+    }
     this.refreshMapData();
   }
 
@@ -1775,6 +1912,9 @@ export class App implements AfterViewInit, OnDestroy {
       this.period.set('6m');
     } else {
       this.period.set('1y');
+    }
+    if (this.consultationMode() === 'simple') {
+      this.periodExplicitlyChosenInSimple.set(true);
     }
     this.querySummaryNotice.set('Período ampliado para expandir os resultados.');
     this.refreshMapData();
@@ -2024,17 +2164,40 @@ export class App implements AfterViewInit, OnDestroy {
           }
         }
 
+        if (suspended.sources && suspended.sources.length > 0) {
+          toReapply.push(...suspended.sources);
+          reappliedCount++;
+        }
+        if (suspended.situations && suspended.situations.length > 0) {
+          toReapply.push(...suspended.situations);
+          reappliedCount++;
+        }
+
         if (toReapply.length > 0) {
           this.activeFilters.update((filters) => [...filters, ...toReapply]);
         }
 
         if (suspended.customPeriod) {
-          if (this.period() === '24h') {
+          if (!this.periodExplicitlyChosenInSimple()) {
             this.period.set('custom');
             if (suspended.customRangeStart) this.customRangeStart.set(suspended.customRangeStart);
             if (suspended.customRangeEnd) this.customRangeEnd.set(suspended.customRangeEnd);
             reappliedCount++;
           }
+        }
+
+        if (suspended.textFilter) {
+          this.advancedTextFilter.set(suspended.textFilter);
+          reappliedCount++;
+        }
+
+        if (suspended.minScore !== null && suspended.minScore !== undefined) {
+          this.minScore.set(suspended.minScore);
+          reappliedCount++;
+        }
+        if (suspended.maxScore !== null && suspended.maxScore !== undefined) {
+          this.maxScore.set(suspended.maxScore);
+          reappliedCount++;
         }
 
         if (removedIncompatible) {
@@ -2046,6 +2209,7 @@ export class App implements AfterViewInit, OnDestroy {
         }
 
         this.suspendedAdvancedFilters.set(null);
+        this.periodExplicitlyChosenInSimple.set(false);
       } else {
         this.modeNotice.set('Modo Análise e Inteligência ativo.');
       }
@@ -2066,26 +2230,55 @@ export class App implements AfterViewInit, OnDestroy {
       }
 
       const activeSubtypes = this.activeFilters().filter((f) => f.startsWith('subtype:'));
+      const activeSources = this.activeFilters().filter((f) => f.startsWith('source:'));
+      const activeSituations = this.activeFilters().filter((f) => f.startsWith('situation:'));
       const isCustomPeriod = this.period() === 'custom';
+      const hasTextFilter = Boolean(this.advancedTextFilter().trim());
+      const hasMinScore = this.minScore() !== null;
+      const hasMaxScore = this.maxScore() !== null;
 
-      if (activeSubtypes.length > 0 || isCustomPeriod) {
+      const hadAdvancedFilters =
+        activeSubtypes.length > 0 ||
+        activeSources.length > 0 ||
+        activeSituations.length > 0 ||
+        isCustomPeriod ||
+        hasTextFilter ||
+        hasMinScore ||
+        hasMaxScore;
+
+      if (hadAdvancedFilters) {
         this.suspendedAdvancedFilters.set({
           subtypes: activeSubtypes,
+          sources: activeSources,
+          situations: activeSituations,
           customPeriod: isCustomPeriod,
           customRangeStart: isCustomPeriod ? this.customRangeStart() : undefined,
           customRangeEnd: isCustomPeriod ? this.customRangeEnd() : undefined,
+          textFilter: hasTextFilter ? this.advancedTextFilter() : undefined,
+          minScore: this.minScore(),
+          maxScore: this.maxScore(),
         });
 
-        this.activeFilters.update((filters) => filters.filter((f) => !f.startsWith('subtype:')));
+        this.activeFilters.update((filters) =>
+          filters.filter(
+            (f) =>
+              !f.startsWith('subtype:') && !f.startsWith('source:') && !f.startsWith('situation:'),
+          ),
+        );
 
         if (isCustomPeriod) {
           this.period.set('24h');
         }
+        this.advancedTextFilter.set('');
+        this.minScore.set(null);
+        this.maxScore.set(null);
 
         this.modeNotice.set('Filtros avançados suspensos no Modo simples.');
       } else {
+        this.suspendedAdvancedFilters.set(null);
         this.modeNotice.set('Modo simples ativo.');
       }
+      this.periodExplicitlyChosenInSimple.set(false);
     }
 
     this.refreshMapData();

@@ -864,6 +864,42 @@
 .period-custom-options .query-error {
   grid-column: 1 / -1;
 }
+.score-range-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 6px;
+}
+.score-range-inputs .field {
+  min-width: 0;
+}
+.score-range-inputs select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.76rem;
+}
+@media (max-width: 420px) {
+  .score-range-inputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.filter-clear-link {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.filter-clear-link:hover,
+.filter-clear-link:focus-visible {
+  color: var(--accent-strong);
+}
 .map-radius-panel {
   position: relative;
   z-index: 6;

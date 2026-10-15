@@ -662,6 +662,100 @@
                               </div>
                             }
                           </fieldset>
+                          <fieldset class="filter-group" data-testid="advanced-text-group">
+                            <legend>Busca textual</legend>
+                            <p class="filter-hint">Termo em título, descrição ou endereço.</p>
+                            <label class="field">
+                              <span class="field-label">Termo de busca</span>
+                              <input
+                                type="text"
+                                data-testid="advanced-text-filter"
+                                placeholder="Ex.: colisão, via expressa..."
+                                [value]="advancedTextFilter()"
+                                (input)="setAdvancedTextFilter($any($event.target).value)"
+                              />
+                            </label>
+                            @if (advancedTextFilter()) {
+                              <button
+                                type="button"
+                                class="filter-clear-link"
+                                (click)="setAdvancedTextFilter('')"
+                              >
+                                Limpar busca textual
+                              </button>
+                            }
+                          </fieldset>
+                          <fieldset class="filter-group" data-testid="advanced-source-group">
+                            <legend>Fontes de dados</legend>
+                            <p class="filter-hint">Filtro por fonte catalogada ou informe.</p>
+                            @for (source of availableSources; track source.id) {
+                              <label class="filter-choice">
+                                <input
+                                  type="checkbox"
+                                  [checked]="isFilterActive('source:' + source.id)"
+                                  [attr.data-filter]="'source:' + source.id"
+                                  (change)="toggleFilter('source:' + source.id)"
+                                />
+                                <span>{{ source.name }}</span>
+                              </label>
+                            }
+                          </fieldset>
+                          <fieldset class="filter-group" data-testid="advanced-score-group">
+                            <legend>Faixa de nota fictícia</legend>
+                            <p class="filter-hint">Índice sintético de confiabilidade (1 a 5).</p>
+                            <div class="score-range-inputs">
+                              <label class="field">
+                                <span class="field-label">Nota mínima</span>
+                                <select
+                                  data-testid="advanced-min-score"
+                                  [value]="minScore() !== null ? minScore() : ''"
+                                  (change)="setMinScore($any($event.target).value)"
+                                >
+                                  <option value="">Qualquer</option>
+                                  <option value="1">1 (Mínima)</option>
+                                  <option value="2">2</option>
+                                  <option value="3">3</option>
+                                  <option value="4">4</option>
+                                  <option value="5">5 (Máxima)</option>
+                                </select>
+                              </label>
+                              <label class="field">
+                                <span class="field-label">Nota máxima</span>
+                                <select
+                                  data-testid="advanced-max-score"
+                                  [value]="maxScore() !== null ? maxScore() : ''"
+                                  (change)="setMaxScore($any($event.target).value)"
+                                >
+                                  <option value="">Qualquer</option>
+                                  <option value="1">1</option>
+                                  <option value="2">2</option>
+                                  <option value="3">3</option>
+                                  <option value="4">4</option>
+                                  <option value="5">5 (Máxima)</option>
+                                </select>
+                              </label>
+                            </div>
+                            @if (scoreRangeInvalid()) {
+                              <p class="query-error" role="status">
+                                A nota mínima não pode ser superior à nota máxima.
+                              </p>
+                            }
+                          </fieldset>
+                          <fieldset class="filter-group" data-testid="advanced-situation-group">
+                            <legend>Situação da ocorrência</legend>
+                            <p class="filter-hint">Filtro por andamento ou resolução.</p>
+                            @for (situation of situationOptions; track situation.id) {
+                              <label class="filter-choice">
+                                <input
+                                  type="checkbox"
+                                  [checked]="isFilterActive('situation:' + situation.id)"
+                                  [attr.data-filter]="'situation:' + situation.id"
+                                  (change)="toggleFilter('situation:' + situation.id)"
+                                />
+                                <span>{{ situation.label }}</span>
+                              </label>
+                            }
+                          </fieldset>
                         }
                         <fieldset class="filter-group">
                           <legend>Análise de alertas</legend>

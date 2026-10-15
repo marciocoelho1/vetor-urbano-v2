@@ -1,5 +1,95 @@
 # Histórico de mudanças
 
+## 2026-10-15 — Ticket 06: dois modos de consulta e preservação de escolhas explícitas
+
+- Alternância entre Modo simples e Análise e Inteligência no topo com `data-mode-toggle` e aviso observável (`role="status"`).
+- Modo avançado acrescenta filtros completos: subtipos de ocorrência com opção "Não informado", busca textual normalizada (título, descrição, endereço) com botão de limpeza, seleção de fontes de dados, faixa de nota fictícia (1 a 5) com erro observável ("A nota mínima não pode ser superior à nota máxima.") e situação (`ONGOING`, `CLOSED`, `UNKNOWN`), além de período personalizado.
+- Modo simples suspende filtros avançados com aviso, preservando pilares, tipos, município/bairro, períodos recentes e Áreas de Risco.
+- Ao retornar para Análise e Inteligência, mantém escolhas explícitas feitas em filtros comuns no modo simples (jornada `personalizado → simples → semana → 24h → avançado`), sem restaurar indevidamente períodos personalizados antigos. Reaplica subtipos e filtros compatíveis e descarta incompatíveis com aviso explicativo.
+- Verificação: `bash scripts/verify.sh web` (lint 0 erros, 82 testes unitários em Vitest, build 597,98 kB), 10 testes Playwright direcionados em Chromium e Firefox (`two-modes.spec.ts`, 14.4s) cobrindo teclado/foco e viewport móvel de 390 px, `git diff --check` sem erros e `bash scripts/verify.sh planning` com 185 links validados.
+
+## 2026-10-15 — Ticket 11: fontes e explicação pública
+
+- Páginas de fontes e confiabilidade com retorno/foco; G1 somente placeholder não avaliado/off e exemplos sintéticos separados, preservando importação e atribuições.
+- `2c34dd9` integrado; lint,66 unitários,build525,77kB(aviso25,77kB),22E2E Chromium/Firefox e diff-check passaram. Documentos institucionais locais iniciados no36.
+
+## 2026-10-15 — Ticket 04: tempo e situação com precisão
+
+- Datas exatas/dia/intervalo/mês sem hora inventada, inclusão certa/possível, distinção das datas editoriais e confirmação sintética expirada para Desconhecida com histórico.
+- Commit `95fffc1` integrado. TDD,lint,66 unitários,build521,37kB(aviso21,37kB),16 E2E finais e22 workspace anteriores passaram. Corrigido overflow do novo resumo temporal; sem parâmetros operacionais de vigência presumidos.
+
+## 2026-10-15 — Ticket 02: relações e detalhes compartilhados
+
+- Três efeitos de um acontecimento, referências sem duplicação e painel de detalhes compartilhado entre consulta/Histórico/Informes, com contexto relacionado fora do recorte.
+- Commits `f1cc078`/`45c6401` integrados; TDD,lint,61unitários,build515,13kB(aviso15,13kB),14E2E Chromium/Firefox e diff-check passaram. Conjunto75registros/17iniciais e coordenadas preservados.
+
+## 2026-10-15 — Ticket 03: filtros combinados e resumo
+
+- Filtros combinam alternativas por OU e critérios por E, sem duplicação ou cruzamento incoerente de classificações; resumo permite remover/limpar preservando câmera.
+- Commit `10d316c` integrado. TDD, lint,61unitários,build508,88kB(aviso8,88kB),12E2E direcionados+2responsivos em Chromium/Firefox e diff-check passaram.
+
+## 2026-10-15 — Ticket 01: catálogo e consulta inicial
+
+- Catálogo D04 de 16 tipos/subtipos, consulta inicial com três pilares/24 horas, avisos de dados/fontes/notas fictícios e rejeição explícita de consultas legadas incompatíveis.
+- Preservados 75 registros e 2 POIs; nova janela inicial contém 17 ocorrências (7 Trânsito, 5 Segurança, 5 Contingência). Commit local `5c99513` integrado.
+- TDD e verificação: lint, 60 unitários, build 504,85 kB (aviso 4,85 kB), 18 E2E direcionados em Chromium/Firefox e diff-check passaram. Sem aceite da matriz E2E geral ou QA físico.
+
+## 2026-10-15 — Início da implementação integrada
+
+- Autorizada execução dos 36 tickets em branch local `integration/functional-spec-v1`, preservando documentação/trabalho anterior e publicação pendente. Ticket 01 iniciado por TDD em worktree isolado; nenhum aceite declarado antecipadamente.
+- G1 Rio de Janeiro indicado pelo responsável como placeholder editável, sem ativação de coleta real. Investigação de Java/PostGIS em paralelo.
+
+## 2026-10-15 — Revisão integral dos 25 tickets restantes
+
+- Revisados os tickets 12–36, preservando os IDs, o total de 36 e o lote 01–11 consolidado. Acrescentados demonstração de conclusão, limite de cada fatia, critérios observáveis e ação preparatória.
+- Ajustadas dependências em 13/14/17/20/22/24/27/33: reutilização de API, remoção de arestas redundantes e independência da exportação em relação ao Histórico paginado; pedidos de correção não exigem alteração imediata do registro.
+- Preparadas propostas explícitas para 14 incrementos com parâmetros pendentes. Não adotados valores de fórmula, vigência, conta ou retenção por suposição. Revisão distingue 8 comportamentos delimitados e 3 dependentes de condições externas operacionais.
+- Próximo passo recomendado: implementar 01 em etapa própria. Sem implementação, publicação, coleta real, contratação, commit ou push nesta revisão; verificações: `bash scripts/verify.sh planning` (184 links) e `git diff --check` passaram; auditoria confirmou revisão dos 25, integridade dos 11/spec e dependências/índice coerentes sem ciclos. Âncoras, URLs externas e testes da aplicação não executados.
+
+## 2026-10-15 — Consolidação local das primeiras 11 tarefas
+
+- Consolidado o lote 01–11 por autorização do responsável, com status `ready-for-agent`, critérios, demonstração de conclusão e limite de cada fatia; execução permanece pendente. Preservados IDs e dependências.
+- Avaliada individualmente a viabilidade dos tickets 12–36: 7 com comportamento suficiente para detalhar, 15 que exigem propostas/parâmetros e 3 dependentes de material externo para integração real. O restante permanece `needs-triage`, sem alteração de seus arquivos.
+- Plano/inventário atualizados; recomendada revisão seguinte de 12–19. Sem implementação, publicação, coleta, contratação, commit ou push. Spec e cópias anteriores preservadas.
+- Verificação: `bash scripts/verify.sh planning` (180 links locais) e `git diff --check` passaram. Auditoria confirmou 11 consolidados/25 propostos, dependências preservadas sem ciclos e integridade da spec/cópias/restante. Âncoras/URLs externas e testes da aplicação não foram verificados nesta etapa documental.
+
+## 2026-10-15 — Reconciliação da spec e tickets locais em revisão
+
+- Reconciliados escopo, definição, inventário, glossário e plano com decisões da spec v1.1: catálogo, ocorrência/acontecimento, modos, situações, acesso e cobertura desejada, separando parâmetros pendentes e futuro.
+- Preparados 36 rascunhos locais individuais com critérios/dependências e rastreabilidade dos 25 aceites da spec; primeiro lote proposto 01–11. Divisão aguarda revisão, sem implementação ou publicação.
+- Preservados byte a byte spec e cinco documentos anteriores com trabalho não commitado; entrevista, ODT, requisitos e referências originais mantidos. RF/RNF e divergências legadas não foram renumerados nem declarados encerrados.
+- Spec e tickets ignorados pelo Git nesta etapa local. Validação principal por navegador já aprovada; não reexecutada em tarefa apenas documental. Verificação: `bash scripts/verify.sh planning` e `git diff --check` passaram; auditoria local confirmou 36 tickets, dependências sem ciclos, cobertura documental CA01–CA25 e SHA-256 da spec/cópias. Links externos/âncoras não verificados.
+
+## 2026-10-15 — Consolidação de Q10–Q14
+
+- Registrados Informes Ativos com janela de 24 h/raio até 5 km, Histórico consultável, filtros independentes de Relatórios e transferência por ação no mapa.
+- Fontes e fila reservadas ao Administrador, com página pública de fontes por link no rodapé. Relação com Operador/Gestor permanece pendente; IDs RF/RNF preservados.
+- Brainstorm de reprodução temporal/Inteligência de Dados separado de decisões. Criado documento de definição com diferenças para o código e informações faltantes para avaliar o futuro documento de ideias.
+- Sem novas perguntas obrigatórias nesta rodada ou mudanças na aplicação; Q9 continua adiada.
+- Verificação: `bash scripts/verify.sh planning` e `git diff --check` passaram; 179 links locais conferidos, sem verificar âncoras/URLs externas ou reexecutar testes da aplicação.
+
+## 2026-10-15 — Retomada da definição dos módulos
+
+- Q9 adiada expressamente pelo responsável, sem bloquear a continuação da entrevista; catálogo final de filtros permanece aberto.
+- Plano, escopo e checklist atualizados com a retomada e fluxo de referência baseado nas decisões Q1–Q8, separando detalhes ainda pendentes.
+- Registradas propostas da rodada 3 sobre Informes Ativos, Histórico, Relatórios, Fontes e revisão humana. Nenhuma implementação ou escolha de fonte/modelo nesta etapa.
+
+## 2026-10-15 — Conferência do ponto de recuperação
+
+- Concluída a conferência do registro de Q1–Q9, acrescentando o texto das respostas iniciais e checklist de integridade da retomada. Q9 permanece aguardando o material de filtros.
+- Índice documental aponta diretamente para o ponto de recuperação. Plano distingue o frontend local existente do aceite ampliado da demonstração, que ainda exige scraping e filtro temporal.
+- Nenhuma nova decisão de produto ou alteração na aplicação. Verificação documental: `bash scripts/verify.sh planning` e `git diff --check`; resultados registrados no ponto de recuperação.
+
+## 2026-10-14 — Checklist e entrevista de produto
+
+- Criado inventário com checklists por funcionalidade, separando implementação demonstrativa, refinamentos e integração operacional pendente; RF/RNF preservados.
+- Plano permanece como roadmap único, agora com checkmarks dos marcos e ligação para o inventário. Esclarecido que o formulário não cria, salva ou envia ocorrências.
+- Registrada a primeira rodada de perguntas sobre objetivo, público prioritário e refinamentos percebidos; recomendações aguardam respostas, sem mudança de escopo aprovada.
+- Após as respostas, confirmado objetivo de demonstração estável sem prazo, foco na definição das funcionalidades de consulta e refinamento mobile adiado. Registrada direção desejada de clippings retroativos/recentes e credibilidade de 1 a 5; fontes, IA e regras permanecem abertas. Relatos da população adiados.
+- Criado registro incremental da entrevista e acrescentados clipping/relato da população ao glossário; segunda rodada proposta, sem implementação de coleta ou alteração do frontend.
+- Registradas respostas Q4–Q9 e ponto de recuperação solicitado: scraping no aceite desejado, filtro temporal provisório, módulos preservados para revisão, consolidação por ocorrência, avaliações distintas, lista de fontes 1–5 e revisão humana inicial. Q9 aguarda material de filtros; entrevista pausada pelo responsável.
+- Verificação: `bash scripts/verify.sh planning` e `git diff --check` passaram; testes da aplicação não reexecutados nesta tarefa documental.
+
 ## 2026-10-14 — Organização e documentação
 
 - Código web agrupado por responsabilidade, estilos globais separados e galeria com entrada/tsconfig exclusivos.
@@ -135,3 +225,10 @@ Revisado em 05/10/2026 para refletir os testes e a configuração final do worke
 - Implementar a fatia vertical segura com API Java, PostgreSQL/PostGIS, autenticação/autorização e moderação.
 - Definir os municípios da Baixada Fluminense e validar fontes/licenças antes de declarar cobertura ou exibir polígonos.
 - Avaliar visualmente em telas móveis, zoom 200% e com leitor de tela; a captura de screenshot do navegador ficou indisponível por configuração do perfil local.
+
+## 2026-10-15 — Reconciliação documental da continuidade
+
+- Corrigido o vínculo de tickets/commits: 11 → `2c34dd9` (fontes/explicação); 36 → `84bfa04` (documentos institucionais); `47cba99` não localizado no Git.
+- Qualificados os registros de aceite dos Tickets 06, 07, 10 e 36 como implementação/evidência histórica com pendências de revisão estática; nenhuma falha foi declarada reproduzida.
+- Esclarecido que o Ticket 12 requer API Java e PostgreSQL/PostGIS reais e que o versionamento territorial persistido pertence ao Ticket 26, além da demonstração do Ticket 09.
+- Atualizados estado local, status dos tickets, plano e histórico. Sem alterações de aplicação ou testes executados.

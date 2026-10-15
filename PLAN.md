@@ -1,42 +1,42 @@
 # Plano de trabalho
 
-Atualização: 14/10/2026. Este é o único roadmap ativo; os registros anteriores estão no [diário de outubro](docs/history/work-log-2026-10.md).
+Atualização: 15/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
-## Estado atual
+## Estado e foco atual
 
-Frontend Angular demonstrativo com consulta em mapa/lista, filtros, cadastro local, histórico, informes, indicadores, importação manual e exportação XLSX. A interface segue a proposta 6, com temas claro/escuro e consulta encaixada na primeira tela. A API Java, o banco PostgreSQL/PostGIS e a autenticação ainda não existem.
+Frontend Angular demonstrativo existente; API Java, PostgreSQL/PostGIS, contas e coleta automática não implementados. A [spec interna v1.1](docs/product/specification.md) consolida Q1–Q88 e orienta o comportamento desejado. Catálogo, modos, situações, acesso e cobertura desejada já estão aprovados; não reabrir essas decisões como pendências da entrevista Q1–Q14 anterior.
 
-Organização e documentação revisadas em 14/10: fontes agrupados por responsabilidade, galeria isolada, SQL legado arquivado, changelog convencional e guias curtos de produto, desenvolvimento e operação. Alterações anteriores de interface preservadas no commit `4449457`. Detalhes da manutenção: [registro](docs/history/repository-maintenance-2026-10-14.md).
+**Reconciliação documental em 15/10:** branch local `integration/functional-spec-v1`, base `897fae5`. O inventário histórico identifica Ticket 11 em `2c34dd9` (fontes/explicação pública) e Ticket 36 em `84bfa04` (documentos institucionais); `47cba99` não existe no repositório local. Os resultados registrados para tickets 06, 07, 10 e 36 permanecem evidências históricas de implementação/testes, não aceite integral: revisão estática encontrou critérios sem evidência rastreável suficiente em 06/07/10 e inconsistência de canal de correção no documento do 36. Ticket 09 é camada demonstrativa; versionamento persistido pertence ao Ticket 26. Ticket 12 exige API Java e PostgreSQL/PostGIS reais, migrações e validação no servidor. Detalhes e limites em [revisão de continuidade](docs/history/spec-implementation-2026-10-15.md#reconciliação-documental-de-continuidade--15102026). Não houve teste da aplicação nesta revisão. As orientações aprovadas sobre contas, avaliação sintética e G1 placeholder permanecem; publicação, custos e coleta real não autorizados.
 
-## Verificação desta manutenção
+Divisões 01–11 e 12–36 autorizadas para implementação; parâmetros pendentes continuam delimitados. Validação principal pelo navegador permanece aprovada, com TDD e HTTP/PostGIS real para backend. A atualização do estado será feita somente com evidências de cada entrega.
 
-Lint, **59 testes unitários** e build da aplicação passaram após a organização. Build inicial: **502,64 kB**, com o aviso anterior de 2,64 kB acima do orçamento preservado. Lint/build separados da galeria e sintaxe dos scripts de captura passaram; Playwright reconheceu **98 cenários**.
+Primeiro lote consolidado 01–11: catálogo/consulta inicial → relações e filtros → precisão temporal/espacial → dois modos, mapa/lista, Informes manuais, Áreas de Risco, estados/atualização e páginas explicativas, com dados fictícios explícitos. Essa demonstração não comprova scraping, autenticação, moderação ou cobertura operacional.
 
-A execução E2E direcionada ficou bloqueada: o servidor configurado pelo Playwright não iniciou (código 127). A manutenção não declara aprovação da matriz de navegador. A análise sintática confirmou equivalência dos **25 arquivos TypeScript** após normalizar imports; SHA-256 confirmou **390 arquivos protegidos e SQL legado** íntegros. Verificações estruturais e links locais passaram. [Evidência da manutenção](docs/evidence/repository-maintenance-2026-10-14.json).
+## Ordem proposta após revisão
 
-A execução geral E2E anterior passou em 89 de 98 cenários; testes direcionados foram corrigidos e verificados, mas a suíte geral não foi declarada aprovada. Os resultados pertencem às respectivas entregas e estão no [registro da primeira tela](docs/history/design/public-map-first-screen-2026-10-14.md).
+- [x] Consolidar divisão 01–11, com critérios, dependências e demonstração por tarefa; avaliar viabilidade de revisão dos próximos 25.
+- [x] Criar branch de integração e iniciar execução autorizada do grafo; ticket 01 em andamento, sem aceite declarado.
+- [x] Revisar todos os 25 tickets restantes (12–36): critérios/demonstrações, escopo, dependências e propostas de parâmetros registrados.
+- [ ] Concluir consulta demonstrativa coerente com critérios por ticket e navegador Chromium/Firefox.
+- [ ] Integrar leitura persistida, contas/autorização e revisão/versões com HTTP e PostGIS real.
+- [ ] Integrar fontes/coleta recente e retroativa autorizadas, calibragem/avaliação e acompanhamento operacional.
+- [ ] Integrar Histórico, Relatórios, síntese/comparações, calor, arquivos e solicitações; análises podem usar dados sintéticos persistidos antes da coleta real.
+- [ ] Validar cobertura/cartografia, desempenho, privacidade, recuperação e candidato integrado antes de operação.
 
-## Pendências conhecidas
+Esses agrupamentos reconciliam os marcos antigos F0/R0–R7, preservados no [plano anterior](.scratch/consulta-coerente/context-before/PLAN.md); não são renumeração de requisitos ou percentuais de conclusão. Scraping real continua objetivo posterior da demonstração ampliada, sem autorizar conectores/custos agora.
 
-- Tema local do mapa vetorial no cadastro e largura do cadastro a 320 px, reproduzidos antes desta manutenção.
-- Bundle inicial 2,64 kB acima do aviso de orçamento; limite preservado.
-- QA com leitor de tela, zoom e aparelho físico; testes automatizados não substituem essa revisão.
-- Municípios, limites de cobertura, regras de acesso/moderação e configuração cartográfica para hospedagem.
+## Pendências delimitadas
 
-## Próximas etapas
+Parâmetros de nota/rubrica/amostra, vigência por tipo, correspondência de publicações, limites oficiais/interseção espacial, conta/sessão/MFA/desvinculação, fontes/autorização/custo/extração, composição de relatórios/arquivos e retenção/textos definitivos. Bloqueiam somente incrementos correspondentes. RF06 e relações dos perfis legados permanecem em reconciliação; RF/RNF originais preservados.
 
-| Marco | Entrega | Estado / condição |
-|---|---|---|
-| F0 | Concluir e validar o frontend demonstrativo | Implementado; pendências de QA e regressão acima |
-| R0 | Fechar recorte, perfis, campos públicos e moderação | Pendente; reconciliar contratos e requisitos legados |
-| R1 | PostgreSQL/PostGIS + API Java integrada a mapa/lista | Não iniciado; exige R0 e testes no banco real |
-| R2 | Preparar mapas e hospedagem | Provedor, termos, limites e domínio a definir |
-| R3 | Autenticação, cadastro protegido, moderação e auditoria | Não iniciado; sessão, senha e MFA definidos antes de escrita real |
-| R4 | Completar filtros/análise no servidor | Recursos locais parciais; garantir consistência mapa/lista |
-| R5 | Validar territórios para uso operacional | Camada demonstrativa existente; revisar geometria, cobertura e atualização |
-| R6 | Candidato a 1.0 em homologação | Fluxo integrado, segurança, privacidade e recuperação verificados |
-| R7 | Pesquisar alertas, votos, push/geofencing e escala | Backlog; sem compromisso de operação em tempo real |
+Relatos populacionais, resumo por IA, reprodução temporal avançada, planos, alertas, votos e escala são futuros. Landing page tem definição adiada. Refinamento mobile continua adiado, com apresentação/acessibilidade conferidas nos fluxos alterados e sem declarar QA físico aprovado.
 
-Ordem prevista: finalizar F0 e revisão manual → R0/R1. Alertas e uso operacional dos territórios dependem de decisões próprias. Os [aceites CA01–CA08 e regras RN-P01–RN-P14](docs/archive/planning/scope-2026-10.md) seguem preservados como propostas para reconciliação.
+## Evidências e limitações
 
-Próxima ação de produto: corrigir as pendências do frontend e repetir a matriz de navegador antes da revisão de R0. Esta manutenção inclui commit e push na branch atual, sem deploy.
+Reconciliação, inventário do código, dependências e rastreabilidade estão no [registro de 15/10](docs/history/spec-to-tickets-2026-10-15.md). Versões anteriores dos documentos e alterações não commitadas foram preservadas em cópias integrais. Spec mantida byte a byte. `bash scripts/verify.sh planning` e `git diff --check` passaram; auditoria local confirmou 36 tickets, dependências sem ciclos, cobertura documental CA01–CA25 e integridade da spec/cópias. Na consolidação subsequente, planning (180 links) e diff-check passaram; auditoria confirmou 11 consolidados/25 propostas inalteradas, dependências preservadas e integridade da spec/cópias. Na revisão dos 25, planning (184 links), diff-check e auditoria passaram; 25 arquivos revisados, 11 consolidados intactos e índice/arestas coerentes sem ciclos. Testes da aplicação não reexecutados; não há aceite funcional novo.
+
+Última manutenção, sem relação com os novos aceites: lint/59 unitários/build passaram; bundle 502,64 kB com aviso de 2,64 kB; E2E bloqueado no servidor (127). Execução geral anterior 89/98 com verificações direcionadas posteriores, sem aceite geral. [Evidência histórica](docs/history/repository-maintenance-2026-10-14.md).
+
+Preservar: tema local no cadastro vetorial, cadastro em 320 px, leitor de tela/zoom/aparelho físico, limites/cobertura e cartografia para hospedagem. Nenhuma falha histórica foi declarada reproduzida agora.
+
+**Próxima ação:** com o Ticket 06 implementado e verificado integralmente com evidências reais no navegador (Chromium/Firefox) e 82 testes unitários, prosseguir na revisão/fechamento das pendências apontadas para 07, 10 e 36 antes de avançar para novos lotes. Ticket 12 continua proposta de integração e exige API Java/PostgreSQL/PostGIS real, não apenas persistência no navegador. G1 permanece placeholder; coleta real não foi autorizada. [Estado local da execução](.scratch/consulta-coerente/implementation-state.json).

@@ -71,12 +71,24 @@ export interface DemoRecord {
   properties?: Record<string, string>;
 }
 
+export function normalizeSearch(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 export interface LocalFilters {
   categories?: string[];
   groups?: string[];
   crimes?: string[];
   types?: string[];
   subtypes?: string[];
+  sources?: string[];
+  textQuery?: string;
+  minScore?: number;
+  maxScore?: number;
   poiTypes?: string[];
   exclusivePois?: boolean;
   operationalStatuses?: OperationalStatus[];
@@ -314,6 +326,28 @@ export function filterRecords<T extends DemoRecord>(records: T[], filters: Local
           );
         });
         if (!matchesSubtype) return false;
+      }
+      if (filters.sources?.length && !filters.sources.includes(record.sourceId ?? '')) {
+        return false;
+      }
+      if (filters.textQuery?.trim()) {
+        const query = normalizeSearch(filters.textQuery.trim());
+        if (query) {
+          const haystack = normalizeSearch(
+            `${record.name ?? ''} ${record.description ?? ''} ${record.location ?? ''}`,
+          );
+          if (!haystack.includes(query)) return false;
+        }
+      }
+      if (filters.minScore !== undefined && filters.minScore !== null) {
+        if (record.reliabilityScore === undefined || record.reliabilityScore < filters.minScore) {
+          return false;
+        }
+      }
+      if (filters.maxScore !== undefined && filters.maxScore !== null) {
+        if (record.reliabilityScore === undefined || record.reliabilityScore > filters.maxScore) {
+          return false;
+        }
       }
       if (filters.groups?.length && !filters.groups.includes(record.group ?? '')) return false;
       if (filters.crimes?.length && !filters.crimes.includes(record.crime ?? '')) return false;

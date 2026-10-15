@@ -124,4 +124,152 @@ test.describe('Dois modos de consulta (simples vs Análise e Inteligência)', ()
     await page.reload();
     await expect(page.locator('[data-mode-toggle]')).toContainText('Análise e Inteligência');
   });
+
+  test('filtros avancados: busca textual, fontes, faixa de nota e situacao no modo avancado com foco e teclado', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    const modeToggle = page.locator('[data-mode-toggle]');
+    await page.getByTestId('filter-panel-toggle').click();
+
+    // No modo simples, grupos avançados não aparecem
+    await expect(page.locator('[data-testid="advanced-text-group"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="advanced-source-group"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="advanced-score-group"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="advanced-situation-group"]')).toHaveCount(0);
+
+    // Alterna para avançado
+    await modeToggle.click();
+    await expect(modeToggle).toContainText('Análise e Inteligência');
+
+    // Grupos avançados ficam visíveis
+    const textGroup = page.locator('[data-testid="advanced-text-group"]');
+    const sourceGroup = page.locator('[data-testid="advanced-source-group"]');
+    const scoreGroup = page.locator('[data-testid="advanced-score-group"]');
+    const situationGroup = page.locator('[data-testid="advanced-situation-group"]');
+
+    await expect(textGroup).toBeVisible();
+    await expect(sourceGroup).toBeVisible();
+    await expect(scoreGroup).toBeVisible();
+    await expect(situationGroup).toBeVisible();
+
+    // 1. Busca textual e teclado
+    const textInput = page.getByTestId('advanced-text-filter');
+    await textInput.scrollIntoViewIfNeeded();
+    await textInput.focus();
+    await page.keyboard.type('Semáforo');
+    await expect(textInput).toHaveValue('Semáforo');
+
+    const clearTextBtn = page.getByRole('button', { name: 'Limpar busca textual' });
+    await expect(clearTextBtn).toBeVisible();
+    await clearTextBtn.click();
+    await expect(textInput).toHaveValue('');
+
+    // 2. Filtro por fonte com teclado (espaço para marcar)
+    const sourceDemoCheckbox = page.locator('[data-filter="source:demo"]');
+    await sourceDemoCheckbox.scrollIntoViewIfNeeded();
+    await sourceDemoCheckbox.focus();
+    await page.keyboard.press('Space');
+    await expect(sourceDemoCheckbox).toBeChecked();
+
+    // 3. Faixa de nota fictícia: erro com min > max
+    const minScoreSelect = page.getByTestId('advanced-min-score');
+    const maxScoreSelect = page.getByTestId('advanced-max-score');
+    await minScoreSelect.scrollIntoViewIfNeeded();
+    await minScoreSelect.selectOption('4');
+    await maxScoreSelect.selectOption('2');
+
+    const scoreError = scoreGroup.locator('.query-error');
+    await expect(scoreError).toBeVisible();
+    await expect(scoreError).toContainText('A nota mínima não pode ser superior à nota máxima.');
+
+    // Corrige a faixa
+    await maxScoreSelect.selectOption('5');
+    await expect(scoreError).toHaveCount(0);
+
+    // 4. Situação: marca 'Em andamento'
+    const ongoingCheckbox = page.locator('[data-filter="situation:ONGOING"]');
+    await ongoingCheckbox.scrollIntoViewIfNeeded();
+    await ongoingCheckbox.check();
+    await expect(ongoingCheckbox).toBeChecked();
+  });
+
+  test('preserva escolhas explicitas de filtros comuns: personalizado -> simples -> semana -> 24h -> avancado', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    const modeToggle = page.locator('[data-mode-toggle]');
+    const notice = page.locator('[data-mode-notice]');
+
+    // 1. Entra no modo avançado
+    await modeToggle.click();
+    await expect(modeToggle).toContainText('Análise e Inteligência');
+
+    // 2. Define período personalizado via select rápido
+    const periodSelect = page.getByLabel('Período da consulta');
+    await periodSelect.selectOption('custom');
+    await expect(periodSelect).toHaveValue('custom');
+
+    // 3. Alterna para Modo simples: período recai para 24h e filtros avançados são suspensos
+    await modeToggle.click();
+    await expect(modeToggle).toContainText('Modo simples');
+    await expect(notice).toContainText('Filtros avançados suspensos no Modo simples.');
+    await expect(periodSelect).toHaveValue('24h');
+
+    // 4. No simples, escolhe explicitamente "Últimos 7 dias" (1w)
+    await periodSelect.selectOption('1w');
+    await expect(periodSelect).toHaveValue('1w');
+
+    // 5. No simples, escolhe explicitamente "Últimas 24 horas" (24h)
+    await periodSelect.selectOption('24h');
+    await expect(periodSelect).toHaveValue('24h');
+
+    // 6. Retorna ao modo avançado:
+    // A escolha explícita de 24h feita no simples DEVE ser preservada,
+    // NÃO deve restaurar o período personalizado antigo silenciosamente.
+    await modeToggle.click();
+    await expect(modeToggle).toContainText('Análise e Inteligência');
+    await expect(periodSelect).toHaveValue('24h');
+  });
+
+  test('apresentação móvel em viewport 390px no modo avançado com controles acessíveis', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    const modeToggle = page.locator('[data-mode-toggle]');
+    await expect(modeToggle).toBeVisible();
+
+    // Alterna para avançado no mobile
+    await modeToggle.click();
+    await expect(modeToggle).toContainText('Análise e Inteligência');
+
+    // Abre painel de filtros
+    await page.getByTestId('filter-panel-toggle').click();
+
+    // Controles avançados estão no DOM e acessíveis
+    const textGroup = page.locator('[data-testid="advanced-text-group"]');
+    const sourceGroup = page.locator('[data-testid="advanced-source-group"]');
+    const scoreGroup = page.locator('[data-testid="advanced-score-group"]');
+    const situationGroup = page.locator('[data-testid="advanced-situation-group"]');
+
+    await expect(textGroup).toBeVisible();
+    await expect(sourceGroup).toBeVisible();
+    await expect(scoreGroup).toBeVisible();
+    await expect(situationGroup).toBeVisible();
+
+    // Input textual e selects operáveis no mobile
+    const textInput = page.getByTestId('advanced-text-filter');
+    await textInput.scrollIntoViewIfNeeded();
+    await textInput.fill('Avenida');
+    await expect(textInput).toHaveValue('Avenida');
+
+    const minScoreSelect = page.getByTestId('advanced-min-score');
+    await minScoreSelect.scrollIntoViewIfNeeded();
+    await minScoreSelect.selectOption('3');
+    await expect(minScoreSelect).toHaveValue('3');
+  });
 });

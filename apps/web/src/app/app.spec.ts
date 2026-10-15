@@ -1504,6 +1504,170 @@ describe('Vetor Urbano', () => {
     expect(app.modeNotice()).toBe('Filtros avançados reaplicados.');
   });
 
+  it('ticket 06: modo avançado inclui busca por texto, fontes, faixa de nota fictícia e situação, com validação de nota', () => {
+    localStorage.clear();
+    const app = fixture.componentInstance as unknown as {
+      consultationMode: { (): string };
+      toggleConsultationMode: () => void;
+      setAdvancedTextFilter: (query: string) => void;
+      advancedTextFilter: { (): string };
+      setMinScore: (val: string) => void;
+      setMaxScore: (val: string) => void;
+      minScore: { (): number | null };
+      maxScore: { (): number | null };
+      scoreRangeInvalid: { (): boolean };
+      toggleFilter: (filter: string) => void;
+      activeFilters: { (): string[] };
+      visiblePoints: {
+        (): Array<{ id: string; name: string; reliabilityScore?: number; situation?: string }>;
+      };
+    };
+
+    // No modo simples, grupos avançados não aparecem no template
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="advanced-text-group"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="advanced-source-group"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="advanced-score-group"]')).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="advanced-situation-group"]'),
+    ).toBeNull();
+
+    // Alterna para modo avançado
+    app.toggleConsultationMode();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="advanced-text-group"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="advanced-source-group"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="advanced-score-group"]'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="advanced-situation-group"]'),
+    ).not.toBeNull();
+
+    // Filtro textual
+    app.setAdvancedTextFilter('Semáforo');
+    expect(app.advancedTextFilter()).toBe('Semáforo');
+    const textPoints = app.visiblePoints();
+    expect(textPoints.every((p) => p.name.toLowerCase().includes('semáforo') || false)).toBe(true);
+
+    // Limpa filtro textual
+    app.setAdvancedTextFilter('');
+    expect(app.advancedTextFilter()).toBe('');
+
+    // Faixa de nota válida
+    app.setMinScore('3');
+    app.setMaxScore('5');
+    expect(app.scoreRangeInvalid()).toBe(false);
+    const scorePoints = app.visiblePoints();
+    expect(scorePoints.length).toBeGreaterThan(0);
+    expect(
+      scorePoints.every((p) => (p.reliabilityScore ?? 0) >= 3 && (p.reliabilityScore ?? 0) <= 5),
+    ).toBe(true);
+
+    // Faixa de nota inválida (min > max)
+    app.setMinScore('5');
+    app.setMaxScore('2');
+    expect(app.scoreRangeInvalid()).toBe(true);
+    expect(app.visiblePoints().length).toBe(0);
+    fixture.detectChanges();
+    const errorEl = fixture.nativeElement.querySelector(
+      '[data-testid="advanced-score-group"] .query-error',
+    );
+    expect(errorEl).not.toBeNull();
+    expect(errorEl?.textContent).toContain('A nota mínima não pode ser superior à nota máxima.');
+
+    // Restaura faixa
+    app.setMinScore('');
+    app.setMaxScore('');
+    expect(app.scoreRangeInvalid()).toBe(false);
+
+    // Situação
+    app.toggleFilter('situation:ONGOING');
+    expect(app.activeFilters()).toContain('situation:ONGOING');
+    const ongoingPoints = app.visiblePoints();
+    expect(ongoingPoints.every((p) => p.situation === 'ONGOING')).toBe(true);
+    app.toggleFilter('situation:ONGOING');
+  });
+
+  it('ticket 06: preserva escolhas explícitas de filtros comuns na jornada personalizado -> simples -> semana -> 24h -> avançado', () => {
+    localStorage.clear();
+    const app = fixture.componentInstance as unknown as {
+      consultationMode: { (): string };
+      toggleConsultationMode: () => void;
+      period: { (): string; set: (p: string) => void };
+      selectPeriod: (p: string) => void;
+      setCustomRange: (part: 'start' | 'end', val: string) => void;
+      customRangeStart: { (): string };
+      customRangeEnd: { (): string };
+      modeNotice: { (): string };
+    };
+
+    // 1. Inicia em avançado e define período personalizado
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    app.selectPeriod('custom');
+    app.setCustomRange('start', '2026-07-01T00:00');
+    app.setCustomRange('end', '2026-07-31T23:59');
+    expect(app.period()).toBe('custom');
+
+    // 2. Alterna para simples: período personalizado é suspenso, recai para 24h
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('simple');
+    expect(app.period()).toBe('24h');
+    expect(app.modeNotice()).toBe('Filtros avançados suspensos no Modo simples.');
+
+    // 3. No simples, seleciona 7 dias (semana)
+    app.selectPeriod('1w');
+    expect(app.period()).toBe('1w');
+
+    // 4. No simples, seleciona 24 horas explicitamente
+    app.selectPeriod('24h');
+    expect(app.period()).toBe('24h');
+
+    // 5. Retorna para avançado: escolha explícita de 24h é PRESERVADA, NÃO restaura personalizado
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    expect(app.period()).toBe('24h');
+  });
+
+  it('ticket 06: restaura período personalizado quando o período NÃO foi alterado no modo simples', () => {
+    localStorage.clear();
+    const app = fixture.componentInstance as unknown as {
+      consultationMode: { (): string };
+      toggleConsultationMode: () => void;
+      period: { (): string };
+      selectPeriod: (p: string) => void;
+      setCustomRange: (part: 'start' | 'end', val: string) => void;
+      customRangeStart: { (): string };
+      customRangeEnd: { (): string };
+      modeNotice: { (): string };
+    };
+
+    // 1. Inicia em avançado e define período personalizado
+    app.toggleConsultationMode();
+    app.selectPeriod('custom');
+    app.setCustomRange('start', '2026-06-01T00:00');
+    app.setCustomRange('end', '2026-06-30T23:59');
+    expect(app.period()).toBe('custom');
+
+    // 2. Alterna para simples: personalizado é suspenso
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('simple');
+    expect(app.period()).toBe('24h');
+
+    // 3. Retorna para avançado sem ter tocado no período em simples: restaura custom
+    app.toggleConsultationMode();
+    expect(app.consultationMode()).toBe('advanced');
+    expect(app.period()).toBe('custom');
+    expect(app.customRangeStart()).toBe('2026-06-01T00:00');
+    expect(app.customRangeEnd()).toBe('2026-06-30T23:59');
+  });
+
   it('ticket 10: exibe aviso de atualizacao disponivel na sessao aberta e atualiza mantendo filtros', () => {
     const app = fixture.componentInstance as unknown as {
       pendingUpdateAvailable: () => boolean;
