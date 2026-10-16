@@ -1,0 +1,45 @@
+<section
+  class="public-source-list"
+  aria-labelledby="managed-public-sources-heading"
+  [attr.aria-busy]="loading()"
+>
+  <h2 id="managed-public-sources-heading">Fontes cadastradas</h2>
+  <article class="workspace-card source-card" data-testid="source-placeholder">
+    <span class="status-pill">{{ placeholder.state }}</span>
+    <h3>
+      <a [href]="placeholder.url" target="_blank" rel="noopener noreferrer">{{
+        placeholder.name
+      }}</a>
+    </h3>
+    <p>{{ placeholder.note }}</p>
+  </article>
+  @if (loading()) {
+    <p role="status" data-testid="public-sources-loading">Carregando fontes públicas…</p>
+  } @else if (error()) {
+    <div role="alert" data-testid="public-sources-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="map-tool-button" (click)="reload()">Tentar novamente</button>
+    </div>
+  } @else if (sources().length === 0) {
+    <p role="status" data-testid="public-sources-empty">Nenhuma outra fonte cadastrada.</p>
+  } @else {
+    <div class="source-grid">
+      @for (source of sources(); track $index) {
+        <article class="workspace-card source-card">
+          <h3>
+            @if (source.url) {
+              <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ source.name }}</a>
+            } @else {
+              {{ source.name }}
+            }
+          </h3>
+          @if (source.url) {
+            <a [href]="source.url" target="_blank" rel="noopener noreferrer">Abrir link público</a>
+          } @else {
+            <p>Sem link público disponível.</p>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

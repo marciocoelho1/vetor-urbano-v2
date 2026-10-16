@@ -2142,7 +2142,15 @@
       }
 
       @if (activeView() === 'sources') {
-        <section class="workspace-view" aria-labelledby="sources-heading">
+        @if (persistedQueryEnabled) {
+          <app-source-management />
+        }
+        <section
+          class="workspace-view"
+          aria-labelledby="sources-heading"
+          [hidden]="persistedQueryEnabled"
+          [style.display]="persistedQueryEnabled ? 'none' : null"
+        >
           <header class="page-header">
             <div>
               <p class="eyebrow">Proveniência e atualização</p>
@@ -2768,7 +2776,15 @@
         </form>
       }
       @if (activeView() === 'public-sources') {
-        <section class="workspace-view public-information" aria-labelledby="public-sources-heading">
+        @if (persistedQueryEnabled) {
+          <app-public-source-list />
+        }
+        <section
+          class="workspace-view public-information"
+          aria-labelledby="public-sources-heading"
+          [hidden]="persistedQueryEnabled"
+          [style.display]="persistedQueryEnabled ? 'none' : null"
+        >
           <header class="page-header">
             <div>
               <p class="eyebrow">Origem das informações</p>

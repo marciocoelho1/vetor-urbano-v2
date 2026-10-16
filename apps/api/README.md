@@ -63,3 +63,9 @@ VETOR_WEB_UNIT_TESTS='src/app/accounts/*.spec.ts' bash scripts/verify.sh web
 ```
 
 Informe JDK e Docker/Podman conforme o ambiente. Sem seleção, o executor mantém o comportamento de executar todas as suítes. Resultados e limitações estão no [histórico do 13](../../docs/history/ticket-13-progress-2026-10-15.md).
+
+## Gestão local de fontes — Ticket 16
+
+A migração V5 preserva as fontes e referências de clipping existentes, cria versões sintéticas iniciais e registra alterações administrativas em transação. `GET /api/v1/sources` é público e retorna somente nome e URL opcional. ID estável e canal concreto ficam na gestão interna. `GET/POST /api/v1/admin/sources`, `GET/PUT /api/v1/admin/sources/{id}` e `GET /api/v1/admin/sources/{id}/versions` exigem ADMIN com MFA; gravações exigem CSRF. Não há endpoint de coleta nem campos de credenciais.
+
+Com API e web locais, `/?consulta=api` habilita gestão no modo Fontes; a página Conheça nossas fontes usa somente a projeção pública. G1 continua um placeholder não avaliado, com coleta desativada. O [contrato local](../../docs/architecture/source-management-local-v1.md) define campos, erros e limites. O aceite desta fatia usa exclusivamente dados sintéticos e não prepara integração ou redistribuição.

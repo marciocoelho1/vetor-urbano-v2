@@ -50,6 +50,9 @@ class DatabaseMigrationIT {
             assertEquals(2, count(statement, "SELECT count(*) FROM happenings"));
             assertEquals(3, count(statement, "SELECT count(*) FROM occurrence_clippings"));
             assertEquals(1, count(statement, "SELECT count(DISTINCT occurrence_id) FROM occurrence_clippings"));
+            assertEquals(2, count(statement, "SELECT count(*) FROM source_versions WHERE version = 1 AND author_id IS NULL"));
+            assertEquals(2, count(statement, "SELECT count(*) FROM source_access_configurations WHERE method = 'OTHER'"));
+            assertEquals(2, count(statement, "SELECT count(*) FROM sources WHERE current_version = 1"));
 
             try (ResultSet territory = statement.executeQuery(
                     "SELECT location FROM occurrences WHERE id = 'vu-demo-occurrence-territory-001'")) {

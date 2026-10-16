@@ -1,5 +1,10 @@
 # Histórico de mudanças
 
+## 2026-10-16 — Ticket 16 aceito localmente em desenvolvimento
+
+- Contrato define lista pública somente com nome e URL opcional; ID estável, canal, avaliação, cobertura, acesso, autoria e histórico ficam internos. V5 adiciona versões imutáveis e auditoria por snapshots/referências sem credenciais; Java protege escrita/leitura interna por ADMIN+MFA e CSRF.
+- UI local ligada à API inclui criação/edição/histórico e placeholder G1 com coleta desativada. API selecionada: 2 unitários + 3 integrações PostgreSQL/PostGIS; web: lint, 2 unitários e build 653,67 kB (aviso de +153,67 kB); Playwright: 4/4 em Chromium/Firefox, com sessão/MFA, estados de carregamento/erro/vazio, teclado/foco e viewport 390 px. Projeção HTTP pública contém somente nome/URL; edição preserva identidade interna e histórico. Sem conectores/coleta. [Contrato](docs/architecture/source-management-local-v1.md) e [checkpoint](docs/history/ticket-16-progress-2026-10-15.md).
+
 ## 2026-10-15 — Ticket 14: sessão, autorização e MFA locais
 
 - Login/logout com senha existente, sessão opaca persistida, expiração por inatividade/absoluta, revogação e CSRF no servidor. Contas pendentes, visitantes e ADMIN sem segundo fator não acessam consulta protegida; Usuário usa ambos os modos. V1/V2 preservadas, migrações V3/V4.

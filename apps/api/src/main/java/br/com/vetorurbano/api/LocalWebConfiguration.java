@@ -10,7 +10,7 @@ public class LocalWebConfiguration implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/v1/**")
                 .allowedOrigins("http://127.0.0.1:4201", "http://localhost:4201")
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "OPTIONS")
                 .allowedHeaders("Accept", "Content-Type", "X-CSRF-Token")
                 .allowCredentials(true)
                 .maxAge(600);

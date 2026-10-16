@@ -1,12 +1,14 @@
 # Plano de trabalho
 
-Atualização: 15/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
+Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Estado e foco atual
 
+**Ticket 16 — aceito localmente em 16/10:** contrato definido; V5 preserva V1–V4 e clippings; API/HTTP aplica projeção pública de nome/URL, ADMIN+MFA/CSRF, versões, conflito e auditoria sem credenciais. `api`: 2 unitários + 3 integrações PostGIS; `web`: lint, 2 unitários e build 653,67 kB (aviso +153,67 kB); Playwright 4/4 Chromium/Firefox, incluindo MFA, estados, teclado/foco, 390 px, persistência e histórico. Sem coleta/conexão a fontes. [Contrato](docs/architecture/source-management-local-v1.md) e [checkpoint](docs/history/ticket-16-progress-2026-10-15.md).
+
 **Ticket 14 — aceito localmente em 15/10:** login/logout, sessão persistida, autorização no servidor, MFA por autenticador e bootstrap/reset administrativo offline entregues. Consulta do 12 agora exige sessão; contas pendentes e ADMIN parcial não recebem acesso protegido. API: 11 unitários + 23 integrações reais; web: lint, 58 unitários afetados e build; navegador: 12/12 Chromium/Firefox, com teclado/foco, móvel e falha/recuperação. Reinício completo da JVM preservou sessão/consulta; logout e reset MFA revogaram no servidor. [Contrato](docs/architecture/session-local-v1.md) e [critérios/comandos/checkpoint](docs/history/ticket-14-progress-2026-10-15.md).
 
-**Continuidade:** dependências técnicas diretas do Luna liberadas: **16, 19, 25, 26, 28, 29, 32 e 33**, respeitando os parâmetros e outras dependências de cada ticket. O **15** também pode começar; não foi implementado. Ticket 07 preservado e sem novo aceite. Sem prontidão operacional, publicação, coleta real ou resolução de RF06. Este checkpoint substitui os bloqueios pelo 14 registrados abaixo.
+**Continuidade:** dependências técnicas diretas do Luna liberadas: **16, 19, 25, 26, 28, 29, 32 e 33**, respeitando parâmetros e outras dependências. O **17** agora está tecnicamente desbloqueado por 16 e pode ser iniciado em etapa separada; não foi iniciado aqui. O **15** também pode começar. Ticket 07 preservado e sem novo aceite. Sem prontidão operacional, publicação, coleta real ou resolução de RF06.
 
 ## Registros anteriores ao ticket 14
 

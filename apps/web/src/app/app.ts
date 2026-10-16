@@ -1,5 +1,7 @@
 import { Session } from './auth/session';
 import { SessionPanel } from './auth/session-panel';
+import { SourceManagement } from './sources/source-management';
+import { PublicSourceList } from './sources/public-source-list';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   AfterViewInit,
@@ -328,7 +330,15 @@ interface SuspendedAdvancedFilters {
 }
 
 @Component({
-  imports: [SessionPanel, CommonModule, FormsModule, ViewMotion, PanelResize],
+  imports: [
+    SessionPanel,
+    SourceManagement,
+    PublicSourceList,
+    CommonModule,
+    FormsModule,
+    ViewMotion,
+    PanelResize,
+  ],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

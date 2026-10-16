@@ -1,0 +1,231 @@
+<section class="workspace-view source-management" aria-labelledby="sources-heading">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Administração · somente metadados</p>
+      <h1 id="sources-heading" data-view-title="sources" tabindex="-1">Gestão de fontes</h1>
+      <p class="page-intro">Cadastre o canal concreto, a cobertura e a avaliação administrativa.</p>
+    </div>
+    <button type="button" class="map-tool-button" (click)="startCreate()">Nova fonte</button>
+  </header>
+
+  <aside class="workspace-notice" role="note">
+    O cadastro não conecta fontes, não inicia coleta e não autoriza redistribuir conteúdo. G1 segue
+    como placeholder sem avaliação e com coleta desativada.
+  </aside>
+
+  <section
+    class="source-management-list"
+    aria-labelledby="source-list-heading"
+    [attr.aria-busy]="loading()"
+  >
+    <div class="source-management-heading">
+      <h2 id="source-list-heading">Fontes cadastradas</h2>
+      <button type="button" class="map-tool-button" (click)="reload()" [disabled]="loading()">
+        Atualizar lista
+      </button>
+    </div>
+    @if (loading()) {
+      <p role="status" data-testid="managed-sources-loading">Carregando fontes…</p>
+    } @else if (error()) {
+      <div role="alert" data-testid="managed-sources-error">
+        <p>{{ error() }}</p>
+        <button type="button" class="map-tool-button" (click)="reload()">Tentar novamente</button>
+      </div>
+    } @else if (sources().length === 0) {
+      <p role="status" data-testid="managed-sources-empty">Nenhuma fonte cadastrada ainda.</p>
+    } @else {
+      <div class="source-management-grid">
+        @for (source of sources(); track source.id) {
+          <article class="workspace-card managed-source-card" [attr.data-source-id]="source.id">
+            <div class="record-status">
+              <span class="status-pill">Versão {{ source.version }}</span
+              ><span>{{ source.accessMethod }}</span>
+            </div>
+            <h3>{{ source.name }}</h3>
+            <p><strong>Canal concreto:</strong> {{ source.channel }}</p>
+            @if (source.url) {
+              <p>
+                <strong>URL pública:</strong>
+                <a [href]="source.url" target="_blank" rel="noopener noreferrer">{{
+                  source.url
+                }}</a>
+              </p>
+            } @else {
+              <p>Sem URL pública; a fonte continua válida.</p>
+            }
+            <p><strong>Territórios:</strong> {{ source.territories.join(', ') }}</p>
+            <p><strong>Pilares:</strong> {{ source.pillars.join(', ') }}</p>
+            <p><strong>Nota interna:</strong> {{ source.rating }}/5</p>
+            <p><strong>Justificativa:</strong> {{ source.ratingJustification }}</p>
+            <p class="source-version-meta">
+              Autoria: {{ source.authorId || 'Carga sintética inicial' }} · {{ source.createdAt }}
+            </p>
+            <div class="source-management-actions">
+              <button type="button" class="map-tool-button" (click)="edit(source)">Editar</button>
+              <button
+                type="button"
+                class="map-tool-button"
+                [attr.aria-expanded]="history()?.sourceId === source.id"
+                (click)="toggleHistory(source)"
+              >
+                Histórico de versões
+              </button>
+            </div>
+            @if (historyLoading() && historySourceId() === source.id) {
+              <p role="status">Carregando histórico…</p>
+            }
+            @if (historyError() && historySourceId() === source.id) {
+              <p role="alert">{{ historyError() }}</p>
+            }
+            @if (history()?.sourceId === source.id) {
+              <ol class="source-version-list" aria-label="Versões anteriores e atuais">
+                @for (version of history()!.versions; track version.version) {
+                  <li>
+                    <h4>
+                      Versão {{ version.version }} · {{ version.name }} — {{ version.channel }}
+                    </h4>
+                    <p>Nota {{ version.rating }}/5: {{ version.ratingJustification }}</p>
+                    <p>
+                      Autoria: {{ version.authorId || 'Carga sintética inicial' }} ·
+                      {{ version.createdAt }}
+                    </p>
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <form
+    class="workspace-card source-management-form"
+    aria-labelledby="source-form-heading"
+    (submit)="save($event)"
+  >
+    <h2 id="source-form-heading">{{ editing() ? 'Editar fonte' : 'Cadastrar fonte' }}</h2>
+    <p>Uma fonte é um canal específico; uma rede inteira não identifica esse cadastro.</p>
+    <div class="source-form-grid">
+      <label class="field" for="source-name"
+        >Nome da fonte
+        <input
+          #sourceName
+          id="source-name"
+          name="sourceName"
+          required
+          maxlength="160"
+          [value]="form().name"
+          (input)="setText('name', $any($event.target).value)"
+        />
+      </label>
+      <label class="field" for="source-channel"
+        >Canal concreto
+        <input
+          id="source-channel"
+          name="sourceChannel"
+          required
+          maxlength="160"
+          [value]="form().channel"
+          (input)="setText('channel', $any($event.target).value)"
+        />
+      </label>
+      <label class="field" for="source-url"
+        >URL pública (opcional)
+        <input
+          id="source-url"
+          name="sourceUrl"
+          type="url"
+          maxlength="2048"
+          [value]="form().url"
+          (input)="setText('url', $any($event.target).value)"
+        />
+        <small>Use apenas um link público sem parâmetros, fragmentos ou credenciais.</small>
+      </label>
+      <label class="field" for="source-territories"
+        >Territórios, um por linha
+        <textarea
+          id="source-territories"
+          name="sourceTerritories"
+          required
+          rows="3"
+          [value]="form().territories"
+          (input)="setText('territories', $any($event.target).value)"
+        ></textarea>
+      </label>
+      <fieldset class="source-pillar-fieldset">
+        <legend>Pilares cobertos</legend>
+        @for (pillar of pillars; track pillar.id) {
+          <label
+            ><input
+              type="checkbox"
+              [name]="'pillar-' + pillar.id"
+              [checked]="form().pillars.includes(pillar.id)"
+              (change)="togglePillar(pillar.id, $any($event.target).checked)"
+            />
+            {{ pillar.label }}</label
+          >
+        }
+      </fieldset>
+      <label class="field" for="source-access-method"
+        >Forma de acesso registrada
+        <select
+          id="source-access-method"
+          name="sourceAccessMethod"
+          required
+          [value]="form().accessMethod"
+          (change)="setMethod($any($event.target).value)"
+        >
+          @for (method of methods; track method.id) {
+            <option [value]="method.id">{{ method.label }}</option>
+          }
+        </select>
+        <small>Metadado administrativo; não conecta a fonte.</small>
+      </label>
+      <label class="field" for="source-rating"
+        >Nota interna (1 a 5)
+        <select
+          id="source-rating"
+          name="sourceRating"
+          required
+          [value]="form().rating"
+          (change)="setText('rating', $any($event.target).value)"
+        >
+          <option value="">Selecione uma nota</option>
+          @for (rating of [1, 2, 3, 4, 5]; track rating) {
+            <option [value]="rating">{{ rating }}</option>
+          }
+        </select>
+      </label>
+      <label class="field source-justification" for="source-rating-justification"
+        >Justificativa administrativa
+        <textarea
+          id="source-rating-justification"
+          name="sourceRatingJustification"
+          required
+          minlength="1"
+          maxlength="2000"
+          rows="4"
+          [value]="form().ratingJustification"
+          (input)="setText('ratingJustification', $any($event.target).value)"
+        ></textarea>
+      </label>
+    </div>
+    <div class="source-management-actions">
+      <button type="submit" class="map-tool-button" [disabled]="saving()">
+        {{ saving() ? 'Salvando…' : editing() ? 'Salvar nova versão' : 'Cadastrar fonte' }}
+      </button>
+      @if (editing()) {
+        <button type="button" class="map-tool-button" [disabled]="saving()" (click)="cancelEdit()">
+          Cancelar edição
+        </button>
+      }
+    </div>
+    @if (error()) {
+      <p role="alert" data-testid="source-form-error">{{ error() }}</p>
+    }
+    <p #statusMessage tabindex="-1" role="status" data-testid="source-form-status">
+      {{ status() }}
+    </p>
+  </form>
+</section>
