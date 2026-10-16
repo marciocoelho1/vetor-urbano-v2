@@ -1,0 +1,68 @@
+<section class="account-shell" aria-labelledby="access-heading" [attr.aria-busy]="session.busy()">
+  <h1 id="access-heading" tabindex="-1">Acesso aos módulos</h1>
+  <p>Use apenas contas sintéticas no ambiente local.</p>
+  @if (!session.state()) {
+    <form (ngSubmit)="login()">
+      <label for="login-email">E-mail</label>
+      <input
+        id="login-email"
+        name="email"
+        type="email"
+        autocomplete="username"
+        [(ngModel)]="email"
+        required
+        maxlength="254"
+      />
+      <label for="login-password">Senha</label>
+      <input
+        id="login-password"
+        name="password"
+        type="password"
+        autocomplete="current-password"
+        [(ngModel)]="password"
+        required
+        maxlength="128"
+      />
+      <button type="submit" [disabled]="session.busy()">Entrar</button>
+    </form>
+    <a href="/?conta=local">Criar ou confirmar conta</a>
+  } @else {
+    <h2>Segundo fator administrativo</h2>
+    @if (!session.state()?.mfaEnrolled) {
+      <button type="button" (click)="enroll()" [disabled]="session.busy()">
+        Configurar autenticador
+      </button>
+      @if (session.secret()) {
+        <p>
+          Adicione manualmente ao aplicativo: Vetor Urbano, TOTP, SHA-1, seis dígitos, 30 segundos.
+        </p>
+        <label for="mfa-secret">Chave do autenticador (restrita)</label>
+        <input id="mfa-secret" [value]="session.secret()" readonly autocomplete="off" />
+      }
+    }
+    <form (ngSubmit)="verify()">
+      <label for="mfa-code">Código do autenticador</label>
+      <input
+        id="mfa-code"
+        name="code"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        pattern="[0-9]{6}"
+        maxlength="6"
+        [(ngModel)]="code"
+        required
+      />
+      <button type="submit" [disabled]="session.busy()">Confirmar segundo fator</button>
+    </form>
+    <p>
+      Perdeu o autenticador? Neste ambiente sintético, procure o operador local. Não existe
+      recuperação administrativa pública.
+    </p>
+  }
+  @if (session.busy()) {
+    <p role="status">Verificando acesso…</p>
+  }
+  <p id="access-result" tabindex="-1" [attr.role]="session.failed() ? 'alert' : 'status'">
+    {{ session.message() }}
+  </p>
+</section>

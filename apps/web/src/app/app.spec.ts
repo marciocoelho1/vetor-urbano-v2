@@ -1,3 +1,4 @@
+import { Session } from './auth/session';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -132,6 +133,18 @@ describe('Vetor Urbano', () => {
       imports: [App],
       providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
     }).compileComponents();
+    // Estes testes exercitam a UI demonstrativa já autenticada; autorização real está nos HTTP/E2E do 14.
+    const session = TestBed.inject(Session);
+    const access = {
+      code: 'AUTHENTICATED',
+      message: 'Sessão sintética',
+      role: 'ADMIN' as const,
+      authenticated: true,
+      csrfToken: 'synthetic',
+    };
+    session.state.set(access);
+    vi.spyOn(session, 'refresh').mockResolvedValue();
+    vi.spyOn(session, 'request').mockResolvedValue(access);
     fixture = TestBed.createComponent(App);
     vi.spyOn(
       fixture.componentInstance as unknown as { loadUrbanStyle: () => Promise<unknown> },
@@ -146,7 +159,7 @@ describe('Vetor Urbano', () => {
     fixture.detectChanges();
   });
 
-  it('starts both maps in the page theme, including a map opened later', () => {
+  it('starts both maps in the page theme, including a map opened later', async () => {
     fixture.destroy();
     TestBed.inject(Theme).dark.set(true);
     fixture = TestBed.createComponent(App);
@@ -158,6 +171,7 @@ describe('Vetor Urbano', () => {
     fixture.detectChanges();
     expect(publicToggle.getAttribute('aria-pressed')).toBe('false');
     fixture.nativeElement.querySelector('button.nav-register').click();
+    await Promise.resolve();
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
     fixture.detectChanges();
@@ -169,7 +183,7 @@ describe('Vetor Urbano', () => {
     expect(TestBed.inject(Theme).dark()).toBe(true);
   });
 
-  it('keeps local map choices independent until the next page theme change', () => {
+  it('keeps local map choices independent until the next page theme change', async () => {
     const theme = TestBed.inject(Theme);
     const publicToggle = fixture.nativeElement.querySelector('[data-testid="map-theme-toggle"]');
     publicToggle.click();
@@ -177,6 +191,7 @@ describe('Vetor Urbano', () => {
     expect(theme.dark()).toBe(false);
     expect(localStorage.getItem('vu2.theme')).toBeNull();
     fixture.nativeElement.querySelector('button.nav-register').click();
+    await Promise.resolve();
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
     fixture.detectChanges();
@@ -362,8 +377,9 @@ describe('Vetor Urbano', () => {
     );
   });
 
-  it('keeps the report form hidden until one category is chosen', () => {
+  it('keeps the report form hidden until one category is chosen', async () => {
     fixture.nativeElement.querySelector('button.nav-register').click();
+    await Promise.resolve();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-testid="report-details"]')).toBeNull();
 
@@ -464,8 +480,9 @@ describe('Vetor Urbano', () => {
     });
   });
 
-  it('rejects empty coordinates and makes clear that the demonstration never sends a report', () => {
+  it('rejects empty coordinates and makes clear that the demonstration never sends a report', async () => {
     fixture.nativeElement.querySelector('button.nav-register').click();
+    await Promise.resolve();
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.category-option[data-category="TRANSITO"]').click();
     fixture.detectChanges();
@@ -1331,12 +1348,13 @@ describe('Vetor Urbano', () => {
     }
   });
 
-  it('shows an inline location map and coordinate fields for each report category', () => {
+  it('shows an inline location map and coordinate fields for each report category', async () => {
     const app = fixture.componentInstance as unknown as {
       openView: (view: 'report') => void;
       chooseCategory: (category: 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA') => void;
     };
     app.openView('report');
+    await Promise.resolve();
 
     for (const category of ['TRANSITO', 'SEGURANCA', 'CONTINGENCIA'] as const) {
       app.chooseCategory(category);

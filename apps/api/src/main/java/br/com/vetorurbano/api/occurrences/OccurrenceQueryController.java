@@ -11,14 +11,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class OccurrenceQueryController {
     private final OccurrenceQueryParser parser;
     private final OccurrenceQueryService service;
+    private final org.springframework.beans.factory.ObjectProvider<br.com.vetorurbano.api.auth.AuthService> auth;
 
-    public OccurrenceQueryController(OccurrenceQueryParser parser, OccurrenceQueryService service) {
+    public OccurrenceQueryController(OccurrenceQueryParser parser, OccurrenceQueryService service, org.springframework.beans.factory.ObjectProvider<br.com.vetorurbano.api.auth.AuthService> auth) {
+        this.auth=auth;
         this.parser = parser;
         this.service = service;
     }
 
     @GetMapping
-    public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters) {
-        return service.find(parser.parse(parameters));
+    public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+        var query=parser.parse(parameters);
+        var result=service.find(query);
+        auth.getObject().auditQuery(java.util.UUID.fromString((String)request.getAttribute("vu.account")),query);
+        return result;
     }
 }

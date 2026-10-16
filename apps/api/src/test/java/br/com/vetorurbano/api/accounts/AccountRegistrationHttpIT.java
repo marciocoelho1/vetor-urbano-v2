@@ -34,7 +34,7 @@ class AccountRegistrationHttpIT {
         try(var connection=DriverManager.getConnection(DB.getJdbcUrl(),DB.getUsername(),DB.getPassword());var statement=connection.createStatement()) {
             var result=statement.executeQuery("SELECT to_regclass('public.local_accounts') IS NOT NULL");
             result.next(); boolean migrated=result.getBoolean(1); result.close();
-            if(migrated) statement.execute("TRUNCATE account_audit_events,account_confirmation_tokens,account_request_limits,local_accounts RESTART IDENTITY");
+            if(migrated) statement.execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_audit_events,account_confirmation_tokens,account_request_limits,local_accounts RESTART IDENTITY");
         }
     }
     private static final JsonMapper JSON=JsonMapper.builder().build();
@@ -237,7 +237,7 @@ class AccountRegistrationHttpIT {
                 .header("Origin","https://foreign.test").GET().build();
             assertEquals(403,http.send(foreign,HttpResponse.BodyHandlers.ofString()).statusCode());
             var query=HttpRequest.newBuilder(URI.create(base+"/api/v1/occurrences?periodStart=2026-10-14T15:00:00Z&periodEnd=2026-10-15T15:00:00Z")).GET().build();
-            assertEquals(200,http.send(query,HttpResponse.BodyHandlers.ofString()).statusCode());
+            assertEquals(401,http.send(query,HttpResponse.BodyHandlers.ofString()).statusCode());
             var malformed=HttpRequest.newBuilder(URI.create(base+"/api/v1/accounts/registrations")).header("Content-Type","application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("{\"password\":\"rejected-synthetic-secret\"")).build();
             var invalid=http.send(malformed,HttpResponse.BodyHandlers.ofString());

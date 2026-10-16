@@ -1,5 +1,12 @@
 # Histórico de mudanças
 
+## 2026-10-15 — Ticket 14: sessão, autorização e MFA locais
+
+- Login/logout com senha existente, sessão opaca persistida, expiração por inatividade/absoluta, revogação e CSRF no servidor. Contas pendentes, visitantes e ADMIN sem segundo fator não acessam consulta protegida; Usuário usa ambos os modos. V1/V2 preservadas, migrações V3/V4.
+- TOTP por aplicativo, segredo cifrado, replay concorrente impedido e limites persistentes; bootstrap/reset MFA administrativo offline restrito. Nenhum cadastro público de ADMIN, fluxo do 15 ou painel futuro.
+- Verificação local real: API 11 unitários + 23 integrações, web lint + 58 unitários afetados + build (627,27 kB, aviso +127,27 kB), Playwright 12/12 Chromium/Firefox incluindo móvel/MFA/teclado/foco/503. Sessão e consulta preservadas após reinício completo da JVM; logout/reset revogaram. [Contrato](docs/architecture/session-local-v1.md) e [histórico](docs/history/ticket-14-progress-2026-10-15.md).
+- Aceite somente sintético local; RF06 e política operacional pendentes. 15 e dependências diretas 16/19/25/26/28/29/32/33 tecnicamente liberados. Trabalho anterior e pendência do 07 preservados; sem push/publicação/coleta real.
+
 ## 2026-10-15 — Ticket 13: cadastro e confirmação locais
 
 - Cadastro sintético com nome, e-mail `.test` e senha derivada com salt; USER imposto pelo servidor. Migração V2 preserva V1 e persiste contas, hashes de tokens e eventos sem credenciais. Caixa local em memória, sem envio externo.

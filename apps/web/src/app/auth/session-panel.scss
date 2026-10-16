@@ -1,0 +1,13 @@
+@use '../accounts/account-page';
+:host {
+  min-height: auto;
+}
+.account-shell {
+  width: min(100%, 560px);
+  margin: 24px auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+form {
+  margin-block: 16px;
+}

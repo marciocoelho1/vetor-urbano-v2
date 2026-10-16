@@ -1,3 +1,5 @@
+import { Session } from './auth/session';
+import { SessionPanel } from './auth/session-panel';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   AfterViewInit,
@@ -326,7 +328,7 @@ interface SuspendedAdvancedFilters {
 }
 
 @Component({
-  imports: [CommonModule, FormsModule, ViewMotion, PanelResize],
+  imports: [SessionPanel, CommonModule, FormsModule, ViewMotion, PanelResize],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -350,6 +352,31 @@ export class App implements AfterViewInit, OnDestroy {
     return min !== null && max !== null && min > max;
   });
   protected readonly periodExplicitlyChosenInSimple = signal(false);
+  protected readonly session = inject(Session);
+  protected readonly publicView = computed(() =>
+    ['public-sources', 'reliability', 'terms', 'privacy', 'methodology', 'corrections'].includes(
+      this.activeView(),
+    ),
+  );
+  protected readonly moduleAllowed = computed(
+    () =>
+      Boolean(this.session.state()?.authenticated) &&
+      (!['sources', 'report'].includes(this.activeView()) ||
+        this.session.state()?.role === 'ADMIN'),
+  );
+
+  @HostListener('window:vu-session-invalid')
+  protected sessionInvalid(): void {
+    this.session.clear();
+    this.session.message.set('Sessão ausente ou expirada. Entre novamente.');
+  }
+
+  protected async logout(): Promise<void> {
+    await this.session.perform('logout', {});
+    if (!this.session.state()) this.activeView.set('map');
+    setTimeout(() => document.getElementById('access-result')?.focus());
+  }
+
   protected readonly persistedQueryEnabled = isLocalPersistedQuery();
   private readonly persistedResponse = signal<PersistedQueryResponse | null>(null);
   private readonly persistedRetry = signal(0);
@@ -1253,8 +1280,25 @@ export class App implements AfterViewInit, OnDestroy {
   );
 
   constructor() {
+    void this.session.refresh();
+    effect(() => {
+      if (!this.session.state()?.authenticated) {
+        this.map?.remove();
+        this.map = undefined;
+        this.fallbackMap?.remove();
+        this.fallbackMap = undefined;
+        this.mapResizeObserver?.disconnect();
+      }
+      if (isPlatformBrowser(this.platformId) && this.moduleAllowed() && !this.publicView()) {
+        requestAnimationFrame(() => {
+          if (this.activeView() === 'map' && !this.map && !this.fallbackMap)
+            void this.initializeMap();
+          document.querySelector<HTMLElement>(`[data-view-title="${this.activeView()}"]`)?.focus();
+        });
+      }
+    });
     effect((onCleanup) => {
-      if (!this.persistedQueryEnabled) return;
+      if (!this.persistedQueryEnabled || !this.session.state()?.authenticated) return;
       const filters = this.queryFilters();
       this.persistedRetry();
       const abort = new AbortController();
@@ -1380,6 +1424,27 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected openView(view: ViewId): void {
+    void this.authorizeView(view);
+  }
+
+  private async authorizeView(view: ViewId): Promise<void> {
+    if (
+      !['public-sources', 'reliability', 'terms', 'privacy', 'methodology', 'corrections'].includes(
+        view,
+      )
+    ) {
+      try {
+        const reply = await this.session.request(`access/${view === 'map' ? 'query' : view}`);
+        this.session.state.set(reply);
+      } catch (error) {
+        this.session.message.set(error instanceof Error ? error.message : 'Acesso indisponível.');
+        this.session.failed.set(true);
+        if (!this.session.state()?.authenticated || this.session.state()?.role !== 'ADMIN')
+          this.activeView.set('map');
+        setTimeout(() => document.getElementById('access-result')?.focus());
+        return;
+      }
+    }
     if (this.consultationMode() === 'simple' && (view === 'history' || view === 'insights')) {
       this.consultationMode.set('advanced');
       if (isPlatformBrowser(this.platformId)) {

@@ -10,6 +10,12 @@ public final class AccountPassword {
     private final SecureRandom random = new SecureRandom();
     public AccountPassword(int iterations) { this.iterations = iterations; }
 
+    public static boolean valid(String secret) {
+        if(secret==null) return false;
+        int length=secret.codePointCount(0,secret.length());
+        return length>=15 && length<=128 && !Set.of("passwordpassword", "123456789012345", "senha senha senha", "vetor urbano vetor urbano").contains(secret.toLowerCase(Locale.ROOT));
+    }
+
     public String derive(String password) {
         byte[] salt = new byte[16]; random.nextBytes(salt);
         return "pbkdf2-sha256$" + iterations + "$" + Base64.getEncoder().encodeToString(salt)

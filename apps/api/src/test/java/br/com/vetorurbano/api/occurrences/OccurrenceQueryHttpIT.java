@@ -34,6 +34,7 @@ class OccurrenceQueryHttpIT {
             .withUsername("vetor_http_test")
             .withPassword("vetor_http_test");
 
+    private String sessionCookie;
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
@@ -212,7 +213,7 @@ class OccurrenceQueryHttpIT {
                 var response = get(application, allDefaultWindow());
                 assertEquals(503, response.statusCode());
                 var body = JSON.readTree(response.body());
-                assertEquals("QUERY_UNAVAILABLE", body.path("error").path("code").asString());
+                assertEquals("ACCESS_UNAVAILABLE", body.path("code").asString());
                 assertFalse(body.has("counts"));
                 assertFalse(response.body().contains("jdbc"));
             } finally {
@@ -223,15 +224,22 @@ class OccurrenceQueryHttpIT {
     }
 
     private ConfigurableApplicationContext startApi() {
-        return new SpringApplicationBuilder(br.com.vetorurbano.api.VetorUrbanoApiApplication.class)
+        var app = new SpringApplicationBuilder(br.com.vetorurbano.api.VetorUrbanoApiApplication.class)
                 .profiles("local")
                 .run(
                         "--server.address=127.0.0.1",
                         "--server.port=0",
+                        "--vetor.accounts.enabled=true", "--vetor.accounts.mailbox-port=0",
                         "--spring.datasource.url=" + POSTGIS.getJdbcUrl() + "&socketTimeout=2",
                         "--spring.datasource.hikari.connection-timeout=1500",
                         "--spring.datasource.username=" + POSTGIS.getUsername(),
                         "--spring.datasource.password=" + POSTGIS.getPassword());
+        var jdbc=app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+        String encoded=app.getBean(br.com.vetorurbano.api.accounts.AccountPassword.class).derive("Consulta sintética protegida 14");
+        jdbc.update("INSERT INTO local_accounts(id,display_name,email,password_hash,status,created_at,confirmed_at,last_sent_at,resend_window_start) VALUES(?,'Consulta sintética','query14@example.test',?,'CONFIRMED',now(),now(),now(),now()) ON CONFLICT(email) DO NOTHING",java.util.UUID.randomUUID(),encoded);
+        var login=app.getBean(br.com.vetorurbano.api.auth.AuthService.class).login(java.util.Map.of("email","query14@example.test","password","Consulta sintética protegida 14"),null);
+        sessionCookie="vu_session="+login.cookie();
+        return app;
     }
 
     private HttpResponse<String> get(
@@ -243,6 +251,7 @@ class OccurrenceQueryHttpIT {
         var uri = URI.create("http://127.0.0.1:" + server.getPort() + "/api/v1/occurrences?" + query);
         var request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(10))
+                .header("Cookie",sessionCookie)
                 .GET()
                 .build();
         return http.send(request, HttpResponse.BodyHandlers.ofString());

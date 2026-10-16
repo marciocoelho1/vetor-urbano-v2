@@ -149,9 +149,14 @@ export async function fetchPersistedQuery(
 ): Promise<PersistedQueryResponse> {
   const response = await fetch(`http://127.0.0.1:8080/api/v1/occurrences?${params}`, {
     signal,
+    credentials: 'include',
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      window.dispatchEvent(new Event('vu-session-invalid'));
+      throw new Error('Sessão ausente ou expirada. Entre novamente.');
+    }
     throw new Error(
       response.status === 400
         ? 'A API recusou os filtros. Revise os valores da consulta.'

@@ -25,7 +25,7 @@ public class AccountService {
         if (!allow("REGISTRATION", now)) return limited("REGISTRATION",now);
         String name=text(input,"displayName"), email=email(input), secret=text(input,"password");
         if (!input.keySet().equals(Set.of("displayName","email","password")) || name==null || name.strip().length()<2
-                || name.strip().length()>80 || email==null || !validPassword(secret)) {
+                || name.strip().length()>80 || email==null || !AccountPassword.valid(secret)) {
             audit(null,now,"REGISTRATION","REJECTED");
             return new AccountResult(400,"INVALID_REGISTRATION","Informe nome de 2 a 80 caracteres, e-mail sintético .test e senha de 15 a 128 caracteres não trivial. Somente nome, e-mail e senha são permitidos.");
         }
@@ -76,7 +76,7 @@ public class AccountService {
         jdbc.update("UPDATE account_confirmation_tokens SET consumed_at=? WHERE token_hash=?",ts(now),digest(token));
         jdbc.update("UPDATE local_accounts SET status='CONFIRMED', confirmed_at=? WHERE id=? AND status='PENDING'",ts(now),id);
         audit(id,now,"CONFIRMATION","CONFIRMED");
-        return new AccountResult(200,"ACCOUNT_CONFIRMED","E-mail confirmado. Sua conta permanece sem sessão; o acesso será tratado no próximo incremento.");
+        return new AccountResult(200,"ACCOUNT_CONFIRMED","E-mail confirmado. Entre para acessar os módulos.");
     }
 
     @Transactional
@@ -105,11 +105,6 @@ public class AccountService {
         return AccountResult.pending();
     }
 
-    private boolean validPassword(String secret) {
-        if(secret==null) return false;
-        int length=secret.codePointCount(0,secret.length());
-        return length>=15 && length<=128 && !Set.of("passwordpassword", "123456789012345", "senha senha senha", "vetor urbano vetor urbano").contains(secret.toLowerCase(Locale.ROOT));
-    }
     private void issue(UUID id,String email,Instant now) {
         byte[] bytes=new byte[32]; random.nextBytes(bytes);
         String token=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
