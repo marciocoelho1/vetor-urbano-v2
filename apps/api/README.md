@@ -1,6 +1,6 @@
-# API Java — Ticket 12
+# API Java — desenvolvimento local
 
-Esta fatia implementa uma API local de leitura para ocorrências sintéticas. Ela usa Java 21, Spring Boot 4, PostgreSQL 17/PostGIS 3.5 e Flyway. O serviço se vincula a `127.0.0.1:8080` por padrão e oferece apenas `GET /api/v1/occurrences`; não recebe ocorrências, não coleta fontes, não autentica e não autoriza operações reais.
+A API usa Java 21, Spring Boot 4, PostgreSQL 17/PostGIS 3.5 e Flyway. Vincula-se a `127.0.0.1:8080` e oferece a leitura de ocorrências sintéticas do Ticket 12. O cadastro/confirmação do Ticket 13 exige ativação local explícita, descrita abaixo. Não recebe ocorrências, não coleta fontes e não implementa sessão ou autorização operacional.
 
 O banco configurado em `VETOR_DATABASE_URL` deve ser exclusivo para desenvolvimento local. Na inicialização, Flyway aplica as migrações de `src/main/resources/db/migration`, que criam o modelo e carregam registros inteiramente sintéticos. Não use uma base operacional.
 
@@ -28,3 +28,38 @@ VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vetor-api-ticket12-db \
 ```
 
 O teste exige a API configurada para esse mesmo contêiner, quatro publicadas da migração V1 e Podman. Ele pausa/despausa o banco sintético para verificar 503; não execute contra bancos reais ou compartilhados. Sem a variável de ativação, a suíte é pulada explicitamente e não comprova integração. Os testes HTTP/Maven criam seu próprio PostGIS via Testcontainers, conferem 999/1000 m e reiniciam a aplicação conservando o banco.
+
+## Cadastro e confirmação sintéticos — Ticket 13
+
+Reutiliza a mesma API e banco. Contas ficam desabilitadas por padrão; para ativar somente em loopback:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments='--vetor.accounts.enabled=true'
+```
+
+Com o Angular na porta 4201, abra `http://127.0.0.1:4201/?conta=local`. A caixa do operador fica em `http://127.0.0.1:8025/`: não envia e-mail real e aceita somente endereços `.test`. Use o link da mensagem ou cole o token no formulário; a confirmação exige POST explícito. Mensagens ficam somente em memória e desaparecem no restart; contas, hashes, uso/revogação dos tokens e limites persistem no banco. O operador pode solicitar novo envio respeitando os limites existentes.
+
+O [contrato local de contas](../../docs/architecture/accounts-local-v1.md) registra endpoints, credenciais protegidas, estados, repetição, expiração e todas as configurações reversíveis de desenvolvimento. Ele não aprova política operacional. Sem login, sessão, MFA, recuperação ou exclusão.
+
+Para os cenários rápidos de navegador deste ticket, inicie a API com:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments='--vetor.accounts.enabled=true --vetor.accounts.token-ttl=5s --vetor.accounts.resend-cooldown=1s --vetor.accounts.resends-per-hour=2'
+```
+
+Com a API apontando ao contêiner sintético `vetor-api-ticket12-db`, rode em `apps/web`:
+
+```bash
+VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vetor-api-ticket12-db \
+  npx playwright test e2e/account-registration.spec.ts --workers=1
+```
+
+O ensaio pausa/despausa apenas esse banco sintético para demonstrar indisponibilidade. Traces e screenshots automáticos ficam desativados para não guardar credenciais; capturas explícitas mascaram campos sensíveis. O teste usa mensagens locais reais e dados únicos `.test`, sem mock de operações de contas. Na raiz, o executor pode selecionar apenas as suítes novas sem repetir o 12:
+
+```bash
+VETOR_API_UNIT_TESTS=AccountPasswordTest \
+VETOR_API_INTEGRATION_TESTS=AccountRegistrationHttpIT bash scripts/verify.sh api
+VETOR_WEB_UNIT_TESTS='src/app/accounts/*.spec.ts' bash scripts/verify.sh web
+```
+
+Informe JDK e Docker/Podman conforme o ambiente. Sem seleção, o executor mantém o comportamento de executar todas as suítes. Resultados e limitações estão no [histórico do 13](../../docs/history/ticket-13-progress-2026-10-15.md).

@@ -1,0 +1,138 @@
+<main class="account-page" id="main-content">
+  <header class="account-header">
+    <a class="brand" href="/?consulta=api">Vetor Urbano</a>
+    <span>Contas · desenvolvimento local</span>
+  </header>
+  <div class="account-intro">
+    <p class="eyebrow">Identidades sintéticas</p>
+    <h1>Crie sua conta de teste</h1>
+    <p>Cadastre seu nome de exibição, e-mail de teste e senha para confirmar o endereço.</p>
+    <p class="local-notice">
+      Ambiente local com endereços .test e caixa de e-mail sintética. Configurações de
+      desenvolvimento; política operacional ainda pendente. Confirmar o e-mail não inicia uma
+      sessão.
+    </p>
+    <a href="http://127.0.0.1:8025/" target="_blank" rel="noopener noreferrer"
+      >Abrir caixa local do operador de testes (nova aba)</a
+    >
+  </div>
+  @if (busy()) {
+    <p class="account-feedback" role="status" data-testid="account-loading">
+      Processando solicitação…
+    </p>
+  }
+  @if (result(); as reply) {
+    <section
+      id="account-result"
+      class="account-feedback"
+      [class.is-error]="failed()"
+      [attr.role]="failed() ? 'alert' : 'status'"
+      tabindex="-1"
+      data-testid="account-result"
+    >
+      <h2>
+        {{
+          reply.code === 'ACCOUNT_CONFIRMED'
+            ? 'E-mail confirmado'
+            : reply.code === 'CONFIRMATION_PENDING'
+              ? 'Confirmação pendente'
+              : 'Solicitação não concluída'
+        }}
+      </h2>
+      <p>{{ reply.message }}</p>
+      @if (reply.code === 'CONFIRMATION_PENDING') {
+        <p>
+          Ainda é necessário confirmar. A resposta preserva a privacidade e não informa se já havia
+          uma conta para esse e-mail. Use o reenvio se a mensagem não estiver disponível.
+        </p>
+      }
+    </section>
+  }
+  <div class="account-grid" [attr.aria-busy]="busy()">
+    <section class="account-card" aria-labelledby="registration-heading">
+      <h2 id="registration-heading">Cadastro</h2>
+      <form (ngSubmit)="register()">
+        <label for="account-name">Nome de exibição</label>
+        <input
+          id="account-name"
+          name="displayName"
+          [(ngModel)]="displayName"
+          autocomplete="nickname"
+          required
+          minlength="2"
+          maxlength="80"
+        />
+        <label for="account-email">E-mail do cadastro</label>
+        <input
+          id="account-email"
+          name="email"
+          type="email"
+          [(ngModel)]="email"
+          autocomplete="email"
+          placeholder="pessoa@example.test"
+          required
+          maxlength="254"
+          aria-describedby="email-help"
+        />
+        <small id="email-help">Use somente um endereço sintético com domínio .test.</small>
+        <label for="account-password">Senha</label>
+        <input
+          id="account-password"
+          name="password"
+          type="password"
+          [(ngModel)]="password"
+          autocomplete="new-password"
+          required
+          aria-describedby="password-help"
+        />
+        <small id="password-help"
+          >15–128 caracteres. Pode usar espaços e colar uma frase longa; evite senhas
+          triviais.</small
+        >
+        <button type="submit" [disabled]="busy()">Cadastrar conta de teste</button>
+      </form>
+    </section>
+    <div class="account-secondary">
+      <section class="account-card" aria-labelledby="confirmation-heading">
+        <h2 id="confirmation-heading" tabindex="-1">Confirmar e-mail</h2>
+        <p>
+          Abra a mensagem na caixa local e siga o link, ou cole o token abaixo. A confirmação só
+          ocorre ao acionar o botão.
+        </p>
+        <form (ngSubmit)="confirm()">
+          <label for="account-token">Token de confirmação</label>
+          <input
+            id="account-token"
+            name="token"
+            type="password"
+            [(ngModel)]="token"
+            autocomplete="off"
+            required
+            maxlength="128"
+          />
+          <button type="submit" [disabled]="busy()">Confirmar e-mail</button>
+        </form>
+      </section>
+      <section class="account-card" aria-labelledby="resend-heading">
+        <h2 id="resend-heading">Reenviar confirmação</h2>
+        <p>
+          Um reenvio efetivo substitui o link anterior. Se houver espera ou limite por conta, o link
+          atual é preservado; a resposta não revela esse estado a terceiros.
+        </p>
+        <form (ngSubmit)="resend()">
+          <label for="account-resend-email">E-mail para reenvio</label>
+          <input
+            id="account-resend-email"
+            name="resendEmail"
+            type="email"
+            [(ngModel)]="resendEmail"
+            autocomplete="email"
+            required
+            maxlength="254"
+          />
+          <button type="submit" [disabled]="busy()">Solicitar reenvio</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</main>

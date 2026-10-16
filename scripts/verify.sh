@@ -24,6 +24,7 @@ outros erros = status devolvido pela ferramenta que falhou.
 
 docs/planning conferem estrutura, não qualidade dos requisitos nem produto.
 web está disponível; api/all executam testes unitários e de integração com PostgreSQL/PostGIS real.
+Seleção explícita opcional: VETOR_API_UNIT_TESTS, VETOR_API_INTEGRATION_TESTS e VETOR_WEB_UNIT_TESTS (padrão: todas).
 HELP
 }
 
@@ -86,7 +87,12 @@ for (const name of ['lint', 'test:ci', 'build']) {
 }
 NODE
     npm run lint
-    npm run test:ci
+    if [[ -n "${VETOR_WEB_UNIT_TESTS:-}" ]]; then
+      printf 'Seleção explícita de unidade web: %s\n' "$VETOR_WEB_UNIT_TESTS"
+      npm run test:ci -- --include="$VETOR_WEB_UNIT_TESTS"
+    else
+      npm run test:ci
+    fi
     npm run build
   )
   printf 'OK: lint, test:ci e build da aplicação web concluídos.\n'
@@ -118,7 +124,16 @@ check_api() {
   fi
   (
     cd -- "$VU_ROOT/apps/api"
-    ./mvnw -B -ntp \
+    local vu_api_selection=()
+    if [[ -n "${VETOR_API_UNIT_TESTS:-}" ]]; then
+      vu_api_selection+=("-Dtest=$VETOR_API_UNIT_TESTS")
+      printf 'Seleção explícita de unidade API: %s\n' "$VETOR_API_UNIT_TESTS"
+    fi
+    if [[ -n "${VETOR_API_INTEGRATION_TESTS:-}" ]]; then
+      vu_api_selection+=("-Dit.test=$VETOR_API_INTEGRATION_TESTS")
+      printf 'Seleção explícita de integração API: %s\n' "$VETOR_API_INTEGRATION_TESTS"
+    fi
+    ./mvnw -B -ntp "${vu_api_selection[@]}" \
       -DskipTests=false -Dmaven.test.skip=false \
       -DskipITs=false -DfailIfNoTests=true clean verify
   )

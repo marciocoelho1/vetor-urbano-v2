@@ -1,5 +1,12 @@
 # Histórico de mudanças
 
+## 2026-10-15 — Ticket 13: cadastro e confirmação locais
+
+- Cadastro sintético com nome, e-mail `.test` e senha derivada com salt; USER imposto pelo servidor. Migração V2 preserva V1 e persiste contas, hashes de tokens e eventos sem credenciais. Caixa local em memória, sem envio externo.
+- Confirmação explícita de uso único, estados inválido/expirado/usado/substituído, reenvio com revogação do anterior somente quando efetivo, limites configuráveis persistentes e respostas sem enumeração por conteúdo. Sem sessão/MFA ou recuperação/exclusão.
+- Configurações de desenvolvimento separadas da política operacional em [contrato](docs/architecture/accounts-local-v1.md). Verificação selecionada: API 2 unitários + 9 HTTP/PostGIS; web lint + 3 unitários + build 616,35 kB (aviso +116,35 kB); navegador real 8/8 Chromium/Firefox, teclado/foco/móvel e indisponibilidade. Reinício real verificado. [Histórico](docs/history/ticket-13-progress-2026-10-15.md).
+- Dependência técnica do 14 liberada. Trabalho preexistente e ticket 07 preservados, sem ampliar escopo ou publicar.
+
 ## 2026-10-15 — Ticket 12 concluído em desenvolvimento local
 
 - Completada a fundação Java/Flyway/PostGIS do Luna com navegador local explícito (`?consulta=api`), filtros no servidor, relações públicas fora do recorte, referências sem duplicação, precisão preservada e estados de carregamento/vazio/erro com retry. Leitura somente de publicadas; sem fallback para fixtures.
