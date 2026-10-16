@@ -2,7 +2,7 @@
 
 O Vetor Urbano é uma aplicação web para explorar ocorrências urbanas no mapa e entender como elas se distribuem por lugar, categoria e período. Reúne consulta geográfica, histórico e indicadores em uma interface voltada ao Rio de Janeiro e à Baixada Fluminense.
 
-**A versão atual é uma demonstração local.** Usa dados fictícios e permite experimentar os fluxos antes da integração com serviços e dados reais. Ainda não há API, contas de usuário ou banco de dados.
+**A versão atual é uma demonstração local.** Usa dados fictícios e permite experimentar os fluxos antes da integração com serviços e dados reais. Esta branch já inclui API Java, PostgreSQL/PostGIS e contas com sessão e MFA, no recorte de desenvolvimento local sintético.
 
 ## O que você pode fazer
 
@@ -31,6 +31,17 @@ npm start --prefix apps/web
 ```
 
 Abra **http://localhost:4201/**. Os mapas precisam de acesso ao provedor cartográfico. A configuração atual atende ao desenvolvimento em `localhost` e `127.0.0.1`; outros domínios precisam de configuração própria. Consulte o [guia de operação](docs/operations/web.md) antes de preparar hospedagem.
+
+## Credenciais de teste locais
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Administrador (ADMIN) | `admin@vetorurbano.test` | `123456` |
+| Usuário (USER) | `usuario@vetorurbano.test` | `123456` |
+
+Estas são contas sintéticas do ambiente local de teste. Com frontend, API e banco local iniciados, abra **http://127.0.0.1:4201/?consulta=api**. As contas precisam estar provisionadas nesse banco; clonar a branch não cria as contas nem inicia os serviços.
+
+O Administrador exige também MFA: no primeiro acesso, use **Configurar autenticador** e confirme o código do aplicativo TOTP. Se já estiver configurado, utilize o autenticador vinculado. A senha sozinha não libera acesso administrativo. A senha curta acima é exclusiva dessas duas contas de teste e não deve ser usada em produção. Segredos do autenticador e credenciais de infraestrutura não fazem parte deste README.
 
 ## Verificar
 

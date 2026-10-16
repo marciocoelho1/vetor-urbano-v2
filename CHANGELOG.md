@@ -1,5 +1,10 @@
 # Histórico de mudanças
 
+## 2026-10-16 — Acessos de teste no README da branch de integração
+
+- Incluídas as credenciais sintéticas de ADMIN e USER, condições do ambiente local e exigência de MFA administrativo.
+- Envio limitado a `integration/functional-spec-v1`; trabalho local preexistente preservado e `main` intacta.
+
 ## 2026-10-16 — Ticket 16 aceito localmente em desenvolvimento
 
 - Contrato define lista pública somente com nome e URL opcional; ID estável, canal, avaliação, cobertura, acesso, autoria e histórico ficam internos. V5 adiciona versões imutáveis e auditoria por snapshots/referências sem credenciais; Java protege escrita/leitura interna por ADMIN+MFA e CSRF.
