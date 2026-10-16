@@ -1,6 +1,6 @@
 # API Java — desenvolvimento local
 
-A API usa Java 21, Spring Boot 4, PostgreSQL 17/PostGIS 3.5 e Flyway. Vincula-se a `127.0.0.1:8080` e oferece a leitura de ocorrências sintéticas do Ticket 12. O cadastro/confirmação do Ticket 13 exige ativação local explícita, descrita abaixo. Não recebe ocorrências, não coleta fontes e não implementa sessão ou autorização operacional.
+A API usa Java 21, Spring Boot 4, PostgreSQL 17/PostGIS 3.5 e Flyway. Vincula-se a `127.0.0.1:8080` e oferece a leitura de ocorrências sintéticas do Ticket 12. O cadastro/confirmação do Ticket 13 exige ativação local explícita, descrita abaixo. Os tickets 13/14/16 entregam contas, sessão/autorização/MFA e gestão de fontes locais. Não recebe novas ocorrências nem coleta fontes; não comprova autorização operacional.
 
 O banco configurado em `VETOR_DATABASE_URL` deve ser exclusivo para desenvolvimento local. Na inicialização, Flyway aplica as migrações de `src/main/resources/db/migration`, que criam o modelo e carregam registros inteiramente sintéticos. Não use uma base operacional.
 
@@ -39,7 +39,7 @@ Reutiliza a mesma API e banco. Contas ficam desabilitadas por padrão; para ativ
 
 Com o Angular na porta 4201, abra `http://127.0.0.1:4201/?conta=local`. A caixa do operador fica em `http://127.0.0.1:8025/`: não envia e-mail real e aceita somente endereços `.test`. Use o link da mensagem ou cole o token no formulário; a confirmação exige POST explícito. Mensagens ficam somente em memória e desaparecem no restart; contas, hashes, uso/revogação dos tokens e limites persistem no banco. O operador pode solicitar novo envio respeitando os limites existentes.
 
-O [contrato local de contas](../../docs/architecture/accounts-local-v1.md) registra endpoints, credenciais protegidas, estados, repetição, expiração e todas as configurações reversíveis de desenvolvimento. Ele não aprova política operacional. Sem login, sessão, MFA, recuperação ou exclusão.
+O [contrato local de contas](../../docs/architecture/accounts-local-v1.md) registra endpoints, credenciais protegidas, estados, repetição, expiração e todas as configurações reversíveis de desenvolvimento. Ele não aprova política operacional. Este parágrafo descreve somente a fatia do 13. Login/sessão/MFA foram entregues no [contrato do 14](../../docs/architecture/session-local-v1.md); recuperação/exclusão continuam no 15.
 
 Para os cenários rápidos de navegador deste ticket, inicie a API com:
 

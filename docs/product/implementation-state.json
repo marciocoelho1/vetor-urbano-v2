@@ -1,0 +1,473 @@
+{
+  "integration_branch": "integration/functional-spec-v1",
+  "base_commit": "897fae5",
+  "source_instruction": {
+    "name": "G1 Rio de Janeiro",
+    "url": "https://g1.globo.com/rj/rio-de-janeiro/",
+    "kind": "placeholder",
+    "collection_enabled": false
+  },
+  "tickets": {
+    "01": {
+      "file": ".scratch/consulta-coerente/issues/01-catalogo-consulta-inicial.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "5c99513",
+      "verification": {
+        "web": "lint60unitbuild504.85kB",
+        "browser": "18targetedpassedChromiumFirefox",
+        "diff_check": "passed",
+        "limits": "fullE2EmatrixandphysicalQAunverified"
+      },
+      "integration_commit": "5c99513"
+    },
+    "02": {
+      "file": ".scratch/consulta-coerente/issues/02-ocorrencias-acontecimentos.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "45c6401",
+      "integration_commit": "45c6401",
+      "verification": {
+        "web": "lint61unitbuild515.13kB",
+        "browser": "14targetedpassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "03": {
+      "file": ".scratch/consulta-coerente/issues/03-filtros-combinados.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "10d316c",
+      "integration_commit": "10d316c",
+      "verification": {
+        "web": "lint61unitbuild508.88kB",
+        "browser": "12targeted+2responsivepassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "04": {
+      "file": ".scratch/consulta-coerente/issues/04-tempo-situacao-precisao.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "95fffc1",
+      "integration_commit": "95fffc1",
+      "verification": {
+        "web": "lint66unitbuild521.37kB",
+        "browser": "16postmergetargeted+22priorworkspacepassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "05": {
+      "file": ".scratch/consulta-coerente/issues/05-territorio-mapa-lista.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "c528644",
+      "integration_commit": "c528644",
+      "verification": {
+        "browser": "4/4 Chromium/Firefox; both renderers",
+        "web": "lint;85 unit;build600.60kB",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      },
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/05-territorio-mapa-lista.md",
+        "state": "done",
+        "acceptance": "verified_local_demonstration",
+        "commit": "9dc9b6a",
+        "integration_commit": "a7a1d52",
+        "verification": {
+          "web": "lint67unitbuild545.86kB",
+          "browser": "4targetedMapLibreLeafletPassedChromiumFirefox",
+          "diff_check": "passed"
+        }
+      },
+      "evidence_file": "docs/history/ticket-05-dependency-retest-2026-10-15.md"
+    },
+    "06": {
+      "file": ".scratch/consulta-coerente/issues/06-dois-modos.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "01a005a",
+      "integration_commit": "01a005a",
+      "verification": {
+        "browser": "10/10 Chromium/Firefox",
+        "web": "lint;85 unit;build600.60kB",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      },
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/06-dois-modos.md",
+        "state": "done",
+        "acceptance": "verified_local_demonstration",
+        "commit": "01a005a",
+        "integration_commit": "01a005a",
+        "verification": {
+          "web": "lint82unitbuild597.98kB",
+          "browser": "10targetedPassedChromiumFirefox",
+          "diff_check": "passed",
+          "limits": "fullE2EmatrixandphysicalQAunverified"
+        }
+      },
+      "evidence_file": "docs/history/ticket-06-resume-2026-10-15.md"
+    },
+    "07": {
+      "file": ".scratch/consulta-coerente/issues/07-agrupamentos-sobreposicoes.md",
+      "state": "partial",
+      "acceptance": "not_accepted",
+      "commit": "b505ac6",
+      "integration_commit": "b505ac6",
+      "verification": {
+        "browser": "7/8 targeted recorded; MapLibre/Firefox physical click failed",
+        "limits": "No new acceptance; E2E must authenticate after ticket14"
+      },
+      "historical_acceptance": "verified_local_demonstration",
+      "static_review": {
+        "date": "2026-10-15",
+        "status": "pending_completion",
+        "note": "ticket acceptance checklist remains unchecked; historical summary does not trace every browser/accessibility/list fallback criterion"
+      },
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/07-agrupamentos-sobreposicoes.md",
+        "state": "done",
+        "acceptance": "historical_evidence_partial_static_review_pending",
+        "commit": "b505ac6",
+        "integration_commit": "b505ac6",
+        "verification": {
+          "web": "lint70unitbuild571.15kB",
+          "browser": "12targetedPassedChromiumFirefox",
+          "diff_check": "passed"
+        },
+        "historical_acceptance": "verified_local_demonstration",
+        "static_review": {
+          "date": "2026-10-15",
+          "status": "pending_completion",
+          "note": "ticket acceptance checklist remains unchecked; historical summary does not trace every browser/accessibility/list fallback criterion"
+        }
+      },
+      "evidence_file": "docs/history/ticket-07-resume-2026-10-15.md",
+      "pending": [
+        "MapLibre/Firefox physical click",
+        "complete browser criteria with authenticated synthetic session"
+      ]
+    },
+    "08": {
+      "file": ".scratch/consulta-coerente/issues/08-informes-manuais.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "04be65e",
+      "integration_commit": "04be65e",
+      "verification": {
+        "web": "lint75unitbuild579.98kB",
+        "browser": "8targetedPassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "09": {
+      "file": ".scratch/consulta-coerente/issues/09-areas-risco-demo.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "cab91b8",
+      "integration_commit": "a7a1d52",
+      "verification": {
+        "web": "lint68unitbuild545.86kB",
+        "browser": "4targetedPassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "10": {
+      "file": ".scratch/consulta-coerente/issues/10-consulta-atualizacao-estados.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "8ca44bc",
+      "integration_commit": "8ca44bc",
+      "verification": {
+        "browser": "12/12 Chromium/Firefox",
+        "web": "lint;85 unit;build600.60kB",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      },
+      "historical_acceptance": "verified_local_demonstration",
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/10-consulta-atualizacao-estados.md",
+        "state": "done",
+        "acceptance": "historical_evidence_partial_static_review_pending",
+        "commit": "6c9e96b",
+        "integration_commit": "6c9e96b",
+        "verification": {
+          "web": "lint78unitbuild589.66kB",
+          "browser": "8targetedPassedChromiumFirefox",
+          "diff_check": "passed"
+        },
+        "historical_acceptance": "verified_local_demonstration",
+        "static_review": {
+          "date": "2026-10-15",
+          "status": "pending_completion",
+          "note": "historical tests recorded, but acceptance details do not fully evidence all specified states and accessibility criteria"
+        }
+      },
+      "evidence_file": "docs/history/ticket-10-retest-2026-10-15.md"
+    },
+    "11": {
+      "file": ".scratch/consulta-coerente/issues/11-paginas-publicas-demo.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "commit": "2c34dd9",
+      "integration_commit": "2c34dd9",
+      "verification": {
+        "web": "lint66unitbuild525.77kB warning25.77kB",
+        "browser": "22targetedpassedChromiumFirefox",
+        "diff_check": "passed"
+      }
+    },
+    "12": {
+      "file": ".scratch/consulta-coerente/issues/12-consulta-persistida.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/12-consulta-persistida.md",
+        "state": "pending",
+        "acceptance": "not verified"
+      },
+      "commit": "067f9c0",
+      "integration_commit": "067f9c0",
+      "evidence_file": "docs/history/ticket-12-progress-2026-10-15.md",
+      "verification": {
+        "api": "8 unit;2 migration;5 HTTP/PostGIS",
+        "web": "lint;88 unit;build606.17kB",
+        "browser": "6/6 Chromium/Firefox;26/26 affected regression",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      }
+    },
+    "13": {
+      "file": ".scratch/consulta-coerente/issues/13-cadastro-confirmacao.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/13-cadastro-confirmacao.md",
+        "state": "pending",
+        "acceptance": "not verified"
+      },
+      "commit": "f93ad96",
+      "integration_commit": "f93ad96",
+      "evidence_file": "docs/history/ticket-13-progress-2026-10-15.md",
+      "verification": {
+        "api": "2 selected unit;9 HTTP/PostGIS",
+        "web": "lint;3 selected unit;build616.35kB",
+        "browser": "8/8 Chromium/Firefox",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      }
+    },
+    "14": {
+      "file": ".scratch/consulta-coerente/issues/14-acesso-sessao-mfa.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/14-acesso-sessao-mfa.md",
+        "state": "pending",
+        "acceptance": "not verified"
+      },
+      "commit": "e9bb6e7",
+      "integration_commit": "e9bb6e7",
+      "evidence_file": "docs/history/ticket-14-progress-2026-10-15.md",
+      "verification": {
+        "api": "11 unit;23 selected integration",
+        "web": "lint;58 affected unit;build627.27kB",
+        "browser": "12/12 Chromium/Firefox",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      }
+    },
+    "15": {
+      "file": ".scratch/consulta-coerente/issues/15-ciclo-conta.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "16": {
+      "file": ".scratch/consulta-coerente/issues/16-gestao-fontes.md",
+      "state": "done",
+      "acceptance": "verified_local_demonstration",
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/16-gestao-fontes.md",
+        "state": "pending",
+        "acceptance": "not verified"
+      },
+      "commit": "ba83696",
+      "integration_commit": "ba83696",
+      "evidence_file": "docs/history/ticket-16-progress-2026-10-15.md",
+      "verification": {
+        "api": "2 selected unit;3 integration/PostGIS",
+        "web": "lint;2 selected unit;build653.67kB",
+        "browser": "4/4 Chromium/Firefox",
+        "planning": "228 links recorded",
+        "diff_check": "passed_recorded",
+        "limits": "No full integrated or operational acceptance; results recorded at source revision."
+      }
+    },
+    "17": {
+      "file": ".scratch/consulta-coerente/issues/17-revisar-publicar.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "18": {
+      "file": ".scratch/consulta-coerente/issues/18-corrigir-retirar.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "19": {
+      "file": ".scratch/consulta-coerente/issues/19-consultar-logs.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "20": {
+      "file": ".scratch/consulta-coerente/issues/20-coleta-recente.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "21": {
+      "file": ".scratch/consulta-coerente/issues/21-coleta-retroativa.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "22": {
+      "file": ".scratch/consulta-coerente/issues/22-painel-operacao.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "23": {
+      "file": ".scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "24": {
+      "file": ".scratch/consulta-coerente/issues/24-reavaliar-fontes.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "25": {
+      "file": ".scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "26": {
+      "file": ".scratch/consulta-coerente/issues/26-versoes-areas-risco.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "27": {
+      "file": ".scratch/consulta-coerente/issues/27-solicitar-correcao.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "28": {
+      "file": ".scratch/consulta-coerente/issues/28-historico-avancado.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "29": {
+      "file": ".scratch/consulta-coerente/issues/29-relatorios-recorte.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "30": {
+      "file": ".scratch/consulta-coerente/issues/30-sintese-deterministica.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "31": {
+      "file": ".scratch/consulta-coerente/issues/31-comparar-recortes.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "32": {
+      "file": ".scratch/consulta-coerente/issues/32-mancha-termica.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "33": {
+      "file": ".scratch/consulta-coerente/issues/33-exportar-xlsx.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "34": {
+      "file": ".scratch/consulta-coerente/issues/34-exportar-pdf.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "35": {
+      "file": ".scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md",
+      "state": "pending",
+      "acceptance": "not verified"
+    },
+    "36": {
+      "file": ".scratch/consulta-coerente/issues/36-documentos-institucionais.md",
+      "state": "partial",
+      "acceptance": "documentary_transparency_only",
+      "commit": "a836616",
+      "integration_commit": "a836616",
+      "verification": {
+        "web": "lint69unitbuild555.75kB",
+        "browser": "8targetedPassedChromiumFirefox",
+        "diff_check": "passed"
+      },
+      "historical_acceptance": "verified_local_demonstration",
+      "static_review": {
+        "date": "2026-10-15",
+        "status": "partial_pending_ticket_27",
+        "note": "commit a836616 clarifies that the demo does not receive requests or provide a form, queue, protocol, or tracking; effective submission/tracking remains pending ticket 27, and the four documents remain local drafts"
+      },
+      "prior_record": {
+        "file": ".scratch/consulta-coerente/issues/36-documentos-institucionais.md",
+        "state": "done",
+        "acceptance": "historical_evidence_partial_static_review_pending",
+        "commit": "84bfa04",
+        "integration_commit": "84bfa04",
+        "verification": {
+          "web": "lint69unitbuild555.75kB",
+          "browser": "8targetedPassedChromiumFirefox",
+          "diff_check": "passed"
+        },
+        "historical_acceptance": "verified_local_demonstration",
+        "static_review": {
+          "date": "2026-10-15",
+          "status": "partial_pending_ticket_27",
+          "note": "commit a836616 clarifies that the demo does not receive requests or provide a form, queue, protocol, or tracking; effective submission/tracking remains pending ticket 27, and the four documents remain local drafts"
+        }
+      },
+      "evidence_file": "docs/history/spec-implementation-2026-10-15.md",
+      "pending": [
+        "effective correction submission/tracking depends on ticket27",
+        "final operational document approval"
+      ]
+    }
+  },
+  "account_local_flow_approved": {
+    "email": "local_test_mailbox",
+    "confirmation_recovery": "single_use",
+    "admin_second_factor": "authenticator_app",
+    "inactivity_reference_minutes": 60,
+    "revocation": [
+      "logout",
+      "password_change"
+    ],
+    "deletion": "identity_confirmation_preserves_collective_records",
+    "operational_email_accounts": "not_configured"
+  },
+  "assessment_instruction": {
+    "configuration": "administrative_versioned",
+    "validation": "explicit_synthetic_values",
+    "operational_calculation_enabled": false
+  },
+  "updated_at": "2026-10-16",
+  "source_head": "ba83696",
+  "scope": "local_synthetic_only",
+  "evidence_policy": "Recorded historical verification; no application tests rerun by this documentation reconciliation.",
+  "canonical_path": "docs/product/implementation-state.json",
+  "summary": {
+    "verified_local": 14,
+    "partial": 2,
+    "pending": 20,
+    "not_operational": true
+  }
+}

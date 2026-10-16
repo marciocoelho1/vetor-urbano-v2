@@ -1,5 +1,9 @@
 # Plano de trabalho
 
+## Reconciliação documental — 16/10/2026
+
+Estado até `ba83696`: 14 tickets verificados localmente (01–06, 08–14, 16), 07/36 parciais e 15/17–35 pendentes. Fontes de status: [resumo](docs/product/tickets-status.md), [inventário](docs/product/development-status.md) e [JSON versionado](docs/product/implementation-state.json). A reconciliação preserva resultados anteriores e não reexecuta testes. O antigo estado privado precisa espelhar o JSON antes de ser consumido; o controlador permanece inativo. Próximo incremento: 17, sem remover a pendência 15, a falha de mouse do 07 ou o canal de correções do 27/36. [Registro](docs/history/status-reconciliation-2026-10-16.md).
+
 Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Estado e foco atual

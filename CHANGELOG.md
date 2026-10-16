@@ -1,5 +1,10 @@
 # Histórico de mudanças
 
+## 2026-10-16 — Reconciliação documental de status
+
+- Publicado estado estruturado versionado e reconciliados resumo/inventário com evidências de 05/06/10/12/13/14/16. 07 e 36 continuam parciais; 15 e 17–35 pendentes.
+- Preservados registros históricos, spec, IDs e limites sintéticos; corrigidas afirmações desatualizadas sobre API/contas/fontes nos guias operacionais. Nenhum teste funcional novo ou credencial incluída. [Registro](docs/history/status-reconciliation-2026-10-16.md).
+
 ## 2026-10-16 — Ticket 16 aceito localmente em desenvolvimento
 
 - Contrato define lista pública somente com nome e URL opcional; ID estável, canal, avaliação, cobertura, acesso, autoria e histórico ficam internos. V5 adiciona versões imutáveis e auditoria por snapshots/referências sem credenciais; Java protege escrita/leitura interna por ADMIN+MFA e CSRF.

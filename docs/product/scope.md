@@ -6,7 +6,7 @@ O Vetor Urbano reúne consulta e análise geográfica de ocorrências urbanas. A
 
 Mapa e lista, busca, filtros combinados por categoria/período/raio, pontos de interesse e territórios atribuídos à fonte. Também há informes ativos, histórico, indicadores, comparação, reprodução temporal, filtros salvos, importação manual de fontes e exportação XLSX.
 
-O formulário de Trânsito, Segurança e Contingência valida campos e coordenadas, mas não envia dados. A moderação apresentada na interface é local. Não há contas, permissões de servidor, persistência ou monitoramento de fontes.
+O formulário de Trânsito, Segurança e Contingência valida campos e coordenadas, mas não envia dados. A moderação apresentada na interface é local. No recorte local sintético, 12–14 entregam consulta persistida, contas e autorização/MFA no servidor; 16 entrega cadastro/versionamento de fontes, sem monitoramento ou coleta. A moderação persistida ainda depende de 17. Veja [status reconciliado](tickets-status.md).
 
 ## Região e fontes
 
@@ -21,19 +21,19 @@ Os IDs de RF/RNF permanecem os de [initial-context.md](../references/initial-con
 | ID | Capacidade | Estado atual |
 |---|---|---|
 | RF01 | Cadastro de ocorrências | Formulário local; escrita persistida pendente |
-| RF02 | Mapa, marcadores, calor e filtros | Implementado no cliente; consulta espacial persistida e validação semântica pendentes |
+| RF02 | Mapa, marcadores, calor e filtros | Cliente demonstrativo e consulta espacial persistida local (12); validação operacional pendente |
 | RF03 | Alertas ao entrar em perímetro ativo | Pesquisa de plataforma, permissões e precisão |
 | RF04 | Votos e relevância | Backlog; regras de conflito e abuso pendentes |
-| RF05 | Autenticação e permissões por perfil | Não implementado |
+| RF05 | Autenticação e permissões por perfil | Cadastro, sessão/autorização e MFA locais (13/14); ciclo da conta e operação pendentes |
 | RF06 | Gestão de Operadores | Não implementado |
-| RF07 | Fila exclusiva de moderação | Triagem local; controle de acesso pendente |
+| RF07 | Fila exclusiva de moderação | Triagem demonstrativa; sessão local existe, fila persistida do 17 pendente |
 | RNF01 | Consulta em até 1,5 s em 4G | Meta preservada; ensaio representativo pendente |
 | RNF02 | Privacidade e separação da identidade | Dados fictícios; proteção do fluxo real ainda a validar |
 | RNF03 | Disponibilidade de alertas de 99,9% | Serviço e medição não implementados |
 | RNF04 | 20.000 conexões ativas | Meta futura; sem ensaio de carga |
 | RNF05 | 30 fps estáveis no mapa móvel | Medição em aparelho físico pendente |
-| RNF06 | Armazenamento seguro de senhas | Obrigatório antes de introduzir contas |
-| RNF07 | Sessão com limite de inatividade e revogação | Não implementado; limite original de uma hora preservado |
+| RNF06 | Armazenamento seguro de senhas | Derivação com salt verificada localmente no 13; operação pendente |
+| RNF07 | Sessão com limite de inatividade e revogação | Sessão/revogação locais no 14; referência de uma hora preservada; operação pendente |
 | RNF08 | MFA para Gestor | Obrigatório antes de liberar esse perfil |
 
 As [regras RN-P01–RN-P14, aceites CA01–CA08 e protocolos de medição](../archive/planning/scope-2026-10.md) estão preservados como propostas, sujeitos à reconciliação antes do backend. Os requisitos legados em `archive/specifications/` têm numeração própria e não substituem os IDs acima.

@@ -31,6 +31,6 @@ Tudo em `public/` e no bundle é acessível ao navegador. Credenciais de servido
 
 Execute lint, testes unitários, build e a matriz Playwright em Chromium/Firefox. No host escolhido, confira carregamento de mapas, fontes e sprites; alternância de temas; fluxo de consulta/cadastro; teclado e apresentação móvel. Mantenha o aviso de demonstração enquanto houver dados fictícios.
 
-O build atual ultrapassa o aviso de orçamento inicial de 500 kB em 2,64 kB. Há dois problemas de navegador registrados: tema local no mapa vetorial do cadastro e largura do cadastro a 320 px. Eles permanecem no [plano](../../PLAN.md), junto do QA em aparelho físico e leitor de tela.
+A última medição registrada no Ticket 16 é 653,67 kB, ultrapassando o aviso de orçamento inicial de 500 kB em 153,67 kB. Há dois problemas de navegador registrados: tema local no mapa vetorial do cadastro e largura do cadastro a 320 px. Eles permanecem no [plano](../../PLAN.md), junto do QA em aparelho físico e leitor de tela.
 
 Hospedagem da demonstração e liberação operacional são etapas diferentes. Uma versão operacional depende de API/banco, autorização, moderação, políticas de dados, cobertura e recuperação verificadas. Commit e push não publicam a aplicação.

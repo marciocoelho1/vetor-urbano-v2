@@ -40,7 +40,7 @@ A galeria tem entrada e `tsconfig` próprios em `apps/web/prototypes/`. O build 
 
 ## Backend local de leitura
 
-A API usa Spring Boot 4.1.1, Java 21, PostgreSQL 17/PostGIS 3.5 e Flyway. A fatia do Ticket 12 implementa `GET /api/v1/occurrences`, migração versionada e dados fictícios locais; o navegador consome esse endpoint no modo local explícito, inclusive relações fora do recorte sem alterar as contagens. Cadastro, autorização, sessões, MFA e moderação dependem das regras de acesso e dos tickets correspondentes.
+A API usa Spring Boot 4.1.1, Java 21, PostgreSQL 17/PostGIS 3.5 e Flyway. A fatia do Ticket 12 implementa `GET /api/v1/occurrences`, migração versionada e dados fictícios locais; o navegador consome esse endpoint no modo local explícito, inclusive relações fora do recorte sem alterar as contagens. Os tickets 13/14 acrescentam cadastro/confirmação, sessão, autorização e MFA locais; o 16 entrega gestão/versionamento de fontes e projeção pública mínima. Moderação/publicação ainda depende do 17. Ver contratos de [contas](accounts-local-v1.md), [sessão](session-local-v1.md) e [fontes](source-management-local-v1.md).
 
 Contrato HTTP atual e versões estão no [api-query-v1](api-query-v1.md). O [contrato preliminar P1.1](../archive/architecture/proposal-2026-10.md#5-contrato-preliminar-p11--somente-leitura) e a [especificação de implementação](../archive/planning/implementation-2026-10.md) permanecem referências históricas; não são requisitos para a API atual.
 
