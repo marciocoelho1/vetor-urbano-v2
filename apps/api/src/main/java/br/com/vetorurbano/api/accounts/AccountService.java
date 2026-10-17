@@ -294,6 +294,11 @@ public class AccountService {
         jdbc.update("UPDATE source_audit_events SET actor_id=NULL,historical_actor_id=? WHERE actor_id=?",domainResidual,account);
         jdbc.update("UPDATE source_access_configurations SET created_by=NULL,historical_actor_id=? WHERE created_by=?",domainResidual,account);
         jdbc.update("UPDATE source_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        jdbc.update("UPDATE correction_area_targets SET validated_by=NULL,historical_actor_id=? WHERE validated_by=?",domainResidual,account);
+        jdbc.update("UPDATE correction_decisions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        // E11: retain factual evidence while removing direct identity from retained copies.
+        String closingName=jdbc.queryForObject("SELECT display_name FROM local_accounts WHERE id=?",String.class,account);
+        br.com.vetorurbano.api.corrections.CorrectionPrivacy.detach(jdbc,account,closingName,email);
         // Os snapshots JSONB de auditoria de fonte embutem o authorId do autor; ele também passa ao
         // autor histórico de domínio, senão o identificador de login sobreviveria legível no registro.
         for(String column:List.of("before_snapshot","after_snapshot"))

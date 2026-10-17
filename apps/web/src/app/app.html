@@ -3716,6 +3716,9 @@
               um meio de contato.
             </p>
           </article>
+          @if (persistedQueryEnabled) {
+            <app-correction-channel />
+          }
           <button type="button" class="map-tool-button" (click)="returnFromPublicPage()">
             Voltar à consulta de origem
           </button>

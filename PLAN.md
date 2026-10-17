@@ -1,5 +1,10 @@
 # Plano de trabalho
 
+## Lote autorizado 27 → 36 → 17 → 18
+
+**27 em verificação:** canal privado HTTP/PostGIS e Angular implementado; alvo validado separado do editor territorial experimental. Testes direcionados: 15 unitários + 2 integrações e Playwright 2/2 Chromium/Firefox (teclado, estados, 390 px). Revisão e suítes completas pendentes. [Evidências](docs/history/ticket-27-progress-2026-10-17.md). Baseline preservado; sem push. Próxima ação: concluir revisão do 27 e integrar documentos no 36.
+
+
 Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Checkpoints do lote local 29 → 28 → 33

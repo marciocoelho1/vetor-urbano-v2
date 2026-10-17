@@ -1,0 +1,152 @@
+<section class="workspace-card" aria-labelledby="channel-title">
+  <h2 id="channel-title">Solicitar e acompanhar correção</h2>
+  <p>
+    Canal privado local com dados sintéticos. Não envie dados pessoais. O pedido não altera o
+    registro nem cria uma ocorrência.
+  </p>
+  @if (!session.state()?.authenticated) {
+    <p>Entre na sua conta pelo painel de acesso para enviar e acompanhar pedidos.</p>
+  } @else {
+    @if (session.state()?.role === 'ADMIN') {
+      <button type="button" (click)="toggleQueue()">
+        {{ admin() ? 'Meus pedidos' : 'Fila administrativa de correções' }}
+      </button>
+    }
+    @if (!admin()) {
+      <form (submit)="submit($event)">
+        <label
+          >Tipo de alvo<select name="targetKind" [(ngModel)]="targetKind">
+            <option value="OCCURRENCE">Ocorrência publicada</option>
+            <option value="AREA">Área validada</option>
+          </select></label
+        >
+        <label
+          >Identificador do alvo<input
+            name="targetId"
+            [(ngModel)]="targetId"
+            required
+            maxlength="200"
+        /></label>
+        <p>
+          Somente alvos persistidos validados. As áreas da demonstração e do editor experimental não
+          estão habilitadas.
+        </p>
+        <label
+          >Tipo de problema<select name="problemType" [(ngModel)]="problemType">
+            <option value="LOCAL">Localização</option>
+            <option value="DATA">Data/horário</option>
+            <option value="CONTEUDO">Conteúdo</option>
+            <option value="REFERENCIA">Referência</option>
+            <option value="OUTRO">Outro</option>
+          </select></label
+        >
+        <label
+          >Explicação<textarea
+            name="explanation"
+            [(ngModel)]="explanation"
+            required
+            maxlength="4000"
+          ></textarea>
+        </label>
+        <label
+          >Referências restritas<textarea
+            name="references"
+            [(ngModel)]="references"
+            required
+            maxlength="4000"
+          ></textarea>
+        </label>
+        <button type="submit" [disabled]="saving()">
+          {{ saving() ? 'Enviando…' : 'Enviar pedido de correção' }}
+        </button>
+      </form>
+    }
+    <h3>{{ admin() ? 'Fila privada de correções' : 'Meus pedidos de correção' }}</h3>
+    <button type="button" (click)="reload()" [disabled]="loading()">Atualizar pedidos</button>
+    @if (loading()) {
+      <p role="status">Carregando pedidos…</p>
+    } @else if (!error() && items().length === 0) {
+      <p>Nenhum pedido nesta fila.</p>
+    }
+    <ul>
+      @for (item of items(); track item.id) {
+        <li>
+          <h4>Pedido {{ item.id }}</h4>
+          <p>
+            {{ labels[item.state] }} · versão {{ item.version }} · recebido em
+            {{ item.created_at | date: 'dd/MM/yyyy HH:mm' : '-0300' }}
+          </p>
+          <p>{{ item.target_kind }}: {{ item.target_id }} · {{ item.problem_type }}</p>
+          <p>{{ item.explanation }}</p>
+          <p>Referências restritas: {{ item.private_references }}</p>
+          @if (item.reason) {
+            <p>Motivo da decisão: {{ item.reason }}</p>
+          }
+          @if (item.applied_version) {
+            <p>Versão aplicada: {{ item.applied_version }}</p>
+          }
+          @if (admin() && item.privacy_review_required) {
+            <p>Conteúdo minimizado automaticamente; revisão de dados pessoais pendente.</p>
+            <label
+              >Síntese factual revisada<textarea
+                [(ngModel)]="summaries[item.id]"
+                maxlength="4000"
+              ></textarea>
+            </label>
+            <label
+              >Evidências factuais revisadas<textarea
+                [(ngModel)]="factualReferences[item.id]"
+                maxlength="4000"
+              ></textarea>
+            </label>
+            <button
+              type="button"
+              (click)="minimize(item)"
+              [disabled]="saving() || !summaries[item.id] || !factualReferences[item.id]"
+            >
+              Confirmar minimização factual
+            </button>
+          } @else if (admin() && (item.state === 'RECEIVED' || item.state === 'IN_REVIEW')) {
+            <label
+              >Motivo visível ao solicitante<textarea
+                [(ngModel)]="reasons[item.id]"
+                maxlength="2000"
+              ></textarea>
+            </label>
+            @if (item.state === 'RECEIVED') {
+              <button
+                type="button"
+                (click)="decide(item, 'IN_REVIEW')"
+                [disabled]="saving() || !reasons[item.id]"
+              >
+                Iniciar análise
+              </button>
+            } @else {
+              <label
+                >Versão aplicada (somente se houve correção)<input
+                  type="number"
+                  min="1"
+                  [(ngModel)]="versions[item.id]"
+              /></label>
+              <button
+                type="button"
+                (click)="decide(item, 'COMPLETED')"
+                [disabled]="saving() || !reasons[item.id]"
+              >
+                Concluir com motivo
+              </button>
+              <button
+                type="button"
+                (click)="decide(item, 'NOT_APPLICABLE')"
+                [disabled]="saving() || !reasons[item.id]"
+              >
+                Não procedente
+              </button>
+            }
+          }
+        </li>
+      }
+    </ul>
+  }
+  <p #notice tabindex="-1" role="status" aria-live="polite">{{ error() || message() }}</p>
+</section>

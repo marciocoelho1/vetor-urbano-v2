@@ -1,3 +1,9 @@
+## 2026-10-17 — Ticket local 27: canal privado de correções
+
+- Recebimento/acompanhamento autenticados, alvos validados, fila ADMIN/MFA, motivos e versões de decisão; nenhum efeito automático na publicação.
+- V10 e encerramento preservam histórico factual com remoção do vínculo e minimização dos textos privados; editor territorial experimental permanece inativo.
+- HTTP/PostGIS direcionado e Playwright Chromium/Firefox passaram; suíte completa e revisão do lote ainda pendentes. [Evidências](docs/history/ticket-27-progress-2026-10-17.md).
+
 # Histórico de mudanças
 
 ## 2026-10-17 — Seleção local 34 → 19 → 15

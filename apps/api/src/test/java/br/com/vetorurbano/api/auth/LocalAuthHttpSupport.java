@@ -39,7 +39,7 @@ abstract class LocalAuthHttpSupport {
      * Reset dos fixtures de conta. Ao criar tabela nova que referencie `local_accounts`, inclua-a
      * aqui **e** em `AccountRegistrationHttpIT` (as duas classes montam o próprio reset).
      */
-    static final String RESET_SQL="TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,historical_actors,local_accounts RESTART IDENTITY";
+    static final String RESET_SQL="TRUNCATE correction_decisions,correction_requests,correction_area_targets,auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,historical_actors,local_accounts RESTART IDENTITY";
     @BeforeEach void reset()throws Exception {
         clock().time=Instant.parse("2026-10-15T18:00:00Z");key=Files.createTempDirectory("vu-auth-key").resolve("mfa.key");
         try(var app=start()){app.getBean(JdbcTemplate.class).execute(RESET_SQL);}
