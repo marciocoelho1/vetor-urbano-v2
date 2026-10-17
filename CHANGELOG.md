@@ -1,5 +1,11 @@
 # Histórico de mudanças
 
+## 2026-10-17 — Ticket local 33: XLSX completo do recorte
+
+- Adicionada exportação autenticada do recorte avançado completo, com as abas e colunas aprovadas, filtros/período/geração/totais/limitações e referências. Datas aproximadas, valores desconhecidos e coordenadas indisponíveis permanecem distintos de valores exatos/zero; textos são serializados como texto, sem fórmula executável.
+- O servidor registra `REPORT_EXPORT` com projeção minimizada E08. Não há teto arbitrário de registros; abas dividem acima de 1.048.575 linhas de dados. Limites de célula/XML/ZIP32 ou de formato falham antes do download. Revisão Standards sem findings contra `1179973`; Spec registrada no [checkpoint](docs/history/ticket-33-progress-2026-10-17.md).
+- Web: lint, 111 testes e build passaram (bundle inicial de 695,25 kB, aviso de +195,25 kB); API: 14 unitários + 29 integrações HTTP/PostgreSQL/PostGIS; Playwright separado 8/8 Chromium/Firefox; XLSX dos dois navegadores aberto no LibreOffice. `planning` e `git diff --check` passaram após a atualização do checkpoint. Revisões Standards + Spec sem findings contra `1179973`; asserções TDD reproduziram e corrigiram ambos os apontamentos Spec. Commits: `9bac3e4`, `6391a6c`. Uso sintético local não indica prontidão operacional.
+
 ## 2026-10-17 — Ticket local 28: Histórico avançado paginado
 
 - Adicionada consulta autenticada do Histórico publicado com filtros combinados, precisão temporal/geográfica, relações e total global. Ordenação de datas exatas pelo instante; intervalos pelo limite final conhecido exclusivo; empate por ID decrescente; 25 registros por página e snapshot até atualização.
