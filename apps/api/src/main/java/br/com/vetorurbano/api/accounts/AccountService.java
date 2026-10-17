@@ -248,6 +248,101 @@ public class AccountService {
         return new AccountResult(reply.status(),String.valueOf(reply.body().get("code")),String.valueOf(reply.body().get("message")));
     }
 
+    /**
+     * E07/E09–E11/E19/ADR 0001 (CA24): encerramento da própria conta. Elimina o cadastro ativo e os
+     * vínculos recuperáveis (tokens, sessões, limites e uso individual), preserva os fatos coletivos
+     * e substitui a autoria por referência histórica nova — irreversível e sem correspondência com a
+     * identidade eliminada. Novo cadastro com o mesmo endereço começa sem histórico nem privilégios.
+     */
+    @Transactional
+    public AccountResult closeAccount(UUID account,Map<String,Object> input) {
+        Instant now=clock.instant();
+        if(!Set.of(Set.of("currentPassword"),Set.of("currentPassword","mfaCode")).contains(input.keySet())) {
+            audit(account,now,"ACCOUNT_CLOSURE","REJECTED");
+            return AccountResult.invalid();
+        }
+        String current=text(input,"currentPassword");
+        if(!allowFor("ACCOUNT_CLOSURE:"+account,settings.sensitiveAttempts(),Duration.ofMinutes(5),now)) {
+            audit(account,now,"ACCOUNT_CLOSURE","LIMITED");
+            return limited("ACCOUNT_CLOSURE",now);
+        }
+        var rows=jdbc.queryForList("SELECT password_hash,email,role,status FROM local_accounts WHERE id=?",account);
+        if(rows.isEmpty()||current==null||!password.matches(current,(String)rows.getFirst().get("password_hash"))) {
+            audit(account,now,"ACCOUNT_CLOSURE","INVALID");
+            return new AccountResult(400,"INVALID_CURRENT_PASSWORD","Senha atual incorreta. Nada foi encerrado.");
+        }
+        if(!rows.getFirst().get("status").equals("CONFIRMED")) {
+            audit(account,now,"ACCOUNT_CLOSURE","REJECTED");
+            return new AccountResult(400,"INVALID_CLOSURE","Esta conta não pode ser encerrada agora. Nada foi alterado.");
+        }
+        String email=(String)rows.getFirst().get("email"), role=String.valueOf(rows.getFirst().get("role"));
+        // E16/audit-local-v1: segurança/conta e autoria de domínio usam referências históricas
+        // distintas, para não correlacionar uso administrativo com autoria de domínio — cada uma
+        // expira pelo seu próprio prazo. Nenhuma das duas é derivada do identificador de login.
+        UUID securityResidual=UUID.randomUUID(), domainResidual=UUID.randomUUID();
+        jdbc.update("INSERT INTO historical_actors(id,role,closed_at) VALUES (?,?,?)",securityResidual,role,ts(now));
+        jdbc.update("INSERT INTO historical_actors(id,role,closed_at) VALUES (?,?,?)",domainResidual,role,ts(now));
+        notice(email,"ACCOUNT_CLOSED","Conta sintética encerrada",
+            "Esta conta local foi encerrada a pedido do próprio titular em "+now+" (UTC). O cadastro e os vínculos de acesso foram eliminados; "
+            + "os registros coletivos e a autoria histórica dos atos administrativos foram preservados sem ligação recuperável com a identidade encerrada. "
+            + "Um novo cadastro com este endereço começa sem histórico e sem privilégios.");
+        // E10: uso individual eliminado. E09/E16: segurança e administração preservam o fato, com autor histórico.
+        jdbc.update("DELETE FROM auth_audit_events WHERE account_id=? AND event_class='USE'",account);
+        jdbc.update("UPDATE auth_audit_events SET account_id=NULL,historical_actor_id=? WHERE account_id=? AND event_class='SECURITY'",securityResidual,account);
+        jdbc.update("UPDATE auth_audit_events SET account_id=NULL,historical_actor_id=? WHERE account_id=? AND event_class='ADMIN'",domainResidual,account);
+        jdbc.update("UPDATE account_audit_events SET account_id=NULL,historical_actor_id=? WHERE account_id=?",securityResidual,account);
+        jdbc.update("UPDATE source_audit_events SET actor_id=NULL,historical_actor_id=? WHERE actor_id=?",domainResidual,account);
+        jdbc.update("UPDATE source_access_configurations SET created_by=NULL,historical_actor_id=? WHERE created_by=?",domainResidual,account);
+        jdbc.update("UPDATE source_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        // Os snapshots JSONB de auditoria de fonte embutem o authorId do autor; ele também passa ao
+        // autor histórico de domínio, senão o identificador de login sobreviveria legível no registro.
+        for(String column:List.of("before_snapshot","after_snapshot"))
+            jdbc.update("UPDATE source_audit_events SET "+column+" = jsonb_set("+column+", '{authorId}', to_jsonb(?::text)) WHERE "+column+"->>'authorId' = ?",
+                domainResidual.toString(),account.toString());
+        // Identificadores recuperáveis: tokens, sessões e chaves de limite individual (a do login é
+        // derivada do endereço, então precisa de remoção explícita).
+        jdbc.update("DELETE FROM account_confirmation_tokens WHERE account_id=?",account);
+        jdbc.update("DELETE FROM account_recovery_tokens WHERE account_id=?",account);
+        jdbc.update("DELETE FROM account_email_change_tokens WHERE account_id=?",account);
+        jdbc.update("DELETE FROM local_sessions WHERE account_id=?",account);
+        jdbc.update("DELETE FROM account_request_limits WHERE action LIKE '%:'||?",account.toString());
+        jdbc.update("DELETE FROM auth_request_limits WHERE bucket LIKE '%:'||?",account.toString());
+        jdbc.update("DELETE FROM auth_request_limits WHERE bucket=?",AuthService.loginBucket(email));
+        jdbc.update("INSERT INTO account_audit_events(account_id,historical_actor_id,occurred_at,action,outcome) VALUES (NULL,?,?,?,?)",
+            securityResidual,ts(now),"ACCOUNT_CLOSURE","CLOSED");
+        // Eliminação cadastral: nome, e-mail, credencial e fator deixam de existir (E07, sem reativação).
+        jdbc.update("DELETE FROM local_accounts WHERE id=?",account);
+        return new AccountResult(200,"ACCOUNT_CLOSED",
+            "Conta encerrada. O acesso foi eliminado e os registros coletivos foram preservados sem ligação com a identidade encerrada.");
+    }
+
+    /**
+     * E19: encerra todas as sessões da conta; a conta continua válida e o próximo acesso exige novo
+     * login. Exige a senha atual — e, para Administrador, código novo do autenticador (conferido
+     * antes, pelo módulo de acesso).
+     */
+    @Transactional
+    public AccountResult revokeSessions(UUID account,Map<String,Object> input) {
+        Instant now=clock.instant();
+        if(!Set.of(Set.of("currentPassword"),Set.of("currentPassword","mfaCode")).contains(input.keySet())) {
+            audit(account,now,"SESSIONS_REVOKED","REJECTED");
+            return AccountResult.invalid();
+        }
+        String current=text(input,"currentPassword");
+        if(!allowFor("SESSION_REVOCATION:"+account,settings.sensitiveAttempts(),Duration.ofMinutes(5),now)) {
+            audit(account,now,"SESSIONS_REVOKED","LIMITED");
+            return limited("SESSIONS_REVOKED",now);
+        }
+        var rows=jdbc.queryForList("SELECT password_hash FROM local_accounts WHERE id=?",account);
+        if(rows.isEmpty()||current==null||!password.matches(current,(String)rows.getFirst().get("password_hash"))) {
+            audit(account,now,"SESSIONS_REVOKED","INVALID");
+            return new AccountResult(400,"INVALID_CURRENT_PASSWORD","Senha atual incorreta. Nenhuma sessão foi encerrada.");
+        }
+        auth.revokeAll(account);
+        audit(account,now,"SESSIONS_REVOKED","REVOKED");
+        return new AccountResult(200,"SESSIONS_REVOKED","Todas as sessões foram encerradas. Entre novamente para continuar.");
+    }
+
     /** E02: sessão completa e CSRF, sem código do autenticador — basta para o nome de exibição. */
     @Transactional
     public AccountResult confirmSession(String sessionToken,String csrf) {

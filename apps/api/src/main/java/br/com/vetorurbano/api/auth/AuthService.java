@@ -26,6 +26,11 @@ public class AuthService {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
         catch(NoSuchAlgorithmException e) { throw new IllegalStateException(); }
     }
+    /**
+     * Balde do limite de tentativas de login: digest do endereço normalizado, sem sal. O encerramento
+     * de conta precisa remover esse balde, então a chave vive aqui para não divergir do login.
+     */
+    public static String loginBucket(String email) { return "login:"+hash(email.strip().toLowerCase(Locale.ROOT)); }
     private static String random() { byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
     public static String csrf(String token) { return hash("csrf:"+token); }
     private Timestamp now() { return Timestamp.from(clock.instant()); }
@@ -47,7 +52,7 @@ public class AuthService {
         if(!body.keySet().equals(Set.of("email","password"))||!(body.get("email") instanceof String email)||!(body.get("password") instanceof String password)||email.length()>254||password.length()>512)
             return error(400,"INVALID_LOGIN","Informe e-mail e senha válidos.");
         String normalized=email.strip().toLowerCase(Locale.ROOT);
-        if(!limit("login:global",settings.globalAttempts(),Duration.ofMinutes(1))||!limit("login:"+hash(normalized),settings.loginAttempts(),Duration.ofMinutes(5))) {
+        if(!limit("login:global",settings.globalAttempts(),Duration.ofMinutes(1))||!limit(loginBucket(normalized),settings.loginAttempts(),Duration.ofMinutes(5))) {
             audit(null,"LOGIN","LIMITED");return error(429,"ACCESS_LIMITED","Limite local atingido. Tente mais tarde.");
         }
         var rows=jdbc.queryForList("SELECT id,password_hash,status,role,mfa_enabled FROM local_accounts WHERE email=? FOR UPDATE",normalized);

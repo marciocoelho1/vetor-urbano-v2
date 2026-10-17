@@ -147,4 +147,67 @@ Duas revisões independentes sobre o delta da fatia. Findings corrigidos antes d
 | Typo `Avviso`; duplicação de estilos entre `self-account.scss` e `account-page.scss` | Standards (observation) | Typo corrigido. Duplicação **não alterada nesta fatia**: unificar estilos de card/form altera a identidade visual e merece incremento próprio; registrado como follow-up. |
 | Balde de limite da confirmação de troca de e-mail é global entre contas | Spec (info) | **Não alterado**: reproduz o padrão já aceito (`REGISTRATION`/`RECOVERY`); a revisão para operação real pertence a um incremento de endurecimento. Registrado no registro de pendências. |
 
-Verificações pós-correções: `verify.sh api` 14 unitários + 49 integrações (`SelfServiceHttpIT` 6/6), `verify.sh web` lint + 117 testes + build, Playwright dos specs de conta 28/28 Chromium/Firefox (4 do 15B × 2 navegadores + recuperação + regressão do cadastro). Nenhum finding ficou aberto sem resposta ou registro.
+Verificações pós-correções (15B, revalidada depois na 15C): `verify.sh api` 14 unitários + 49 integrações (`SelfServiceHttpIT` 6/6), `verify.sh web` lint + 117 testes + build e os specs de conta em Chromium/Firefox. Nenhum finding ficou aberto sem resposta ou registro.
+
+---
+
+# Fatia 15C — encerramento da própria conta e autor histórico
+
+Data: 17/10/2026. Baseline Git: `78b7e97` (checkpoint da 15B). Contrato: `docs/architecture/account-closure-local-v1.md`. Aceite **sintético e local**.
+
+## Escopo executado
+
+O percurso de **encerrar a conta** (E07/E09–E11/CA24) e o **controle autônomo de sessões** (E19). O encerramento exige senha atual (código novo do autenticador para Administrador) e a confirmação digitada `ENCERRAR`; elimina o cadastro ativo, remove tokens/sessões/limites/uso individual e substitui a autoria por referência residual nova em auditoria, versões e configurações de fonte, sem cascata sobre ocorrências, fontes ou versões. O ADR 0001 deixa de ser pendência de implementação: a separação entre autoria histórica e cadastro passa a existir por migração (V9).
+
+## Entregas
+
+| Artefato | Conteúdo |
+|---|---|
+| `apps/api/src/main/resources/db/migration/V9__account_closure_historical_authorship.sql` | Tabela `historical_actors`; `historical_actor_id` em `auth_audit_events`, `account_audit_events`, `source_audit_events`, `source_access_configurations` e `source_versions`; nulos permitidos em `actor_id`/`created_by`/`author_id`; CHECKs de auditoria de contas ampliados. V1–V8 preservadas. |
+| `AccountService` | `closeAccount` (transação única: residual, aviso sem token, eliminação do uso, desligamento dos vínculos, remoção de tokens/sessões/limites, evento de encerramento, exclusão do cadastro) e `revokeSessions` (E19, com limite próprio). |
+| `AccountSelfController` | `POST /api/v1/account/closure` e `POST /api/v1/account/sessions/revocations`. |
+| `self-account.ts/.html/.scss` | Card `Sessões` com "Encerrar todas as sessões" e card destrutivo `Encerrar conta` com senha, confirmação digitada (signal) e código do autenticador para Administrador. |
+| `apps/web/e2e/account-closure.spec.ts` | Três cenários de navegador (encerramento com confirmação e preservação de fatos; sessões autônomas; corpo fora do contrato). |
+| `ClosureHttpIT`; `LocalAuthHttpSupport`; `AccountRegistrationHttpIT` | 4 ITs novos e reset dos fixtures incluindo `historical_actors`. |
+| `docs/architecture/account-closure-local-v1.md`; `apps/api/README.md` | Contrato da fatia, tabela de endpoints e exemplo de ensaio. |
+
+## Verificações e resultados
+
+| Comando | Resultado |
+|---|---|
+| `VETOR_API_INTEGRATION_TESTS=ClosureHttpIT bash scripts/verify.sh api` | Vermelho inicial (rotas 404) → **4/4** após a implementação → **6/6** depois das correções da revisão |
+| `bash scripts/verify.sh api` | 14 unitários + **55 integrações** (era 49); verde |
+| `bash scripts/verify.sh web` | lint, **117 testes** e build OK; verde |
+| Playwright (`account-closure` + autoatendimento + recuperação + cadastro) | **32 passaram, 2 pulados** em Chromium/Firefox; os pulados são os dois ensaios do percurso administrativo de E19, que exigem a fixture administrativa local com autenticador novo ausente deste ambiente — o percurso administrativo está provado por HTTP (`ClosureHttpIT`) |
+| `bash scripts/verify.sh planning` | 369 links locais; verde |
+| Banco sintético | `flyway_schema_history` v9 (`account closure historical authorship`) |
+
+O ensaio HTTP prova, no servidor: senha errada e corpo fora do contrato não alteram nada; o limite de tentativas responde 429 sem revogar sessão nem encerrar conta; o Administrador só revoga sessões com código novo; depois do encerramento não existe linha em `local_accounts`, nenhum vínculo recuperável em auditoria/sessões/tokens/limites (incluindo o balde derivado do e-mail e o `authorId` dentro dos snapshots JSONB), a auditoria sobrevivente pertence a **duas** referências residuais distintas — segurança/conta e autoria de domínio —, o uso individual desaparece, ocorrências e fontes permanecem e o novo cadastro com o mesmo endereço nasce `USER`, sem histórico. O ensaio de navegador prova a confirmação digitada obrigatória, a volta ao acesso com aviso, o encerramento simultâneo das sessões e o comportamento em 390 px.
+
+## Revisões Standards + Spec (baseline `78b7e97`)
+
+Duas revisões independentes sobre o delta da fatia. Findings corrigidos antes do aceite:
+
+| Finding | Origem | Correção |
+|---|---|---|
+| `limited("SESSION_REVOCATION")` gravava ação fora do CHECK de `account_audit_events`: o 429 documentado virava 503 e nenhuma sessão era revogada | Standards (hard) | `limited("SESSIONS_REVOKED")`; IT novo cobre o 429 e prova que as sessões continuam válidas ao atingir o limite. |
+| UUID da conta eliminada sobrevivia em `before_snapshot`/`after_snapshot` de `source_audit_events` (`authorId`), contrariando o contrato e a garantia do IT | Standards (hard) e Spec (high) | O encerramento troca o `authorId` embutido pela referência de domínio (`jsonb_set`) e o IT varre os JSONB, provando zero vínculo. |
+| Uma única referência residual fundia segurança/conta com autoria de domínio | Spec (high) | Passam a existir **duas** referências (`historic_actors` ×2): segurança em `auth_audit_events` SECURITY + `account_audit_events`; domínio em ADMIN, fontes, versões e configurações. O IT prova que são distintas. |
+| Gestor não conseguia "Encerrar todas as sessões" pela interface (sem campo de código, servidor exige MFA) | Spec (high) | Card Sessões ganha senha atual e código do autenticador para Administrador; IT novo cobre o percurso administrativo (401 sem código, 200 com código novo). |
+| E19 entregue sem exigir a senha atual | Spec (médio) | `/account/sessions/revocations` passa a exigir `currentPassword` (400 `INVALID_CURRENT_PASSWORD`); E2E cobre a recusa por senha errada. |
+| Balde `login:<sha256(e-mail)>` sobrevivia ao encerramento | Spec (médio) | `AuthService.loginBucket(email)` centraliza a chave e o encerramento a remove explicitamente. |
+| `/account/closure` sem limite próprio de tentativas | Standards (judgement) | Balde `ACCOUNT_CLOSURE` com a mesma política das ações sensíveis; IT novo cobre 429. |
+| Contrato de auditoria declarava a integração do 15 como não implementada | Standards (judgement) | Seção de `audit-local-v1.md` atualizada, apontando o contrato da 15C e as duas referências distintas. |
+| Autoria histórica não projetada na leitura de logs | Spec (low) | **Não alterado**: pertence ao incremento da leitura de auditoria (ticket 19); registrado como pendência no contrato da 15C. |
+| Comentário da V9 sem espaço após os dois-pontos | Standards (observation) | Corrigido. |
+
+## Correções feitas durante a fatia
+
+- `source_versions.author_id` (FK RESTRICT) não estava previsto: o encerramento administrativo falhava com 503 e a migração passou a cobrir a coluna — erro encontrado pelo próprio IT, não por inspeção.
+- O botão de encerramento usava `computed` sobre propriedade comum (não reativa, permanecia inativo); passou a `signal` com `ngModelChange` e comparação exata de `ENCERRAR`.
+
+## Limitações e ressalvas da 15C
+
+- Sem canal de solicitação de correção implementado (E12 vale quando existir), sem guarda legal, preservação excepcional (E18), backups/restauração (E17) ou dados reais.
+- A separação de autoria é irreversível, mas não é anonimização garantida: contexto, datas e textos podem identificar; avaliação própria pertence à operação real.
+- `verify.sh planning` sobre o commit isolado continua falhando por links para documentos de planejamento nunca commitados (pré-existente, igual ao baseline).

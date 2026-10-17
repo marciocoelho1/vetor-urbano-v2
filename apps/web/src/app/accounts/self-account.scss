@@ -54,6 +54,13 @@
   margin: 0 0 12px;
   font-size: 1.2rem;
 }
+/* Encerramento da conta: ação irreversível ganha borda e botão de alerta. */
+.self-account-danger {
+  border-color: #b42318;
+}
+.self-account-card button.is-danger {
+  background: #b42318;
+}
 .self-account-card p,
 .self-account-card small {
   line-height: 1.6;

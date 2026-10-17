@@ -68,7 +68,7 @@ Informe JDK e Docker/Podman conforme o ambiente. Sem seleção, o executor mant�
 
 `POST /api/v1/accounts/recovery-requests` responde 202 sempre igual — conta confirmada, pendente, inexistente ou pedido suprimido por limite — e nunca informa se há conta; pedir o link não encerra as sessões abertas. `POST /api/v1/accounts/recoveries` recebe `token` e `password`: o link vale dez minutos, serve uma única vez, substitui o anterior no reenvio efetivo e, ao concluir, troca a senha, revoga todas as sessões e os links pendentes e exige novo login. Token inválido, expirado, substituído, usado, senha fora do exigido ou conta não confirmada não alteram nada. O MFA administrativo é preservado.
 
-O [contrato local de recuperação](../../docs/architecture/account-recovery-local-v1.md) registra endpoints, estados, prazos configuráveis e o desdobramento do ticket 15 (15B alteração autenticada e 15C encerramento/desvinculação seguem pendentes). Para o ensaio de navegador, some `--vetor.accounts.recovery-ttl=5s` aos argumentos da API, porque a expiração é exercitada com prazo curto em vez de dez minutos de espera:
+O [contrato local de recuperação](../../docs/architecture/account-recovery-local-v1.md) registra endpoints, estados, prazos configuráveis e o desdobramento do ticket 15 (as fatias 15B e 15C foram concluídas depois). Para o ensaio de navegador, some `--vetor.accounts.recovery-ttl=5s` aos argumentos da API, porque a expiração é exercitada com prazo curto em vez de dez minutos de espera:
 
 ```bash
 VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> \
@@ -84,6 +84,15 @@ O [contrato local de autoatendimento](../../docs/architecture/account-self-servi
 ```bash
 VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> \
   npx playwright test e2e/account-self-service.spec.ts --workers=1
+```
+
+## Encerramento da conta e autor histórico — Ticket 15, fatia 15C
+
+`POST /api/v1/account/sessions/revocations` encerra todas as sessões (E19) mantendo a conta válida e exige `currentPassword` (e, para Administrador, `mfaCode` novo). `POST /api/v1/account/closure` exige os mesmos campos, elimina o cadastro ativo e os vínculos recuperáveis — tokens, sessões, limites individuais e o balde de limite derivado do e-mail — e substitui a autoria por **duas** referências residuais novas, uma de segurança/conta e outra de autoria de domínio, em auditoria, histórico de fontes, versões e configurações, incluindo o `authorId` embutido nos snapshots JSONB, sem cascata sobre ocorrências, fontes e versões. Cada ação sensível tem limite próprio de tentativas: ao exceder responde 429 `REQUEST_LIMIT`, registra o evento `LIMITED` e não altera estado. Corpo fora dos campos declarados responde `INVALID_REQUEST`; senha errada, `INVALID_CURRENT_PASSWORD`; código ausente ou errado, `INVALID_MFA` (401). O [contrato local de encerramento](../../docs/architecture/account-closure-local-v1.md) define o efeito transacional, a migração V9 e a auditoria. Para o ensaio de navegador:
+
+```bash
+VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> \
+  npx playwright test e2e/account-closure.spec.ts --workers=1
 ```
 
 ## Gestão local de fontes — Ticket 16

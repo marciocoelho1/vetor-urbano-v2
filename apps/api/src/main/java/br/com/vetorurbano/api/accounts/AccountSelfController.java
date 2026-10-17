@@ -71,6 +71,29 @@ public class AccountSelfController {
         return AccountController.respond(service.requestEmailChange(account,body));
     }
 
+    /** E07/E09–E11/ADR 0001: encerramento da própria conta; exige senha atual (e código para Administrador). */
+    @PostMapping(value="/closure",consumes="application/json",produces="application/json")
+    ResponseEntity<Map<String,String>> closure(HttpServletRequest request,@RequestHeader(value="X-CSRF-Token",required=false) String csrf,
+            @RequestBody Map<String,Object> body) {
+        var account=account(request);
+        if(account==null) return respond(sessionRequired());
+        var confirmation=service.confirmSensitive(AuthController.token(request),csrf,AccountService.text(body,"mfaCode"));
+        if(confirmation.status()!=200) return AccountController.respond(confirmation);
+        return AccountController.respond(service.closeAccount(account,body));
+    }
+
+    /** E19: encerramento explícito de todas as sessões; a conta continua válida e exige novo login. */
+    @PostMapping(value="/sessions/revocations",consumes="application/json",produces="application/json")
+    ResponseEntity<Map<String,String>> revokeSessions(HttpServletRequest request,@RequestHeader(value="X-CSRF-Token",required=false) String csrf,
+            @RequestBody(required=false) Map<String,Object> body) {
+        var account=account(request);
+        if(account==null) return respond(sessionRequired());
+        var input=body==null?Map.<String,Object>of():body;
+        var confirmation=service.confirmSensitive(AuthController.token(request),csrf,AccountService.text(input,"mfaCode"));
+        if(confirmation.status()!=200) return AccountController.respond(confirmation);
+        return AccountController.respond(service.revokeSessions(account,input));
+    }
+
     /** Identificador gravado pela autorização do servidor; ausência significa que nada foi autorizado. */
     private static UUID account(HttpServletRequest request) {
         Object value=request.getAttribute("vu.account");

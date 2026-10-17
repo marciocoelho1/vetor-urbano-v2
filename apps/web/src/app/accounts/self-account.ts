@@ -64,6 +64,12 @@ export class SelfAccount implements OnDestroy {
         return 'Limite local atingido';
       case 'INVALID_REQUEST':
         return 'Revise os campos enviados';
+      case 'ACCOUNT_CLOSED':
+        return 'Conta encerrada';
+      case 'SESSIONS_REVOKED':
+        return 'Sessões encerradas';
+      case 'INVALID_CLOSURE':
+        return 'Encerramento não concluído';
       default:
         return 'Solicitação não concluída';
     }
@@ -75,6 +81,15 @@ export class SelfAccount implements OnDestroy {
   protected newEmail = '';
   protected emailPassword = '';
   protected emailCode = '';
+  protected sessionsPassword = '';
+  protected sessionsCode = '';
+  protected closurePassword = '';
+  protected closureCode = '';
+  /** Confirmação explícita digitada (E07): signal para o botão refletir o texto enquanto se digita. */
+  protected readonly closureConfirmation = signal('');
+  protected readonly closureArmed = computed(
+    () => this.closureConfirmation().trim() === 'ENCERRAR',
+  );
   private abort?: AbortController;
 
   constructor() {
@@ -138,6 +153,26 @@ export class SelfAccount implements OnDestroy {
     this.emailPassword = '';
     this.emailCode = '';
   }
+  /** E19: encerra todas as sessões com senha atual (e código novo do autenticador para Administrador). */
+  protected revokeSessions(): void {
+    void this.submit('sessions/revocations', {
+      currentPassword: this.sessionsPassword,
+      ...(this.manager() ? { mfaCode: this.sessionsCode } : {}),
+    });
+    this.sessionsPassword = '';
+    this.sessionsCode = '';
+  }
+  /** E07: encerramento irreversível da própria conta, com senha atual e confirmação digitada. */
+  protected closeAccount(): void {
+    if (!this.closureArmed()) return;
+    void this.submit('closure', {
+      currentPassword: this.closurePassword,
+      ...(this.manager() ? { mfaCode: this.closureCode } : {}),
+    });
+    this.closurePassword = '';
+    this.closureCode = '';
+    this.closureConfirmation.set('');
+  }
 
   private async submit(path: string, body: Record<string, string>): Promise<void> {
     if (this.busy()) return;
@@ -174,8 +209,16 @@ export class SelfAccount implements OnDestroy {
       const reply = (await response.json()) as AccountReply;
       if (typeof reply.code !== 'string' || typeof reply.message !== 'string')
         throw new Error('Resposta inesperada do serviço local de conta.');
-      // A troca de senha e a troca de e-mail encerram todas as sessões no servidor.
-      if (reply.code === 'PASSWORD_CHANGED' || reply.code === 'EMAIL_CHANGED') {
+      // A troca de senha, a troca de e-mail e o encerramento revogam sessões no servidor.
+      if (
+        reply.code === 'PASSWORD_CHANGED' ||
+        reply.code === 'EMAIL_CHANGED' ||
+        reply.code === 'ACCOUNT_CLOSED'
+      ) {
+        this.expire(reply.message);
+        return;
+      }
+      if (reply.code === 'SESSIONS_REVOKED') {
         this.expire(reply.message);
         return;
       }
@@ -219,6 +262,11 @@ export class SelfAccount implements OnDestroy {
     this.passwordCode = '';
     this.emailPassword = '';
     this.emailCode = '';
+    this.sessionsPassword = '';
+    this.sessionsCode = '';
+    this.closurePassword = '';
+    this.closureCode = '';
+    this.closureConfirmation.set('');
     setTimeout(() => document.getElementById('access-result')?.focus());
   }
 }

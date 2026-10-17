@@ -169,6 +169,98 @@
           <button type="submit" [disabled]="busy()">Solicitar troca de e-mail</button>
         </form>
       </section>
+      <section class="self-account-card" aria-labelledby="self-sessions-heading">
+        <h2 id="self-sessions-heading">Sessões</h2>
+        <p>
+          Encerrar todas as sessões desconecta este e qualquer outro acesso aberto. A conta continua
+          válida e entrará novamente com a mesma senha.
+        </p>
+        <form aria-label="Sessões" (ngSubmit)="revokeSessions()">
+          <label for="self-sessions-password">Senha atual</label>
+          <input
+            id="self-sessions-password"
+            name="sessionsPassword"
+            type="password"
+            [(ngModel)]="sessionsPassword"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+          @if (manager()) {
+            <label for="self-sessions-code">Código do autenticador</label>
+            <input
+              id="self-sessions-code"
+              name="sessionsCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              [(ngModel)]="sessionsCode"
+            />
+          }
+          <button type="submit" [disabled]="busy()" data-testid="self-account-revoke-sessions">
+            Encerrar todas as sessões
+          </button>
+        </form>
+      </section>
+      <section
+        class="self-account-card self-account-danger"
+        aria-labelledby="self-closure-heading"
+        data-testid="self-account-closure"
+      >
+        <h2 id="self-closure-heading">Encerrar conta</h2>
+        <p>
+          O encerramento é irreversível: o cadastro e os acessos deixam de existir, os registros
+          coletivos e a autoria histórica dos atos administrativos são preservados sem ligação com
+          você, e um novo cadastro com este endereço começa sem histórico e sem privilégios.
+        </p>
+        <form aria-label="Encerrar conta" (ngSubmit)="closeAccount()">
+          <label for="self-closure-password">Senha atual</label>
+          <input
+            id="self-closure-password"
+            name="closurePassword"
+            type="password"
+            [(ngModel)]="closurePassword"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+          <label for="self-closure-confirmation">Escreva ENCERRAR para confirmar</label>
+          <input
+            id="self-closure-confirmation"
+            name="closureConfirmation"
+            [ngModel]="closureConfirmation()"
+            (ngModelChange)="closureConfirmation.set($event)"
+            autocomplete="off"
+            required
+            maxlength="8"
+            aria-describedby="self-closure-help"
+          />
+          <small id="self-closure-help"
+            >A confirmação digitada é obrigatória; sem ela o botão permanece inativo.</small
+          >
+          @if (manager()) {
+            <label for="self-closure-code">Código do autenticador</label>
+            <input
+              id="self-closure-code"
+              name="closureCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              [(ngModel)]="closureCode"
+            />
+          }
+          <button
+            type="submit"
+            class="is-danger"
+            [disabled]="busy() || !closureArmed()"
+            data-testid="self-account-close"
+          >
+            Encerrar minha conta
+          </button>
+        </form>
+      </section>
     </div>
   }
 </section>
