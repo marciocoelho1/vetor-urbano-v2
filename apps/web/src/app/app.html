@@ -2317,6 +2317,54 @@
                 <p class="query-note">
                   Filtros do relatório: {{ reportFilterSummaryFor(snapshot.filters) }}
                 </p>
+                @if (reportSummary(); as summary) {
+                  <section data-testid="report-summary" aria-label="Síntese determinística">
+                    <h3>Síntese determinística</h3>
+                    <p>
+                      {{ summary.certain }} certamente · {{ summary.possible }} possivelmente dentro
+                      do período.
+                    </p>
+                    @if (summary.unknown) {
+                      <p>{{ summary.unknown }} sem classificação temporal suficiente.</p>
+                    }
+                    <p>
+                      Tempo agrupado por mês de Brasília, sem atribuir dia ou hora a intervalos.
+                      Categorias podem se sobrepor: não some categorias para inferir o total
+                      distinto. Referências e relacionados externos não aumentam os totais.
+                    </p>
+                    <p>
+                      Cobertura não aferida. Ausência de registros não comprova ausência de fatos.
+                      Dados sintéticos; nenhuma base estatística externa incluída.
+                    </p>
+                    @for (table of summary.tables; track table.title) {
+                      <table class="summary-table">
+                        <caption>
+                          {{
+                            table.title
+                          }}
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Grupo</th>
+                            <th scope="col">Ocorrências distintas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (row of table.rows; track row.label) {
+                            <tr>
+                              <th scope="row">{{ row.label }}</th>
+                              <td>{{ row.count }}</td>
+                            </tr>
+                          } @empty {
+                            <tr>
+                              <td colspan="2">Nenhum registro neste recorte.</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </section>
+                }
                 <ol class="report-snapshot-list" aria-label="Ocorrências deste relatório">
                   @for (point of snapshot.items; track point.id) {
                     <li>

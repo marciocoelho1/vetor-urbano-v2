@@ -1,3 +1,4 @@
+import { summarizeReport } from './domain/report-summary';
 import { Session } from './auth/session';
 import { SessionPanel } from './auth/session-panel';
 import { SourceManagement } from './sources/source-management';
@@ -669,6 +670,10 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly reportStatus = signal('');
   protected readonly reportQueryFilters = signal<LocalFilters | null>(null);
   protected readonly reportSnapshot = signal<ReportSnapshot | null>(null);
+  protected readonly reportSummary = computed(() => {
+    const snapshot = this.reportSnapshot();
+    return snapshot ? summarizeReport(snapshot.items, snapshot.filters) : null;
+  });
   protected readonly pendingReportTransfer = signal<LocalFilters | null>(null);
   protected readonly reportQueryLoading = signal(false);
   protected readonly reportQueryError = signal('');

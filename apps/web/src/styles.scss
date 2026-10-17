@@ -273,3 +273,22 @@ textarea {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+.summary-table {
+  width: 100%;
+  table-layout: fixed;
+  margin-block: 1rem;
+  border-collapse: collapse;
+
+  caption {
+    text-align: left;
+    font-weight: 700;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+}

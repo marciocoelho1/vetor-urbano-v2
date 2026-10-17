@@ -1,5 +1,9 @@
 # Histórico de mudanças
 
+## Seleção local 30 → 31 — 17/10/2026
+
+- Ticket 30: síntese determinística do snapshot de Relatórios, com distribuições, certeza temporal e limites de cobertura/precisão. Em verificação local sintética.
+
 ## 2026-10-17 — Ticket local 33: XLSX completo do recorte
 
 - Adicionada exportação autenticada do recorte avançado completo, com as abas e colunas aprovadas, filtros/período/geração/totais/limitações e referências. Datas aproximadas, valores desconhecidos e coordenadas indisponíveis permanecem distintos de valores exatos/zero; textos são serializados como texto, sem fórmula executável.
