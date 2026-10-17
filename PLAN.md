@@ -4,7 +4,9 @@ Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário
 
 ## Checkpoints do lote local 29 → 28 → 33
 
-**Ticket local 29 — checkpoint concluído:** fluxo, revisão Standards + Spec e verificações com dados sintéticos concluídos; `verify.sh web` (98 testes), `verify.sh api` (14 unitários + 27 integrações PostGIS), Playwright (14/14 Chromium/Firefox) e `verify.sh planning` passaram. Revisão contra baseline `2e439143` sem desvios; bundle inicial excede o orçamento em 164,67 kB. Commits próprios: `39b919e`, `1055ab0`, `8ec904b` e registro do checkpoint. [Evidências](docs/history/ticket-29-progress-2026-10-17.md). Próximo: ticket local 28, ordenação/paginação aprovadas em 17/10; ticket 33 é independente e aguarda fechar sua proposta de colunas.
+**Ticket local 29 — checkpoint concluído:** fluxo, revisão Standards + Spec e verificações com dados sintéticos concluídos; `verify.sh web` (98 testes), `verify.sh api` (14 unitários + 27 integrações PostGIS), Playwright (14/14 Chromium/Firefox) e `verify.sh planning` passaram. Revisão contra baseline `2e439143` sem desvios; bundle inicial excede o orçamento em 164,67 kB. Commits próprios: `39b919e`, `1055ab0`, `8ec904b` e registro do checkpoint. [Evidências](docs/history/ticket-29-progress-2026-10-17.md). Ticket 28 concluído neste lote; próximo é o ticket local 33, independente do 28, com proposta de abas, colunas/ordem e limite XLSX aprovada em 17/10.
+
+**Ticket local 28 — checkpoint concluído:** D05/D08, CA13 e RF02 preservados; dependências locais 06/14 atendidas; ordem exata pelo instante, intervalo pelo limite final conhecido exclusivo, desempate por ID decrescente, 25 por página e snapshot até atualizar. A consulta autenticada retorna todo o recorte e a interface pagina sem duplicação; revisão de escopo manteve playback existente fora da nova consulta. Commits de código: `b03f904`, `d7849c5`. Web 104 testes; API 14 unitários + 28 integrações HTTP/PostGIS; Playwright 2/2 Chromium/Firefox. [Evidências e comandos](docs/history/ticket-28-progress-2026-10-17.md). Próximo: ticket local 33, independente do 28, com proposta de abas e colunas aprovada em 17/10.
 
 ## Estado e foco atual
 
