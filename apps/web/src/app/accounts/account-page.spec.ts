@@ -101,6 +101,88 @@ describe('Conta local — fronteira do formulário', () => {
       );
     });
   });
+  it('pede recuperação só com o e-mail e anuncia a resposta indistinguível', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply('RECOVERY_PENDING', 202));
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fill('account-recovery-email', 'unit@example.test');
+    submit(3);
+    expect(fetch.mock.calls[0]![0]).toBe('http://127.0.0.1:8080/api/v1/accounts/recovery-requests');
+    expect(JSON.parse(fetch.mock.calls[0]![1]!.body as string)).toEqual({
+      email: 'unit@example.test',
+    });
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#account-result')?.textContent).toContain(
+        'Recuperação solicitada',
+      );
+    });
+    expect(fixture.nativeElement.textContent).toContain('não revela se há');
+  });
+  it('preenche o token do link de recuperação sem consumir, limpa a senha nova e confirma a redefinição', async () => {
+    history.replaceState(null, '', '/?conta=local#recuperar=synthetic-recovery-token');
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply('PASSWORD_RECOVERED', 200));
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(location.hash).toBe('');
+    expect(fetch).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(document.activeElement?.id).toBe('recovery-heading'));
+    fill('account-recovery-password', 'Frase redefinida de teste');
+    submit(4);
+    expect(fetch.mock.calls[0]![0]).toBe('http://127.0.0.1:8080/api/v1/accounts/recoveries');
+    expect(JSON.parse(fetch.mock.calls[0]![1]!.body as string)).toEqual({
+      token: 'synthetic-recovery-token',
+      password: 'Frase redefinida de teste',
+    });
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(
+        (fixture.nativeElement.querySelector('#account-recovery-password') as HTMLInputElement)
+          .value,
+      ).toBe('');
+    });
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#account-result')?.textContent).toContain(
+        'Senha redefinida',
+      );
+    });
+  });
+  it('link expirado aparece como indisponível, sem indicar sucesso', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply('EXPIRED_RECOVERY', 410));
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fill('account-recovery-token', 'a'.repeat(43));
+    fill('account-recovery-password', 'Frase redefinida de teste');
+    submit(4);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#account-result')?.getAttribute('role')).toBe(
+        'alert',
+      );
+    });
+    expect(fixture.nativeElement.textContent).toContain('Link de recuperação indisponível');
+    expect(fixture.nativeElement.textContent).not.toContain('Senha redefinida');
+  });
+  it('senha fora do exigido aparece como recuperação não concluída, sem culpar o link', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply('INVALID_RECOVERY', 400));
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fill('account-recovery-token', 'a'.repeat(43));
+    fill('account-recovery-password', 'curta');
+    submit(4);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('#account-result')?.textContent).toContain(
+        'Recuperação não concluída',
+      );
+    });
+    expect(fixture.nativeElement.textContent).not.toContain('Link de recuperação inválido');
+  });
   it('falha de conexão aparece como erro com foco e não confirma a conta', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('network unavailable'));
     fixture = TestBed.createComponent(AccountPage);

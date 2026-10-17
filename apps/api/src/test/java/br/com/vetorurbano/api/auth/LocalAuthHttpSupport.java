@@ -37,7 +37,7 @@ abstract class LocalAuthHttpSupport {
     Path key;
     @BeforeEach void reset()throws Exception {
         clock().time=Instant.parse("2026-10-15T18:00:00Z");key=Files.createTempDirectory("vu-auth-key").resolve("mfa.key");
-        try(var app=start()){app.getBean(JdbcTemplate.class).execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY");}
+        try(var app=start()){app.getBean(JdbcTemplate.class).execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY");}
         cookie=null;csrf=null;
     }
     ConfigurableApplicationContext start(String... extra) {

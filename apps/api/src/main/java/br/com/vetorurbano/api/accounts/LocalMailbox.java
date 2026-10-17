@@ -9,7 +9,12 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Operator-only synthetic inbox. No persistence, SMTP, CORS or public API route. */
 public final class LocalMailbox implements AutoCloseable {
-    public record Message(String recipient, String subject, String token, Instant expiresAt, String link) {}
+    /**
+     * Mensagem sintética. `kind` distingue confirmação de cadastro, link de recuperação e avisos de
+     * segurança (E14); avisos não carregam token, link nem prazo. `body` é orientação sem credenciais.
+     */
+    public record Message(String kind, String recipient, String subject, String token, Instant expiresAt,
+            String link, String body) {}
     private final HttpServer server;
     private final Deque<Message> messages = new ArrayDeque<>();
     private final JsonMapper json = JsonMapper.builder().build();
@@ -19,10 +24,25 @@ public final class LocalMailbox implements AutoCloseable {
         server.start();
     }
     public int port() { return server.getAddress().getPort(); }
-    public synchronized void deliver(String email, String token, Instant expires) {
+    public synchronized void deliverConfirmation(String email, String token, Instant expires) {
+        add(new Message("CONFIRMATION", email, "Confirme seu cadastro sintético", token, expires,
+            "http://127.0.0.1:4201/?conta=local#confirmar=" + token,
+            "Confirme o cadastro para entrar nos módulos. Link de uso único."));
+    }
+    /** E01/E15: link de recuperação de uso único, dez minutos, substituído a cada reenvio efetivo. */
+    public synchronized void deliverRecovery(String email, String token, Instant expires) {
+        add(new Message("RECOVERY", email, "Redefina sua senha sintética", token, expires,
+            "http://127.0.0.1:4201/?conta=local#recuperar=" + token,
+            "Use o link para definir uma nova senha. Ele vale dez minutos, serve uma única vez e "
+            + "substitui qualquer link anterior. Se não foi você, ignore a mensagem."));
+    }
+    /** E14: aviso transacional sem token, sem código e sem senha. */
+    public synchronized void deliverNotice(String email, String kind, String subject, String body) {
+        add(new Message(kind, email, subject, null, null, null, body));
+    }
+    private void add(Message message) {
         if (messages.size() >= 100) messages.removeFirst();
-        messages.addLast(new Message(email, "Confirme seu cadastro sintético", token, expires,
-            "http://127.0.0.1:4201/?conta=local#confirmar=" + token));
+        messages.addLast(message);
     }
     private synchronized void handle(HttpExchange exchange) throws java.io.IOException {
         var headers = exchange.getResponseHeaders();
@@ -44,10 +64,19 @@ public final class LocalMailbox implements AutoCloseable {
             headers.set("Content-Type", "text/html; charset=utf-8");
             var html = new StringBuilder("<!doctype html><html lang=pt-BR><meta charset=utf-8><meta name=referrer content=no-referrer><title>Caixa local sintética</title><h1>Caixa local de teste</h1><p>Somente operador local e identidades .test. Mensagens apenas em memória. Atualize a página para ver novas mensagens.</p>");
             if (messages.isEmpty()) html.append("<p>Nenhuma mensagem recebida.</p>");
-            for (var message : messages) html.append("<article><h2>").append(escape(message.recipient()))
-                .append("</h2><p>").append(escape(message.subject())).append("</p><a href=\"")
-                .append(message.link()).append("\">Abrir confirmação</a><p>Token: <code>")
-                .append(message.token()).append("</code></p><p>Expira: ").append(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(message.expiresAt())).append(" (horário de Brasília)</p></article>");
+            for (var message : messages) {
+                html.append("<article><h2>").append(escape(message.recipient())).append("</h2><p><strong>")
+                    .append(escape(message.kind())).append("</strong>: ").append(escape(message.subject())).append("</p>");
+                if (message.body() != null) html.append("<p>").append(escape(message.body())).append("</p>");
+                if (message.token() != null) html.append("<p>Token: <code>").append(message.token()).append("</code></p>");
+                if (message.link() != null) html.append("<a href=\"").append(message.link()).append("\">")
+                    .append(switch (message.kind()) { case "CONFIRMATION" -> "Abrir confirmação"; case "RECOVERY" -> "Abrir link de recuperação"; default -> "Abrir"; })
+                    .append("</a>");
+                if (message.expiresAt() != null) html.append("<p>Expira: ")
+                    .append(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(message.expiresAt()))
+                    .append(" (horário de Brasília)</p>");
+                html.append("</article>");
+            }
             bytes = html.append("</html>").toString().getBytes(StandardCharsets.UTF_8);
         } else { exchange.sendResponseHeaders(404, -1); exchange.close(); return; }
         exchange.sendResponseHeaders(200, bytes.length);

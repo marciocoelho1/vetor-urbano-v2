@@ -5,6 +5,7 @@ import java.time.*;
 import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
+import br.com.vetorurbano.api.auth.AuthService;
 
 @Configuration
 @Profile("local")
@@ -16,6 +17,7 @@ public class AccountLocalConfiguration {
             throw new IllegalArgumentException("Contas sintéticas exigem servidor em loopback.");
         }
         return new AccountSettings(env.getProperty("vetor.accounts.token-ttl", Duration.class, Duration.ofMinutes(15)),
+            env.getProperty("vetor.accounts.recovery-ttl", Duration.class, Duration.ofMinutes(10)),
             env.getProperty("vetor.accounts.resend-cooldown", Duration.class, Duration.ofSeconds(60)),
             env.getProperty("vetor.accounts.resends-per-hour", Integer.class, 3),
             env.getProperty("vetor.accounts.requests-per-minute", Integer.class, 30),
@@ -30,7 +32,7 @@ public class AccountLocalConfiguration {
     AccountPassword accountPassword(AccountSettings settings) { return new AccountPassword(settings.passwordIterations()); }
     @Bean
     AccountService accountService(org.springframework.jdbc.core.JdbcTemplate jdbc, AccountSettings settings,
-            Clock clock, LocalMailbox mailbox, AccountPassword password) {
-        return new AccountService(jdbc, settings, clock, mailbox, password);
+            Clock clock, LocalMailbox mailbox, AccountPassword password, AuthService auth) {
+        return new AccountService(jdbc, settings, clock, mailbox, password, auth);
     }
 }

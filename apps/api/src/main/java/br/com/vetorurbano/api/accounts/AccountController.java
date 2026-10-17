@@ -25,6 +25,14 @@ public class AccountController {
     public ResponseEntity<Map<String,String>> resend(@RequestBody Map<String,Object> input) {
         return respond(service.resend(input));
     }
+    @PostMapping(value="/recovery-requests", consumes="application/json", produces="application/json")
+    public ResponseEntity<Map<String,String>> requestRecovery(@RequestBody Map<String,Object> input) {
+        return respond(service.requestRecovery(input));
+    }
+    @PostMapping(value="/recoveries", consumes="application/json", produces="application/json")
+    public ResponseEntity<Map<String,String>> recover(@RequestBody Map<String,Object> input) {
+        return respond(service.recover(input));
+    }
     static ResponseEntity<Map<String,String>> respond(AccountResult result) {
         var response=ResponseEntity.status(result.status()).cacheControl(CacheControl.noStore());
         if(result.status()==429) response.header("Retry-After","60");

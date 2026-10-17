@@ -34,7 +34,7 @@ class AccountRegistrationHttpIT {
         try(var connection=DriverManager.getConnection(DB.getJdbcUrl(),DB.getUsername(),DB.getPassword());var statement=connection.createStatement()) {
             var result=statement.executeQuery("SELECT to_regclass('public.local_accounts') IS NOT NULL");
             result.next(); boolean migrated=result.getBoolean(1); result.close();
-            if(migrated) statement.execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY");
+            if(migrated) statement.execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY");
         }
     }
     private static final JsonMapper JSON=JsonMapper.builder().build();

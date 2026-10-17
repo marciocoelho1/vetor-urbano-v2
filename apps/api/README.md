@@ -64,6 +64,17 @@ VETOR_WEB_UNIT_TESTS='src/app/accounts/*.spec.ts' bash scripts/verify.sh web
 
 Informe JDK e Docker/Podman conforme o ambiente. Sem seleção, o executor mantém o comportamento de executar todas as suítes. Resultados e limitações estão no [histórico do 13](../../docs/history/ticket-13-progress-2026-10-15.md).
 
+## Recuperação de acesso sintética — Ticket 15, fatia 15A
+
+`POST /api/v1/accounts/recovery-requests` responde 202 sempre igual — conta confirmada, pendente, inexistente ou pedido suprimido por limite — e nunca informa se há conta; pedir o link não encerra as sessões abertas. `POST /api/v1/accounts/recoveries` recebe `token` e `password`: o link vale dez minutos, serve uma única vez, substitui o anterior no reenvio efetivo e, ao concluir, troca a senha, revoga todas as sessões e os links pendentes e exige novo login. Token inválido, expirado, substituído, usado, senha fora do exigido ou conta não confirmada não alteram nada. O MFA administrativo é preservado.
+
+O [contrato local de recuperação](../../docs/architecture/account-recovery-local-v1.md) registra endpoints, estados, prazos configuráveis e o desdobramento do ticket 15 (15B alteração autenticada e 15C encerramento/desvinculação seguem pendentes). Para o ensaio de navegador, some `--vetor.accounts.recovery-ttl=5s` aos argumentos da API, porque a expiração é exercitada com prazo curto em vez de dez minutos de espera:
+
+```bash
+VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> \
+  npx playwright test e2e/account-recovery.spec.ts e2e/account-registration.spec.ts --workers=1
+```
+
 ## Gestão local de fontes — Ticket 16
 
 A migração V5 preserva as fontes e referências de clipping existentes, cria versões sintéticas iniciais e registra alterações administrativas em transação. `GET /api/v1/sources` é público e retorna somente nome e URL opcional. ID estável e canal concreto ficam na gestão interna. `GET/POST /api/v1/admin/sources`, `GET/PUT /api/v1/admin/sources/{id}` e `GET /api/v1/admin/sources/{id}/versions` exigem ADMIN com MFA; gravações exigem CSRF. Não há endpoint de coleta nem campos de credenciais.

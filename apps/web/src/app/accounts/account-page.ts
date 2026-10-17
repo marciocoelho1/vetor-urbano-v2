@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 type AccountReply = { code: string; message: string };
@@ -15,23 +15,61 @@ export class AccountPage implements OnInit, OnDestroy {
   protected password = '';
   protected resendEmail = '';
   protected token = '';
+  protected recoveryEmail = '';
+  protected recoveryToken = '';
+  protected newPassword = '';
   protected readonly busy = signal(false);
   protected readonly result = signal<AccountReply | null>(null);
   protected readonly failed = signal(false);
+  protected readonly heading = computed(() => {
+    switch (this.result()?.code) {
+      case 'ACCOUNT_CONFIRMED':
+        return 'E-mail confirmado';
+      case 'CONFIRMATION_PENDING':
+        return 'Confirmação pendente';
+      case 'RECOVERY_PENDING':
+        return 'Recuperação solicitada';
+      case 'PASSWORD_RECOVERED':
+        return 'Senha redefinida';
+      case 'USED_RECOVERY':
+        return 'Link de recuperação já utilizado';
+      case 'EXPIRED_RECOVERY':
+      case 'REPLACED_RECOVERY':
+        return 'Link de recuperação indisponível';
+      case 'INVALID_RECOVERY':
+        // O servidor distingue link inválido de senha fora do exigido na própria mensagem.
+        return 'Recuperação não concluída';
+      case 'INVALID_REQUEST':
+        return 'Revise os campos enviados';
+      case 'REQUEST_LIMIT':
+        return 'Limite local atingido';
+      default:
+        return 'Solicitação não concluída';
+    }
+  });
   private abort?: AbortController;
 
   ngOnInit(): void {
-    const token = new URLSearchParams(location.hash.slice(1)).get('confirmar');
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    const token = fragment.get('confirmar');
+    const recovery = fragment.get('recuperar');
     if (token) {
       this.token = token;
       history.replaceState(null, '', location.pathname + location.search);
       setTimeout(() => document.getElementById('confirmation-heading')?.focus());
+    }
+    if (recovery) {
+      this.recoveryToken = recovery;
+      history.replaceState(null, '', location.pathname + location.search);
+      setTimeout(() => document.getElementById('recovery-heading')?.focus());
     }
   }
   ngOnDestroy(): void {
     this.abort?.abort();
     this.password = '';
     this.token = '';
+    this.recoveryToken = '';
+    this.newPassword = '';
   }
   protected register(): void {
     const body = { displayName: this.displayName, email: this.email, password: this.password };
@@ -46,6 +84,15 @@ export class AccountPage implements OnInit, OnDestroy {
     const token = this.token;
     this.token = '';
     void this.submit('confirmations', { token });
+  }
+  protected requestRecovery(): void {
+    void this.submit('recovery-requests', { email: this.recoveryEmail });
+  }
+  protected recover(): void {
+    const token = this.recoveryToken;
+    const password = this.newPassword;
+    this.newPassword = '';
+    void this.submit('recoveries', { token, password });
   }
   private async submit(path: string, body: Record<string, string>): Promise<void> {
     if (this.busy()) return;

@@ -30,20 +30,25 @@
       tabindex="-1"
       data-testid="account-result"
     >
-      <h2>
-        {{
-          reply.code === 'ACCOUNT_CONFIRMED'
-            ? 'E-mail confirmado'
-            : reply.code === 'CONFIRMATION_PENDING'
-              ? 'Confirmação pendente'
-              : 'Solicitação não concluída'
-        }}
-      </h2>
+      <h2>{{ heading() }}</h2>
       <p>{{ reply.message }}</p>
       @if (reply.code === 'CONFIRMATION_PENDING') {
         <p>
           Ainda é necessário confirmar. A resposta preserva a privacidade e não informa se já havia
           uma conta para esse e-mail. Use o reenvio se a mensagem não estiver disponível.
+        </p>
+      }
+      @if (reply.code === 'RECOVERY_PENDING') {
+        <p>
+          A resposta é idêntica para conta confirmada, pendente ou inexistente e não revela se há
+          conta. Se ela existir e estiver confirmada, a mensagem com o link já está na caixa local e
+          substituiu qualquer link anterior.
+        </p>
+      }
+      @if (reply.code === 'PASSWORD_RECOVERED') {
+        <p>
+          As sessões anteriores foram encerradas. Entre novamente com a nova senha para retomar o
+          acesso.
         </p>
       }
     </section>
@@ -131,6 +136,60 @@
             maxlength="254"
           />
           <button type="submit" [disabled]="busy()">Solicitar reenvio</button>
+        </form>
+      </section>
+      <section class="account-card" aria-labelledby="recovery-heading">
+        <h2 id="recovery-heading" tabindex="-1">Recuperar acesso</h2>
+        <p>
+          Informe o e-mail confirmado. O link vale dez minutos, serve uma única vez e substitui
+          qualquer link anterior. Pedir o link não encerra as sessões já abertas.
+        </p>
+        <form (ngSubmit)="requestRecovery()">
+          <label for="account-recovery-email">E-mail da conta confirmada</label>
+          <input
+            id="account-recovery-email"
+            name="recoveryEmail"
+            type="email"
+            [(ngModel)]="recoveryEmail"
+            autocomplete="email"
+            placeholder="pessoa@example.test"
+            required
+            maxlength="254"
+          />
+          <button type="submit" [disabled]="busy()">Solicitar link de recuperação</button>
+        </form>
+      </section>
+      <section class="account-card" aria-labelledby="recovery-password-heading">
+        <h2 id="recovery-password-heading">Definir nova senha</h2>
+        <p>
+          Abra o link da caixa local ou cole o token abaixo. Ao concluir, todas as sessões
+          anteriores são encerradas e será necessário entrar novamente com a nova senha.
+        </p>
+        <form (ngSubmit)="recover()">
+          <label for="account-recovery-token">Token do link de recuperação</label>
+          <input
+            id="account-recovery-token"
+            name="recoveryToken"
+            type="password"
+            [(ngModel)]="recoveryToken"
+            autocomplete="off"
+            required
+            maxlength="128"
+          />
+          <label for="account-recovery-password">Nova senha</label>
+          <input
+            id="account-recovery-password"
+            name="newPassword"
+            type="password"
+            [(ngModel)]="newPassword"
+            autocomplete="new-password"
+            required
+            aria-describedby="recovery-password-help"
+          />
+          <small id="recovery-password-help"
+            >15–128 caracteres, sem regras de composição; evite senhas triviais.</small
+          >
+          <button type="submit" [disabled]="busy()">Redefinir senha</button>
         </form>
       </section>
     </div>
