@@ -7,7 +7,7 @@
 
 **36 em verificação:** quatro rascunhos v1.3 reconciliados com canal 27, conta/encerramento e retenção aprovada; sem publicação jurídica. [Evidências](docs/history/ticket-36-progress-2026-10-17.md). Próxima ação: finalizar revisão e iniciar revisão/publicação sintética do 17.
 
-**17 em verificação:** revisão/publicação sintética ADMIN/MFA, vários efeitos por clipping, associação explícita, núcleo servidor e replay concorrente; 15 unitários + 5 HTTP/PostGIS passaram. [Evidências](docs/history/ticket-17-progress-2026-10-17.md). Próxima ação: concluir navegador/revisão e implementar correção/retirada do 18.
+**Ticket local 17 — checkpoint concluído:** revisão/publicação sintética ADMIN/MFA com vários efeitos por clipping, associação explícita, núcleo/conflito validados no servidor, idempotência e autoria histórica. API 14 unitários + 62 integrações HTTP/PostGIS, web lint + 114 testes + build, `planning` 395 links e Playwright 2/2 Chromium/Firefox (mais 2/2 do 27 e 1/1 do 36). Três testes herdados de demonstração em `public-information.spec.ts` falham também na revisão anterior ao lote (`67f29ae`); não é regressão. [Evidências](docs/history/ticket-17-progress-2026-10-17.md). Próxima ação: o 18 segue em andamento por outro editor.
 
 Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 

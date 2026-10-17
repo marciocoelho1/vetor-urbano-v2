@@ -1,3 +1,8 @@
+## 2026-10-17 — Verificação isolada do lote 27 → 36 → 17
+
+- Lote conferido por agente independente em worktree sobre a revisão commitada: API 14 unitários + 62 integrações HTTP/PostGIS (PostGIS real via Testcontainers), web lint + 114 testes + build, `planning` 395 links e Playwright Chromium/Firefox com 2/2 do 27, 2/2 do 17 e 1/1 do 36.
+- Três testes herdados de demonstração em `public-information.spec.ts` ainda falham porque exigem consulta anônima que `app.html` não oferece desde a sessão de módulos; o mesmo defeito foi reproduzido na revisão anterior ao lote (`67f29ae`), sem relação com estes commits. [Evidências](docs/history/ticket-17-progress-2026-10-17.md).
+
 ## 2026-10-17 — Ticket local 17: revisão humana de publicações
 
 - Fila ADMIN/MFA com original/extração, prioridade/espera, decisões justificadas, vários efeitos relacionados ou associação explícita de referência.
