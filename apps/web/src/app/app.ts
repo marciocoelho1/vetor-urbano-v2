@@ -3367,10 +3367,12 @@ export class App implements AfterViewInit, OnDestroy {
         this.reportQueryFilters.set(savedFilters);
         this.reportQueryError.set('');
       }
-      this.reportExportStatus.set(
-        'Planilha XLSX completa gerada e exportação registrada no servidor.',
-      );
-      if (!this.persistedQueryEnabled) {
+      if (exportedResponse) {
+        this.reportExportStatus.set(
+          'Planilha XLSX completa gerada e exportação registrada no servidor.',
+        );
+      } else {
+        this.reportExportStatus.set('Planilha XLSX gerada para a demonstração local.');
         this.exportStatus.set(
           'Planilha XLSX gerada com filtros, registros, estatísticas e fontes.',
         );

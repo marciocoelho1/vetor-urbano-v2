@@ -111,6 +111,7 @@ describe('workbook da consulta avançada', () => {
       'Quantidade de referências',
     ]);
     expect(occurrences?.rows[1]?.[2]).toBe('=HYPERLINK("https://example.test")');
+    expect(occurrences?.rows[1]?.[7]).toBeNull();
     expect(occurrences?.rows[1]?.slice(13, 17)).toEqual([
       'Exata',
       '2026-10-17T12:00:00Z',

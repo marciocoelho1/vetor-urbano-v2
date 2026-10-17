@@ -1410,6 +1410,53 @@ describe('Vetor Urbano', () => {
     expect(JSON.stringify(sheets)).not.toContain('TRANSITO');
   });
 
+  it('does not claim the local demonstration export was registered on the server', async () => {
+    const app = fixture.componentInstance as unknown as {
+      exportXlsx: () => Promise<void>;
+      reportExportStatus: () => string;
+    };
+    const originalCreateObjectUrl = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+    const originalRevokeObjectUrl = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+    const originalAnchorClick = Object.getOwnPropertyDescriptor(
+      HTMLAnchorElement.prototype,
+      'click',
+    );
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:local-report'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(HTMLAnchorElement.prototype, 'click', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    try {
+      await app.exportXlsx();
+      expect(app.reportExportStatus()).toContain('demonstração local');
+      expect(app.reportExportStatus()).not.toContain('registrada no servidor');
+    } finally {
+      if (originalCreateObjectUrl) {
+        Object.defineProperty(URL, 'createObjectURL', originalCreateObjectUrl);
+      } else {
+        Reflect.deleteProperty(URL, 'createObjectURL');
+      }
+      if (originalRevokeObjectUrl) {
+        Object.defineProperty(URL, 'revokeObjectURL', originalRevokeObjectUrl);
+      } else {
+        Reflect.deleteProperty(URL, 'revokeObjectURL');
+      }
+      if (originalAnchorClick) {
+        Object.defineProperty(HTMLAnchorElement.prototype, 'click', originalAnchorClick);
+      } else {
+        Reflect.deleteProperty(HTMLAnchorElement.prototype, 'click');
+      }
+    }
+  });
+
   it('draws the selected search radius as a translucent light-purple polygon', async () => {
     const previousDescriptor = Object.getOwnPropertyDescriptor(window, 'WebGLRenderingContext');
     const webGL2 = stubWebGL2Context();

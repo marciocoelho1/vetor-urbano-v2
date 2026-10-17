@@ -42,7 +42,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 const SITUATION_LABELS: Record<string, string> = {
   ONGOING: 'Em andamento',
   CLOSED: 'Encerrada',
-  UNKNOWN: 'Desconhecida',
 };
 
 const LIMITATIONS = [
@@ -94,7 +93,7 @@ export function buildAdvancedReportSheets(
       CATEGORY_LABELS[item.category] ?? item.category,
       OCCURRENCE_CATALOGUE.find((entry) => entry.id === item.type)?.label ?? item.type,
       item.subtype === 'NAO_INFORMADO' ? null : item.subtype || null,
-      SITUATION_LABELS[item.situation] ?? item.situation,
+      SITUATION_LABELS[item.situation] ?? null,
       item.municipality || null,
       item.neighborhood || null,
       item.locationPrecision === 'POINT' ? 'Ponto' : 'Somente território',

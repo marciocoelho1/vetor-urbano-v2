@@ -277,6 +277,8 @@ test('falha do PostGIS durante a exportação não baixa arquivo vazio ou parcia
   expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
+  await page.getByTestId('report-generate-from-map').click();
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('33 ocorrências');
   let downloadStarted = false;
   page.on('download', () => {
     downloadStarted = true;
