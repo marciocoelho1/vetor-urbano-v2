@@ -2,8 +2,8 @@
 
 ## 2026-10-17 — Seleção local 34 → 19 → 15
 
-- Ticket 19: consulta administrativa de eventos existentes, minimização de parâmetros e cursor por instante/origem/ID; V6 explicita classes e expurgo preserva versões. Prazos limitados aos tetos E16, autorização HTTP com MFA/CSRF e limpeza automática verificadas com dados sintéticos. Revisão em andamento; evidências no registro da seleção.
-- Ticket 34: composição de PDF aprovada; implementação aguarda checkpoint do trabalho independente no 19. Ticket 15 ainda não iniciado.
+- Ticket 19: consulta administrativa de eventos existentes, minimização de parâmetros e cursor por instante/origem/ID; V6 explicita classes e expurgo preserva versões. Prazos limitados aos tetos E16, autorização HTTP com MFA/CSRF e limpeza automática verificadas com dados sintéticos. Revisão Standards + Spec sem pendências após extrair suporte HTTP/MFA; aceito localmente com dados sintéticos.
+- Ticket 34: composição de PDF aprovada; próxima implementação após checkpoint do 19, concluído localmente. Ticket 15 ainda não iniciado.
 
 ## Seleção local 30 → 31 — 17/10/2026
 
