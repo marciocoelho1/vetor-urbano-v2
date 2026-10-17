@@ -252,6 +252,7 @@ test('relatório vazio preserva no servidor a seleção explícita sem pilares',
   expect((await reportResult.json()).counts.occurrences).toBe(0);
   await expect(page.getByTestId('report-empty')).toBeVisible();
   await expect(page.getByTestId('report-snapshot-counts')).toContainText('0 ocorrências');
+  await expect(page.getByText('Filtros do relatório: Nenhum pilar selecionado')).toBeVisible();
 });
 
 test('banco real: fuso, intervalo semiaberto, precisão incerta e raio geodésico', async ({

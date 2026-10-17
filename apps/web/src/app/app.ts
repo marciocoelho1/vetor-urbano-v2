@@ -2963,6 +2963,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected reportFilterSummaryFor(filters: LocalFilters): string {
     const labels: string[] = [];
+    if (filters.categories?.length === 0) labels.push('Nenhum pilar selecionado');
     for (const category of filters.categories ?? []) {
       labels.push(`Pilar: ${reportValueLabel(category)}`);
     }
