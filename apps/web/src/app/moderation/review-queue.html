@@ -1,0 +1,205 @@
+<section class="workspace-card" aria-labelledby="review-heading">
+  <h2 id="review-heading">Revisão humana de clippings</h2>
+  <p>
+    Fila sintética restrita à Administração com MFA. Situação operacional é separada do estado de
+    revisão. Prioridade não promete prazo.
+  </p>
+  <label
+    >Prioridade<select [(ngModel)]="priority">
+      <option value="">Todas</option>
+      <option value="HIGH">Alta</option>
+      <option value="NORMAL">Intermediária</option>
+      <option value="PLANNED">Planejada</option>
+    </select></label
+  >
+  <label
+    >Ordenação da fila<select [(ngModel)]="order">
+      <option value="priority">Prioridade e espera</option>
+      <option value="wait">Maior espera</option>
+    </select></label
+  >
+  <button type="button" (click)="reload()" [disabled]="loading()">Atualizar fila de revisão</button>
+  @if (loading()) {
+    <p role="status">Carregando clippings…</p>
+  } @else if (!error() && !items().length) {
+    <p>Nenhum clipping pendente nesta fila.</p>
+  }
+  <ul>
+    @for (item of items(); track item.clipping_id) {
+      <li>
+        <h3>{{ item.clipping_title }}</h3>
+        <p>
+          {{ item.priority }} · espera {{ item.waiting_seconds / 60 | number: '1.0-0' }} min ·
+          versão {{ item.revision }}
+        </p>
+        <p>Referência: {{ item.reference || 'Não informada — publicação bloqueada' }}</p>
+        @if (item.reason) {
+          <p>Pendente: {{ item.reason }}</p>
+        }
+        <button type="button" (click)="edit(item)">Revisar {{ item.clipping_id }}</button>
+        <button type="button" (click)="showHistory(item)">Histórico {{ item.clipping_id }}</button>
+      </li>
+    }
+  </ul>
+  @if (selected(); as item) {
+    <section aria-label="Revisar clipping selecionado">
+      <h3>Original e extração</h3>
+      <p>{{ item.original_text }}</p>
+      <p>Referência rastreável: {{ item.reference }}</p>
+      <details>
+        <summary>Extração original sintética</summary>
+        <pre>{{ item.extracted | json }}</pre>
+      </details>
+      @if (item.essential_conflict) {
+        <p>Conflito essencial: publicar exige resolução humana sustentada.</p>
+      }
+      <label
+        >Resolução do conflito com evidência<textarea
+          [(ngModel)]="resolution"
+          maxlength="2000"
+        ></textarea>
+      </label>
+      <label>Título factual<input [(ngModel)]="fact.title" maxlength="200" /></label>
+      <label
+        >Descrição factual sustentada<textarea
+          [(ngModel)]="fact.description"
+          maxlength="8000"
+        ></textarea>
+      </label>
+      <label
+        >Tipo do catálogo<select [(ngModel)]="fact.type" (ngModelChange)="typeChanged()">
+          @for (entry of catalogue; track entry.id) {
+            <option [value]="entry.id">{{ entry.label }}</option>
+          }
+        </select></label
+      >
+      <p>Pilar: {{ fact.category }}</p>
+      <label
+        >Subtipo<select [(ngModel)]="fact.subtype">
+          <option value="NAO_INFORMADO">Não informado</option>
+          @for (subtype of subtypes(); track subtype) {
+            <option [value]="code(subtype)">{{ subtype }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Situação operacional<select [(ngModel)]="fact.situation">
+          <option value="UNKNOWN">Desconhecida</option>
+          <option value="ONGOING">Em andamento</option>
+          <option value="CLOSED">Encerrada</option>
+        </select></label
+      >
+      <label
+        >Confiabilidade revisada (1 a 5)<input
+          type="number"
+          min="1"
+          max="5"
+          [(ngModel)]="fact.reliability"
+      /></label>
+      <p>
+        Nota não compensa falta de local/data ou conflito essencial. Fórmula automática não
+        implementada.
+      </p>
+      <label>Município sustentado<input [(ngModel)]="fact.municipality" /></label
+      ><label
+        >Bairro (opcional, somente se sustentado)<input [(ngModel)]="fact.neighborhood"
+      /></label>
+      <label
+        >Precisão espacial<select [(ngModel)]="fact.locationPrecision">
+          <option value="TERRITORY">Somente território</option>
+          <option value="POINT">Ponto sustentado</option>
+        </select></label
+      >
+      @if (fact.locationPrecision === 'POINT') {
+        <label>Longitude<input type="number" step="any" [(ngModel)]="fact.longitude" /></label
+        ><label>Latitude<input type="number" step="any" [(ngModel)]="fact.latitude" /></label>
+      }
+      <label
+        >Precisão temporal<select [(ngModel)]="temporal">
+          <option value="instant">Instante conhecido</option>
+          <option value="interval">Intervalo aproximado</option>
+        </select></label
+      >
+      @if (temporal === 'instant') {
+        <label
+          >Data/hora UTC sustentada<input
+            [(ngModel)]="fact.occurredAt"
+            placeholder="2026-10-15T12:00:00Z"
+        /></label>
+      } @else {
+        <label>Início UTC aproximado<input [(ngModel)]="fact.occurredFrom" /></label
+        ><label>Fim UTC aproximado exclusivo<input [(ngModel)]="fact.occurredUntil" /></label>
+      }
+      <h3>Efeitos relacionados na mesma decisão</h3>
+      <p>
+        Uma referência pode sustentar vários efeitos distintos no mesmo acontecimento. Todos passam
+        pela validação do servidor antes da publicação conjunta.
+      </p>
+      <ul>
+        @for (effect of effects(); track $index) {
+          <li>
+            {{ effect.title }} · {{ effect.type }}
+            <button type="button" (click)="removeEffect($index)">Remover efeito preparado</button>
+          </li>
+        }
+      </ul>
+      <button
+        type="button"
+        (click)="prepareEffect()"
+        [disabled]="saving() || !fact.title || !fact.description"
+      >
+        Preparar outro efeito relacionado
+      </button>
+      <h3>Associação explícita</h3>
+      <label
+        >Ocorrência existente<select [(ngModel)]="association">
+          <option value="">Selecione para associar referência</option>
+          @for (occurrence of options().occurrences; track occurrence.id) {
+            <option [value]="occurrence.id">
+              {{ occurrence.title }} · {{ occurrence.id }} · v{{ occurrence.revision }}
+            </option>
+          }
+        </select></label
+      >
+      <label
+        >Acontecimento existente para novo efeito<select [(ngModel)]="happening">
+          <option value="">Criar contexto abaixo</option>
+          @for (context of options().happenings; track context.id) {
+            <option [value]="context.id">{{ context.title }}</option>
+          }
+        </select></label
+      >
+      @if (!happening) {
+        <label
+          >Título do novo acontecimento<input [(ngModel)]="happeningTitle" maxlength="200"
+        /></label>
+      }
+      <label
+        >Justificativa da decisão<textarea [(ngModel)]="reason" maxlength="2000"></textarea>
+      </label>
+      <button
+        type="button"
+        (click)="decide('ASSOCIATE')"
+        [disabled]="saving() || !reason || !association || effects().length > 0"
+      >
+        Associar referência à ocorrência
+      </button>
+      <button type="button" (click)="decide('CREATE')" [disabled]="saving() || !reason">
+        Publicar novo efeito
+      </button>
+      <button type="button" (click)="decide('PENDING')" [disabled]="saving() || !reason">
+        Manter pendente com motivo
+      </button>
+      <button type="button" (click)="decide('DISMISS')" [disabled]="saving() || !reason">
+        Descartar com motivo
+      </button>
+    </section>
+  }
+  @if (history()) {
+    <details open>
+      <summary>Histórico administrativo</summary>
+      <pre>{{ history() }}</pre>
+    </details>
+  }
+  <p #notice role="status" tabindex="-1" aria-live="polite">{{ error() || status() }}</p>
+</section>

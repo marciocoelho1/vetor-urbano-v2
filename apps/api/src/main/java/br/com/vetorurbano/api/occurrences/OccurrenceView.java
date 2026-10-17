@@ -39,7 +39,7 @@ public record OccurrenceView(
                         clipping.title(),
                         clipping.source(),
                         clipping.sourcePublishedAt(),
-                        clipping.collectedAt()))
+                        clipping.collectedAt(), clipping.reference()))
                 .toList();
 
         return new OccurrenceView(

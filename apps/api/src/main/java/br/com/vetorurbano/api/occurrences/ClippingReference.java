@@ -7,7 +7,8 @@ public record ClippingReference(
         String title,
         SourceReference source,
         Instant sourcePublishedAt,
-        Instant collectedAt
+        Instant collectedAt,
+        String reference
 ) {
     public ClippingReference {
         if (id == null || id.isBlank() || title == null || title.isBlank() || source == null) {

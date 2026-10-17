@@ -28,6 +28,7 @@ export interface PersistedOccurrence {
     source: { id: string; name: string };
     sourcePublishedAt: string;
     collectedAt: string;
+    reference?: string | null;
   }[];
 }
 
@@ -140,7 +141,8 @@ export function persistedRecord(item: PersistedOccurrence): DemoRecord & {
       id: clip.id,
       title: clip.title,
       sourceName: clip.source.name,
-      identifier: clip.id,
+      identifier: clip.reference || clip.id,
+      ...(/^https?:\/\//i.test(clip.reference || '') ? { url: clip.reference! } : {}),
     })),
   };
 }

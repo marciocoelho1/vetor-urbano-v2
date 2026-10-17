@@ -294,6 +294,8 @@ public class AccountService {
         jdbc.update("UPDATE source_audit_events SET actor_id=NULL,historical_actor_id=? WHERE actor_id=?",domainResidual,account);
         jdbc.update("UPDATE source_access_configurations SET created_by=NULL,historical_actor_id=? WHERE created_by=?",domainResidual,account);
         jdbc.update("UPDATE source_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        jdbc.update("UPDATE publication_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        jdbc.update("UPDATE clipping_review_decisions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         jdbc.update("UPDATE correction_area_targets SET validated_by=NULL,historical_actor_id=? WHERE validated_by=?",domainResidual,account);
         jdbc.update("UPDATE correction_decisions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         // E11: retain factual evidence while removing direct identity from retained copies.

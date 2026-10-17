@@ -93,7 +93,7 @@ public class OccurrenceQueryRepository {
                                     result.getString("source_id"),
                                     result.getString("source_name")),
                             instant(result, "source_published_at"),
-                            instant(result, "collected_at")));
+                            instant(result, "collected_at"), result.getString("reference")));
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -242,7 +242,8 @@ public class OccurrenceQueryRepository {
                     s.id AS source_id,
                     s.public_name AS source_name,
                     c.source_published_at,
-                    c.collected_at
+                    c.collected_at,
+                    c.reference
                 FROM occurrence_clippings oc
                 JOIN clippings c ON c.id = oc.clipping_id
                 JOIN sources s ON s.id = c.source_id

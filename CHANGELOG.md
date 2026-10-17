@@ -1,3 +1,9 @@
+## 2026-10-17 — Ticket local 17: revisão humana de publicações
+
+- Fila ADMIN/MFA com original/extração, prioridade/espera, decisões justificadas, vários efeitos relacionados ou associação explícita de referência.
+- Núcleo obrigatório e conflito validados no servidor; replay/concorrência sem duplicação, versões antes/depois e autoria histórica no encerramento; referência original consultável.
+- V11 e testes HTTP/PostGIS sintéticos; sem scraping ou fórmula nova. [Evidências](docs/history/ticket-17-progress-2026-10-17.md).
+
 ## 2026-10-17 — Ticket local 36: documentos e canal disponível
 
 - Quatro rascunhos locais v1.3 refletem autenticação, canal privado efetivo de correções, ciclo da conta e prazos aprovados, com limites de minimização e de backups explícitos.

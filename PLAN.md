@@ -7,6 +7,8 @@
 
 **36 em verificação:** quatro rascunhos v1.3 reconciliados com canal 27, conta/encerramento e retenção aprovada; sem publicação jurídica. [Evidências](docs/history/ticket-36-progress-2026-10-17.md). Próxima ação: finalizar revisão e iniciar revisão/publicação sintética do 17.
 
+**17 em verificação:** revisão/publicação sintética ADMIN/MFA, vários efeitos por clipping, associação explícita, núcleo servidor e replay concorrente; 15 unitários + 5 HTTP/PostGIS passaram. [Evidências](docs/history/ticket-17-progress-2026-10-17.md). Próxima ação: concluir navegador/revisão e implementar correção/retirada do 18.
+
 Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Checkpoints do lote local 29 → 28 → 33

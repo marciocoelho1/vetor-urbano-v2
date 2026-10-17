@@ -9,6 +9,7 @@ import { summarizeReport } from './domain/report-summary';
 import { Session } from './auth/session';
 import { SessionPanel } from './auth/session-panel';
 import { AuditLog } from './audit/audit-log';
+import { ReviewQueue } from './moderation/review-queue';
 import { CorrectionChannel } from './corrections/correction-channel';
 import { SourceManagement } from './sources/source-management';
 import { PublicSourceList } from './sources/public-source-list';
@@ -459,6 +460,7 @@ interface SuspendedAdvancedFilters {
     SelfAccount,
     SourceManagement,
     CorrectionChannel,
+    ReviewQueue,
     AuditLog,
     PublicSourceList,
     CommonModule,

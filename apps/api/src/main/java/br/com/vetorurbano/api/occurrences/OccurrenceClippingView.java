@@ -7,5 +7,6 @@ public record OccurrenceClippingView(
         String title,
         SourceReference source,
         Instant sourcePublishedAt,
-        Instant collectedAt
+        Instant collectedAt,
+        String reference
 ) {}
