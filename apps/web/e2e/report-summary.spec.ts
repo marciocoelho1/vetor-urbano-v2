@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { loginUser } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige Java e PostGIS reais.');
-test.use({ trace: 'off', screenshot: 'off' });
+test.use({ actionTimeout: 15_000, trace: 'off', screenshot: 'off' });
 
 test('síntese do snapshot preserva efeitos, certeza, território e filtros em teclado e móvel', async ({
   page,
@@ -38,11 +38,25 @@ test('síntese do snapshot preserva efeitos, certeza, território e filtros em t
     '4 ocorrências · 2 acontecimentos',
   );
   await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page
+    .getByRole('combobox', { name: 'Município (demonstração)', exact: true })
+    .selectOption('Rio de Janeiro');
+  await page
+    .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
+    .selectOption('Centro');
+  await expect(page.getByTestId('event-count')).toHaveText('3');
+  await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
+  await generate.click();
+  await page.getByTestId('report-transfer-replace').click();
+  await expect(page.getByTestId('report-snapshot-counts')).toHaveText(
+    '3 ocorrências · 1 acontecimentos',
+  );
+  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
   await page.locator('[data-quick-category="CONTINGENCIA"]').click();
   await page.locator('[data-quick-category="SEGURANCA"]').click();
   await expect(page.getByTestId('event-count')).toHaveText('1');
   await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
-  await expect(summary).toContainText('3 certamente · 1 possivelmente');
+  await expect(summary).toContainText('2 certamente · 1 possivelmente');
   await generate.click();
   await page.getByTestId('report-transfer-replace').click();
   await expect(page.getByTestId('report-snapshot-counts')).toHaveText(

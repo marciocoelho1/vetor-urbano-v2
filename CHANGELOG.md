@@ -2,7 +2,7 @@
 
 ## Seleção local 30 → 31 — 17/10/2026
 
-- Ticket 30: síntese determinística do snapshot de Relatórios, com distribuições, certeza temporal e limites de cobertura/precisão. Em verificação local sintética.
+- Ticket 30: síntese determinística do snapshot de Relatórios, com distribuições, certeza temporal e limites de cobertura/precisão. Verificado localmente com dados sintéticos e revisão Standards + Spec.
 
 ## 2026-10-17 — Ticket local 33: XLSX completo do recorte
 

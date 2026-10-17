@@ -12,7 +12,7 @@ Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário
 
 ## Estado e foco atual
 
-**Seleção 30 → 31 — 17/10:** em execução sequencial, baseline `602856d`. Composição da síntese e comparação A/B aprovadas nesta sessão; trabalho preexistente preservado. Ticket 30 em verificação, sem aceite antecipado; 31 aguarda checkpoint do 30. [Evidências](docs/history/ticket-30-progress-2026-10-17.md).
+**Seleção 30 → 31 — 17/10:** em execução sequencial, baseline `602856d`. Composição da síntese e comparação A/B aprovadas nesta sessão; trabalho preexistente preservado. Ticket 30 concluído localmente: web 111, API 14+29 HTTP/PostGIS, Playwright 18/18 e reforço 3/1 em 4/4; revisão Standards + Spec sem findings. Ticket 31 liberado após este checkpoint. [Evidências](docs/history/ticket-30-progress-2026-10-17.md).
 
 **Envio da branch — 16/10:** README atualizado com as duas contas sintéticas locais e exigência de MFA para ADMIN. Push autorizado somente de `integration/functional-spec-v1`, sem merge ou alteração da `main`; alterações locais anteriores preservadas fora deste commit. Verificação documental: `bash scripts/verify.sh planning` e `git diff --cached --check`. Próxima ação: conferir o hash remoto após o envio; credenciais dependem de provisionamento no banco local.
 
