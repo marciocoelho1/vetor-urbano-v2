@@ -16,16 +16,16 @@
 
 ## TDD e verificações
 
-- O teste unitário de consolidação de fontes foi introduzido antes da implementação do helper (RED por export ausente) e passou após centralizar deduplicação/ordenação (GREEN). As regressões de consulta, API HTTP, foco e E2E foram verificadas nas suítes afetadas.
-- `bash scripts/verify.sh web`: lint/prettier passou; 12 arquivos e 104 testes passaram; build passou. Bundle inicial 681,01 kB, 181,01 kB acima do orçamento de 500 kB (aviso do build).
-- `JAVA_HOME=/tmp/vu-jdk-21 PATH=/tmp/vu-jdk-21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-podman.sock bash scripts/verify.sh api`: Maven `clean verify` passou; 14 testes unitários e 28 integrações passaram, incluindo HTTP e PostgreSQL/PostGIS reais. A primeira chamada sem `JAVA_HOME` foi bloqueada porque `javac` não estava no PATH; a repetição usou o JDK local disponível.
-- `VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db DOCKER_HOST=unix:///tmp/vu-podman.sock ./node_modules/.bin/playwright test --project=chromium --project=firefox --workers=1 e2e/history-pagination.spec.ts` (em `apps/web`): 2/2 passaram.
+- Os testes de consolidação de fontes foram introduzidos antes do helper (RED por export ausente) e passaram após centralizar deduplicação/ordenação (GREEN). Nesta rodada, o teste HTTP falhou primeiro porque a consulta comum ainda pesquisava IDs; a asserção foi mantida e passou ao restringir ID ao Histórico. O E2E reproduziu o total `0` falso durante carregamento; com total anulável e estado visível, a mesma jornada passou.
+- `bash scripts/verify.sh web`: lint/prettier passou; 12 arquivos e 104 testes passaram; build passou. Bundle inicial 681,47 kB, 181,47 kB acima do orçamento de 500 kB (aviso do build).
+- `JAVA_HOME=/tmp/vu-jdk-21 PATH=/tmp/vu-jdk-21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-podman.sock bash scripts/verify.sh api`: Maven `clean verify` passou; 14 testes unitários e 28 integrações passaram, incluindo consulta HTTP em PostgreSQL/PostGIS real. `VETOR_API_INTEGRATION_TESTS=OccurrenceQueryHttpIT` com o mesmo comando também passou (14 unitários + 9 testes HTTP).
+- `VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db DOCKER_HOST=unix:///tmp/vu-podman.sock ./node_modules/.bin/playwright test --project=chromium --project=firefox --workers=1 e2e/history-pagination.spec.ts` (em `apps/web`): 2/2 passaram, inclusive estados de carregamento/erro e 390 px.
 - `bash scripts/verify.sh planning`: passou com 337 links Markdown locais; `git diff --check`: passou.
 
 ## Revisão, commits e limites
 
-- Baseline de revisão resolvido: `fdd9ba9a43300ab92f010aad933219533c08c55a` (base do checkpoint anterior ao ticket 28). A primeira revisão Standards + Spec apontou documentação ausente, duplicação de ordenação/deduplicação de fontes, argumento booleano de modo e ampliação indevida de playback; os pontos foram corrigidos. Resultado da revisão final será registrado no checkpoint após revisar o diff completo com os documentos.
-- Commits de código do ticket: `b03f904` (implementação) e `d7849c5` (correções de revisão/foco acessível). Registro local contém massa sintética; nenhum dado real foi coletado.
+- Baseline de revisão resolvido: `fdd9ba9a43300ab92f010aad933219533c08c55a` (base do checkpoint anterior ao ticket 28). Revisões finais Standards e Spec do diff completo `fdd9ba9..HEAD` não encontraram findings; as descobertas anteriores foram corrigidas, inclusive total indisponível sem resposta e busca por ID limitada ao Histórico.
+- Commits de código do ticket: `b03f904` (implementação), `d7849c5` (correções de revisão/foco acessível) e `3eafb9b` (estado do total e escopo da busca por ID). Registro local contém massa sintética; nenhum dado real foi coletado.
 - Testes locais não demonstram cobertura ou prontidão operacional. Bundle permanece acima do limite configurado. Sem publicação, push, contratação ou coleta real.
 
 **Próxima ação:** iniciar o ticket local 33 após fechar a revisão deste checkpoint. Ele não depende do ticket 28; as abas, colunas/ordem e regra de divisão/erro para XLSX foram aprovadas em 17/10.

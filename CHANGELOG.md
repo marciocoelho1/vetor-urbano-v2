@@ -4,7 +4,7 @@
 
 - Adicionada consulta autenticada do Histórico publicado com filtros combinados, precisão temporal/geográfica, relações e total global. Ordenação de datas exatas pelo instante; intervalos pelo limite final conhecido exclusivo; empate por ID decrescente; 25 registros por página e snapshot até atualização.
 - A API consulta o recorte completo em transação `REPEATABLE_READ`; a interface divide o snapshot em páginas, diferencia carregamento/erro/vazio, preserva detalhes e referências, e mantém teclado/foco e layout móvel. IDs preservados: D05, D08, CA13 e RF02. Playback existente, exportação e cálculo de risco ficaram fora da fatia.
-- Web: lint, 104 testes e build passaram; API: 14 unitários + 28 integrações com HTTP e PostgreSQL/PostGIS reais; Playwright separado: 2/2 Chromium/Firefox. Bundle inicial de 681,01 kB excedeu o orçamento de 500 kB em 181,01 kB. [Critérios, comandos e limites](docs/history/ticket-28-progress-2026-10-17.md). Evidências sintéticas não indicam prontidão operacional.
+- Web: lint, 104 testes e build passaram; API: 14 unitários + 28 integrações com HTTP e PostgreSQL/PostGIS reais; Playwright separado: 2/2 Chromium/Firefox. Bundle inicial de 681,47 kB excedeu o orçamento de 500 kB em 181,47 kB. Revisões finais Standards + Spec contra `fdd9ba9` sem findings; fixes em `3eafb9b`. [Critérios, comandos e limites](docs/history/ticket-28-progress-2026-10-17.md). Evidências sintéticas não indicam prontidão operacional.
 
 ## 2026-10-17 — Ticket local 29: recorte de relatório independente
 
