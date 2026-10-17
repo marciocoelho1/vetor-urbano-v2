@@ -2,8 +2,9 @@
 
 ## 2026-10-17 — Seleção local 34 → 19 → 15
 
+- Ticket 34: PDF A4 do relatório gerado, composto no navegador a partir do snapshot já existente e com registro auditável `REPORT_PDF_EXPORT` no servidor. Preserva filtros, período em UTC e em America/Sao_Paulo, momento da geração, todas as contagens, distribuições do ticket 30, fontes, precisão e limitações; publicar dado novo não altera o PDF já gerado. Recorte vazio, falha de renderização, texto não representável pela fonte e auditoria recusada pelo servidor são explícitos, sem arquivo parcial. Web 113 testes/build; API 14 unitários + 34 integrações HTTP/PostGIS; Playwright 18/18 Chromium/Firefox (10 do PDF e 8 de regressão do XLSX). Revisões Standards + Spec corrigiram contagens persistidas, tentativa `FAILED` na recusa da gravação, contagens temporais do servidor e duplicação do bloco de entrega; aceito localmente com dados sintéticos.
 - Ticket 19: consulta administrativa de eventos existentes, minimização de parâmetros e cursor por instante/origem/ID; V6 explicita classes e expurgo preserva versões. Prazos limitados aos tetos E16, autorização HTTP com MFA/CSRF e limpeza automática verificadas com dados sintéticos. Revisão Standards + Spec sem pendências após extrair suporte HTTP/MFA; aceito localmente com dados sintéticos.
-- Ticket 34: composição de PDF aprovada; próxima implementação após checkpoint do 19, concluído localmente. Ticket 15 ainda não iniciado.
+- Ticket 15 ainda não iniciado: aguarda o checkpoint do 34, concluído; seu contrato de encerramento/desvinculação integra o expurgo do 19.
 
 ## Seleção local 30 → 31 — 17/10/2026
 
