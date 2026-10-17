@@ -3,7 +3,7 @@
 ## 2026-10-17 — Ticket local 29: recorte de relatório independente
 
 - Entregues geração explícita do relatório, preservação do recorte/resultados, escolha Substituir/Manter, atualização explícita e lista acessível, com endpoint autenticado e auditoria minimizada conforme E04/E08. Mantidos D08, CA14 e RF02; retenção E16 e propostas pendentes não foram alteradas.
-- Web passou (97 testes e build, com aviso de orçamento); integração selecionada passou (13 unitários + 7 HTTP/PostGIS); Playwright separado passou 12/12 em Chromium/Firefox. O modo API completo ainda tem 15 erros nos resets preexistentes de contas/sessões por FK. [Checkpoint e comandos](docs/history/ticket-29-progress-2026-10-17.md). Evidências são sintéticas e não indicam prontidão operacional.
+- Web passou (98 testes e build, com aviso de orçamento de +164,67 kB); API completa passou (14 unitários + 27 HTTP/PostGIS); Playwright separado passou 14/14 em Chromium/Firefox; `planning` passou (335 links). Revisão Standards + Spec contra `2e439143` sem desvios. Commits: `39b919e`, `1055ab0`, `8ec904b`; [checkpoint e comandos](docs/history/ticket-29-progress-2026-10-17.md). Evidências são sintéticas e não indicam prontidão operacional.
 
 ## 2026-10-16 — Acessos de teste no README da branch de integração
 

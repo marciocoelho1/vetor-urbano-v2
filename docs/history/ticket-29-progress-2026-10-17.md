@@ -15,16 +15,20 @@ Trabalho local no ticket 29, “Gerar relatório com recorte independente”. Os
 
 ## Evidência disponível e limite
 
-`bash scripts/verify.sh web` passou: lint/Prettier, 97 testes unitários e build. O build avisou que o bundle inicial (664,74 kB) excede o orçamento de 500 kB em 164,74 kB.
+`bash scripts/verify.sh web` passou: lint/Prettier, 98 testes unitários em 11 arquivos e build. O build avisou que o bundle inicial (664,67 kB) excede o orçamento de 500 kB em 164,67 kB.
 
-`JAVA_HOME=/tmp/vu-jdk-21 PATH=/tmp/vu-jdk-21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-podman.sock VETOR_API_INTEGRATION_TESTS=OccurrenceQueryHttpIT bash scripts/verify.sh api` passou: 13 testes unitários e 7 integrações HTTP contra PostgreSQL/PostGIS real via Testcontainers. Cobriu sessão obrigatória, consulta autorizada, auditoria minimizada persistida e atualização explícita após inserção sintética, inclusive reinício da aplicação.
+`JAVA_HOME=/tmp/vu-jdk-21 PATH=/tmp/vu-jdk-21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-podman.sock bash scripts/verify.sh api` passou: 14 testes unitários e 27 integrações HTTP contra PostgreSQL/PostGIS real via Testcontainers. Cobriu também as suítes de contas, sessões e fontes; no recorte deste ticket, sessão obrigatória, consulta autorizada, auditoria minimizada persistida e atualização explícita após inserção sintética, inclusive reinício da aplicação.
 
-`VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db npm run test:e2e -- --project=chromium --project=firefox --workers=1 e2e/persisted-query.spec.ts` passou separadamente: 12/12 jornadas (6 por navegador), com API Java e PostGIS real local, dados sintéticos persistidos, estados de carregamento/erro/vazio, teclado/foco, alternativa em lista e viewport móvel.
+`VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db npm run test:e2e -- --project=chromium --project=firefox --workers=1 e2e/persisted-query.spec.ts` passou separadamente: 14/14 jornadas (7 por navegador), com API Java e PostGIS real local, dados sintéticos persistidos, estados de carregamento/erro/vazio, teclado/foco, alternativa em lista e viewport móvel. A suíte inclui a seleção vazia de pilares e a descrição coerente do resultado vazio.
 
-`bash scripts/verify.sh api` completo permanece bloqueado por 15 erros em testes preexistentes de contas/sessões: os resets truncam `local_accounts` sem incluir a tabela referenciadora `source_access_configurations`. O relatório confirma 7/7 integrações `OccurrenceQueryHttpIT` aprovadas; os 13 testes unitários também passaram. Isso não foi corrigido neste ticket. Evidência usa exclusivamente dados sintéticos; não prova operação, coleta real ou prontidão operacional.
+O `bash scripts/verify.sh api` completo passou após corrigir o fixture de reset para incluir também as tabelas referenciadoras `source_audit_events`, `source_versions` e `source_access_configurations`; a suíte inteira obteve 14/14 testes unitários e 27/27 integrações. A correção de fixture não altera comportamento de produção. Evidência usa exclusivamente dados sintéticos; não prova operação, coleta real ou prontidão operacional.
 
-**Estado do checkpoint:** critérios locais do ticket 29 concluídos e validados nos limites acima; a falha da suíte API completa permanece uma limitação alheia ao escopo. Não declarar prontidão operacional.
+`bash scripts/verify.sh planning` passou (335 links locais); `git diff --check` passou. Revisão Standards + Spec contra o baseline fixo `2e439143d1ba845e99f0f1f884d5f636cd2c8b2f` não encontrou desvios de escopo ou violações de padrão na entrega. As notas de baixo risco sobre a representação tri-state das categorias e inventários paralelos de filtros foram mantidas como observações, sem ampliação deste ticket. Divergências antigas de evidência foram corrigidas e os modos pertinentes executados novamente.
+
+Commits funcionais deste checkpoint: `39b919e` (fluxo), `1055ab0` (filtro NONE, auditoria e fixture), `8ec904b` (descrição correta do resultado vazio). O checkpoint documental registra os resultados finais.
+
+**Estado do checkpoint:** critérios locais do ticket 29 concluídos e validados nos limites acima. Não declarar prontidão operacional.
 
 ## Próxima ação
 
-Fechar revisão Standards + Spec do ticket 29 contra o baseline Git `2e439143d1ba845e99f0f1f884d5f636cd2c8b2f`, comitar somente seus hunks verificados e então iniciar o ticket local 28 com a ordenação/paginação aprovada em 17/10.
+Checkpoint 29 encerrado em 17/10 após revisão Standards + Spec e novas execuções. Próximo: ticket local 28, com 25 itens por página, intervalos pela extremidade final conhecida exclusiva, datas pontuais pelo instante, desempate por ID decrescente e snapshot estável até atualização explícita.

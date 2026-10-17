@@ -4,7 +4,7 @@ Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário
 
 ## Checkpoints do lote local 29 → 28 → 33
 
-**Ticket local 29:** implementação e verificações HTTP→Java→PostgreSQL/PostGIS, Chromium e Firefox concluídas com dados sintéticos; revisão e commit deste checkpoint em andamento. `verify.sh api` isolado passou (13 unitários + 7 integrações); o modo API completo ainda falha em 15 resets preexistentes de contas/sessões por FK para `source_access_configurations`. [Evidências](docs/history/ticket-29-progress-2026-10-17.md). Depois do commit, seguir para o 28 com paginação/ordenação aprovadas pelo responsável; o 33 aguarda sua vez no lote.
+**Ticket local 29 — checkpoint concluído:** fluxo, revisão Standards + Spec e verificações com dados sintéticos concluídos; `verify.sh web` (98 testes), `verify.sh api` (14 unitários + 27 integrações PostGIS), Playwright (14/14 Chromium/Firefox) e `verify.sh planning` passaram. Revisão contra baseline `2e439143` sem desvios; bundle inicial excede o orçamento em 164,67 kB. Commits próprios: `39b919e`, `1055ab0`, `8ec904b` e registro do checkpoint. [Evidências](docs/history/ticket-29-progress-2026-10-17.md). Próximo: ticket local 28, ordenação/paginação aprovadas em 17/10; ticket 33 é independente e aguarda fechar sua proposta de colunas.
 
 ## Estado e foco atual
 
