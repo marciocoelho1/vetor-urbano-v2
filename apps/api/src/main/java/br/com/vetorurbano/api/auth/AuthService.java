@@ -153,9 +153,12 @@ public class AuthService {
         var parameters=new LinkedHashMap<String,Object>();
         parameters.put("periodStart",query.periodStart()==null?null:query.periodStart().toString());parameters.put("periodEnd",query.periodEnd()==null?null:query.periodEnd().toString());
         parameters.put("categories",query.categories());parameters.put("types",query.types());parameters.put("subtypes",query.subtypes());
+        parameters.put("categorySelection", query.noCategoriesSelected()
+                ? "NONE" : query.categories().isEmpty() ? "ALL" : "SELECTED");
         parameters.put("municipalities",query.municipalities());parameters.put("neighborhoods",query.neighborhoods());parameters.put("sourceIds",query.sourceIds());
         parameters.put("situations",query.situations());parameters.put("hasText",query.text()!=null&&!query.text().isBlank());
         parameters.put("minReliability",query.minReliability());parameters.put("maxReliability",query.maxReliability());
+        parameters.put("timeStart", query.timeStart());parameters.put("timeEnd", query.timeEnd());
         parameters.put("hasSpatialFilter",query.center()!=null||!query.bounds().isEmpty());
         parameters.put("occurrences",counts.occurrences());parameters.put("happenings",counts.happenings());
         String json=tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(parameters);

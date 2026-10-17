@@ -96,7 +96,7 @@ class OccurrenceQueryHttpIT {
             assertFalse(anonymous.body().contains("counts"));
 
             var response = getReport(application, allDefaultWindow()
-                    + "&text=COLISAO"
+                    + "&text=COLISAO&timeStart=07:00&timeEnd=12:00"
                     + "&category=TRANSITO"
                     + "&municipality=Rio%20de%20Janeiro"
                     + "&longitude=-43.1915&latitude=-22.9033&radiusMeters=1000"
@@ -147,6 +147,8 @@ class OccurrenceQueryHttpIT {
             assertTrue(audit.path("hasText").asBoolean());
             assertTrue(audit.path("hasSpatialFilter").asBoolean());
             assertEquals("Rio de Janeiro", audit.path("municipalities").get(0).asString());
+            assertEquals("07:00", audit.path("timeStart").asString());
+            assertEquals("12:00", audit.path("timeEnd").asString());
             assertEquals(1, audit.path("occurrences").asInt());
             assertEquals(1, audit.path("happenings").asInt());
             assertFalse(audit.has("text"));
@@ -158,6 +160,31 @@ class OccurrenceQueryHttpIT {
             assertFalse(audit.has("bounds"));
             assertEquals(auditParameters, restarted.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
                     .queryForObject("SELECT parameters::text FROM auth_audit_events WHERE id=?", String.class, auditId));
+        }
+    }
+
+    @Test
+    void reportQueryPreservesEmptyCategorySelectionAndAuditsDailyTimeFilters() throws Exception {
+        try (var application = startApi()) {
+            var response = getReport(application, allDefaultWindow()
+                    + "&categorySelection=NONE&timeStart=07:00&timeEnd=12:00");
+
+            assertEquals(200, response.statusCode());
+            var result = JSON.readTree(response.body());
+            assertEquals(0, result.path("counts").path("occurrences").asInt());
+            assertEquals(0, result.path("counts").path("happenings").asInt());
+            assertEquals(0, result.path("items").size());
+
+            var auditParameters = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForObject(
+                            "SELECT parameters FROM auth_audit_events WHERE action='REPORT_GENERATION' ORDER BY id DESC LIMIT 1",
+                            String.class);
+            var audit = JSON.readTree(auditParameters);
+            assertEquals("NONE", audit.path("categorySelection").asString());
+            assertEquals("07:00", audit.path("timeStart").asString());
+            assertEquals("12:00", audit.path("timeEnd").asString());
+            assertEquals(0, audit.path("occurrences").asInt());
+            assertEquals(0, audit.path("happenings").asInt());
         }
     }
 
@@ -351,7 +378,9 @@ class OccurrenceQueryHttpIT {
         var jdbc=app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
         String encoded=app.getBean(br.com.vetorurbano.api.accounts.AccountPassword.class).derive("Consulta sintética protegida 14");
         jdbc.update("INSERT INTO local_accounts(id,display_name,email,password_hash,status,created_at,confirmed_at,last_sent_at,resend_window_start) VALUES(?,'Consulta sintética','query14@example.test',?,'CONFIRMED',now(),now(),now(),now()) ON CONFLICT(email) DO NOTHING",java.util.UUID.randomUUID(),encoded);
+        jdbc.update("DELETE FROM auth_request_limits");
         var login=app.getBean(br.com.vetorurbano.api.auth.AuthService.class).login(java.util.Map.of("email","query14@example.test","password","Consulta sintética protegida 14"),null);
+        assertEquals(200, login.status(), "a conta sintética do teste precisa autenticar antes da jornada HTTP");
         sessionCookie="vu_session="+login.cookie();
         return app;
     }

@@ -77,6 +77,7 @@ export function persistedQueryParameters(filters: LocalFilters): URLSearchParams
     ['situation', filters.situations],
   ];
   for (const [key, values] of repeated) for (const value of values ?? []) params.append(key, value);
+  if (filters.categories?.length === 0) params.set('categorySelection', 'NONE');
   if (filters.textQuery?.trim()) params.set('text', filters.textQuery.trim());
   if (filters.minScore !== undefined) params.set('minReliability', String(filters.minScore));
   if (filters.maxScore !== undefined) params.set('maxReliability', String(filters.maxScore));

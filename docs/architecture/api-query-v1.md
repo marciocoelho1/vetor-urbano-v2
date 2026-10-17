@@ -21,6 +21,7 @@ Filtros podem ser repetidos para alternativas do mesmo campo; campos diferentes 
 |---|---|
 | `periodStart`, `periodEnd` | Instantes RFC 3339 com fuso obrigatório; intervalo `[início, fim)`, com início incluído e fim excluído. Obrigatórios e `periodStart < periodEnd`, exceto na seleção exclusiva `situation=ONGOING`, que admite omitir ambos para não inventar uma data inicial. |
 | `category` | `TRANSITO`, `SEGURANCA` ou `CONTINGENCIA`; pode repetir. |
+| `categorySelection` | `NONE` representa uma seleção explicitamente vazia; não pode vir com `category`. Sem este parâmetro e sem `category`, todas as categorias continuam selecionadas. |
 | `type`, `subtype` | Identificadores do catálogo; podem repetir. Subtipo aceita `TIPO:SUBTIPO` para preservar o vínculo; o cliente normaliza os rótulos para maiúsculas, sem acentos e com `_` nos espaços. |
 | `municipality`, `neighborhood` | Texto literal sintético; não representa limite oficial. |
 | `sourceId` | Identificador público da fonte; pode repetir. |

@@ -7,6 +7,7 @@ public record OccurrenceQuery(
         Instant periodStart,
         Instant periodEnd,
         List<String> categories,
+        boolean noCategoriesSelected,
         List<String> types,
         List<String> subtypes,
         List<String> municipalities,

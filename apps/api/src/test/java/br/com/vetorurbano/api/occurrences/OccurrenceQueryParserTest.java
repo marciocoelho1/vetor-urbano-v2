@@ -1,8 +1,10 @@
 package br.com.vetorurbano.api.occurrences;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -68,6 +70,22 @@ class OccurrenceQueryParserTest {
         var repeatedStart = baseQuery();
         repeatedStart.add("periodStart", START);
         assertThrows(InvalidQueryException.class, () -> parser.parse(repeatedStart));
+    }
+
+    @Test
+    void distinguishesExplicitlyEmptyCategorySelectionFromAllCategories() {
+        var none = baseQuery();
+        none.add("categorySelection", "NONE");
+        var noCategories = parser.parse(none);
+
+        assertTrue(noCategories.noCategoriesSelected());
+        assertTrue(noCategories.categories().isEmpty());
+        assertFalse(parser.parse(baseQuery()).noCategoriesSelected());
+
+        var contradictory = baseQuery();
+        contradictory.add("categorySelection", "NONE");
+        contradictory.add("category", "TRANSITO");
+        assertThrows(InvalidQueryException.class, () -> parser.parse(contradictory));
     }
 
     private static LinkedMultiValueMap<String, String> baseQuery() {

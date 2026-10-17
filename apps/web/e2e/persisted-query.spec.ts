@@ -220,6 +220,40 @@ test('relatório diferencia um recorte vazio de falha', async ({ page }) => {
   await expect(page.locator('.report-snapshot-list > li')).toHaveCount(0);
 });
 
+test('relatório vazio preserva no servidor a seleção explícita sem pilares', async ({ page }) => {
+  const categoryButtons = page.locator('[data-quick-category]');
+  const mapResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/v1/occurrences' && url.searchParams.get('categorySelection') === 'NONE'
+    );
+  });
+  const buttonCount = await categoryButtons.count();
+  for (let index = 0; index < buttonCount; index++) {
+    const button = categoryButtons.nth(index);
+    if ((await button.getAttribute('aria-pressed')) === 'true') await button.click();
+  }
+  const mapResult = await mapResponse;
+  expect(mapResult.status()).toBe(200);
+  expect((await mapResult.json()).counts.occurrences).toBe(0);
+  await count(page, 0);
+
+  await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
+  const reportResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/v1/reports/occurrences' &&
+      url.searchParams.get('categorySelection') === 'NONE'
+    );
+  });
+  await page.getByTestId('report-generate-from-map').click();
+  const reportResult = await reportResponse;
+  expect(reportResult.status()).toBe(200);
+  expect((await reportResult.json()).counts.occurrences).toBe(0);
+  await expect(page.getByTestId('report-empty')).toBeVisible();
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('0 ocorrências');
+});
+
 test('banco real: fuso, intervalo semiaberto, precisão incerta e raio geodésico', async ({
   page,
 }) => {
@@ -275,25 +309,25 @@ test('relatório preserva último snapshot durante 503 e recarrega após recuper
   await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
   execFileSync('podman', ['pause', database!]);
   try {
-    await page.getByTestId('report-refresh').click();
-    const failedReport = await page.waitForResponse(
+    const failedReportResponse = page.waitForResponse(
       (response) =>
-        response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?') &&
-        response.status() === 503,
+        response.url().includes('/api/v1/reports/occurrences') && response.status() === 503,
+      { timeout: 30_000 },
     );
+    await page.getByTestId('report-refresh').click();
+    const failedReport = await failedReportResponse;
     expect(failedReport.status()).toBe(503);
     await expect(page.getByTestId('report-error')).toBeVisible();
     await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
   } finally {
     execFileSync('podman', ['unpause', database!]);
   }
-  const recoveredReport = page.waitForResponse(
+  const recoveredReportResponse = page.waitForResponse(
     (response) =>
-      response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?') &&
-      response.status() === 200,
+      response.url().includes('/api/v1/reports/occurrences') && response.status() === 200,
   );
   await page.getByTestId('report-refresh').click();
-  await recoveredReport;
+  await recoveredReportResponse;
   await expect(page.getByTestId('report-error')).toBeHidden();
   await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
 });
@@ -310,6 +344,7 @@ test('banco real: carregamento, 503 visível, recuperação e API sem conexão',
     await expect(page.getByTestId('query-loading-banner')).toBeVisible();
     const failed = await page.waitForResponse(
       (response) => response.url().startsWith(endpoint) && response.status() === 503,
+      { timeout: 30_000 },
     );
     expect(failed.status()).toBe(503); // Payload/ausência de contagens também verificados por HTTP real no backend.
     await expect(page.getByTestId('query-error-banner')).toBeVisible();

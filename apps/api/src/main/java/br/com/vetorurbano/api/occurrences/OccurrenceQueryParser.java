@@ -13,6 +13,7 @@ public class OccurrenceQueryParser {
             "periodStart",
             "periodEnd",
             "category",
+            "categorySelection",
             "type",
             "subtype",
             "municipality",
@@ -37,7 +38,16 @@ public class OccurrenceQueryParser {
             throw invalid("periodStart precisa ser anterior a periodEnd.");
         }
 
-        var categories = values(parameters, "category").stream()
+        var categoryValues = values(parameters, "category");
+        var categorySelection = optionalSingle(parameters, "categorySelection");
+        var noCategoriesSelected = "NONE".equals(categorySelection);
+        if (categorySelection != null && !noCategoriesSelected) {
+            throw invalid("categorySelection aceita somente NONE.");
+        }
+        if (noCategoriesSelected && !categoryValues.isEmpty()) {
+            throw invalid("categorySelection=NONE não pode vir com categorias.");
+        }
+        var categories = categoryValues.stream()
                 .map(OccurrenceQueryParser::category)
                 .distinct()
                 .toList();
@@ -129,6 +139,7 @@ public class OccurrenceQueryParser {
                 periodStart,
                 periodEnd,
                 categories,
+                noCategoriesSelected,
                 types,
                 subtypes,
                 municipalities,

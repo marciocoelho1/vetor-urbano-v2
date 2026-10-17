@@ -1396,22 +1396,6 @@ export class App implements AfterViewInit, OnDestroy {
         void fetchPersistedQuery(persistedQueryParameters(filters), abort.signal)
           .then((response) => {
             if (abort.signal.aborted) return;
-            // No category selected means an empty selection, not all categories.
-            if (!filters.categories?.length) {
-              response = {
-                ...response,
-                items: [],
-                relatedItems: [],
-                counts: {
-                  occurrences: 0,
-                  happenings: 0,
-                  mappedOccurrences: 0,
-                  listOnlyOccurrences: 0,
-                  temporallyCertain: 0,
-                  temporallyPossible: 0,
-                },
-              };
-            }
             this.persistedResponse.set(response);
             this.persistedSources.update((sources) => [
               ...new Map(

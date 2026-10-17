@@ -41,6 +41,13 @@ describe('consulta persistida', () => {
     expect(params.get('timeEnd')).toBe('07:00');
   });
 
+  it('preserva uma seleção explícita sem categorias em vez de omiti-la como todas', () => {
+    const params = persistedQueryParameters({ categories: [] });
+
+    expect(params.get('categorySelection')).toBe('NONE');
+    expect(params.getAll('category')).toEqual([]);
+  });
+
   it('preserva território sem pin, intervalo incerto, situação e referências sem multiplicar fatos', () => {
     const item: PersistedOccurrence = {
       id: 'synthetic',

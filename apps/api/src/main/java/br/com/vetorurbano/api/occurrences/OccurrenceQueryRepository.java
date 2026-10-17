@@ -103,7 +103,11 @@ public class OccurrenceQueryRepository {
                 .addValue("periodEnd", query.periodEnd() == null ? null : Timestamp.from(query.periodEnd()), java.sql.Types.TIMESTAMP);
         var sql = new StringBuilder(BASE_SQL);
 
-        appendIn(sql, parameters, "o.category", "categories", query.categories());
+        if (query.noCategoriesSelected()) {
+            sql.append(" AND FALSE");
+        } else {
+            appendIn(sql, parameters, "o.category", "categories", query.categories());
+        }
         appendIn(sql, parameters, "o.occurrence_type", "types", query.types());
         if (!query.subtypes().isEmpty()) {
             var alternatives = new ArrayList<String>();
