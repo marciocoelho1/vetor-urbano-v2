@@ -268,11 +268,13 @@ class OccurrenceQueryHttpIT {
                     "periodStart=2026-09-01T00:00:00Z&periodEnd=2026-09-02T00:00:00Z&text=vu-history-test-", true);
             assertEquals(200, ordinaryQuery.statusCode());
             var ordinaryItems = JSON.readTree(ordinaryQuery.body()).path("items");
-            assertEquals(3, ordinaryItems.size());
-            assertTrue(itemIndex(ordinaryItems, "vu-history-test-z-exact")
-                    < itemIndex(ordinaryItems, "vu-history-test-m-exact-inside-interval"));
-            assertTrue(itemIndex(ordinaryItems, "vu-history-test-m-exact-inside-interval")
-                    < itemIndex(ordinaryItems, "vu-history-test-a-interval"));
+            assertEquals(0, ordinaryItems.size(), "a consulta comum não deve pesquisar IDs adicionados pelo histórico");
+
+            var ordinaryTitleSearch = getPath(application, "/api/v1/occurrences",
+                    "periodStart=2026-09-01T00:00:00Z&periodEnd=2026-09-02T00:00:00Z&text=pontual", true);
+            assertEquals(200, ordinaryTitleSearch.statusCode());
+            assertEquals("vu-history-test-z-exact",
+                    JSON.readTree(ordinaryTitleSearch.body()).path("items").get(0).path("id").asString());
 
             var identifierSearch = getPath(application, "/api/v1/history/occurrences",
                     "text=vu-history-test-z-exact", true);

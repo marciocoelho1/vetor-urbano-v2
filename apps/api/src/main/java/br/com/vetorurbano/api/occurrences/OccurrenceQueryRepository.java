@@ -153,12 +153,16 @@ public class OccurrenceQueryRepository {
         }
         if (query.text() != null) {
             sql.append("""
-                    AND strpos(
-                        unaccent(lower(concat_ws(' ', o.id, o.title, o.description, o.municipality, o.neighborhood))),
-                        unaccent(lower(:text))
-                    ) > 0
+                    AND (
+                        (:searchOccurrenceId AND strpos(unaccent(lower(o.id)), unaccent(lower(:text))) > 0)
+                        OR strpos(
+                            unaccent(lower(concat_ws(' ', o.title, o.description, o.municipality, o.neighborhood))),
+                            unaccent(lower(:text))
+                        ) > 0
+                    )
                     """);
             parameters.addValue("text", query.text());
+            parameters.addValue("searchOccurrenceId", resultOrder == ResultOrder.HISTORY);
         }
         if (query.minReliability() != null) {
             sql.append(" AND o.reliability_score >= :minReliability");

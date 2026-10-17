@@ -1839,7 +1839,19 @@
                 histórico.
               </p>
             </div>
-            <span class="account-badge">{{ historyTotal() }} registros no recorte</span>
+            <span class="account-badge" data-testid="history-total">
+              @if (historyLoading()) {
+                Consultando histórico…
+              } @else if (historyError()) {
+                Total indisponível
+              } @else if (historyFilterError()) {
+                Ajuste os filtros
+              } @else if (historyTotal() === null) {
+                Total indisponível
+              } @else {
+                {{ historyTotal() }} registros no recorte
+              }
+            </span>
           </header>
           <div class="workspace-card timeline-card">
             <div class="section-heading">

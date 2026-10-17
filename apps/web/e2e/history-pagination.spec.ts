@@ -240,12 +240,14 @@ test('histórico completo: snapshot paginado, critérios combinados, estados e t
     await page.getByTestId('history-refresh').focus();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('history-loading')).toBeVisible();
+    await expect(page.getByTestId('history-total')).toHaveText('Consultando histórico…');
     const failed = await page.waitForResponse(
       (response) => response.url().startsWith(`${endpoint}?`) && response.status() === 503,
       { timeout: 30_000 },
     );
     expect(failed.status()).toBe(503);
     await expect(page.getByTestId('history-error')).toBeVisible();
+    await expect(page.getByTestId('history-total')).toHaveText('Total indisponível');
     await expect(page.getByTestId('history-empty')).toBeHidden();
   } finally {
     execFileSync('podman', ['unpause', database!]);

@@ -1224,12 +1224,12 @@ export class App implements AfterViewInit, OnDestroy {
     );
     return orderHistoryRecords(filterHistoryRecords(displayableRecords, this.historyFilters()));
   });
-  protected readonly historyTotal = computed(() =>
+  protected readonly historyTotal = computed<number | null>(() =>
     this.persistedQueryEnabled
-      ? (this.historyResponse()?.counts.occurrences ?? 0)
+      ? (this.historyResponse()?.counts.occurrences ?? null)
       : this.filteredHistoryRecords().length,
   );
-  protected readonly historyPageCount = computed(() => countHistoryPages(this.historyTotal()));
+  protected readonly historyPageCount = computed(() => countHistoryPages(this.historyTotal() ?? 0));
   protected readonly historyRecords = computed(() =>
     historyPageRecords(this.filteredHistoryRecords(), this.historyPage()),
   );
