@@ -832,6 +832,12 @@
     .topbar-actions {
       order: 1;
       margin-left: auto;
+      // Sessão ativa acrescenta "Minha conta"/"Sair"; com flex 0 0 auto o bloco mantém a largura
+      // max-content e passa da tela em 390px: permitir encolher para o wrap valer.
+      flex: 0 1 auto;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
     .primary-nav {
       order: 2;

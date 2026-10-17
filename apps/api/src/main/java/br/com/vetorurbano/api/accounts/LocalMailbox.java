@@ -40,6 +40,13 @@ public final class LocalMailbox implements AutoCloseable {
     public synchronized void deliverNotice(String email, String kind, String subject, String body) {
         add(new Message(kind, email, subject, null, null, null, body));
     }
+    /** E02/E14/E15: confirmação do novo endereço antes de substituir o atual. */
+    public synchronized void deliverEmailChange(String email, String token, Instant expires) {
+        add(new Message("EMAIL_CHANGE_CONFIRMATION", email, "Confirme o novo e-mail sintético", token, expires,
+            "http://127.0.0.1:4201/?conta=local#trocar-email=" + token,
+            "Confirme este endereço para ele substituir o e-mail atual da conta. O link vale dez minutos, "
+            + "serve uma única vez e substitui qualquer pedido anterior. O endereço atual continua valendo até a confirmação."));
+    }
     private void add(Message message) {
         if (messages.size() >= 100) messages.removeFirst();
         messages.addLast(message);
@@ -70,7 +77,7 @@ public final class LocalMailbox implements AutoCloseable {
                 if (message.body() != null) html.append("<p>").append(escape(message.body())).append("</p>");
                 if (message.token() != null) html.append("<p>Token: <code>").append(message.token()).append("</code></p>");
                 if (message.link() != null) html.append("<a href=\"").append(message.link()).append("\">")
-                    .append(switch (message.kind()) { case "CONFIRMATION" -> "Abrir confirmação"; case "RECOVERY" -> "Abrir link de recuperação"; default -> "Abrir"; })
+                    .append(switch (message.kind()) { case "CONFIRMATION" -> "Abrir confirmação"; case "RECOVERY" -> "Abrir link de recuperação"; case "EMAIL_CHANGE_CONFIRMATION" -> "Abrir link de troca de e-mail"; default -> "Abrir"; })
                     .append("</a>");
                 if (message.expiresAt() != null) html.append("<p>Expira: ")
                     .append(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(message.expiresAt()))

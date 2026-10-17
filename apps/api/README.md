@@ -75,6 +75,17 @@ VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> 
   npx playwright test e2e/account-recovery.spec.ts e2e/account-registration.spec.ts --workers=1
 ```
 
+## Minha conta (autoatendimento) — Ticket 15, fatia 15B
+
+Conta confirmada gerencia a si mesma em `/api/v1/account` (fora da lista liberada do `AccessBoundary`): `GET` devolve o perfil da sessão; `POST /display-name` altera o nome e mantém a sessão; `POST /password` exige a senha atual e, ao efetivar, revoga todas as sessões e links pendentes (inclusive troca de e-mail pendente); `POST /email-changes` exige a senha atual e o novo endereço só substitui o atual após confirmar o link recebido nele — até lá o endereço atual continua válido e o antigo recebe aviso sem link. Ações sensíveis reutilizam a confirmação do módulo de acesso (Administrador mantém MFA), com limite próprio de tentativas e resposta 429 neutra. Corpo fora dos campos declarados responde `INVALID_REQUEST` sem alterar estado.
+
+O [contrato local de autoatendimento](../../docs/architecture/account-self-service-local-v1.md) define endpoints, erros, migração V8 e auditoria. Para o ensaio de navegador:
+
+```bash
+VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=<contêiner sintético local> \
+  npx playwright test e2e/account-self-service.spec.ts --workers=1
+```
+
 ## Gestão local de fontes — Ticket 16
 
 A migração V5 preserva as fontes e referências de clipping existentes, cria versões sintéticas iniciais e registra alterações administrativas em transação. `GET /api/v1/sources` é público e retorna somente nome e URL opcional. ID estável e canal concreto ficam na gestão interna. `GET/POST /api/v1/admin/sources`, `GET/PUT /api/v1/admin/sources/{id}` e `GET /api/v1/admin/sources/{id}/versions` exigem ADMIN com MFA; gravações exigem CSRF. Não há endpoint de coleta nem campos de credenciais.

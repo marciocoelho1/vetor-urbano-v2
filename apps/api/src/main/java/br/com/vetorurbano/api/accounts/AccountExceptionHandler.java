@@ -10,7 +10,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.Ordered;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = AccountController.class)
+@RestControllerAdvice(assignableTypes = {AccountController.class, AccountSelfController.class})
 public class AccountExceptionHandler {
     @ExceptionHandler({DataAccessException.class, TransactionException.class})
     ResponseEntity<Map<String,String>> unavailable(RuntimeException exception) {

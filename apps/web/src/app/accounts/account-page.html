@@ -192,6 +192,27 @@
           <button type="submit" [disabled]="busy()">Redefinir senha</button>
         </form>
       </section>
+      <section class="account-card" aria-labelledby="email-change-heading">
+        <h2 id="email-change-heading" tabindex="-1">Confirmar novo e-mail</h2>
+        <p>
+          Abra o link enviado ao endereço novo ou cole o token abaixo. A troca só ocorre ao acionar
+          o botão; até lá o e-mail atual continua valendo. Ao concluir, todas as sessões são
+          encerradas.
+        </p>
+        <form (ngSubmit)="confirmEmailChange()">
+          <label for="account-change-token">Token do novo e-mail</label>
+          <input
+            id="account-change-token"
+            name="changeToken"
+            type="password"
+            [(ngModel)]="changeToken"
+            autocomplete="off"
+            required
+            maxlength="128"
+          />
+          <button type="submit" [disabled]="busy()">Confirmar novo e-mail</button>
+        </form>
+      </section>
     </div>
   </div>
 </main>

@@ -77,17 +77,6 @@ class RecoveryHttpIT extends LocalAuthHttpSupport {
     private HttpResponse<String> recover(ConfigurableApplicationContext app,String token,String password)throws Exception {
         return request(app,"POST","accounts/recoveries",Map.of("token",token,"password",password));
     }
-    private int occurrencesOf(ConfigurableApplicationContext app,String needle) {
-        return app.getBean(JdbcTemplate.class).queryForObject("""
-            SELECT count(*) FROM (
-                SELECT action||' '||outcome AS content FROM account_audit_events
-                UNION ALL SELECT module||' '||action||' '||outcome FROM auth_audit_events
-                UNION ALL SELECT coalesce(parameters::text,'') FROM auth_audit_events
-                UNION ALL SELECT coalesce(password_hash,'')||' '||coalesce(mfa_secret,'') FROM local_accounts
-                UNION ALL SELECT coalesce(display_name,'')||' '||coalesce(email,'') FROM local_accounts
-            ) AS written WHERE content LIKE '%'||?||'%'
-            """,Integer.class,needle);
-    }
 
     @Test void pedidoDeRecuperacaoNaoRevelaContaNemEncerraSessao()throws Exception {
         try(var app=start()) {
@@ -201,8 +190,8 @@ class RecoveryHttpIT extends LocalAuthHttpSupport {
             assertTrue(notice.path("token").isNull()||notice.path("token").asString().isEmpty());
 
             // Código de recuperação e senha nunca aparecem em log nem no que ficou gravado.
-            assertEquals(0,occurrencesOf(app,token));
-            assertEquals(0,occurrencesOf(app,RENEWED));
+            assertEquals(0,secretsWritten(app,token));
+            assertEquals(0,secretsWritten(app,RENEWED));
             assertFalse(output.getOut().contains(token));
             assertFalse(output.getOut().contains(RENEWED));
             assertFalse(output.getOut().contains(WEAK));

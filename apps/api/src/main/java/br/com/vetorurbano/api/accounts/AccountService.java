@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.*;
 
 public class AccountService {
+    /** Perfil da própria conta exposto ao titular; nunca contém hash, token ou dado de terceiro. */
+    public record AccountProfile(String displayName,String email,String role,String pendingEmail,Instant pendingEmailExpiresAt) {}
     private final JdbcTemplate jdbc;
     private final AccountSettings settings;
     private final Clock clock;
@@ -230,6 +232,237 @@ public class AccountService {
     private void revokePendingLinks(UUID id,Instant now) {
         revokeActiveLinks("account_recovery_tokens",id,now);
         revokeActiveLinks("account_confirmation_tokens",id,now);
+        // E02: troca de e-mail pendente também cai quando a senha muda ou a recuperação conclui.
+        revokeActiveLinks("account_email_change_tokens",id,now);
+    }
+
+    /**
+     * E02/E03: traduz a confirmação de ação sensível do módulo de acesso (sessão completa, CSRF e,
+     * para Administrador, código novo do autenticador) para a resposta do módulo de contas. Nada é
+     * alterado quando a confirmação não é aceita.
+     */
+    @Transactional
+    public AccountResult confirmSensitive(String sessionToken,String csrf,String code) {
+        var reply=auth.requireConfirmation(sessionToken,csrf,code);
+        if(reply.status()==200) return new AccountResult(200,"CONFIRMED","Confirmação aceita.");
+        return new AccountResult(reply.status(),String.valueOf(reply.body().get("code")),String.valueOf(reply.body().get("message")));
+    }
+
+    /** E02: sessão completa e CSRF, sem código do autenticador — basta para o nome de exibição. */
+    @Transactional
+    public AccountResult confirmSession(String sessionToken,String csrf) {
+        var reply=auth.requireSession(sessionToken,csrf);
+        if(reply.status()==200) return new AccountResult(200,"CONFIRMED","Confirmação aceita.");
+        return new AccountResult(reply.status(),String.valueOf(reply.body().get("code")),String.valueOf(reply.body().get("message")));
+    }
+
+    /** Perfil da própria conta. Devolve `null` se a conta não estiver confirmada. */
+    public AccountProfile profile(UUID account) {
+        var rows=jdbc.queryForList("SELECT display_name,email,role,status FROM local_accounts WHERE id=?",account);
+        if(rows.isEmpty()||!rows.getFirst().get("status").equals("CONFIRMED")) return null;
+        var row=rows.getFirst();
+        var pending=jdbc.queryForList("SELECT pending_email,expires_at FROM account_email_change_tokens WHERE account_id=? AND consumed_at IS NULL AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1",account);
+        String pendingEmail=null; Instant pendingExpires=null;
+        if(!pending.isEmpty()) {
+            var candidate=pending.getFirst();
+            pendingExpires=((Timestamp)candidate.get("expires_at")).toInstant();
+            if(clock.instant().isBefore(pendingExpires)) pendingEmail=(String)candidate.get("pending_email");
+        }
+        return new AccountProfile((String)row.get("display_name"),(String)row.get("email"),(String)row.get("role"),pendingEmail,pendingExpires);
+    }
+
+    /** E02: nome de exibição muda em sessão autenticada e a sessão continua válida. */
+    @Transactional
+    public AccountResult changeDisplayName(UUID account,Map<String,Object> input) {
+        Instant now=clock.instant();
+        String name=text(input,"displayName");
+        if(!input.keySet().equals(Set.of("displayName"))) {
+            audit(account,now,"DISPLAY_NAME","REJECTED");
+            return AccountResult.invalid();
+        }
+        if(name==null||name.strip().length()<2||name.strip().length()>80) {
+            audit(account,now,"DISPLAY_NAME","REJECTED");
+            return new AccountResult(400,"INVALID_DISPLAY_NAME","Informe nome de exibição de 2 a 80 caracteres. Nada foi alterado.");
+        }
+        jdbc.update("UPDATE local_accounts SET display_name=? WHERE id=?",name.strip(),account);
+        audit(account,now,"DISPLAY_NAME","CHANGED");
+        return new AccountResult(200,"DISPLAY_NAME_CHANGED","Nome de exibição atualizado. A sessão continua válida.");
+    }
+
+    /**
+     * E02: troca de senha. Exige senha atual (o código MFA do Administrador é conferido antes, pelo
+     * módulo de acesso). Efetivar revoga todas as sessões e links pendentes e exige novo login.
+     * A derivação cara acontece fora do bloqueio; o estado é revalidado depois de bloquear.
+     */
+    @Transactional
+    public AccountResult changePassword(UUID account,Map<String,Object> input) {
+        Instant now=clock.instant();
+        if(!Set.of(Set.of("currentPassword","newPassword"),Set.of("currentPassword","newPassword","mfaCode")).contains(input.keySet())) {
+            audit(account,now,"PASSWORD_CHANGE","REJECTED");
+            return AccountResult.invalid();
+        }
+        String current=text(input,"currentPassword"), next=text(input,"newPassword");
+        if(!allowFor("PASSWORD_CHANGE:"+account,settings.sensitiveAttempts(),Duration.ofMinutes(5),now)) {
+            audit(account,now,"PASSWORD_CHANGE","LIMITED");
+            return limited("PASSWORD_CHANGE",now);
+        }
+        var rows=jdbc.queryForList("SELECT password_hash FROM local_accounts WHERE id=?",account);
+        if(rows.isEmpty()||current==null||!password.matches(current,(String)rows.getFirst().get("password_hash"))) {
+            audit(account,now,"PASSWORD_CHANGE","INVALID");
+            return new AccountResult(400,"INVALID_CURRENT_PASSWORD","Senha atual incorreta. Nada foi alterado.");
+        }
+        if(!AccountPassword.valid(next)) {
+            audit(account,now,"PASSWORD_CHANGE","INVALID");
+            return new AccountResult(400,"INVALID_NEW_PASSWORD","A nova senha deve ter 15 a 128 caracteres e não pode ser trivial. Nada foi alterado.");
+        }
+        String encoded=password.derive(next);
+        var state=jdbc.queryForList("SELECT status,email FROM local_accounts WHERE id=? FOR UPDATE",account);
+        if(state.isEmpty()||!state.getFirst().get("status").equals("CONFIRMED")) {
+            audit(account,now,"PASSWORD_CHANGE","REJECTED");
+            return new AccountResult(400,"INVALID_PASSWORD_CHANGE","Esta conta não pode ser alterada agora. Nada foi alterado.");
+        }
+        String email=(String)state.getFirst().get("email");
+        jdbc.update("UPDATE local_accounts SET password_hash=? WHERE id=?",encoded,account);
+        revokePendingLinks(account,now);
+        auth.revokeAll(account);
+        Instant changedAt=now;
+        notice(email,"PASSWORD_CHANGED","Senha sintética alterada",
+            "A senha desta conta foi alterada em "+changedAt+" (UTC) a partir de uma sessão autenticada. Todas as sessões anteriores foram encerradas. "
+            + "Se não foi você, use a recuperação de acesso e conteste com o operador local.");
+        audit(account,now,"PASSWORD_CHANGE","CHANGED");
+        return new AccountResult(200,"PASSWORD_CHANGED","Senha alterada. Todas as sessões foram encerradas; entre novamente com a nova senha.");
+    }
+
+    /**
+     * E02/E14/E15: pedido de troca de e-mail. Exige senha atual (e código MFA do Administrador,
+     * conferido antes). O endereço atual continua valendo; o novo só substitui após confirmação no
+     * próprio endereço. A reexpedição efetiva substitui o pedido anterior sem renovar o token antigo.
+     */
+    @Transactional
+    public AccountResult requestEmailChange(UUID account,Map<String,Object> input) {
+        Instant now=clock.instant();
+        if(!Set.of(Set.of("currentPassword","newEmail"),Set.of("currentPassword","newEmail","mfaCode")).contains(input.keySet())) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","REJECTED");
+            return AccountResult.invalid();
+        }
+        String current=text(input,"currentPassword"), next=email(input,"newEmail");
+        if(!allowFor("EMAIL_CHANGE_REQUEST:"+account,settings.sensitiveAttempts(),Duration.ofMinutes(5),now)) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","LIMITED");
+            return limited("EMAIL_CHANGE_REQUEST",now);
+        }
+        var rows=jdbc.queryForList("SELECT password_hash,email,email_change_sent_at,email_change_window_start,email_change_count FROM local_accounts WHERE id=?",account);
+        if(rows.isEmpty()||current==null||!password.matches(current,(String)rows.getFirst().get("password_hash"))) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","INVALID");
+            return new AccountResult(400,"INVALID_CURRENT_PASSWORD","Senha atual incorreta. Nada foi alterado.");
+        }
+        String oldEmail=(String)rows.getFirst().get("email");
+        // Endereço inválido, igual ao atual ou já usado por outra conta recebem a mesma resposta neutra.
+        if(next==null||next.equals(oldEmail)||jdbc.queryForObject("SELECT count(*) FROM local_accounts WHERE email=? AND id<>?",Integer.class,next,account)>0) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","INVALID");
+            return new AccountResult(400,"INVALID_EMAIL_CHANGE","Não foi possível iniciar a troca para este endereço. Confira o endereço ou use outro. Nada foi alterado.");
+        }
+        // Relógio relido após a verificação cara da senha: os carimbos do pedido (janela, expiração)
+        // usam o instante pós-espera; o audit da recusa anterior usa o instante da entrada de propósito.
+        now=clock.instant();
+        var state=jdbc.queryForList("SELECT status,email_change_sent_at,email_change_window_start,email_change_count FROM local_accounts WHERE id=? FOR UPDATE",account);
+        if(state.isEmpty()||!state.getFirst().get("status").equals("CONFIRMED")) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","REJECTED");
+            return new AccountResult(400,"INVALID_EMAIL_CHANGE","Esta conta não pode ser alterada agora. Nada foi alterado.");
+        }
+        var row=state.getFirst();
+        now=clock.instant();
+        Instant windowStart=row.get("email_change_window_start")==null?now:((Timestamp)row.get("email_change_window_start")).toInstant();
+        boolean reset=!now.isBefore(windowStart.plus(RESEND_WINDOW));
+        int count=reset?0:((Number)row.get("email_change_count")).intValue();
+        Instant sentAt=row.get("email_change_sent_at")==null?null:((Timestamp)row.get("email_change_sent_at")).toInstant();
+        if((sentAt!=null&&now.isBefore(sentAt.plus(settings.resendCooldown())))||count>=settings.resendsPerHour()) {
+            audit(account,now,"EMAIL_CHANGE_REQUEST","SUPPRESSED");
+            return new AccountResult(429,"REQUEST_LIMIT","Já existe um pedido recente de troca de e-mail. Aguarde e use a mensagem mais nova. Nada foi alterado.");
+        }
+        revokeActiveLinks("account_email_change_tokens",account,now);
+        jdbc.update("UPDATE local_accounts SET email_change_sent_at=?,email_change_window_start=?,email_change_count=? WHERE id=?",ts(now),ts(reset?now:windowStart),count+1,account);
+        issueEmailChange(account,next,oldEmail,now);
+        audit(account,now,"EMAIL_CHANGE_REQUEST","SENT");
+        return new AccountResult(202,"EMAIL_CHANGE_PENDING","Confirmação pendente no novo endereço. O e-mail atual continua valendo até a confirmação; o link vale dez minutos e serve uma única vez.");
+    }
+
+    /**
+     * E02/E14/E15: confirmação do novo endereço. Público por posse do link (o endereço pendente vem do
+     * próprio token, nunca do cliente). Concluir revoga sessões e links pendentes e exige novo login.
+     */
+    @Transactional
+    public AccountResult confirmEmailChange(Map<String,Object> input) {
+        Instant now=clock.instant();
+        if(!allow("EMAIL_CHANGE",now)) return limited("EMAIL_CHANGE",now);
+        String token=text(input,"token");
+        if(!input.keySet().equals(Set.of("token"))||token==null||!token.matches("[A-Za-z0-9_-]{43}")) {
+            audit(null,now,"EMAIL_CHANGE","INVALID");
+            return new AccountResult(400,"INVALID_EMAIL_CHANGE","Link de troca de e-mail inválido. Nada foi alterado.");
+        }
+        var ids=jdbc.queryForList("SELECT account_id FROM account_email_change_tokens WHERE token_hash=?",UUID.class,digest(token));
+        if(ids.isEmpty()) {
+            audit(null,now,"EMAIL_CHANGE","INVALID");
+            return new AccountResult(400,"INVALID_EMAIL_CHANGE","Link de troca de e-mail inválido. Nada foi alterado.");
+        }
+        UUID id=ids.getFirst();
+        var state=jdbc.queryForList("SELECT status,email FROM local_accounts WHERE id=? FOR UPDATE",id);
+        var tokenState=jdbc.queryForMap("SELECT pending_email,consumed_at,revoked_at,expires_at FROM account_email_change_tokens WHERE token_hash=? FOR UPDATE",digest(token));
+        now=clock.instant();
+        if(tokenState.get("consumed_at")!=null) {
+            audit(id,now,"EMAIL_CHANGE","USED");
+            return new AccountResult(409,"USED_EMAIL_CHANGE","Este link de troca já foi utilizado. Nada foi alterado.");
+        }
+        if(tokenState.get("revoked_at")!=null) {
+            audit(id,now,"EMAIL_CHANGE","REPLACED");
+            return new AccountResult(410,"REPLACED_EMAIL_CHANGE","Este link foi substituído por um pedido mais recente. Use a mensagem mais nova.");
+        }
+        if(!now.isBefore(((Timestamp)tokenState.get("expires_at")).toInstant())) {
+            audit(id,now,"EMAIL_CHANGE","EXPIRED");
+            return new AccountResult(410,"EXPIRED_EMAIL_CHANGE","Este link de troca de e-mail expirou. Peça outro na área da conta.");
+        }
+        if(state.isEmpty()||!state.getFirst().get("status").equals("CONFIRMED")) {
+            audit(id,now,"EMAIL_CHANGE","REJECTED");
+            return new AccountResult(400,"INVALID_EMAIL_CHANGE","Esta conta não pode ser alterada agora. Nada foi alterado.");
+        }
+        String previous=(String)state.getFirst().get("email"), pending=(String)tokenState.get("pending_email");
+        if(jdbc.queryForObject("SELECT count(*) FROM local_accounts WHERE email=? AND id<>?",Integer.class,pending,id)>0) {
+            audit(id,now,"EMAIL_CHANGE","CONFLICT");
+            return new AccountResult(409,"EMAIL_TAKEN","Não foi possível concluir a troca para este endereço. Nada foi alterado; peça a troca novamente.");
+        }
+        jdbc.update("UPDATE local_accounts SET email=? WHERE id=?",pending,id);
+        jdbc.update("UPDATE account_email_change_tokens SET consumed_at=? WHERE token_hash=?",ts(now),digest(token));
+        revokePendingLinks(id,now);
+        auth.revokeAll(id);
+        Instant changedAt=now;
+        // E14: conclusão vai ao endereço novo; aviso ao antigo, sem qualquer link que reverta a troca.
+        notice(pending,"EMAIL_CHANGED","E-mail sintético da conta atualizado",
+            "O e-mail desta conta passou a ser este endereço em "+changedAt+" (UTC). Todas as sessões anteriores foram encerradas; entre novamente com o novo endereço. "
+            + "Se não foi você, use a recuperação de acesso e conteste com o operador local.");
+        notice(previous,"EMAIL_CHANGE_NOTICE","Aviso: o e-mail da conta foi trocado",
+            "O e-mail desta conta foi trocado em "+changedAt+" (UTC) a partir de uma sessão autenticada. Este aviso não altera nem reverte a troca. "
+            + "Se não foi você, conteste com o operador local usando a recuperação de acesso.");
+        audit(id,now,"EMAIL_CHANGE","CHANGED");
+        return new AccountResult(200,"EMAIL_CHANGED","E-mail atualizado. Todas as sessões foram encerradas; entre novamente com o novo endereço.");
+    }
+
+    private void issueEmailChange(UUID id,String pending,String oldEmail,Instant now) {
+        String token=freshToken();
+        Instant expires=now.plus(settings.recoveryTtl());
+        jdbc.update("INSERT INTO account_email_change_tokens(token_hash,account_id,pending_email,created_at,expires_at) VALUES (?,?,?,?,?)",digest(token),id,pending,ts(now),ts(expires));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() {
+                mailbox.deliverEmailChange(pending,token,expires);
+                mailbox.deliverNotice(oldEmail,"EMAIL_CHANGE_REQUEST_NOTICE","Aviso: troca de e-mail solicitada",
+                    "Foi solicitada a troca do e-mail desta conta para outro endereço em "+now+" (UTC). Este aviso não permite reverter a troca por clique e o endereço atual continua valendo até a confirmação. "
+                    + "Se não foi você, altere a senha e conteste com o operador local.");
+            }
+        });
+    }
+    /** Aviso transacional entregue só depois do commit, sem token e sem senha (E14). */
+    private void notice(String email,String kind,String subject,String body) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() { mailbox.deliverNotice(email,kind,subject,body); }
+        });
     }
     private void issueRecovery(UUID id,String email,Instant now) {
         String token=freshToken();
@@ -240,14 +473,18 @@ public class AccountService {
         });
     }
     private boolean allow(String action, Instant now) {
+        return allowFor(action,settings.requestsPerMinute(),Duration.ofSeconds(60),now);
+    }
+    /** Limite persistente por chave: a janela reinicia quando expira (mesmo mecanismo do cadastro). */
+    private boolean allowFor(String bucket,int maximum,Duration window,Instant now) {
         Integer attempts=jdbc.queryForObject("""
             INSERT INTO account_request_limits(action,window_start,attempts) VALUES (?,?,1)
             ON CONFLICT(action) DO UPDATE SET
               window_start = CASE WHEN account_request_limits.window_start <= ? THEN EXCLUDED.window_start ELSE account_request_limits.window_start END,
               attempts = CASE WHEN account_request_limits.window_start <= ? THEN 1 ELSE account_request_limits.attempts + 1 END
             RETURNING attempts
-            """,Integer.class,action,ts(now),ts(now.minusSeconds(60)),ts(now.minusSeconds(60)));
-        return attempts!=null && attempts<=settings.requestsPerMinute();
+            """,Integer.class,bucket,ts(now),ts(now.minus(window)),ts(now.minus(window)));
+        return attempts!=null && attempts<=maximum;
     }
     private AccountResult limited(String action,Instant now) {
         audit(null,now,action,"LIMITED");
@@ -258,8 +495,9 @@ public class AccountService {
     }
     private static Timestamp ts(Instant value) { return Timestamp.from(value); }
     static String text(Map<String,Object> input,String key) { return input.get(key) instanceof String value ? value : null; }
-    private static String email(Map<String,Object> input) {
-        String value=text(input,"email");
+    private static String email(Map<String,Object> input) { return email(input,"email"); }
+    static String email(Map<String,Object> input,String key) {
+        String value=text(input,key);
         if(value==null) return null;
         value=value.strip().toLowerCase(Locale.ROOT);
         return value.length()<=254 && value.matches("[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\\.test") ? value : null;

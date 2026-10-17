@@ -1,0 +1,174 @@
+<section
+  class="workspace-view self-account"
+  aria-labelledby="self-account-title"
+  [attr.aria-busy]="loading() || busy()"
+>
+  <h1 id="self-account-title" data-view-title="account" tabindex="-1">Minha conta</h1>
+  <p>
+    Dados da própria conta neste ambiente local. Nome, senha e e-mail só mudam depois da resposta do
+    servidor; o nome não desconecta, mas senha e e-mail encerram todas as sessões.
+  </p>
+  @if (loading()) {
+    <p role="status" data-testid="self-account-loading">Carregando os dados da conta…</p>
+  }
+  @if (serviceError(); as message) {
+    <p class="self-account-error" role="alert" data-testid="self-account-service-error">
+      {{ message }}
+    </p>
+  }
+  @if (profile(); as data) {
+    <dl class="self-account-profile" data-testid="self-account-profile">
+      <div>
+        <dt>Nome de exibição</dt>
+        <dd data-testid="self-account-name">{{ data.displayName }}</dd>
+      </div>
+      <div>
+        <dt>E-mail</dt>
+        <dd data-testid="self-account-email">{{ data.email }}</dd>
+      </div>
+      <div>
+        <dt>Perfil</dt>
+        <dd data-testid="self-account-role">{{ roleLabel() }}</dd>
+      </div>
+    </dl>
+    @if (data.pendingEmail) {
+      <p class="self-account-pending" role="status" data-testid="self-account-pending">
+        Troca para <strong>{{ data.pendingEmail }}</strong> aguardando confirmação no novo endereço.
+        O e-mail atual continua valendo; o link vale até
+        @if (data.pendingEmailExpiresAt; as expiry) {
+          {{ pendingExpiry(expiry) }} (horário de Brasília).
+        } @else {
+          dez minutos.
+        }
+      </p>
+    }
+    @if (result(); as reply) {
+      <p
+        class="self-account-result"
+        [class.is-error]="failed()"
+        [attr.role]="failed() ? 'alert' : 'status'"
+        tabindex="-1"
+        data-testid="self-account-result"
+      >
+        <strong>{{ heading() }}</strong> {{ reply.message }}
+      </p>
+    }
+    <div class="self-account-grid">
+      <section class="self-account-card" aria-labelledby="self-name-heading">
+        <h2 id="self-name-heading">Nome de exibição</h2>
+        <p>O nome aparece nas consultas do seu acesso e não encerra a sessão.</p>
+        <form aria-label="Nome de exibição" (ngSubmit)="saveName()">
+          <label for="self-account-name-input">Nome de exibição</label>
+          <input
+            id="self-account-name-input"
+            name="displayName"
+            [(ngModel)]="displayName"
+            autocomplete="nickname"
+            required
+            minlength="2"
+            maxlength="80"
+          />
+          <button type="submit" [disabled]="busy()">Salvar nome</button>
+        </form>
+      </section>
+      <section class="self-account-card" aria-labelledby="self-password-heading">
+        <h2 id="self-password-heading">Alterar senha</h2>
+        <p>
+          Ao concluir, todas as sessões são encerradas, inclusive esta; será preciso entrar
+          novamente com a nova senha.
+        </p>
+        <form aria-label="Alterar senha" (ngSubmit)="savePassword()">
+          <label for="self-current-password">Senha atual</label>
+          <input
+            id="self-current-password"
+            name="currentPassword"
+            type="password"
+            [(ngModel)]="currentPassword"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+          <label for="self-new-password">Nova senha</label>
+          <input
+            id="self-new-password"
+            name="newPassword"
+            type="password"
+            [(ngModel)]="newPassword"
+            autocomplete="new-password"
+            required
+            minlength="15"
+            maxlength="128"
+            aria-describedby="self-password-help"
+          />
+          <small id="self-password-help"
+            >15–128 caracteres, sem regras de composição; evite senhas triviais.</small
+          >
+          @if (manager()) {
+            <label for="self-password-code">Código do autenticador</label>
+            <input
+              id="self-password-code"
+              name="passwordCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              [(ngModel)]="passwordCode"
+              aria-describedby="self-password-code-help"
+            />
+            <small id="self-password-code-help"
+              >Ação administrativa exige um código novo do aplicativo autenticador.</small
+            >
+          }
+          <button type="submit" [disabled]="busy()">Alterar senha</button>
+        </form>
+      </section>
+      <section class="self-account-card" aria-labelledby="self-email-heading">
+        <h2 id="self-email-heading">Alterar e-mail</h2>
+        <p>
+          O novo endereço precisa ser confirmado por link antes de valer; até a confirmação o e-mail
+          atual continua ativo e serve para entrar.
+        </p>
+        <form aria-label="Alterar e-mail" (ngSubmit)="requestEmailChange()">
+          <label for="self-new-email">Novo e-mail</label>
+          <input
+            id="self-new-email"
+            name="newEmail"
+            type="email"
+            [(ngModel)]="newEmail"
+            autocomplete="email"
+            placeholder="pessoa@example.test"
+            required
+            maxlength="254"
+            aria-describedby="self-new-email-help"
+          />
+          <small id="self-new-email-help"
+            >Use somente um endereço sintético com domínio .test.</small
+          >
+          <label for="self-email-password">Senha atual</label>
+          <input
+            id="self-email-password"
+            name="emailPassword"
+            type="password"
+            [(ngModel)]="emailPassword"
+            autocomplete="current-password"
+            required
+            maxlength="128"
+          />
+          @if (manager()) {
+            <label for="self-email-code">Código do autenticador</label>
+            <input
+              id="self-email-code"
+              name="emailCode"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              [(ngModel)]="emailCode"
+            />
+          }
+          <button type="submit" [disabled]="busy()">Solicitar troca de e-mail</button>
+        </form>
+      </section>
+    </div>
+  }
+</section>

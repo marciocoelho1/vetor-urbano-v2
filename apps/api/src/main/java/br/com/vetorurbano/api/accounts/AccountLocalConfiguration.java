@@ -21,6 +21,7 @@ public class AccountLocalConfiguration {
             env.getProperty("vetor.accounts.resend-cooldown", Duration.class, Duration.ofSeconds(60)),
             env.getProperty("vetor.accounts.resends-per-hour", Integer.class, 3),
             env.getProperty("vetor.accounts.requests-per-minute", Integer.class, 30),
+            env.getProperty("vetor.accounts.sensitive-attempts", Integer.class, 10),
             env.getProperty("vetor.accounts.mailbox-port", Integer.class, 8025),
             env.getProperty("vetor.accounts.password-iterations", Integer.class, 600000));
     }

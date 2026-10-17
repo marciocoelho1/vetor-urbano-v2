@@ -35,9 +35,14 @@ abstract class LocalAuthHttpSupport {
     final HttpClient http=HttpClient.newHttpClient();
     String cookie,csrf;
     Path key;
+    /**
+     * Reset dos fixtures de conta. Ao criar tabela nova que referencie `local_accounts`, inclua-a
+     * aqui **e** em `AccountRegistrationHttpIT` (as duas classes montam o próprio reset).
+     */
+    static final String RESET_SQL="TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY";
     @BeforeEach void reset()throws Exception {
         clock().time=Instant.parse("2026-10-15T18:00:00Z");key=Files.createTempDirectory("vu-auth-key").resolve("mfa.key");
-        try(var app=start()){app.getBean(JdbcTemplate.class).execute("TRUNCATE auth_audit_events,local_sessions,auth_request_limits,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,local_accounts RESTART IDENTITY");}
+        try(var app=start()){app.getBean(JdbcTemplate.class).execute(RESET_SQL);}
         cookie=null;csrf=null;
     }
     ConfigurableApplicationContext start(String... extra) {
@@ -82,5 +87,18 @@ abstract class LocalAuthHttpSupport {
         return app.getBean(MfaVault.class).decrypt(encrypted,id);
     }
     String code(byte[] secret){return Totp.code(secret,clock().instant().getEpochSecond()/30);}
+    /** Quantas vezes `needle` aparece em texto gravado pelas tabelas de contas/acesso (E16). */
+    int secretsWritten(ConfigurableApplicationContext app,String needle) {
+        return app.getBean(JdbcTemplate.class).queryForObject("""
+            SELECT count(*) FROM (
+                SELECT action||' '||outcome AS content FROM account_audit_events
+                UNION ALL SELECT module||' '||action||' '||outcome FROM auth_audit_events
+                UNION ALL SELECT coalesce(parameters::text,'') FROM auth_audit_events
+                UNION ALL SELECT coalesce(password_hash,'')||' '||coalesce(mfa_secret,'') FROM local_accounts
+                UNION ALL SELECT coalesce(display_name,'')||' '||coalesce(email,'') FROM local_accounts
+                UNION ALL SELECT coalesce(pending_email,'') FROM account_email_change_tokens
+            ) AS written WHERE content LIKE '%'||?||'%'
+            """,Integer.class,needle);
+    }
     static String query(){return "occurrences?periodStart=2026-10-14T15:00:00Z&periodEnd=2026-10-15T15:00:00Z";}
 }

@@ -33,6 +33,10 @@ public class AccountController {
     public ResponseEntity<Map<String,String>> recover(@RequestBody Map<String,Object> input) {
         return respond(service.recover(input));
     }
+    @PostMapping(value="/email-changes/confirmations", consumes="application/json", produces="application/json")
+    public ResponseEntity<Map<String,String>> confirmEmailChange(@RequestBody Map<String,Object> input) {
+        return respond(service.confirmEmailChange(input));
+    }
     static ResponseEntity<Map<String,String>> respond(AccountResult result) {
         var response=ResponseEntity.status(result.status()).cacheControl(CacheControl.noStore());
         if(result.status()==429) response.header("Retry-After","60");

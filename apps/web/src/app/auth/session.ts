@@ -73,4 +73,8 @@ export class Session {
     this.csrf = '';
     this.secret.set('');
   }
+  /** Token CSRF associado à sessão atual, exigido pelos POSTs autenticados. */
+  csrfToken(): string {
+    return this.csrf;
+  }
 }

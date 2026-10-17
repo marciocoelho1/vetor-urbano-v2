@@ -18,6 +18,7 @@ export class AccountPage implements OnInit, OnDestroy {
   protected recoveryEmail = '';
   protected recoveryToken = '';
   protected newPassword = '';
+  protected changeToken = '';
   protected readonly busy = signal(false);
   protected readonly result = signal<AccountReply | null>(null);
   protected readonly failed = signal(false);
@@ -31,6 +32,17 @@ export class AccountPage implements OnInit, OnDestroy {
         return 'Recuperação solicitada';
       case 'PASSWORD_RECOVERED':
         return 'Senha redefinida';
+      case 'EMAIL_CHANGED':
+        return 'E-mail da conta alterado';
+      case 'EMAIL_TAKEN':
+        return 'Troca de e-mail não concluída';
+      case 'USED_EMAIL_CHANGE':
+        return 'Link de troca já utilizado';
+      case 'EXPIRED_EMAIL_CHANGE':
+      case 'REPLACED_EMAIL_CHANGE':
+        return 'Link de troca de e-mail indisponível';
+      case 'INVALID_EMAIL_CHANGE':
+        return 'Troca de e-mail não concluída';
       case 'USED_RECOVERY':
         return 'Link de recuperação já utilizado';
       case 'EXPIRED_RECOVERY':
@@ -53,6 +65,7 @@ export class AccountPage implements OnInit, OnDestroy {
     const fragment = new URLSearchParams(location.hash.slice(1));
     const token = fragment.get('confirmar');
     const recovery = fragment.get('recuperar');
+    const change = fragment.get('trocar-email');
     if (token) {
       this.token = token;
       history.replaceState(null, '', location.pathname + location.search);
@@ -63,6 +76,11 @@ export class AccountPage implements OnInit, OnDestroy {
       history.replaceState(null, '', location.pathname + location.search);
       setTimeout(() => document.getElementById('recovery-heading')?.focus());
     }
+    if (change) {
+      this.changeToken = change;
+      history.replaceState(null, '', location.pathname + location.search);
+      setTimeout(() => document.getElementById('email-change-heading')?.focus());
+    }
   }
   ngOnDestroy(): void {
     this.abort?.abort();
@@ -70,6 +88,7 @@ export class AccountPage implements OnInit, OnDestroy {
     this.token = '';
     this.recoveryToken = '';
     this.newPassword = '';
+    this.changeToken = '';
   }
   protected register(): void {
     const body = { displayName: this.displayName, email: this.email, password: this.password };
@@ -93,6 +112,12 @@ export class AccountPage implements OnInit, OnDestroy {
     const password = this.newPassword;
     this.newPassword = '';
     void this.submit('recoveries', { token, password });
+  }
+  /** E14: confirmação do novo e-mail, acionada pelo link enviado ao endereço novo. */
+  protected confirmEmailChange(): void {
+    const token = this.changeToken;
+    this.changeToken = '';
+    void this.submit('email-changes/confirmations', { token });
   }
   private async submit(path: string, body: Record<string, string>): Promise<void> {
     if (this.busy()) return;

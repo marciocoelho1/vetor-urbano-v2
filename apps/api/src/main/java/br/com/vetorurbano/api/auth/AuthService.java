@@ -126,15 +126,8 @@ public class AuthService {
     @Transactional public Reply verify(String token,String csrf,Map<String,Object> body) {
         var s=session(token);var denied=mfaPermission(s,csrf);if(denied!=null)return denied;
         if(!limit("mfa:"+s.account(),settings.mfaAttempts(),Duration.ofMinutes(5))) { audit(s.account(),"MFA","LIMITED");return error(429,"ACCESS_LIMITED","Limite local atingido. Tente mais tarde."); }
-        var row=jdbc.queryForMap("SELECT mfa_secret,mfa_counter FROM local_accounts WHERE id=?",s.account());
-        long accepted=-1;String code=body.size()==1&&body.get("code") instanceof String value?value:"";
-        if(row.get("mfa_secret")!=null&&code.matches("[0-9]{6}")) {
-            byte[] secret=vault.decrypt((String)row.get("mfa_secret"),s.account());
-            long current=clock.instant().getEpochSecond()/30;
-            for(long counter=current-1;counter<=current+1;counter++)
-                if(counter>((Number)row.get("mfa_counter")).longValue()&&MessageDigest.isEqual(Totp.code(secret,counter).getBytes(StandardCharsets.US_ASCII),code.getBytes(StandardCharsets.US_ASCII))) accepted=counter;
-            Arrays.fill(secret,(byte)0);
-        }
+        String code=body.size()==1&&body.get("code") instanceof String value?value:"";
+        long accepted=acceptTotp(s.account(),code);
         if(accepted<0) { audit(s.account(),"MFA","DENIED");return error(401,"INVALID_MFA","Código inválido, expirado ou já utilizado."); }
         jdbc.update("UPDATE local_accounts SET mfa_enabled=true,mfa_counter=? WHERE id=?",accepted,s.account());
         jdbc.update("UPDATE local_sessions SET revoked_at=? WHERE token_hash=?",now(),hash(token));
@@ -182,5 +175,55 @@ public class AuthService {
         jdbc.update("UPDATE local_accounts SET security_version=security_version+1 WHERE id=?",account);
         jdbc.update("UPDATE local_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL",now(),account);
         audit(account,"REVOKE_ALL","REVOKED");
+    }
+
+    /**
+     * E02: sessão completa e CSRF associado, sem código do autenticador. Usado por alterações que não
+     * exigem novo fator (nome de exibição).
+     */
+    @Transactional public Reply requireSession(String token,String csrf) {
+        var s=session(token);
+        if(s==null) return error(401,"SESSION_REQUIRED","Sessão ausente ou expirada.");
+        if(!validCsrf(s.token(),csrf)) return error(403,"CSRF_REQUIRED","Recarregue a sessão e tente novamente.");
+        return confirmed();
+    }
+
+    /**
+     * E02/E03: confirmação de ação sensível da própria conta. Exige sessão completa, CSRF e, para
+     * Administrador, um código novo do autenticador — que consome o contador e **não** rotaciona a
+     * sessão, diferente de `verify` (jornada de entrada). Sem sessão, nada é concedido.
+     */
+    @Transactional public Reply requireConfirmation(String token,String csrf,String code) {
+        var s=session(token);
+        if(s==null) return error(401,"SESSION_REQUIRED","Sessão ausente ou expirada.");
+        if(!validCsrf(s.token(),csrf)) return error(403,"CSRF_REQUIRED","Recarregue a sessão e tente novamente.");
+        if(!s.role().equals("ADMIN")) return confirmed();
+        if(!limit("mfa:"+s.account(),settings.mfaAttempts(),Duration.ofMinutes(5))) {
+            audit(s.account(),"MFA","LIMITED");return error(429,"ACCESS_LIMITED","Limite local atingido. Tente mais tarde.");
+        }
+        long accepted=acceptTotp(s.account(),code);
+        if(accepted<0) { audit(s.account(),"MFA","DENIED");return error(401,"INVALID_MFA","Código inválido, expirado ou já utilizado."); }
+        jdbc.update("UPDATE local_accounts SET mfa_counter=? WHERE id=?",accepted,s.account());
+        audit(s.account(),"MFA","VERIFIED");
+        return confirmed();
+    }
+    /**
+     * Valida um código TOTP novo da conta (janela ±1; o contador deve avançar) e devolve o contador
+     * aceito, ou −1 quando a conta não tem fator, o formato é inválido ou nenhuma janela casa.
+     * Caminho comum de `verify` (entrada) e `requireConfirmation` (ação sensível) para evitar drift.
+     */
+    private long acceptTotp(UUID account,String code) {
+        var row=jdbc.queryForMap("SELECT mfa_secret,mfa_counter FROM local_accounts WHERE id=?",account);
+        if(row.get("mfa_secret")==null||code==null||!code.matches("[0-9]{6}")) return -1;
+        byte[] secret=vault.decrypt((String)row.get("mfa_secret"),account);
+        long accepted=-1;
+        long current=clock.instant().getEpochSecond()/30;
+        for(long counter=current-1;counter<=current+1;counter++)
+            if(counter>((Number)row.get("mfa_counter")).longValue()&&MessageDigest.isEqual(Totp.code(secret,counter).getBytes(StandardCharsets.US_ASCII),code.getBytes(StandardCharsets.US_ASCII))) accepted=counter;
+        Arrays.fill(secret,(byte)0);
+        return accepted;
+    }
+    private static Reply confirmed() {
+        return new Reply(200,Map.of("code","CONFIRMED","message","Confirmação aceita."),null);
     }
 }

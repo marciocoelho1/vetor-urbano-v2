@@ -11,6 +11,7 @@ import { SessionPanel } from './auth/session-panel';
 import { AuditLog } from './audit/audit-log';
 import { SourceManagement } from './sources/source-management';
 import { PublicSourceList } from './sources/public-source-list';
+import { SelfAccount } from './accounts/self-account';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   AfterViewInit,
@@ -112,7 +113,26 @@ type ModuleId = 'intelligence' | 'information' | 'territory';
 type PublicPage =
   'public-sources' | 'reliability' | 'terms' | 'privacy' | 'methodology' | 'corrections';
 type ViewId =
-  'map' | 'active' | 'history' | 'insights' | 'sources' | 'report' | 'logs' | PublicPage;
+  | 'map'
+  | 'active'
+  | 'history'
+  | 'insights'
+  | 'sources'
+  | 'report'
+  | 'logs'
+  | 'account'
+  | PublicPage;
+/** Páginas informativas que não passam pela autorização do módulo de acesso. */
+const PUBLIC_VIEWS: readonly ViewId[] = [
+  'public-sources',
+  'reliability',
+  'terms',
+  'privacy',
+  'methodology',
+  'corrections',
+];
+/** Autoatendimento da própria conta: exige sessão completa, mas não a rota `access/*`. */
+const ACCOUNT_VIEWS: readonly ViewId[] = ['account'];
 type TerritoryCode = RiskAreaCode;
 type TerritoryProperties = { n: string; f: TerritoryCode; demoDetails?: RiskAreaDetails };
 type TerritoryFeature = Feature<Polygon | MultiPolygon, TerritoryProperties> & { id: number };
@@ -435,6 +455,7 @@ interface SuspendedAdvancedFilters {
 @Component({
   imports: [
     SessionPanel,
+    SelfAccount,
     SourceManagement,
     AuditLog,
     PublicSourceList,
@@ -467,11 +488,7 @@ export class App implements AfterViewInit, OnDestroy {
   });
   protected readonly periodExplicitlyChosenInSimple = signal(false);
   protected readonly session = inject(Session);
-  protected readonly publicView = computed(() =>
-    ['public-sources', 'reliability', 'terms', 'privacy', 'methodology', 'corrections'].includes(
-      this.activeView(),
-    ),
-  );
+  protected readonly publicView = computed(() => PUBLIC_VIEWS.includes(this.activeView()));
   protected readonly moduleAllowed = computed(
     () =>
       Boolean(this.session.state()?.authenticated) &&
@@ -1694,11 +1711,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private async authorizeView(view: ViewId): Promise<void> {
-    if (
-      !['public-sources', 'reliability', 'terms', 'privacy', 'methodology', 'corrections'].includes(
-        view,
-      )
-    ) {
+    if (!PUBLIC_VIEWS.includes(view) && !ACCOUNT_VIEWS.includes(view)) {
       try {
         const reply = await this.session.request(`access/${view === 'map' ? 'query' : view}`);
         this.session.state.set(reply);

@@ -76,6 +76,16 @@
         }
       </nav>
       <div class="topbar-actions">
+        @if (session.state()?.authenticated) {
+          <button
+            type="button"
+            class="nav-link"
+            (click)="openView('account')"
+            [attr.aria-current]="activeView() === 'account' ? 'page' : null"
+          >
+            Minha conta
+          </button>
+        }
         @if (session.state()) {
           <button type="button" class="nav-link" (click)="logout()" [disabled]="session.busy()">
             Sair
@@ -2754,6 +2764,9 @@
         </section>
       }
 
+      @if (activeView() === 'account') {
+        <app-self-account />
+      }
       @if (activeView() === 'logs') {
         <app-audit-log />
       }
