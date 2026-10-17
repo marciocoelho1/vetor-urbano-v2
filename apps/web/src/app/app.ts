@@ -89,6 +89,7 @@ import {
   historyPageCount as countHistoryPages,
   historyPageRecords,
   historyQueryParameters,
+  mergeHistorySources,
   historySourcesFromRecords,
   orderHistoryRecords,
   type HistoryFilters,
@@ -541,17 +542,7 @@ export class App implements AfterViewInit, OnDestroy {
   private readonly historyResponse = signal<PersistedQueryResponse | null>(null);
   private readonly historySourceCache = signal<{ id: string; name: string }[]>([]);
   protected readonly historySourceOptions = computed(() =>
-    [
-      ...new Map(
-        [...this.availableSources(), ...this.historySourceCache()].map((source) => [
-          source.id,
-          source,
-        ]),
-      ).values(),
-    ].sort(
-      (left, right) =>
-        left.name.localeCompare(right.name, 'pt-BR') || left.id.localeCompare(right.id),
-    ),
+    mergeHistorySources(this.availableSources(), this.historySourceCache()),
   );
   private readonly historyRetry = signal(0);
   protected readonly historyLoading = signal(false);
@@ -1407,7 +1398,21 @@ export class App implements AfterViewInit, OnDestroy {
       comparable,
     };
   });
-  protected readonly playbackRecords = computed(() => this.filteredHistoryRecords());
+  protected readonly playbackRecords = computed(() => {
+    const query = normalizeSearch(this.historyFilters().text);
+    return this.allPoints()
+      .filter((point) => point.kind === 'occurrence')
+      .filter(
+        (point) =>
+          !query ||
+          normalizeSearch(
+            `${point.name} ${point.description} ${point.location} ${point.sourceId}`,
+          ).includes(query),
+      )
+      .sort(
+        (left, right) => Date.parse(right.occurredAt ?? '') - Date.parse(left.occurredAt ?? ''),
+      );
+  });
   protected readonly currentPlaybackRecord = computed(
     () => this.playbackRecords()[this.playbackIndex()] ?? null,
   );
@@ -1553,12 +1558,9 @@ export class App implements AfterViewInit, OnDestroy {
           .then((response) => {
             if (abort.signal.aborted) return;
             this.historySourceCache.update((sources) =>
-              historySourcesFromRecords([...response.items, ...response.relatedItems]).reduce(
-                (all, source) => {
-                  if (!all.some((item) => item.id === source.id)) all.push(source);
-                  return all;
-                },
-                [...sources],
+              mergeHistorySources(
+                sources,
+                historySourcesFromRecords([...response.items, ...response.relatedItems]),
               ),
             );
             this.historyResponse.set(response);
@@ -1911,7 +1913,15 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected setHistoryPage(page: number): void {
-    this.historyPage.set(Math.max(1, Math.min(page, this.historyPageCount())));
+    const nextPage = Math.max(1, Math.min(page, this.historyPageCount()));
+    const focusedControl = (document.activeElement as HTMLElement | null)?.dataset['testid'];
+    this.historyPage.set(nextPage);
+    const focusedControlBecomesDisabled =
+      (focusedControl === 'history-previous-page' && nextPage === 1) ||
+      (focusedControl === 'history-next-page' && nextPage === this.historyPageCount());
+    if (focusedControlBecomesDisabled) {
+      setTimeout(() => document.getElementById('history-page-status')?.focus());
+    }
   }
 
   private updateHistoryFilters(update: Partial<HistoryFilters>): void {

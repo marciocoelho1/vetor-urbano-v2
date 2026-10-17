@@ -3,6 +3,7 @@ import type { DemoRecord } from '../domain/occurrences';
 import {
   HISTORY_PAGE_SIZE,
   filterHistoryRecords,
+  mergeHistorySources,
   historySourcesFromRecords,
   historyPageCount,
   historyPageRecords,
@@ -33,6 +34,25 @@ describe('consulta do Histórico avançado', () => {
     expect(sources).toEqual([
       { id: 'source-a', name: 'Fonte A' },
       { id: 'source-b', name: 'Fonte B' },
+    ]);
+  });
+
+  it('combina fontes atuais e observadas no histórico por ID em ordem estável', () => {
+    expect(
+      mergeHistorySources(
+        [
+          { id: 'source-z', name: 'Fonte Beta' },
+          { id: 'source-a', name: 'Fonte Beta' },
+        ],
+        [
+          { id: 'source-z', name: 'Fonte Beta' },
+          { id: 'source-b', name: 'Fonte Alfa' },
+        ],
+      ),
+    ).toEqual([
+      { id: 'source-b', name: 'Fonte Alfa' },
+      { id: 'source-a', name: 'Fonte Beta' },
+      { id: 'source-z', name: 'Fonte Beta' },
     ]);
   });
 

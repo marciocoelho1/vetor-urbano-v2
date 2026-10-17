@@ -17,16 +17,15 @@ public class OccurrenceQueryService {
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public OccurrenceQueryResponse find(OccurrenceQuery query) {
-        return find(query, false);
+        return toResponse(query, repository.find(query));
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public OccurrenceQueryResponse findHistory(OccurrenceQuery query) {
-        return find(query, true);
+        return toResponse(query, repository.findHistory(query));
     }
 
-    private OccurrenceQueryResponse find(OccurrenceQuery query, boolean historyOrder) {
-        var records = historyOrder ? repository.findHistory(query) : repository.find(query);
+    private OccurrenceQueryResponse toResponse(OccurrenceQuery query, List<OccurrenceRecord> records) {
         var uniqueHappenings = new HashSet<String>();
         long mapped = 0;
         long certain = 0;

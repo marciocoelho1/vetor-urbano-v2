@@ -21,21 +21,20 @@ public class OccurrenceQueryController {
 
     @GetMapping("/occurrences")
     public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
-        var query=parser.parse(parameters);
-        return find(query, request, false);
+        var query = parser.parse(parameters);
+        return auditAndReturn(query, service.find(query), request);
     }
 
     @GetMapping("/history/occurrences")
     public OccurrenceQueryResponse findHistory(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
-        var query=parser.parseHistory(parameters);
-        return find(query, request, true);
+        var query = parser.parseHistory(parameters);
+        return auditAndReturn(query, service.findHistory(query), request);
     }
 
-    private OccurrenceQueryResponse find(
+    private OccurrenceQueryResponse auditAndReturn(
             OccurrenceQuery query,
-            jakarta.servlet.http.HttpServletRequest request,
-            boolean historyOrder) {
-        var result = historyOrder ? service.findHistory(query) : service.find(query);
+            OccurrenceQueryResponse result,
+            jakarta.servlet.http.HttpServletRequest request) {
         auth.getObject().auditQuery(
                 java.util.UUID.fromString((String) request.getAttribute("vu.account")),
                 query,

@@ -150,8 +150,8 @@ test('histórico completo: snapshot paginado, critérios combinados, estados e t
   const nextPage = page.getByTestId('history-next-page');
   await nextPage.focus();
   await page.keyboard.press('Enter');
-  await expect(nextPage).toBeFocused();
   await expect(pageStatus).toHaveText('Página 2 de 2 · 29 registros');
+  await expect(pageStatus).toBeFocused();
   await expect(records).toHaveCount(4);
   const secondPageIds = await records.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute('data-history-record-id')!),
@@ -161,8 +161,8 @@ test('histórico completo: snapshot paginado, critérios combinados, estados e t
   const previousPage = page.getByTestId('history-previous-page');
   await previousPage.focus();
   await page.keyboard.press('Enter');
-  await expect(previousPage).toBeFocused();
   await expect(pageStatus).toHaveText('Página 1 de 2 · 29 registros');
+  await expect(pageStatus).toBeFocused();
 
   await page.getByTestId('history-text-filter').fill(`${fixturePrefix}tie-`);
   await expect(pageStatus).toHaveText('Página 1 de 1 · 2 registros');

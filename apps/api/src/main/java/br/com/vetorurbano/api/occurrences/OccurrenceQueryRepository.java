@@ -15,6 +15,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class OccurrenceQueryRepository {
+    private enum ResultOrder {
+        STANDARD,
+        HISTORY
+    }
+
     private static final String SELECT_SQL = """
             SELECT
                 o.id,
@@ -97,14 +102,14 @@ public class OccurrenceQueryRepository {
     }
 
     public List<OccurrenceRecord> find(OccurrenceQuery query) {
-        return find(query, false);
+        return find(query, ResultOrder.STANDARD);
     }
 
     public List<OccurrenceRecord> findHistory(OccurrenceQuery query) {
-        return find(query, true);
+        return find(query, ResultOrder.HISTORY);
     }
 
-    private List<OccurrenceRecord> find(OccurrenceQuery query, boolean historyOrder) {
+    private List<OccurrenceRecord> find(OccurrenceQuery query, ResultOrder resultOrder) {
         var parameters = new MapSqlParameterSource()
                 .addValue("withoutPeriod", query.periodStart() == null)
                 .addValue("periodStart", query.periodStart() == null ? null : Timestamp.from(query.periodStart()), java.sql.Types.TIMESTAMP)
@@ -196,7 +201,7 @@ public class OccurrenceQueryRepository {
         }
         parameters.addValue("timeStart", query.timeStart()).addValue("timeEnd", query.timeEnd());
 
-        if (historyOrder) {
+        if (resultOrder == ResultOrder.HISTORY) {
             sql.append(" ORDER BY COALESCE(o.occurred_at, o.occurred_until) DESC NULLS LAST, o.id DESC");
         } else {
             sql.append(" ORDER BY COALESCE(o.occurred_at, o.occurred_from) DESC, o.id");

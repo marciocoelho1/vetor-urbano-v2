@@ -2126,7 +2126,12 @@
               >
                 Página anterior
               </button>
-              <span data-testid="history-page-status" aria-live="polite">
+              <span
+                id="history-page-status"
+                data-testid="history-page-status"
+                tabindex="-1"
+                aria-live="polite"
+              >
                 Página {{ historyPage() }} de {{ historyPageCount() }} ·
                 {{ historyTotal() }} registros
               </span>

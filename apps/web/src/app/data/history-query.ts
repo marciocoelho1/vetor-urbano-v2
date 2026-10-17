@@ -5,18 +5,31 @@ import type { Situation } from '../domain/temporal';
 
 export const HISTORY_PAGE_SIZE = 25;
 
-export function historySourcesFromRecords(
-  records: readonly {
-    clippings: readonly { source: { id: string; name: string } }[];
-  }[],
-): { id: string; name: string }[] {
-  const sources = new Map<string, { id: string; name: string }>();
-  for (const record of records) {
-    for (const clipping of record.clippings) sources.set(clipping.source.id, clipping.source);
+export interface HistorySourceOption {
+  id: string;
+  name: string;
+}
+
+export function mergeHistorySources(
+  ...groups: (readonly HistorySourceOption[])[]
+): HistorySourceOption[] {
+  const sources = new Map<string, HistorySourceOption>();
+  for (const group of groups) {
+    for (const source of group) sources.set(source.id, source);
   }
   return [...sources.values()].sort(
     (left, right) =>
       left.name.localeCompare(right.name, 'pt-BR') || left.id.localeCompare(right.id),
+  );
+}
+
+export function historySourcesFromRecords(
+  records: readonly {
+    clippings: readonly { source: { id: string; name: string } }[];
+  }[],
+): HistorySourceOption[] {
+  return mergeHistorySources(
+    ...records.map((record) => record.clippings.map((clip) => clip.source)),
   );
 }
 
