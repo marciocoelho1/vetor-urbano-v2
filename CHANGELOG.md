@@ -2,7 +2,7 @@
 
 ## Seleção local 30 → 31 — 17/10/2026
 
-- Ticket 31: comparação explícita de snapshots A/B, distribuições, variação, duração e médias somente com precisão suficiente. Cobertura desconhecida e base zero identificadas. Em verificação local sintética.
+- Ticket 31: comparação explícita de snapshots A/B, distribuições, variação, duração e médias somente com precisão suficiente. Cobertura desconhecida e base zero identificadas. Verificado localmente com dados sintéticos, incluindo base zero, precisão temporal e duração curta.
 
 - Ticket 30: síntese determinística do snapshot de Relatórios, com distribuições, certeza temporal e limites de cobertura/precisão. Verificado localmente com dados sintéticos e revisão Standards + Spec.
 
