@@ -77,6 +77,7 @@ import {
 import { SOURCE_PLACEHOLDER, SYNTHETIC_PUBLIC_SOURCES } from './data/demo-sources';
 import {
   fetchPersistedQuery,
+  fetchPersistedReportQuery,
   isLocalPersistedQuery,
   persistedQueryParameters,
   persistedRecord,
@@ -114,6 +115,18 @@ type DemoPoint = DemoRecord & {
 
 type MappedDemoPoint = DemoPoint & {
   coordinates: Coordinates;
+};
+
+type ReportSnapshot = {
+  generatedAt: string;
+  filters: LocalFilters;
+  items: DemoPoint[];
+  counts: {
+    occurrences: number;
+    happenings: number;
+    mappedOccurrences: number;
+    listOnlyOccurrences: number;
+  };
 };
 
 type SavedSearch = {
@@ -307,6 +320,55 @@ function normalizeSearch(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+}
+
+function cloneLocalFilters(filters: LocalFilters): LocalFilters {
+  return {
+    ...filters,
+    categories: filters.categories ? [...filters.categories] : undefined,
+    groups: filters.groups ? [...filters.groups] : undefined,
+    crimes: filters.crimes ? [...filters.crimes] : undefined,
+    types: filters.types ? [...filters.types] : undefined,
+    subtypes: filters.subtypes ? [...filters.subtypes] : undefined,
+    sources: filters.sources ? [...filters.sources] : undefined,
+    poiTypes: filters.poiTypes ? [...filters.poiTypes] : undefined,
+    operationalStatuses: filters.operationalStatuses ? [...filters.operationalStatuses] : undefined,
+    situations: filters.situations ? [...filters.situations] : undefined,
+    municipalities: filters.municipalities ? [...filters.municipalities] : undefined,
+    neighborhoods: filters.neighborhoods ? [...filters.neighborhoods] : undefined,
+    start: filters.start ? new Date(filters.start) : undefined,
+    end: filters.end ? new Date(filters.end) : undefined,
+    center: filters.center ? ([...filters.center] as Coordinates) : undefined,
+    bounds: filters.bounds ? ([...filters.bounds] as QueryBounds) : undefined,
+  };
+}
+
+function reportFilterKey(filters: LocalFilters): string {
+  const sorted = (values?: string[]): string[] | undefined => values && [...values].sort();
+  return JSON.stringify({
+    categories: sorted(filters.categories),
+    groups: sorted(filters.groups),
+    crimes: sorted(filters.crimes),
+    types: sorted(filters.types),
+    subtypes: sorted(filters.subtypes),
+    sources: sorted(filters.sources),
+    textQuery: filters.textQuery ?? null,
+    minScore: filters.minScore ?? null,
+    maxScore: filters.maxScore ?? null,
+    poiTypes: sorted(filters.poiTypes),
+    exclusivePois: filters.exclusivePois ?? null,
+    operationalStatuses: sorted(filters.operationalStatuses),
+    situations: sorted(filters.situations),
+    start: filters.start?.toISOString() ?? null,
+    end: filters.end?.toISOString() ?? null,
+    timeStart: filters.timeStart ?? null,
+    timeEnd: filters.timeEnd ?? null,
+    center: filters.center ?? null,
+    radiusMeters: filters.radiusMeters ?? null,
+    municipalities: sorted(filters.municipalities),
+    neighborhoods: sorted(filters.neighborhoods),
+    bounds: filters.bounds ?? null,
+  });
 }
 
 const CATEGORIES: { id: Category; label: string; icon: string }[] = [
@@ -539,6 +601,12 @@ export class App implements AfterViewInit, OnDestroy {
   );
   protected readonly territoryStatus = signal<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   protected readonly reportStatus = signal('');
+  protected readonly reportQueryFilters = signal<LocalFilters | null>(null);
+  protected readonly reportSnapshot = signal<ReportSnapshot | null>(null);
+  protected readonly pendingReportTransfer = signal<LocalFilters | null>(null);
+  protected readonly reportQueryLoading = signal(false);
+  protected readonly reportQueryError = signal('');
+  private reportQueryAbort: AbortController | undefined;
   protected readonly categoryChangeNotice = signal('');
   protected readonly pointConfirmed = signal(false);
   protected readonly reportMapStatus = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -1420,6 +1488,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.reportQueryAbort?.abort();
     if (this.mapRefreshFrame !== undefined) cancelAnimationFrame(this.mapRefreshFrame);
     this.mapResizeObserver?.disconnect();
     if (this.playbackTimer) clearInterval(this.playbackTimer);
@@ -2869,6 +2938,148 @@ export class App implements AfterViewInit, OnDestroy {
     this.playbackIndex.set(Number.isFinite(index) ? index : 0);
     const record = this.currentPlaybackRecord();
     if (record) this.focusPoint(record);
+  }
+
+  protected generateReportFromMap(): void {
+    const filters = this.queryFilters();
+    if (!filters) {
+      this.reportQueryError.set('Revise o período, o raio e a faixa de nota antes de gerar.');
+      return;
+    }
+    const mapFilters = cloneLocalFilters(filters);
+    const currentFilters = this.reportQueryFilters();
+    if (currentFilters && reportFilterKey(currentFilters) !== reportFilterKey(mapFilters)) {
+      this.pendingReportTransfer.set(mapFilters);
+      this.reportQueryError.set('');
+      return;
+    }
+    void this.generateReportSnapshot(mapFilters);
+  }
+
+  protected keepReportConfiguration(): void {
+    this.pendingReportTransfer.set(null);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('[data-testid="report-generate-from-map"]')?.focus(),
+    );
+  }
+
+  protected replaceReportConfiguration(): void {
+    const replacement = this.pendingReportTransfer();
+    if (!replacement) return;
+    const filters = cloneLocalFilters(replacement);
+    this.pendingReportTransfer.set(null);
+    requestAnimationFrame(() => document.getElementById('report-snapshot-heading')?.focus());
+    void this.generateReportSnapshot(filters);
+  }
+
+  protected refreshReportSnapshot(): void {
+    const filters = this.reportQueryFilters();
+    if (filters) void this.generateReportSnapshot(filters);
+  }
+
+  protected reportFilterSummaryFor(filters: LocalFilters): string {
+    const labels: string[] = [];
+    for (const category of filters.categories ?? []) {
+      labels.push(`Pilar: ${reportValueLabel(category)}`);
+    }
+    for (const type of filters.types ?? []) {
+      labels.push(
+        `Tipo: ${OCCURRENCE_CATALOGUE.find((entry) => entry.id === type)?.label ?? type}`,
+      );
+    }
+    for (const subtype of filters.subtypes ?? []) labels.push(`Subtipo: ${subtype}`);
+    for (const municipality of filters.municipalities ?? [])
+      labels.push(`Município: ${municipality}`);
+    for (const neighborhood of filters.neighborhoods ?? []) labels.push(`Bairro: ${neighborhood}`);
+    for (const sourceId of filters.sources ?? []) {
+      const source = this.availableSources().find((item) => item.id === sourceId);
+      labels.push(`Fonte: ${source?.name ?? sourceId}`);
+    }
+    for (const situation of filters.situations ?? []) {
+      labels.push(
+        `Situação: ${this.situationOptions.find((item) => item.id === situation)?.label ?? situation}`,
+      );
+    }
+    if (filters.start) labels.push(`De: ${this.formatDateTime(filters.start.toISOString())}`);
+    if (filters.end)
+      labels.push(`Até (exclusivo): ${this.formatDateTime(filters.end.toISOString())}`);
+    if (filters.timeStart || filters.timeEnd) {
+      labels.push(`Horário: ${filters.timeStart || '00:00'}–${filters.timeEnd || '23:59'}`);
+    }
+    if (filters.minScore !== undefined || filters.maxScore !== undefined) {
+      labels.push(`Confiabilidade: ${filters.minScore ?? 1}–${filters.maxScore ?? 5}`);
+    }
+    if (filters.textQuery) labels.push(`Busca: ${filters.textQuery}`);
+    if (filters.center && filters.radiusMeters !== undefined) {
+      labels.push(
+        `Raio de ${filters.radiusMeters} m em ${filters.center[0]}, ${filters.center[1]}`,
+      );
+    }
+    if (filters.bounds) labels.push(`Área visível aplicada: ${filters.bounds.join(', ')}`);
+    return labels.join(' · ') || 'Todas as ocorrências publicadas';
+  }
+
+  private async generateReportSnapshot(filters: LocalFilters): Promise<void> {
+    this.reportQueryAbort?.abort();
+    const controller = new AbortController();
+    this.reportQueryAbort = controller;
+    const savedFilters = cloneLocalFilters(filters);
+    this.reportQueryLoading.set(true);
+    this.reportQueryError.set('');
+
+    try {
+      if (this.persistedQueryEnabled) {
+        const response = await fetchPersistedReportQuery(
+          persistedQueryParameters(savedFilters),
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        const items = response.items.map(persistedRecord);
+        this.reportSnapshot.set({
+          generatedAt: response.generatedAt,
+          filters: savedFilters,
+          items,
+          counts: {
+            occurrences: response.counts.occurrences,
+            happenings: response.counts.happenings,
+            mappedOccurrences: response.counts.mappedOccurrences,
+            listOnlyOccurrences: response.counts.listOnlyOccurrences,
+          },
+        });
+      } else {
+        const items = filterRecords(this.allPoints(), savedFilters).filter(
+          (point) =>
+            point.kind === 'occurrence' &&
+            (!point.publicationStatus || point.publicationStatus === 'PUBLISHED'),
+        );
+        const happenings = new Set(items.map((item) => item.happeningId ?? item.id));
+        const mappedOccurrences = items.filter(isMappedRecord).length;
+        if (controller.signal.aborted) return;
+        this.reportSnapshot.set({
+          generatedAt: new Date().toISOString(),
+          filters: savedFilters,
+          items,
+          counts: {
+            occurrences: items.length,
+            happenings: happenings.size,
+            mappedOccurrences,
+            listOnlyOccurrences: items.length - mappedOccurrences,
+          },
+        });
+      }
+      this.reportQueryFilters.set(savedFilters);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        this.reportQueryError.set(
+          error instanceof Error ? error.message : 'Não foi possível gerar o relatório.',
+        );
+      }
+    } finally {
+      if (this.reportQueryAbort === controller) {
+        this.reportQueryAbort = undefined;
+        this.reportQueryLoading.set(false);
+      }
+    }
   }
 
   protected saveCurrentSearchFromInsights(): void {

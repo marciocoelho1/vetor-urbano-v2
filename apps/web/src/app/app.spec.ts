@@ -1789,4 +1789,42 @@ describe('Vetor Urbano', () => {
     fixture.detectChanges();
     expect(app.queryError()).toBe(false);
   });
+
+  it('preserva o recorte de relatório gerado enquanto os filtros do mapa mudam', async () => {
+    const navButton = (label: string): HTMLButtonElement => {
+      const button = [...fixture.nativeElement.querySelectorAll('nav button')].find(
+        (candidate) => candidate.textContent?.trim() === label,
+      );
+      if (!button) throw new Error(`Navegação ausente: ${label}`);
+      return button;
+    };
+
+    navButton('Relatórios').click();
+    await Promise.resolve();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[data-testid="report-generate-from-map"]')?.click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const counts = fixture.nativeElement.querySelector(
+      '[data-testid="report-snapshot-counts"]',
+    ) as HTMLElement | null;
+    expect(counts).not.toBeNull();
+    const generatedCounts = counts?.textContent;
+
+    navButton('Mapa público').click();
+    await Promise.resolve();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[data-quick-category="CONTINGENCIA"]')?.click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[data-quick-category="SEGURANCA"]')?.click();
+    fixture.detectChanges();
+    navButton('Relatórios').click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="report-snapshot-counts"]')?.textContent,
+    ).toBe(generatedCounts);
+  });
 });

@@ -140,17 +140,26 @@ public class AuthService {
         jdbc.update("UPDATE local_sessions SET revoked_at=? WHERE token_hash=?",now(),hash(token));
         audit(s.account(),"MFA","VERIFIED");return issue(s.account(),"ADMIN",true,true);
     }
-    @Transactional public void auditQuery(UUID account,br.com.vetorurbano.api.occurrences.OccurrenceQuery query) {
+    @Transactional public void auditQuery(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
+        auditUsage(account, "CONSULTATION", query, counts);
+    }
+    @Transactional public void auditReportGeneration(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
+        auditUsage(account, "REPORT_GENERATION", query, counts);
+    }
+    private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
         var parameters=new LinkedHashMap<String,Object>();
         parameters.put("periodStart",query.periodStart()==null?null:query.periodStart().toString());parameters.put("periodEnd",query.periodEnd()==null?null:query.periodEnd().toString());
         parameters.put("categories",query.categories());parameters.put("types",query.types());parameters.put("subtypes",query.subtypes());
         parameters.put("municipalities",query.municipalities());parameters.put("neighborhoods",query.neighborhoods());parameters.put("sourceIds",query.sourceIds());
         parameters.put("situations",query.situations());parameters.put("hasText",query.text()!=null&&!query.text().isBlank());
         parameters.put("minReliability",query.minReliability());parameters.put("maxReliability",query.maxReliability());
-        parameters.put("center",query.center());parameters.put("radiusMeters",query.radiusMeters());parameters.put("bounds",query.bounds());
-        parameters.put("timeStart",query.timeStart());parameters.put("timeEnd",query.timeEnd());
+        parameters.put("hasSpatialFilter",query.center()!=null||!query.bounds().isEmpty());
+        parameters.put("occurrences",counts.occurrences());parameters.put("happenings",counts.happenings());
         String json=tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(parameters);
-        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?,'query','CONSULTATION','SUCCEEDED',?::jsonb)",account,now(),json);
+        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?, 'query',?,'SUCCEEDED',?::jsonb)",account,now(),action,json);
     }
     /** Ticket 15 must call this within the password-change transaction. No public endpoint. */
     @Transactional public void revokeAll(UUID account) {

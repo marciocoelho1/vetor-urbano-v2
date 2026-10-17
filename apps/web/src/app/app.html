@@ -1948,19 +1948,156 @@
         <section class="workspace-view" aria-labelledby="insights-heading">
           <header class="page-header">
             <div>
-              <p class="eyebrow">Análise local · mesmos filtros do mapa</p>
+              <p class="eyebrow">Análise e Inteligência</p>
               <h1 id="insights-heading" data-view-title="insights" tabindex="-1">
                 Relatórios e comparações
               </h1>
               <p class="page-intro">
-                Eventos pontuais e estatísticas agregadas aparecem em blocos separados; os gráficos
-                de demonstração são sintéticos.
+                O relatório mantém seu próprio recorte e muda somente quando você gera ou atualiza.
               </p>
             </div>
             <button class="heatmap-button" type="button" (click)="exportXlsx()">
               Exportar XLSX
             </button>
           </header>
+          <section
+            class="workspace-card report-snapshot-card"
+            aria-labelledby="report-snapshot-heading"
+            [attr.aria-busy]="reportQueryLoading()"
+          >
+            <div class="section-heading">
+              <div>
+                <span class="step-number">R</span>
+                <div>
+                  <h2 id="report-snapshot-heading" tabindex="-1">Relatório do recorte</h2>
+                  <p>
+                    Gerar copia os filtros atuais do mapa. Mudanças posteriores no mapa não alteram
+                    este resultado.
+                  </p>
+                </div>
+              </div>
+              <div class="report-snapshot-actions">
+                <button
+                  type="button"
+                  class="heatmap-button"
+                  data-testid="report-generate-from-map"
+                  (click)="generateReportFromMap()"
+                  [disabled]="reportQueryLoading()"
+                >
+                  Gerar relatório a partir do mapa
+                </button>
+                @if (reportQueryFilters()) {
+                  <button
+                    type="button"
+                    class="map-tool-button"
+                    data-testid="report-refresh"
+                    (click)="refreshReportSnapshot()"
+                    [disabled]="reportQueryLoading()"
+                  >
+                    Atualizar relatório
+                  </button>
+                }
+              </div>
+            </div>
+            <p class="query-note" data-testid="report-data-origin">
+              @if (persistedQueryEnabled) {
+                Dados sintéticos persistidos no ambiente local; sem coleta real ou validação
+                operacional.
+              } @else {
+                Demonstração local com dados fictícios; sem persistência ou validação operacional.
+              }
+            </p>
+            @if (pendingReportTransfer()) {
+              <div
+                class="report-transfer-choice"
+                role="group"
+                aria-label="Configuração do relatório"
+              >
+                <p>O recorte do mapa difere do relatório. Escolha como continuar.</p>
+                <button
+                  type="button"
+                  class="heatmap-button"
+                  data-testid="report-transfer-replace"
+                  (click)="replaceReportConfiguration()"
+                >
+                  Substituir configuração e gerar
+                </button>
+                <button
+                  type="button"
+                  class="map-tool-button"
+                  data-testid="report-transfer-keep"
+                  (click)="keepReportConfiguration()"
+                >
+                  Manter este relatório
+                </button>
+              </div>
+            }
+            @if (reportQueryLoading()) {
+              <p class="query-note" role="status" data-testid="report-loading">
+                Gerando relatório com o recorte escolhido…
+              </p>
+            }
+            @if (reportQueryError()) {
+              <p class="query-error" role="alert" data-testid="report-error">
+                {{ reportQueryError() }}
+              </p>
+            }
+            @if (reportSnapshot(); as snapshot) {
+              <div class="report-snapshot-result">
+                <p class="query-note">
+                  Gerado em
+                  <time data-testid="report-generated-at">{{
+                    formatDateTime(snapshot.generatedAt)
+                  }}</time>
+                </p>
+                <p class="report-snapshot-counts" data-testid="report-snapshot-counts">
+                  {{ snapshot.counts.occurrences }} ocorrências ·
+                  {{ snapshot.counts.happenings }} acontecimentos
+                </p>
+                <p class="query-note">
+                  {{ snapshot.counts.mappedOccurrences }} mapeadas ·
+                  {{ snapshot.counts.listOnlyOccurrences }} apenas em lista
+                </p>
+                <p class="query-note">
+                  Filtros do relatório: {{ reportFilterSummaryFor(snapshot.filters) }}
+                </p>
+                <ol class="report-snapshot-list" aria-label="Ocorrências deste relatório">
+                  @for (point of snapshot.items; track point.id) {
+                    <li>
+                      <strong>{{ point.name }}</strong>
+                      <span
+                        >{{ recordTypeLabel(point) }} · {{ situationLabel(point.situation) }}</span
+                      >
+                      <span>{{ point.location || 'Território não informado' }}</span>
+                      <time>{{ formatFactTime(point) }}</time>
+                      <span>{{ point.references?.length ?? 0 }} referências</span>
+                    </li>
+                  }
+                </ol>
+                @if (snapshot.counts.occurrences === 0) {
+                  <div class="workspace-empty" data-testid="report-empty">
+                    <strong>Nenhuma ocorrência publicada neste recorte.</strong>
+                    <span>Altere os filtros no mapa e gere o relatório novamente.</span>
+                  </div>
+                }
+              </div>
+            } @else if (!reportQueryLoading() && !reportQueryError()) {
+              <div class="workspace-empty" data-testid="report-not-generated">
+                <strong>Nenhum relatório gerado nesta sessão.</strong>
+                <span
+                  >Gere a partir dos filtros explícitos do mapa para registrar o recorte e o
+                  momento.</span
+                >
+              </div>
+            }
+          </section>
+          <section class="workspace-card report-demo-notice">
+            <h2>Painéis demonstrativos</h2>
+            <p>
+              Os painéis abaixo usam os filtros atuais do mapa ou dados fictícios importados; eles
+              não fazem parte do relatório gerado acima.
+            </p>
+          </section>
           <div class="workspace-metrics">
             <article>
               <span>Eventos na consulta</span><strong>{{ eventCount() }}</strong

@@ -87,6 +87,81 @@ class OccurrenceQueryHttpIT {
     }
 
     @Test
+    void reportQueryRequiresSessionReturnsPersistedResultsAndAuditsOnlyApprovedMetadata() throws Exception {
+        String auditParameters;
+        long auditId;
+        try (var application = startApi()) {
+            var anonymous = getReportWithoutSession(application, allDefaultWindow());
+            assertEquals(401, anonymous.statusCode());
+            assertFalse(anonymous.body().contains("counts"));
+
+            var response = getReport(application, allDefaultWindow()
+                    + "&text=COLISAO"
+                    + "&category=TRANSITO"
+                    + "&municipality=Rio%20de%20Janeiro"
+                    + "&longitude=-43.1915&latitude=-22.9033&radiusMeters=1000"
+                    + "&west=-43.20&south=-22.91&east=-43.17&north=-22.90");
+            assertEquals(200, response.statusCode());
+            var result = JSON.readTree(response.body());
+            assertEquals(1, result.path("counts").path("occurrences").asInt());
+            assertEquals("vu-demo-occurrence-traffic-001", result.path("items").get(0).path("id").asString());
+
+            var auditRow = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForMap(
+                            "SELECT id, parameters::text AS parameters FROM auth_audit_events WHERE action='REPORT_GENERATION' ORDER BY id DESC LIMIT 1");
+            auditId = ((Number) auditRow.get("id")).longValue();
+            auditParameters = (String) auditRow.get("parameters");
+
+            var initialSnapshot = JSON.readTree(getReport(application, allDefaultWindow()).body());
+            assertEquals(4, initialSnapshot.path("counts").path("occurrences").asInt());
+            var jdbc = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            jdbc.update("INSERT INTO happenings (id, title, description) VALUES (?, ?, ?)",
+                    "vu-report-refresh-happening", "Acontecimento de atualização",
+                    "Criado somente pelo teste de atualização explícita.");
+            try {
+                jdbc.update("""
+                        INSERT INTO occurrences (
+                            id, happening_id, title, description, category, occurrence_type, subtype,
+                            situation, reliability_score, municipality, neighborhood, location_precision,
+                            location, occurred_at, occurred_from, occurred_until, publication_status
+                        ) VALUES (
+                            'vu-report-refresh-occurrence', 'vu-report-refresh-happening',
+                            'Nova ocorrência sintética', 'Criada pelo teste para conferir Atualizar relatório.',
+                            'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3,
+                            'Rio de Janeiro', 'Centro', 'POINT',
+                            ST_SetSRID(ST_MakePoint(-43.19, -22.90), 4326)::GEOGRAPHY,
+                            '2026-10-15T12:00:00Z', NULL, NULL, 'PUBLISHED'
+                        )
+                        """);
+                var refreshedSnapshot = JSON.readTree(getReport(application, allDefaultWindow()).body());
+                assertEquals(5, refreshedSnapshot.path("counts").path("occurrences").asInt());
+                assertEquals(3, refreshedSnapshot.path("counts").path("happenings").asInt());
+            } finally {
+                jdbc.update("DELETE FROM occurrences WHERE id = ?", "vu-report-refresh-occurrence");
+                jdbc.update("DELETE FROM happenings WHERE id = ?", "vu-report-refresh-happening");
+            }
+        }
+
+        try (var restarted = startApi()) {
+            var audit = JSON.readTree(auditParameters);
+            assertTrue(audit.path("hasText").asBoolean());
+            assertTrue(audit.path("hasSpatialFilter").asBoolean());
+            assertEquals("Rio de Janeiro", audit.path("municipalities").get(0).asString());
+            assertEquals(1, audit.path("occurrences").asInt());
+            assertEquals(1, audit.path("happenings").asInt());
+            assertFalse(audit.has("text"));
+            assertFalse(auditParameters.contains("COLISAO"));
+            assertFalse(audit.has("center"));
+            assertFalse(audit.has("longitude"));
+            assertFalse(audit.has("latitude"));
+            assertFalse(audit.has("radiusMeters"));
+            assertFalse(audit.has("bounds"));
+            assertEquals(auditParameters, restarted.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForObject("SELECT parameters::text FROM auth_audit_events WHERE id=?", String.class, auditId));
+        }
+    }
+
+    @Test
     void httpHonorsOffsetHalfOpenIntervalsAndPostgisDistanceBoundary() throws Exception {
         try (var application = startApi()) {
             var endExclusive = get(application,
@@ -191,6 +266,45 @@ class OccurrenceQueryHttpIT {
     }
 
     @Test
+    void authenticatedReportQueryAuditsApprovedFiltersWithoutSavingSearchTextOrGeometry() throws Exception {
+        String auditParameters;
+        long auditId;
+        try (var application = startApi()) {
+            var response = get(application, allDefaultWindow()
+                    + "&text=termo-privado-sintetico"
+                    + "&category=TRANSITO"
+                    + "&municipality=Rio%20de%20Janeiro"
+                    + "&longitude=-43.1915&latitude=-22.9033&radiusMeters=1000"
+                    + "&west=-43.20&south=-22.91&east=-43.17&north=-22.90");
+
+            assertEquals(200, response.statusCode());
+            assertEquals(0, JSON.readTree(response.body()).path("counts").path("occurrences").asInt());
+
+            var auditRow = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForMap(
+                            "SELECT id, parameters::text AS parameters FROM auth_audit_events WHERE module='query' AND action='CONSULTATION' ORDER BY id DESC LIMIT 1");
+            auditId = ((Number) auditRow.get("id")).longValue();
+            auditParameters = (String) auditRow.get("parameters");
+        }
+
+        try (var restarted = startApi()) {
+            var audit = JSON.readTree(auditParameters);
+            assertTrue(audit.path("hasText").asBoolean());
+            assertEquals("Rio de Janeiro", audit.path("municipalities").get(0).asString());
+            assertTrue(audit.has("periodStart"));
+            assertFalse(audit.has("text"));
+            assertFalse(auditParameters.contains("termo-privado-sintetico"));
+            assertFalse(audit.has("center"));
+            assertFalse(audit.has("longitude"));
+            assertFalse(audit.has("latitude"));
+            assertFalse(audit.has("radiusMeters"));
+            assertFalse(audit.has("bounds"));
+            assertEquals(auditParameters, restarted.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForObject("SELECT parameters::text FROM auth_audit_events WHERE id=?", String.class, auditId));
+        }
+    }
+
+    @Test
     void invalidHttpQueriesReturnBadRequestInsteadOfAValidZero() throws Exception {
         try (var application = startApi()) {
             var response = get(application,
@@ -245,15 +359,33 @@ class OccurrenceQueryHttpIT {
     private HttpResponse<String> get(
             ConfigurableApplicationContext application,
             String query) throws Exception {
+        return getPath(application, "/api/v1/occurrences", query, true);
+    }
+
+    private HttpResponse<String> getReport(
+            ConfigurableApplicationContext application,
+            String query) throws Exception {
+        return getPath(application, "/api/v1/reports/occurrences", query, true);
+    }
+
+    private HttpResponse<String> getReportWithoutSession(
+            ConfigurableApplicationContext application,
+            String query) throws Exception {
+        return getPath(application, "/api/v1/reports/occurrences", query, false);
+    }
+
+    private HttpResponse<String> getPath(
+            ConfigurableApplicationContext application,
+            String path,
+            String query,
+            boolean authenticated) throws Exception {
         assertTrue(application instanceof WebServerApplicationContext);
         var server = ((WebServerApplicationContext) application).getWebServer();
         assertNotNull(server);
-        var uri = URI.create("http://127.0.0.1:" + server.getPort() + "/api/v1/occurrences?" + query);
-        var request = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(10))
-                .header("Cookie",sessionCookie)
-                .GET()
-                .build();
+        var uri = URI.create("http://127.0.0.1:" + server.getPort() + path + "?" + query);
+        var builder = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(10)).GET();
+        if (authenticated) builder.header("Cookie", sessionCookie);
+        var request = builder.build();
         return http.send(request, HttpResponse.BodyHandlers.ofString());
     }
 

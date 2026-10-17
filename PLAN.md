@@ -2,6 +2,10 @@
 
 Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
+## Checkpoints do lote local 29 → 28 → 33
+
+**Ticket local 29:** implementação e verificações HTTP→Java→PostgreSQL/PostGIS, Chromium e Firefox concluídas com dados sintéticos; revisão e commit deste checkpoint em andamento. `verify.sh api` isolado passou (13 unitários + 7 integrações); o modo API completo ainda falha em 15 resets preexistentes de contas/sessões por FK para `source_access_configurations`. [Evidências](docs/history/ticket-29-progress-2026-10-17.md). Depois do commit, seguir para o 28 com paginação/ordenação aprovadas pelo responsável; o 33 aguarda sua vez no lote.
+
 ## Estado e foco atual
 
 **Envio da branch — 16/10:** README atualizado com as duas contas sintéticas locais e exigência de MFA para ADMIN. Push autorizado somente de `integration/functional-spec-v1`, sem merge ou alteração da `main`; alterações locais anteriores preservadas fora deste commit. Verificação documental: `bash scripts/verify.sh planning` e `git diff --cached --check`. Próxima ação: conferir o hash remoto após o envio; credenciais dependem de provisionamento no banco local.

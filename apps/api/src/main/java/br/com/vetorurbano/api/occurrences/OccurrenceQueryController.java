@@ -23,7 +23,10 @@ public class OccurrenceQueryController {
     public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
         var query=parser.parse(parameters);
         var result=service.find(query);
-        auth.getObject().auditQuery(java.util.UUID.fromString((String)request.getAttribute("vu.account")),query);
+        auth.getObject().auditQuery(
+                java.util.UUID.fromString((String) request.getAttribute("vu.account")),
+                query,
+                result.counts());
         return result;
     }
 }

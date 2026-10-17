@@ -138,6 +138,88 @@ test('banco real: publicadas, relações, clipping, filtros e alternativa territ
   await page.screenshot({ path: testInfo.outputPath('persisted-mobile.png'), fullPage: true });
 });
 
+test('relatório conserva, substitui e atualiza explicitamente seu recorte autenticado', async ({
+  page,
+}) => {
+  const reports = page.getByRole('button', { name: 'Relatórios', exact: true });
+  await reports.click();
+  await expect(page.getByRole('heading', { name: 'Relatórios e comparações' })).toBeVisible();
+
+  const generateFromMap = page.getByRole('button', {
+    name: 'Gerar relatório a partir do mapa',
+    exact: true,
+  });
+  const reportRequest = 'http://127.0.0.1:8080/api/v1/reports/occurrences?*';
+  const delayLiveReportRequest = async (route: import('@playwright/test').Route) => {
+    await page.waitForTimeout(250);
+    await route.continue();
+  };
+  await page.route(reportRequest, delayLiveReportRequest);
+  await generateFromMap.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('report-loading')).toBeVisible();
+  const counts = page.getByTestId('report-snapshot-counts');
+  await expect(counts).toContainText('4 ocorrências');
+  await expect(counts).toContainText('2 acontecimentos');
+  const generatedAt = page.getByTestId('report-generated-at');
+  await expect(generatedAt).not.toBeEmpty();
+  const originalGeneration = await generatedAt.textContent();
+  await page.unroute(reportRequest, delayLiveReportRequest);
+
+  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.locator('[data-quick-category="CONTINGENCIA"]').click();
+  await page.locator('[data-quick-category="SEGURANCA"]').click();
+  await count(page, 1);
+  await reports.click();
+
+  await expect(counts).toContainText('4 ocorrências');
+  await expect(counts).toContainText('2 acontecimentos');
+  expect(await generatedAt.textContent()).toBe(originalGeneration);
+
+  await generateFromMap.click();
+  const keep = page.getByTestId('report-transfer-keep');
+  await expect(keep).toBeVisible();
+  await keep.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('report-transfer-keep')).toBeHidden();
+  await expect(counts).toContainText('4 ocorrências');
+  await expect(generateFromMap).toBeFocused();
+
+  await generateFromMap.click();
+  const replace = page.getByTestId('report-transfer-replace');
+  await expect(replace).toBeVisible();
+  await replace.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Relatório do recorte' })).toBeFocused();
+  await expect(counts).toContainText('1 ocorrências');
+  await expect(counts).toContainText('1 acontecimentos');
+
+  const refreshResponse = page.waitForResponse((response) =>
+    response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?'),
+  );
+  await page.getByTestId('report-refresh').click();
+  const refreshed = await refreshResponse;
+  expect(refreshed.status()).toBe(200);
+  expect((await refreshed.json()).counts.occurrences).toBe(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.report-snapshot-list > li')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('relatório diferencia um recorte vazio de falha', async ({ page }) => {
+  await openFilters(page);
+  await page.getByTestId('advanced-text-filter').fill('sem-resultado-sintetico');
+  await count(page, 0);
+  await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
+  await page.getByTestId('report-generate-from-map').click();
+
+  await expect(page.getByTestId('report-empty')).toBeVisible();
+  await expect(page.getByTestId('report-error')).toBeHidden();
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('0 ocorrências');
+  await expect(page.locator('.report-snapshot-list > li')).toHaveCount(0);
+});
+
 test('banco real: fuso, intervalo semiaberto, precisão incerta e raio geodésico', async ({
   page,
 }) => {
@@ -183,6 +265,39 @@ test('banco real: fuso, intervalo semiaberto, precisão incerta e raio geodésic
   await count(page, 1);
 });
 
+test('relatório preserva último snapshot durante 503 e recarrega após recuperação', async ({
+  page,
+}) => {
+  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
+  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
+  await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
+  await page.getByTestId('report-generate-from-map').click();
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
+  execFileSync('podman', ['pause', database!]);
+  try {
+    await page.getByTestId('report-refresh').click();
+    const failedReport = await page.waitForResponse(
+      (response) =>
+        response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?') &&
+        response.status() === 503,
+    );
+    expect(failedReport.status()).toBe(503);
+    await expect(page.getByTestId('report-error')).toBeVisible();
+    await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
+  } finally {
+    execFileSync('podman', ['unpause', database!]);
+  }
+  const recoveredReport = page.waitForResponse(
+    (response) =>
+      response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?') &&
+      response.status() === 200,
+  );
+  await page.getByTestId('report-refresh').click();
+  await recoveredReport;
+  await expect(page.getByTestId('report-error')).toBeHidden();
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
+});
+
 test('banco real: carregamento, 503 visível, recuperação e API sem conexão', async ({
   page,
 }, testInfo) => {
@@ -216,6 +331,7 @@ test('banco real: carregamento, 503 visível, recuperação e API sem conexão',
   } finally {
     await page.context().setOffline(false);
   }
-  await page.getByTestId('retry-query-btn').click();
+  await page.getByTestId('retry-query-btn').focus();
+  await page.keyboard.press('Enter');
   await count(page, 4);
 });

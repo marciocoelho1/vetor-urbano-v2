@@ -147,7 +147,22 @@ export async function fetchPersistedQuery(
   params: URLSearchParams,
   signal: AbortSignal,
 ): Promise<PersistedQueryResponse> {
-  const response = await fetch(`http://127.0.0.1:8080/api/v1/occurrences?${params}`, {
+  return fetchQueryResponse('occurrences', params, signal);
+}
+
+export async function fetchPersistedReportQuery(
+  params: URLSearchParams,
+  signal: AbortSignal,
+): Promise<PersistedQueryResponse> {
+  return fetchQueryResponse('reports/occurrences', params, signal);
+}
+
+async function fetchQueryResponse(
+  resource: string,
+  params: URLSearchParams,
+  signal: AbortSignal,
+): Promise<PersistedQueryResponse> {
+  const response = await fetch(`http://127.0.0.1:8080/api/v1/${resource}?${params}`, {
     signal,
     credentials: 'include',
     headers: { Accept: 'application/json' },

@@ -13,6 +13,8 @@ Este contrato implementa o Ticket 12 em desenvolvimento local. O banco e as quat
 
 `GET /api/v1/occurrences`
 
+`GET /api/v1/reports/occurrences` usa os mesmos filtros e resposta, inclusive ocorrências relacionadas, e exige sessão completa no servidor. Executa a consulta autenticada sobre PostGIS e devolve todos os itens do recorte na mesma leitura repetível. `generatedAt` identifica o instante da resposta. O relatório fica apenas na sessão do navegador; o servidor não persiste um relatório ou uma fotografia de filtros. A ação Atualizar faz outra leitura explícita com os filtros guardados no relatório.
+
 Filtros podem ser repetidos para alternativas do mesmo campo; campos diferentes se combinam. O cliente envia o intervalo consultado e o servidor valida todos os valores:
 
 | Parâmetro | Formato e regra |
