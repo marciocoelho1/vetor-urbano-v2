@@ -13,7 +13,9 @@ bash scripts/verify.sh web
 
 O build otimizado fica em **`apps/web/dist/web/browser/`**. Esse diretório é o artefato para um servidor de arquivos estáticos. `npm start` inicia o servidor de desenvolvimento; não é o comando de hospedagem.
 
-O frontend usa caminhos absolutos para mapas e fontes. A configuração atual espera publicação na raiz do domínio; hospedagem em subdiretório exige ajustar esses caminhos e validar o build. O servidor deve resolver a entrada da aplicação e servir JS, CSS, WOFF2 e GeoJSON com seus tipos de conteúdo corretos.
+O frontend usa caminhos absolutos para mapas e fontes. A configuração atual espera publicação na raiz do domínio; hospedagem em subdiretório exige ajustar esses caminhos e validar o build. O servidor deve resolver a entrada da aplicação e servir JS, CSS, WOFF2, TTF e GeoJSON com seus tipos de conteúdo corretos.
+
+Além dos WOFF2 da interface, `apps/web/public/fonts/manrope-pdf-regular.ttf` é a derivação estática usada somente para incorporar a fonte no PDF exportado; origem, licença e limites permanecem no [README do diretório](../../apps/web/public/fonts/README.md) e a derivação é reproduzível por `scripts/prepare-pdf-font.py`. Servi-la exige o tipo `font/ttf` correto, com o mesmo cuidado de cache dos demais assets.
 
 ## Configuração cartográfica
 

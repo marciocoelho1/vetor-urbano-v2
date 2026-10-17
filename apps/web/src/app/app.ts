@@ -149,6 +149,8 @@ type ReportSnapshot = {
     happenings: number;
     mappedOccurrences: number;
     listOnlyOccurrences: number;
+    temporallyCertain: number;
+    temporallyPossible: number;
   };
 };
 
@@ -194,6 +196,7 @@ type TerritoryGroup = {
 const RASTER_MAP_PROVIDER_URL = 'maps/raster-provider.json';
 const TERRITORY_DATA_URL = 'maps/areas-territoriais.geojson';
 const SEARCH_RADIUS_COLOR = '#C4B5FD';
+const PDF_RENDER_TIMEOUT_MS = 30_000;
 const CENTRAL_DO_BRASIL_CENTER: Coordinates = [-43.19156448029434, -22.903318808380494];
 const REPORT_VALUE_LABELS: Record<string, string> = {
   TRANSITO: 'Trânsito',
@@ -239,6 +242,21 @@ const REPORT_VALUE_LABELS: Record<string, string> = {
   EMBAIXADA: 'Embaixada ou consulado',
   ESTADIO: 'Estádio',
 };
+
+/** Entrega um arquivo gerado no navegador sem expor o conteúdo ao servidor. */
+function downloadGeneratedFile(bytes: Uint8Array, filename: string, type: string): void {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const url = URL.createObjectURL(new Blob([buffer], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 function reportValueLabel(value?: string): string {
   const text = value?.trim() ?? '';
@@ -3297,6 +3315,8 @@ export class App implements AfterViewInit, OnDestroy {
             happenings: response.counts.happenings,
             mappedOccurrences: response.counts.mappedOccurrences,
             listOnlyOccurrences: response.counts.listOnlyOccurrences,
+            temporallyCertain: response.counts.temporallyCertain,
+            temporallyPossible: response.counts.temporallyPossible,
           },
         });
       } else {
@@ -3307,6 +3327,7 @@ export class App implements AfterViewInit, OnDestroy {
         );
         const happenings = new Set(items.map((item) => item.happeningId ?? item.id));
         const mappedOccurrences = items.filter(isMappedRecord).length;
+        const summary = summarizeReport(items, savedFilters);
         if (controller.signal.aborted) return;
         this.reportSnapshot.set({
           generatedAt: new Date().toISOString(),
@@ -3317,6 +3338,8 @@ export class App implements AfterViewInit, OnDestroy {
             happenings: happenings.size,
             mappedOccurrences,
             listOnlyOccurrences: items.length - mappedOccurrences,
+            temporallyCertain: summary.certain,
+            temporallyPossible: summary.possible,
           },
         });
       }
@@ -3349,19 +3372,11 @@ export class App implements AfterViewInit, OnDestroy {
     const current = this.reportSnapshot();
     if (!current || this.pdfExportLoading()) return;
     const snapshot = structuredClone(current);
-    const summary = summarizeReport(snapshot.items, snapshot.filters);
-    const metadata = {
-      generatedAt: snapshot.generatedAt,
-      counts: {
-        ...snapshot.counts,
-        temporallyCertain: summary.certain,
-        temporallyPossible: summary.possible,
-      },
-    };
+    const metadata = { generatedAt: snapshot.generatedAt, counts: snapshot.counts };
     this.pdfExportLoading.set(true);
     this.pdfExportError.set(false);
     this.pdfExportStatus.set('Preparando PDF do relatório já gerado…');
-    let rendered = false;
+    let audited = false;
     let renderTimeout: number | undefined;
     try {
       const { createReportPdf } = await import('./data-exchange/report-pdf');
@@ -3372,31 +3387,26 @@ export class App implements AfterViewInit, OnDestroy {
             () =>
               reject(
                 new Error(
-                  'A geração do PDF excedeu 30 segundos. Nenhum arquivo foi baixado. Tente novamente.',
+                  `A geração do PDF excedeu ${PDF_RENDER_TIMEOUT_MS / 1000} segundos. Nenhum arquivo foi baixado. Tente novamente.`,
                 ),
               ),
-            30_000,
+            PDF_RENDER_TIMEOUT_MS,
           );
         }),
       ]);
-      rendered = true;
-      if (this.persistedQueryEnabled)
+      if (this.persistedQueryEnabled) {
         await recordPersistedPdfExport(
           snapshot.filters,
           { ...metadata, outcome: 'SUCCEEDED' },
           this.session.state()?.csrfToken ?? '',
         );
-      const buffer = new ArrayBuffer(bytes.byteLength);
-      new Uint8Array(buffer).set(bytes);
-      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/pdf' }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `vetor-urbano-relatorio-${snapshot.generatedAt.slice(0, 10)}.pdf`;
-      link.hidden = true;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        audited = true;
+      }
+      downloadGeneratedFile(
+        bytes,
+        `vetor-urbano-relatorio-${snapshot.generatedAt.slice(0, 10)}.pdf`,
+        'application/pdf',
+      );
       this.pdfExportStatus.set(
         this.persistedQueryEnabled
           ? 'PDF gerado e exportação registrada no servidor.'
@@ -3404,7 +3414,7 @@ export class App implements AfterViewInit, OnDestroy {
       );
     } catch (failure) {
       let auditFailure = '';
-      if (!rendered && this.persistedQueryEnabled) {
+      if (!audited && this.persistedQueryEnabled) {
         try {
           await recordPersistedPdfExport(
             snapshot.filters,
@@ -3452,20 +3462,11 @@ export class App implements AfterViewInit, OnDestroy {
       }
       const { createXlsxWorkbook } = await import('./data-exchange/xlsx-export');
       const workbook = await createXlsxWorkbook(sheets);
-      const workbookBuffer = new ArrayBuffer(workbook.byteLength);
-      new Uint8Array(workbookBuffer).set(workbook);
-      const file = new Blob([workbookBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `vetor-urbano-relatorio-${generatedAt.slice(0, 10)}.xlsx`;
-      link.hidden = true;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadGeneratedFile(
+        workbook,
+        `vetor-urbano-relatorio-${generatedAt.slice(0, 10)}.xlsx`,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
       if (exportedResponse && savedFilters) {
         this.reportSnapshot.set({
           generatedAt: exportedResponse.generatedAt,
@@ -3476,6 +3477,8 @@ export class App implements AfterViewInit, OnDestroy {
             happenings: exportedResponse.counts.happenings,
             mappedOccurrences: exportedResponse.counts.mappedOccurrences,
             listOnlyOccurrences: exportedResponse.counts.listOnlyOccurrences,
+            temporallyCertain: exportedResponse.counts.temporallyCertain,
+            temporallyPossible: exportedResponse.counts.temporallyPossible,
           },
         });
         this.reportQueryFilters.set(savedFilters);

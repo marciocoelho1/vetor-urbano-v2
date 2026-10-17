@@ -155,7 +155,10 @@ public class AuthService {
     @Transactional public void auditPdfExport(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Instant generatedAt, String outcome) {
         auditUsage(account, "REPORT_PDF_EXPORT", query, counts,
-            Map.of("snapshotGeneratedAt", generatedAt.toString(), "snapshotOrigin", "CLIENT_SNAPSHOT", "format", "PDF"), outcome);
+            Map.of("snapshotGeneratedAt", generatedAt.toString(), "snapshotOrigin", "CLIENT_SNAPSHOT", "format", "PDF",
+                "mappedOccurrences", counts.mappedOccurrences(), "listOnlyOccurrences", counts.listOnlyOccurrences(),
+                "temporallyCertain", counts.temporallyCertain(), "temporallyPossible", counts.temporallyPossible()),
+            outcome);
     }
     private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Map<String,Object> additional, String outcome) {

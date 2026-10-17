@@ -130,6 +130,11 @@ test('PDF A4 do snapshot completo preserva momento após publicação nova, com 
   expect(audit).toContain('CLIENT_SNAPSHOT');
   expect(audit).toContain('"format": "PDF"');
   expect(audit).toContain('"occurrences": 4');
+  expect(audit).toContain('"happenings": 2');
+  expect(audit).toContain('"mappedOccurrences": 3');
+  expect(audit).toContain('"listOnlyOccurrences": 1');
+  expect(audit).toContain('"temporallyCertain": 3');
+  expect(audit).toContain('"temporallyPossible": 1');
   expect(audit).not.toMatch(/textQuery|longitude|latitude|radiusMeters|NAO_GUARDAR/);
   const id = `${extraId}-${testInfo.project.name}`;
   sql(
@@ -244,4 +249,38 @@ test('texto fora da fonte do PDF falha visivelmente sem arquivo parcial', async 
   } finally {
     sql(`DELETE FROM occurrences WHERE id='${emojiId}';`);
   }
+});
+
+test('auditoria recusada não entrega arquivo e registra a tentativa como falha', async ({
+  page,
+}) => {
+  await generateReportFromMap(page);
+  await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
+  let registrations = 0;
+  await page.route('**/reports/exports/pdf*', async (route) => {
+    registrations += 1;
+    if (registrations === 1) {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: '{"code":"AUDIT_UNAVAILABLE"}',
+      });
+      return;
+    }
+    await route.continue();
+  });
+  let downloaded = false;
+  page.on('download', () => {
+    downloaded = true;
+  });
+  const button = downloadButton(page);
+  await button.click();
+  const status = page.getByTestId('report-pdf-status');
+  await expect(status).toContainText('Não foi possível registrar a exportação no servidor');
+  await expect(status).toHaveAttribute('role', 'alert');
+  await expect(button).toBeEnabled();
+  await page.waitForTimeout(200);
+  expect(downloaded).toBe(false);
+  expect(registrations).toBeGreaterThanOrEqual(2);
+  expect(latestPdfAudit()).toContain('USE FAILED');
 });
