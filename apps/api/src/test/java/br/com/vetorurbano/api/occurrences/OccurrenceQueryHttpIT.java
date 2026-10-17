@@ -164,6 +164,53 @@ class OccurrenceQueryHttpIT {
     }
 
     @Test
+    void exportQueryRequiresServerSessionReturnsWholeRecutAndAuditsExportMetadata() throws Exception {
+        long auditId;
+        String auditParameters;
+        try (var application = startApi()) {
+            var anonymous = getExportWithoutSession(application, allDefaultWindow());
+            assertEquals(401, anonymous.statusCode());
+            assertFalse(anonymous.body().contains("counts"));
+
+            var response = getExport(application,
+                    allDefaultWindow() + "&text=COLISAO&category=TRANSITO"
+                            + "&longitude=-43.1915&latitude=-22.9033&radiusMeters=1000");
+            assertEquals(200, response.statusCode());
+            var result = JSON.readTree(response.body());
+            assertEquals(1, result.path("counts").path("occurrences").asInt());
+            assertEquals(1, result.path("counts").path("happenings").asInt());
+            assertEquals(1, result.path("items").size());
+            assertEquals("vu-demo-occurrence-traffic-001", result.path("items").get(0).path("id").asString());
+            assertEquals(3, result.path("items").get(0).path("clippings").size());
+
+            var auditRow = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                    .queryForMap(
+                            "SELECT id, parameters::text AS parameters FROM auth_audit_events WHERE action='REPORT_EXPORT' ORDER BY id DESC LIMIT 1");
+            auditId = ((Number) auditRow.get("id")).longValue();
+            auditParameters = (String) auditRow.get("parameters");
+            var audit = JSON.readTree(auditParameters);
+            assertTrue(audit.path("hasText").asBoolean());
+            assertTrue(audit.path("hasSpatialFilter").asBoolean());
+            assertEquals(1, audit.path("occurrences").asInt());
+            assertEquals(1, audit.path("happenings").asInt());
+            assertFalse(audit.has("text"));
+            assertFalse(auditParameters.contains("COLISAO"));
+            assertFalse(audit.has("longitude"));
+            assertFalse(audit.has("latitude"));
+            assertFalse(audit.has("radiusMeters"));
+        }
+        try (var restarted = startApi()) {
+            assertEquals(
+                    auditParameters,
+                    restarted.getBean(org.springframework.jdbc.core.JdbcTemplate.class)
+                            .queryForObject(
+                                    "SELECT parameters::text FROM auth_audit_events WHERE id=?",
+                                    String.class,
+                                    auditId));
+        }
+    }
+
+    @Test
     void reportQueryPreservesEmptyCategorySelectionAndAuditsDailyTimeFilters() throws Exception {
         try (var application = startApi()) {
             var response = getReport(application, allDefaultWindow()
@@ -498,6 +545,18 @@ class OccurrenceQueryHttpIT {
             ConfigurableApplicationContext application,
             String query) throws Exception {
         return getPath(application, "/api/v1/reports/occurrences", query, false);
+    }
+
+    private HttpResponse<String> getExport(
+            ConfigurableApplicationContext application,
+            String query) throws Exception {
+        return getPath(application, "/api/v1/reports/occurrences/export", query, true);
+    }
+
+    private HttpResponse<String> getExportWithoutSession(
+            ConfigurableApplicationContext application,
+            String query) throws Exception {
+        return getPath(application, "/api/v1/reports/occurrences/export", query, false);
     }
 
     private HttpResponse<String> getPath(

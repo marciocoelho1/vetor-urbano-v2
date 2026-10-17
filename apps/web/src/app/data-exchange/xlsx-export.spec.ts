@@ -73,4 +73,23 @@ describe('XLSX export', () => {
       ]),
     ).rejects.toThrow(/nome da aba/i);
   });
+
+  it('rejects cell text beyond the XLSX cell limit instead of truncating it', async () => {
+    await expect(
+      createXlsxWorkbook([{ name: 'Recorte', rows: [['Descrição'], ['x'.repeat(32_768)]] }]),
+    ).rejects.toThrow(/32\.767 caracteres/i);
+  });
+
+  it('rejects a worksheet beyond Excel’s row limit including its header', async () => {
+    const tooManyRows = new Array(1_048_577).fill([] as string[]);
+    await expect(createXlsxWorkbook([{ name: 'Ocorrências', rows: tooManyRows }])).rejects.toThrow(
+      /1\.048\.576 linhas/i,
+    );
+  });
+
+  it('rejects XML-incompatible cell text instead of silently removing characters', async () => {
+    await expect(
+      createXlsxWorkbook([{ name: 'Ocorrências', rows: [['Título'], ['Texto\u0001 hostil']] }]),
+    ).rejects.toThrow(/caracteres que o XLSX não consegue representar/i);
+  });
 });

@@ -17,6 +17,8 @@ Este contrato implementa o Ticket 12 em desenvolvimento local. O banco e as quat
 
 `GET /api/v1/reports/occurrences` usa os mesmos filtros e resposta, inclusive ocorrências relacionadas, e exige sessão completa no servidor. Executa a consulta autenticada sobre PostGIS e devolve todos os itens do recorte na mesma leitura repetível. `generatedAt` identifica o instante da resposta. O relatório fica apenas na sessão do navegador; o servidor não persiste um relatório ou uma fotografia de filtros. A ação Atualizar faz outra leitura explícita com os filtros guardados no relatório.
 
+`GET /api/v1/reports/occurrences/export` repete a leitura completa dos filtros recebidos, exige a mesma sessão completa no servidor e registra o evento `REPORT_EXPORT`. O evento de uso conserva a ação, instante, filtros estruturados permitidos e contagens; busca textual e recorte espacial ficam apenas como indicadores conforme E08. A resposta inclui `generatedAt`, contagens, ocorrências e referências da mesma leitura repetível. No navegador, o XLSX contém as abas `Recorte`, `Ocorrências` e `Referências`, com divisão de linhas acima de 1.048.575 registros por aba. O arquivo só inicia download após a resposta completa e validação de cada célula. Texto acima de 32.767 caracteres, caracteres XML não representáveis, mais abas que o XLSX aceita ou pacote maior que o limite ZIP32 do escritor produzem erro visível sem download parcial; não há teto fixo de registros.
+
 Filtros podem ser repetidos para alternativas do mesmo campo; campos diferentes se combinam. O cliente envia o intervalo consultado e o servidor valida todos os valores:
 
 | Parâmetro | Formato e regra |

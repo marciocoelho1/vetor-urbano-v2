@@ -17,6 +17,10 @@ interface ZipEntry {
 
 const UTF8 = new TextEncoder();
 const SHEET_NAME_INVALID = /[\\/?*:[\]]/;
+export const XLSX_MAX_ROWS_PER_SHEET = 1_048_576;
+export const XLSX_MAX_DATA_ROWS_PER_SHEET = XLSX_MAX_ROWS_PER_SHEET - 1;
+export const XLSX_MAX_CELL_CHARACTERS = 32_767;
+const ZIP32_MAX_SIZE = 0xffffffff;
 const CRC32_TABLE = Uint32Array.from({ length: 256 }, (_, index) => {
   let value = index;
   for (let bit = 0; bit < 8; bit += 1) {
@@ -27,12 +31,35 @@ const CRC32_TABLE = Uint32Array.from({ length: 256 }, (_, index) => {
 
 function xmlEscape(value: string): string {
   return value
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
+}
+
+function isInvalidXmlText(value: string): boolean {
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/.test(value)) return true;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return true;
+      index += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function exceedsCellCharacterLimit(value: string): boolean {
+  let count = 0;
+  for (const _character of value) {
+    count += 1;
+    if (count > XLSX_MAX_CELL_CHARACTERS) return true;
+  }
+  return false;
 }
 
 function columnName(index: number): string {
@@ -215,6 +242,9 @@ function zipStore(entries: ZipEntry[]): Uint8Array {
     const checksum = crc32(entry.data);
     if (entry.data.length > 0xffffffff)
       throw new Error('A planilha excede o limite suportado pelo formato XLSX.');
+    if (localOffset + 30 + name.length + entry.data.length > ZIP32_MAX_SIZE) {
+      throw new Error('O arquivo XLSX excede o limite de tamanho suportado sem truncamento.');
+    }
 
     const local = new Uint8Array(30 + name.length);
     const localView = new DataView(local.buffer);
@@ -255,6 +285,9 @@ function zipStore(entries: ZipEntry[]): Uint8Array {
     central.set(name, 46);
     centralChunks.push(central);
     centralSize += central.length;
+    if (centralSize > ZIP32_MAX_SIZE) {
+      throw new Error('O arquivo XLSX excede o limite de tamanho suportado sem truncamento.');
+    }
   }
 
   const end = new Uint8Array(22);
@@ -268,14 +301,18 @@ function zipStore(entries: ZipEntry[]): Uint8Array {
   write32(endView, 16, localOffset);
   write16(endView, 20, 0);
 
-  return concatenate(
-    [...localChunks, ...centralChunks, end],
-    localOffset + centralSize + end.length,
-  );
+  const packageLength = localOffset + centralSize + end.length;
+  if (packageLength > ZIP32_MAX_SIZE) {
+    throw new Error('O arquivo XLSX excede o limite de tamanho suportado sem truncamento.');
+  }
+  return concatenate([...localChunks, ...centralChunks, end], packageLength);
 }
 
 export async function createXlsxWorkbook(sheets: SpreadsheetSheet[]): Promise<Uint8Array> {
   if (!sheets.length) throw new Error('A planilha precisa ter ao menos uma aba.');
+  if (sheets.length + 5 > 65_535) {
+    throw new Error('O XLSX excede o limite de abas suportado sem truncamento.');
+  }
   const names = new Set<string>();
   for (const sheet of sheets) {
     if (!sheet.name.trim() || sheet.name.length > 31 || SHEET_NAME_INVALID.test(sheet.name)) {
@@ -284,6 +321,23 @@ export async function createXlsxWorkbook(sheets: SpreadsheetSheet[]): Promise<Ui
     const normalizedName = sheet.name.toLocaleLowerCase('pt-BR');
     if (names.has(normalizedName)) throw new Error('Não repita o nome da aba na planilha.');
     names.add(normalizedName);
+    if (sheet.rows.length > XLSX_MAX_ROWS_PER_SHEET) {
+      throw new Error('Cada aba XLSX comporta no máximo 1.048.576 linhas, incluindo o cabeçalho.');
+    }
+    for (const row of sheet.rows) {
+      for (const value of row) {
+        const text =
+          typeof value === 'string' ? value : value instanceof Date ? value.toISOString() : null;
+        if (text !== null) {
+          if (exceedsCellCharacterLimit(text)) {
+            throw new Error('Uma célula excede o limite XLSX de 32.767 caracteres.');
+          }
+          if (isInvalidXmlText(text)) {
+            throw new Error('Uma célula contém caracteres que o XLSX não consegue representar.');
+          }
+        }
+      }
+    }
   }
   return zipStore(buildPackageFiles(sheets));
 }

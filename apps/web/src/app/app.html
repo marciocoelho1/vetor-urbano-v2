@@ -2198,14 +2198,28 @@
                 O relatório mantém seu próprio recorte e muda somente quando você gera ou atualiza.
               </p>
             </div>
-            <button class="heatmap-button" type="button" (click)="exportXlsx()">
+            <button
+              class="heatmap-button"
+              type="button"
+              data-testid="report-export-xlsx"
+              (click)="exportXlsx()"
+              [disabled]="exportLoading() || reportQueryLoading()"
+            >
               Exportar XLSX
             </button>
           </header>
+          <p
+            class="form-status"
+            role="status"
+            aria-live="polite"
+            data-testid="report-export-status"
+          >
+            {{ reportExportStatus() }}
+          </p>
           <section
             class="workspace-card report-snapshot-card"
             aria-labelledby="report-snapshot-heading"
-            [attr.aria-busy]="reportQueryLoading()"
+            [attr.aria-busy]="reportQueryLoading() || exportLoading()"
           >
             <div class="section-heading">
               <div>

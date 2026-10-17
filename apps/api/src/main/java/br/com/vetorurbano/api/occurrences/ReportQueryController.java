@@ -35,4 +35,15 @@ public class ReportQueryController {
         auth.getObject().auditReportGeneration(account, query, result.counts());
         return result;
     }
+
+    @GetMapping("/occurrences/export")
+    public OccurrenceQueryResponse export(
+            @RequestParam MultiValueMap<String, String> parameters,
+            HttpServletRequest request) {
+        var query = parser.parse(parameters);
+        var result = service.find(query);
+        var account = UUID.fromString((String) request.getAttribute("vu.account"));
+        auth.getObject().auditReportExport(account, query, result.counts());
+        return result;
+    }
 }

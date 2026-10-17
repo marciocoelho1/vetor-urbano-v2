@@ -148,6 +148,10 @@ public class AuthService {
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
         auditUsage(account, "REPORT_GENERATION", query, counts);
     }
+    @Transactional public void auditReportExport(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
+        auditUsage(account, "REPORT_EXPORT", query, counts);
+    }
     private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
         var parameters=new LinkedHashMap<String,Object>();

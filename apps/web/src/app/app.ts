@@ -63,6 +63,7 @@ import {
 import { SYNTHETIC_RISK_AREAS } from './data/demo-risk-areas';
 import type { FactTime } from './domain/temporal';
 import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
+import { buildAdvancedReportSheets } from './data-exchange/report-workbook';
 import {
   createMetropolitanDemoOccurrences,
   disperseDemoOccurrences,
@@ -79,6 +80,7 @@ import {
   fetchPersistedQuery,
   fetchPersistedHistoryQuery,
   fetchPersistedReportQuery,
+  fetchPersistedReportExport,
   isLocalPersistedQuery,
   persistedQueryParameters,
   persistedRecord,
@@ -670,6 +672,8 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly pendingReportTransfer = signal<LocalFilters | null>(null);
   protected readonly reportQueryLoading = signal(false);
   protected readonly reportQueryError = signal('');
+  protected readonly exportLoading = signal(false);
+  protected readonly reportExportStatus = signal('');
   private reportQueryAbort: AbortController | undefined;
   protected readonly categoryChangeNotice = signal('');
   protected readonly pointConfirmed = signal(false);
@@ -3308,8 +3312,30 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected async exportXlsx(): Promise<void> {
+    this.exportLoading.set(true);
+    this.reportExportStatus.set('Preparando a planilha do recorte completo…');
     try {
-      const sheets = this.buildReportSheets();
+      let sheets: SpreadsheetSheet[];
+      let generatedAt = new Date().toISOString();
+      let savedFilters: LocalFilters | null = null;
+      let exportedResponse: PersistedQueryResponse | null = null;
+      if (this.persistedQueryEnabled) {
+        const requestedFilters = this.reportQueryFilters() ?? this.queryFilters();
+        if (!requestedFilters) throw new Error('Revise o período antes de exportar.');
+        savedFilters = cloneLocalFilters(requestedFilters);
+        exportedResponse = await fetchPersistedReportExport(
+          persistedQueryParameters(savedFilters),
+          new AbortController().signal,
+        );
+        generatedAt = exportedResponse.generatedAt;
+        sheets = buildAdvancedReportSheets(exportedResponse, {
+          filterSummary: this.reportFilterSummaryFor(savedFilters),
+          periodStart: savedFilters.start?.toISOString(),
+          periodEnd: savedFilters.end?.toISOString(),
+        });
+      } else {
+        sheets = this.buildReportSheets();
+      }
       const { createXlsxWorkbook } = await import('./data-exchange/xlsx-export');
       const workbook = await createXlsxWorkbook(sheets);
       const workbookBuffer = new ArrayBuffer(workbook.byteLength);
@@ -3320,12 +3346,43 @@ export class App implements AfterViewInit, OnDestroy {
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `vetor-urbano-relatorio-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      link.download = `vetor-urbano-relatorio-${generatedAt.slice(0, 10)}.xlsx`;
+      link.hidden = true;
+      document.body.append(link);
       link.click();
-      URL.revokeObjectURL(url);
-      this.exportStatus.set('Planilha XLSX gerada com filtros, registros, estatísticas e fontes.');
-    } catch {
-      this.exportStatus.set('Não foi possível gerar a planilha. Tente novamente.');
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (exportedResponse && savedFilters) {
+        this.reportSnapshot.set({
+          generatedAt: exportedResponse.generatedAt,
+          filters: savedFilters,
+          items: exportedResponse.items.map(persistedRecord),
+          counts: {
+            occurrences: exportedResponse.counts.occurrences,
+            happenings: exportedResponse.counts.happenings,
+            mappedOccurrences: exportedResponse.counts.mappedOccurrences,
+            listOnlyOccurrences: exportedResponse.counts.listOnlyOccurrences,
+          },
+        });
+        this.reportQueryFilters.set(savedFilters);
+        this.reportQueryError.set('');
+      }
+      this.reportExportStatus.set(
+        'Planilha XLSX completa gerada e exportação registrada no servidor.',
+      );
+      if (!this.persistedQueryEnabled) {
+        this.exportStatus.set(
+          'Planilha XLSX gerada com filtros, registros, estatísticas e fontes.',
+        );
+      }
+    } catch (error) {
+      this.reportExportStatus.set(
+        error instanceof Error
+          ? `Não foi possível gerar o XLSX completo: ${error.message}`
+          : 'Não foi possível gerar o XLSX completo. Nenhum arquivo foi baixado.',
+      );
+    } finally {
+      this.exportLoading.set(false);
     }
   }
 

@@ -166,6 +166,13 @@ export async function fetchPersistedReportQuery(
   return fetchQueryResponse('reports/occurrences', params, signal);
 }
 
+export async function fetchPersistedReportExport(
+  params: URLSearchParams,
+  signal: AbortSignal,
+): Promise<PersistedQueryResponse> {
+  return fetchQueryResponse('reports/occurrences/export', params, signal);
+}
+
 async function fetchQueryResponse(
   resource: string,
   params: URLSearchParams,
