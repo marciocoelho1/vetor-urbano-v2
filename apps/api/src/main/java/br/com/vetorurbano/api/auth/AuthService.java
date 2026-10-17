@@ -142,18 +142,23 @@ public class AuthService {
     }
     @Transactional public void auditQuery(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
-        auditUsage(account, "CONSULTATION", query, counts);
+        auditUsage(account, "CONSULTATION", query, counts, Map.of(), "SUCCEEDED");
     }
     @Transactional public void auditReportGeneration(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
-        auditUsage(account, "REPORT_GENERATION", query, counts);
+        auditUsage(account, "REPORT_GENERATION", query, counts, Map.of(), "SUCCEEDED");
     }
     @Transactional public void auditReportExport(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
-        auditUsage(account, "REPORT_EXPORT", query, counts);
+        auditUsage(account, "REPORT_EXPORT", query, counts, Map.of(), "SUCCEEDED");
+    }
+    @Transactional public void auditPdfExport(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Instant generatedAt, String outcome) {
+        auditUsage(account, "REPORT_PDF_EXPORT", query, counts,
+            Map.of("snapshotGeneratedAt", generatedAt.toString(), "snapshotOrigin", "CLIENT_SNAPSHOT", "format", "PDF"), outcome);
     }
     private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
-            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
+            br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Map<String,Object> additional, String outcome) {
         var parameters=new LinkedHashMap<String,Object>();
         parameters.put("periodStart",query.periodStart()==null?null:query.periodStart().toString());parameters.put("periodEnd",query.periodEnd()==null?null:query.periodEnd().toString());
         parameters.put("categories",query.categories());parameters.put("types",query.types());parameters.put("subtypes",query.subtypes());
@@ -165,8 +170,9 @@ public class AuthService {
         parameters.put("timeStart", query.timeStart());parameters.put("timeEnd", query.timeEnd());
         parameters.put("hasSpatialFilter",query.center()!=null||!query.bounds().isEmpty());
         parameters.put("occurrences",counts.occurrences());parameters.put("happenings",counts.happenings());
+        parameters.putAll(additional);
         String json=tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(parameters);
-        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?, 'query',?,'SUCCEEDED',?::jsonb)",account,now(),action,json);
+        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?, 'query',?,?,?::jsonb)",account,now(),action,outcome,json);
     }
     /** Ticket 15 must call this within the password-change transaction. No public endpoint. */
     @Transactional public void revokeAll(UUID account) {

@@ -196,3 +196,31 @@ async function fetchQueryResponse(
   }
   return response.json() as Promise<PersistedQueryResponse>;
 }
+
+export async function recordPersistedPdfExport(
+  filters: LocalFilters,
+  metadata: {
+    generatedAt: string;
+    counts: PersistedQueryResponse['counts'];
+    outcome: 'SUCCEEDED' | 'FAILED';
+  },
+  csrf: string,
+): Promise<void> {
+  const response = await fetch(
+    `http://127.0.0.1:8080/api/v1/reports/exports/pdf?${persistedQueryParameters(filters)}`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify(metadata),
+    },
+  );
+  if (response.status === 401 || response.status === 403) {
+    window.dispatchEvent(new Event('vu-session-invalid'));
+    throw new Error('Sessão ausente, expirada ou sem confirmação. Entre novamente.');
+  }
+  if (!response.ok)
+    throw new Error(
+      'Não foi possível registrar a exportação no servidor. Nenhum arquivo foi baixado. Tente novamente.',
+    );
+}

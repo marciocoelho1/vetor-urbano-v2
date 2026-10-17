@@ -17,3 +17,11 @@ URL dos arquivos utilizados:
 - Manrope Latin Extended: `https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggmxSuXd.woff2`
 
 As licenças SIL Open Font License 1.1 acompanham os arquivos. A aplicação serve as fontes localmente e usa Georgia/Segoe UI como alternativas caso uma fonte não carregue. Não há chamadas a Google Fonts em tempo de uso nem arquivos de Mori.
+
+## Fonte incorporada no PDF — 17/10/2026
+
+`manrope-pdf-regular.ttf` deriva exclusivamente do `manrope-latin.woff2` acima, com peso estático 400; os WOFF2 originais permanecem inalterados. Mesma autoria (Manrope Project Authors), origem Google Fonts congelada em 11/10/2026 e licença [SIL OFL 1.1](manrope-OFL.txt), que permite modificação/incorporação. Não houve nova fonte externa, requisição a serviços de fontes ou alteração de licença.
+
+Derivação reproduzível: `scripts/prepare-pdf-font.py` com FontTools 4.67.0 e Brotli 1.2.0 (ferramentas de preparação, sem dependência Python no aplicativo). Converte WOFF2 para TTF e instancia wght=400. O PDF incorpora um subconjunto e mantém letras separadas para extração. A biblioteca falhava em glifos compostos WOFF2 (`fi`, `:`, `;`); conversão TTF do mesmo arquivo corrigiu o caso, inclusive sem mudar o eixo variável, antes da escolha do peso estático. [Relato primário da limitação do recorte WOFF2](https://github.com/Hopding/pdf-lib/issues/1396).
+
+Limite: subconjunto Latin, sem cobertura universal de alfabetos/emoji. Caracteres não representáveis geram erro visível, sem substituir silenciosamente os textos nem baixar arquivo parcial. A apresentação da aplicação continua usando os WOFF2 existentes.

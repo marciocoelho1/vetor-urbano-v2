@@ -10,6 +10,8 @@ As três tabelas existentes permanecem separadas. V6 acrescenta classe gerada pe
 
 Parâmetros de uso são projetados por lista permitida E08, inclusive na leitura de eventos legados: período, categorias/tipos/subtipos/fontes, notas, situação, município/bairro, indicadores de busca/recorte espacial e contagens. Nunca retornar texto pesquisado, coordenadas, raio, bounds ou credenciais. Eventos de fonte incluem referência, antes/depois de campos administrativos aprovados, sem duplicar authorId do snapshot na resposta. Leitura de logs não é exportação de arquivo; essa capacidade não foi acrescentada.
 
+A exportação em PDF (ticket 34) registra `REPORT_PDF_EXPORT` na mesma classe USE de uso do módulo query. O evento conserva os filtros permitidos e as contagens do snapshot, além de `snapshotGeneratedAt` (instante original da geração no cliente), `snapshotOrigin=CLIENT_SNAPSHOT` e `format=PDF`; nenhum conteúdo do documento, texto pesquisado, coordenada ou raio entra no log. Tentativa de composição sem arquivo baixado é registrada com `outcome=FAILED`, e o registro só ocorre após autorização de sessão completa com CSRF.
+
 ## Expiração e execução
 
 Tempo do evento (`occurred_at`) determina o vencimento inclusivo; execução tardia não renova retenção. Leitura exclui vencidos mesmo antes da eliminação física. `vetor.audit.use-retention`, `security-retention` e `admin-retention` têm padrões de 60/180/365 dias e aceitam reduções até um segundo para testes. Valores acima dos tetos ou não positivos impedem inicialização, sem ampliação silenciosa.

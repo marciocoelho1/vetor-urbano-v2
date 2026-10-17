@@ -94,7 +94,7 @@ public class AuditService {
         var input = JSON.readTree(raw);
         var output = new LinkedHashMap<String, Object>();
         var keys = switch (module) {
-            case "query" -> Set.of("periodStart", "periodEnd", "categories", "types", "subtypes", "categorySelection", "municipalities", "neighborhoods", "sourceIds", "situations", "hasText", "minReliability", "maxReliability", "timeStart", "timeEnd", "hasSpatialFilter", "occurrences", "happenings");
+            case "query" -> Set.of("periodStart", "periodEnd", "categories", "types", "subtypes", "categorySelection", "municipalities", "neighborhoods", "sourceIds", "situations", "hasText", "minReliability", "maxReliability", "timeStart", "timeEnd", "hasSpatialFilter", "occurrences", "happenings", "snapshotGeneratedAt", "snapshotOrigin", "format");
             case "sources" -> Set.of("sourceId", "before", "after");
             case "audit" -> Set.of("executedAt", "deleted");
             default -> Set.<String>of();

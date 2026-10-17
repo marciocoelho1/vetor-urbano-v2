@@ -1,3 +1,4 @@
+import { recordPersistedPdfExport } from './data/persisted-query';
 import {
   compareReports,
   snapshotDuration,
@@ -679,6 +680,9 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly reportStatus = signal('');
   protected readonly reportQueryFilters = signal<LocalFilters | null>(null);
   protected readonly reportSnapshot = signal<ReportSnapshot | null>(null);
+  protected readonly pdfExportLoading = signal(false);
+  protected readonly pdfExportStatus = signal('');
+  protected readonly pdfExportError = signal(false);
   protected readonly reportSummary = computed(() => {
     const snapshot = this.reportSnapshot();
     return snapshot ? summarizeReport(snapshot.items, snapshot.filters) : null;
@@ -3339,6 +3343,86 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.saveCurrentSearch();
     this.exportStatus.set('Filtro salvo neste navegador.');
+  }
+
+  protected async exportPdf(): Promise<void> {
+    const current = this.reportSnapshot();
+    if (!current || this.pdfExportLoading()) return;
+    const snapshot = structuredClone(current);
+    const summary = summarizeReport(snapshot.items, snapshot.filters);
+    const metadata = {
+      generatedAt: snapshot.generatedAt,
+      counts: {
+        ...snapshot.counts,
+        temporallyCertain: summary.certain,
+        temporallyPossible: summary.possible,
+      },
+    };
+    this.pdfExportLoading.set(true);
+    this.pdfExportError.set(false);
+    this.pdfExportStatus.set('Preparando PDF do relatório já gerado…');
+    let rendered = false;
+    let renderTimeout: number | undefined;
+    try {
+      const { createReportPdf } = await import('./data-exchange/report-pdf');
+      const bytes = await Promise.race([
+        createReportPdf(snapshot, this.reportFilterSummaryFor(snapshot.filters)),
+        new Promise<never>((_, reject) => {
+          renderTimeout = window.setTimeout(
+            () =>
+              reject(
+                new Error(
+                  'A geração do PDF excedeu 30 segundos. Nenhum arquivo foi baixado. Tente novamente.',
+                ),
+              ),
+            30_000,
+          );
+        }),
+      ]);
+      rendered = true;
+      if (this.persistedQueryEnabled)
+        await recordPersistedPdfExport(
+          snapshot.filters,
+          { ...metadata, outcome: 'SUCCEEDED' },
+          this.session.state()?.csrfToken ?? '',
+        );
+      const buffer = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(buffer).set(bytes);
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `vetor-urbano-relatorio-${snapshot.generatedAt.slice(0, 10)}.pdf`;
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.pdfExportStatus.set(
+        this.persistedQueryEnabled
+          ? 'PDF gerado e exportação registrada no servidor.'
+          : 'PDF gerado para demonstração local, sem auditoria no servidor.',
+      );
+    } catch (failure) {
+      let auditFailure = '';
+      if (!rendered && this.persistedQueryEnabled) {
+        try {
+          await recordPersistedPdfExport(
+            snapshot.filters,
+            { ...metadata, outcome: 'FAILED' },
+            this.session.state()?.csrfToken ?? '',
+          );
+        } catch {
+          auditFailure = ' A falha também não pôde ser registrada no servidor.';
+        }
+      }
+      this.pdfExportError.set(true);
+      this.pdfExportStatus.set(
+        `Não foi possível gerar o PDF. ${failure instanceof Error ? failure.message : 'Tente novamente.'}${auditFailure}`,
+      );
+    } finally {
+      window.clearTimeout(renderTimeout);
+      this.pdfExportLoading.set(false);
+    }
   }
 
   protected async exportXlsx(): Promise<void> {
