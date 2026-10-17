@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/occurrences")
+@RequestMapping("/api/v1")
 public class OccurrenceQueryController {
     private final OccurrenceQueryParser parser;
     private final OccurrenceQueryService service;
@@ -19,10 +19,23 @@ public class OccurrenceQueryController {
         this.service = service;
     }
 
-    @GetMapping
+    @GetMapping("/occurrences")
     public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
         var query=parser.parse(parameters);
-        var result=service.find(query);
+        return find(query, request, false);
+    }
+
+    @GetMapping("/history/occurrences")
+    public OccurrenceQueryResponse findHistory(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+        var query=parser.parseHistory(parameters);
+        return find(query, request, true);
+    }
+
+    private OccurrenceQueryResponse find(
+            OccurrenceQuery query,
+            jakarta.servlet.http.HttpServletRequest request,
+            boolean historyOrder) {
+        var result = historyOrder ? service.findHistory(query) : service.find(query);
         auth.getObject().auditQuery(
                 java.util.UUID.fromString((String) request.getAttribute("vu.account")),
                 query,

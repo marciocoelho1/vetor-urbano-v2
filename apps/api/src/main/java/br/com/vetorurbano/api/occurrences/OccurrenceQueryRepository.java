@@ -97,6 +97,14 @@ public class OccurrenceQueryRepository {
     }
 
     public List<OccurrenceRecord> find(OccurrenceQuery query) {
+        return find(query, false);
+    }
+
+    public List<OccurrenceRecord> findHistory(OccurrenceQuery query) {
+        return find(query, true);
+    }
+
+    private List<OccurrenceRecord> find(OccurrenceQuery query, boolean historyOrder) {
         var parameters = new MapSqlParameterSource()
                 .addValue("withoutPeriod", query.periodStart() == null)
                 .addValue("periodStart", query.periodStart() == null ? null : Timestamp.from(query.periodStart()), java.sql.Types.TIMESTAMP)
@@ -141,7 +149,7 @@ public class OccurrenceQueryRepository {
         if (query.text() != null) {
             sql.append("""
                     AND strpos(
-                        unaccent(lower(concat_ws(' ', o.title, o.description, o.municipality, o.neighborhood))),
+                        unaccent(lower(concat_ws(' ', o.id, o.title, o.description, o.municipality, o.neighborhood))),
                         unaccent(lower(:text))
                     ) > 0
                     """);
@@ -188,7 +196,11 @@ public class OccurrenceQueryRepository {
         }
         parameters.addValue("timeStart", query.timeStart()).addValue("timeEnd", query.timeEnd());
 
-        sql.append(" ORDER BY COALESCE(o.occurred_at, o.occurred_from) DESC, o.id");
+        if (historyOrder) {
+            sql.append(" ORDER BY COALESCE(o.occurred_at, o.occurred_until) DESC NULLS LAST, o.id DESC");
+        } else {
+            sql.append(" ORDER BY COALESCE(o.occurred_at, o.occurred_from) DESC, o.id");
+        }
         var rows = jdbc.query(sql.toString(), parameters, OCCURRENCE_MAPPER);
         if (rows.isEmpty()) {
             return List.of();

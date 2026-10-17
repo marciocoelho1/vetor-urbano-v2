@@ -1839,7 +1839,7 @@
                 histórico.
               </p>
             </div>
-            <span class="account-badge">{{ historyRecords().length }} registros nesta sessão</span>
+            <span class="account-badge">{{ historyTotal() }} registros no recorte</span>
           </header>
           <div class="workspace-card timeline-card">
             <div class="section-heading">
@@ -1886,19 +1886,214 @@
               </p>
             }
           </div>
-          <label class="field history-search"
-            >Buscar no histórico
-            <input
-              type="search"
-              [value]="historyQuery()"
-              (input)="setHistorySearch($any($event.target).value)"
-              placeholder="Título, local, descrição ou fonte"
-            />
-          </label>
-          @if (historyRecords().length) {
+          <section
+            class="workspace-card history-filters"
+            aria-labelledby="history-filters-heading"
+            [attr.aria-busy]="historyLoading()"
+          >
+            <div class="section-heading">
+              <div>
+                <span class="step-number">F</span>
+                <div>
+                  <h2 id="history-filters-heading">Filtros avançados do histórico</h2>
+                  <p>
+                    O resultado inclui apenas ocorrências publicadas e mantém a precisão original.
+                  </p>
+                </div>
+              </div>
+              <button class="map-tool-button" type="button" (click)="clearHistoryFilters()">
+                Limpar filtros
+              </button>
+            </div>
+            <div class="history-filter-grid">
+              <label class="field history-search"
+                >Buscar título, descrição ou identificador
+                <input
+                  type="search"
+                  data-testid="history-text-filter"
+                  [value]="historyFilters().text"
+                  (input)="setHistorySearch($any($event.target).value)"
+                  placeholder="Ex.: VU-HIST-004"
+                />
+              </label>
+              <label class="field"
+                >Início do fato (horário de Brasília)
+                <input
+                  type="datetime-local"
+                  data-testid="history-period-start"
+                  [value]="historyFilters().periodStart"
+                  (change)="setHistoryPeriod('start', $any($event.target).value)"
+                />
+              </label>
+              <label class="field"
+                >Fim exclusivo do fato (horário de Brasília)
+                <input
+                  type="datetime-local"
+                  data-testid="history-period-end"
+                  [value]="historyFilters().periodEnd"
+                  (change)="setHistoryPeriod('end', $any($event.target).value)"
+                />
+              </label>
+              <label class="field"
+                >Município
+                <input
+                  type="search"
+                  data-testid="history-municipality-filter"
+                  [value]="historyFilters().municipality"
+                  (input)="setHistoryTerritory('municipality', $any($event.target).value)"
+                />
+              </label>
+              <label class="field"
+                >Bairro
+                <input
+                  type="search"
+                  data-testid="history-neighborhood-filter"
+                  [value]="historyFilters().neighborhood"
+                  (input)="setHistoryTerritory('neighborhood', $any($event.target).value)"
+                />
+              </label>
+              <label class="field"
+                >Tipo de ocorrência
+                <select
+                  data-testid="history-type-filter"
+                  [value]="historyFilters().types[0] ?? ''"
+                  (change)="setHistoryType($any($event.target).value)"
+                >
+                  <option value="">Todos os tipos</option>
+                  @for (type of occurrenceCatalogue; track type.id) {
+                    <option [value]="type.id">{{ type.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="field"
+                >Subtipo
+                <select
+                  data-testid="history-subtype-filter"
+                  [value]="historyFilters().subtypes[0] ?? ''"
+                  (change)="setHistorySubtype($any($event.target).value)"
+                >
+                  <option value="">Todos os subtipos</option>
+                  @for (subtype of historySubtypeOptions(); track subtype.id) {
+                    <option [value]="subtype.id">{{ subtype.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="field"
+                >Fonte
+                <select
+                  data-testid="history-source-filter"
+                  [value]="historyFilters().sourceId"
+                  (change)="setHistorySource($any($event.target).value)"
+                >
+                  <option value="">Todas as fontes</option>
+                  @for (source of historySourceOptions(); track source.id) {
+                    <option [value]="source.id">{{ source.name }}</option>
+                  }
+                </select>
+              </label>
+              <label class="field"
+                >Confiabilidade mínima
+                <select
+                  data-testid="history-min-score-filter"
+                  [value]="historyFilters().minReliability ?? ''"
+                  (change)="setHistoryReliability('minReliability', $any($event.target).value)"
+                >
+                  <option value="">Sem mínimo</option>
+                  @for (score of [1, 2, 3, 4, 5]; track score) {
+                    <option [value]="score">{{ score }} / 5</option>
+                  }
+                </select>
+              </label>
+              <label class="field"
+                >Confiabilidade máxima
+                <select
+                  data-testid="history-max-score-filter"
+                  [value]="historyFilters().maxReliability ?? ''"
+                  (change)="setHistoryReliability('maxReliability', $any($event.target).value)"
+                >
+                  <option value="">Sem máximo</option>
+                  @for (score of [1, 2, 3, 4, 5]; track score) {
+                    <option [value]="score">{{ score }} / 5</option>
+                  }
+                </select>
+              </label>
+              <label class="field"
+                >Situação
+                <select
+                  data-testid="history-situation-filter"
+                  [value]="historyFilters().situation"
+                  (change)="setHistorySituation($any($event.target).value)"
+                >
+                  <option value="">Todas as situações</option>
+                  @for (situation of situationOptions; track situation.id) {
+                    <option [value]="situation.id">{{ situation.label }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+            <fieldset class="history-categories">
+              <legend>Pilares</legend>
+              @for (category of historyCategoryOptions; track category.id) {
+                <label class="filter-choice"
+                  ><input
+                    type="checkbox"
+                    [attr.data-testid]="'history-category-' + category.id"
+                    [checked]="isHistoryCategorySelected(category.id)"
+                    (change)="toggleHistoryCategory(category.id)"
+                  /><span>{{ category.label }}</span></label
+                >
+              }
+            </fieldset>
+            @if (historyFilterError()) {
+              <p class="query-error" role="alert" data-testid="history-filter-error">
+                {{ historyFilterError() }}
+              </p>
+            }
+            <div class="history-filter-actions">
+              <button
+                class="heatmap-button"
+                type="button"
+                data-testid="history-refresh"
+                (click)="refreshHistory()"
+                [disabled]="historyLoading() || historyFilterError().length > 0"
+              >
+                Atualizar histórico
+              </button>
+              @if (historyGeneratedAt(); as generatedAt) {
+                <span data-testid="history-generated-at">
+                  Snapshot consultado em {{ formatDateTime(generatedAt) }}
+                </span>
+              }
+            </div>
+          </section>
+          @if (historyLoading()) {
+            <p
+              class="workspace-loading"
+              role="status"
+              aria-live="polite"
+              data-testid="history-loading"
+            >
+              Carregando histórico publicado…
+            </p>
+          } @else if (historyError()) {
+            <section class="workspace-error" role="alert" data-testid="history-error">
+              <strong>Não foi possível carregar o histórico.</strong>
+              <p>{{ historyError() }}</p>
+              <button class="heatmap-button" type="button" (click)="refreshHistory()">
+                Tentar novamente
+              </button>
+            </section>
+          } @else if (historyFilterError()) {
+            <div class="workspace-empty" data-testid="history-invalid-filter">
+              Ajuste o período para consultar o histórico.
+            </div>
+          } @else if (historyRecords().length) {
             <div class="workspace-list">
               @for (record of historyRecords(); track record.id) {
-                <article class="workspace-record history-record">
+                <article
+                  class="workspace-record history-record"
+                  [attr.data-history-record-id]="record.id"
+                >
                   <div class="record-status">
                     <span class="status-pill">{{ situationLabel(record.situation) }}</span
                     ><time>{{ formatFactTime(record) }}</time>
@@ -1908,7 +2103,11 @@
                   <div class="record-meta">
                     <span>{{ record.location }}</span
                     ><span>{{ recordTypeLabel(record) }}</span
-                    ><span>Incluído: {{ formatDateTime(record.insertedAt) }}</span
+                    ><span
+                      >Incluído:
+                      {{
+                        record.insertedAt ? formatDateTime(record.insertedAt) : 'Não informado'
+                      }}</span
                     ><span>Fonte: {{ record.sourceId || 'demo' }}</span>
                   </div>
                   <button class="map-tool-button" type="button" (click)="showDetails(record)">
@@ -1917,10 +2116,36 @@
                 </article>
               }
             </div>
+            <nav class="history-pagination" aria-label="Paginação do histórico">
+              <button
+                class="map-tool-button"
+                type="button"
+                data-testid="history-previous-page"
+                [disabled]="historyPage() <= 1"
+                (click)="setHistoryPage(historyPage() - 1)"
+              >
+                Página anterior
+              </button>
+              <span data-testid="history-page-status" aria-live="polite">
+                Página {{ historyPage() }} de {{ historyPageCount() }} ·
+                {{ historyTotal() }} registros
+              </span>
+              <button
+                class="map-tool-button"
+                type="button"
+                data-testid="history-next-page"
+                [disabled]="historyPage() >= historyPageCount()"
+                (click)="setHistoryPage(historyPage() + 1)"
+              >
+                Próxima página
+              </button>
+            </nav>
           } @else {
-            <div class="workspace-empty">
-              <strong>Nenhum registro encontrado.</strong
-              ><span>Limpe a busca ou importe uma fonte no painel Fontes.</span>
+            <div class="workspace-empty" data-testid="history-empty">
+              <strong>Nenhuma ocorrência publicada encontrada.</strong
+              ><span
+                >Revise ou limpe os filtros; uma consulta vazia não indica falha do serviço.</span
+              >
             </div>
           }
           @if (selectedDetail(); as detail) {

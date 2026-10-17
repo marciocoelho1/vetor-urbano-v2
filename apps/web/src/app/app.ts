@@ -77,12 +77,22 @@ import {
 import { SOURCE_PLACEHOLDER, SYNTHETIC_PUBLIC_SOURCES } from './data/demo-sources';
 import {
   fetchPersistedQuery,
+  fetchPersistedHistoryQuery,
   fetchPersistedReportQuery,
   isLocalPersistedQuery,
   persistedQueryParameters,
   persistedRecord,
   type PersistedQueryResponse,
 } from './data/persisted-query';
+import {
+  filterHistoryRecords,
+  historyPageCount as countHistoryPages,
+  historyPageRecords,
+  historyQueryParameters,
+  historySourcesFromRecords,
+  orderHistoryRecords,
+  type HistoryFilters,
+} from './data/history-query';
 import { OCCURRENCE_CATALOGUE, UNKNOWN_SUBTYPE } from './domain/catalogue';
 
 type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
@@ -514,7 +524,70 @@ export class App implements AfterViewInit, OnDestroy {
   });
   protected readonly savedSearches = signal<SavedSearch[]>([]);
   protected readonly savedSearchName = signal('');
-  protected readonly historyQuery = signal('');
+  protected readonly historyFilters = signal<HistoryFilters>({
+    text: '',
+    periodStart: '',
+    periodEnd: '',
+    types: [],
+    subtypes: [],
+    municipality: '',
+    neighborhood: '',
+    sourceId: '',
+    minReliability: null,
+    maxReliability: null,
+    situation: '',
+  });
+  protected readonly historyPage = signal(1);
+  private readonly historyResponse = signal<PersistedQueryResponse | null>(null);
+  private readonly historySourceCache = signal<{ id: string; name: string }[]>([]);
+  protected readonly historySourceOptions = computed(() =>
+    [
+      ...new Map(
+        [...this.availableSources(), ...this.historySourceCache()].map((source) => [
+          source.id,
+          source,
+        ]),
+      ).values(),
+    ].sort(
+      (left, right) =>
+        left.name.localeCompare(right.name, 'pt-BR') || left.id.localeCompare(right.id),
+    ),
+  );
+  private readonly historyRetry = signal(0);
+  protected readonly historyLoading = signal(false);
+  protected readonly historyError = signal('');
+  protected readonly historyCategoryOptions = CATEGORIES;
+  protected readonly historyFilterError = computed(() => {
+    const { periodStart, periodEnd } = this.historyFilters();
+    if (Boolean(periodStart) !== Boolean(periodEnd)) {
+      return 'Informe início e fim do período juntos.';
+    }
+    if (periodStart && periodEnd) {
+      try {
+        if (localDateTimeToInstant(periodStart) >= localDateTimeToInstant(periodEnd)) {
+          return 'O início do período precisa anteceder o fim exclusivo.';
+        }
+      } catch {
+        return 'Informe datas válidas para o período do fato.';
+      }
+    }
+    return '';
+  });
+  protected readonly historySubtypeOptions = computed(() => {
+    const type = this.historyFilters().types[0];
+    return this.occurrenceCatalogue
+      .filter((entry) => !type || entry.id === type)
+      .flatMap((entry) =>
+        entry.subtypes.map((label) => ({
+          id: `${entry.id}:${label
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .replaceAll(' ', '_')}`,
+          label: `${entry.label} · ${label}`,
+        })),
+      );
+  });
   protected readonly analyticsTerritoryA = signal('Centro (exemplo sintético)');
   protected readonly analyticsTerritoryB = signal('Zona Sul (exemplo sintético)');
   protected readonly analyticsIndicator = signal('Trânsito');
@@ -1142,21 +1215,35 @@ export class App implements AfterViewInit, OnDestroy {
     const filters = this.queryFilters();
     return filters ? filterRecords(this.allPoints(), filters) : [];
   });
+  private readonly historyContextPoints = computed<DemoPoint[]>(() => {
+    const response = this.historyResponse();
+    return [...(response?.items ?? []), ...(response?.relatedItems ?? [])].map(persistedRecord);
+  });
+  protected readonly filteredHistoryRecords = computed<DemoPoint[]>(() => {
+    if (this.persistedQueryEnabled)
+      return this.historyContextPoints().filter((point) =>
+        this.historyResponse()?.items.some((item) => item.id === point.id),
+      );
+    const displayableRecords = this.allPoints().filter(
+      (record): record is DemoPoint =>
+        record.name !== undefined &&
+        record.description !== undefined &&
+        record.location !== undefined &&
+        record.insertedAt !== undefined,
+    );
+    return orderHistoryRecords(filterHistoryRecords(displayableRecords, this.historyFilters()));
+  });
+  protected readonly historyTotal = computed(() =>
+    this.persistedQueryEnabled
+      ? (this.historyResponse()?.counts.occurrences ?? 0)
+      : this.filteredHistoryRecords().length,
+  );
+  protected readonly historyPageCount = computed(() => countHistoryPages(this.historyTotal()));
   protected readonly historyRecords = computed(() =>
-    this.allPoints()
-      .filter((point) => point.kind === 'occurrence')
-      .filter((point) => {
-        const query = normalizeSearch(this.historyQuery());
-        return (
-          !query ||
-          normalizeSearch(
-            `${point.name} ${point.description} ${point.location} ${point.sourceId}`,
-          ).includes(query)
-        );
-      })
-      .sort(
-        (left, right) => Date.parse(right.occurredAt ?? '') - Date.parse(left.occurredAt ?? ''),
-      ),
+    historyPageRecords(this.filteredHistoryRecords(), this.historyPage()),
+  );
+  protected readonly historyGeneratedAt = computed(
+    () => this.historyResponse()?.generatedAt ?? null,
   );
   protected readonly activeReportItems = computed(() => {
     const center = this.informesCenter();
@@ -1192,11 +1279,18 @@ export class App implements AfterViewInit, OnDestroy {
       ).size,
   );
   protected resultDetail(point: DemoPoint): DemoPoint {
-    return this.allPoints().find((item) => item.id === this.relatedDetailIds()[point.id]) ?? point;
+    return (
+      this.detailPoints().find((item) => item.id === this.relatedDetailIds()[point.id]) ?? point
+    );
   }
+  private readonly detailPoints = computed(() => [
+    ...new Map(
+      [...this.allPoints(), ...this.historyContextPoints()].map((point) => [point.id, point]),
+    ).values(),
+  ]);
   protected relatedOccurrences(point: DemoPoint): DemoPoint[] {
     if (point.kind !== 'occurrence') return [];
-    return this.allPoints().filter(
+    return this.detailPoints().filter(
       (item) =>
         item.kind === 'occurrence' &&
         item.id !== point.id &&
@@ -1205,7 +1299,9 @@ export class App implements AfterViewInit, OnDestroy {
     );
   }
   protected isInQuery(point: DemoPoint): boolean {
-    return this.visiblePoints().some((item) => item.id === point.id);
+    const records =
+      this.activeView() === 'history' ? this.filteredHistoryRecords() : this.visiblePoints();
+    return records.some((item) => item.id === point.id);
   }
   protected happeningSummary(point: DemoPoint): string {
     const family = [point, ...this.relatedOccurrences(point)];
@@ -1230,7 +1326,7 @@ export class App implements AfterViewInit, OnDestroy {
       : 'Não informada';
   }
   protected readonly selectedDetail = computed(
-    () => this.allPoints().find((point) => point.id === this.selectedPointId()) ?? null,
+    () => this.detailPoints().find((point) => point.id === this.selectedPointId()) ?? null,
   );
   protected readonly visibleOpenResultDetailCount = computed(() => {
     const expanded = new Set(this.expandedResultDetailIds());
@@ -1311,7 +1407,7 @@ export class App implements AfterViewInit, OnDestroy {
       comparable,
     };
   });
-  protected readonly playbackRecords = computed(() => this.historyRecords());
+  protected readonly playbackRecords = computed(() => this.filteredHistoryRecords());
   protected readonly currentPlaybackRecord = computed(
     () => this.playbackRecords()[this.playbackIndex()] ?? null,
   );
@@ -1427,6 +1523,55 @@ export class App implements AfterViewInit, OnDestroy {
               error instanceof Error ? error.message : 'A consulta local falhou.',
             );
             this.refreshMapData();
+          });
+      });
+    });
+    effect((onCleanup) => {
+      const active = this.activeView() === 'history';
+      const authenticated = this.session.state()?.authenticated;
+      const filters = this.historyFilters();
+      this.historyRetry();
+      if (!this.persistedQueryEnabled || !active || !authenticated) return;
+
+      const filterError = this.historyFilterError();
+      if (filterError) {
+        untracked(() => {
+          this.historyResponse.set(null);
+          this.historyLoading.set(false);
+          this.historyError.set(filterError);
+        });
+        return;
+      }
+
+      const abort = new AbortController();
+      onCleanup(() => abort.abort());
+      untracked(() => {
+        this.historyResponse.set(null);
+        this.historyLoading.set(true);
+        this.historyError.set('');
+        void fetchPersistedHistoryQuery(historyQueryParameters(filters), abort.signal)
+          .then((response) => {
+            if (abort.signal.aborted) return;
+            this.historySourceCache.update((sources) =>
+              historySourcesFromRecords([...response.items, ...response.relatedItems]).reduce(
+                (all, source) => {
+                  if (!all.some((item) => item.id === source.id)) all.push(source);
+                  return all;
+                },
+                [...sources],
+              ),
+            );
+            this.historyResponse.set(response);
+          })
+          .catch((error: unknown) => {
+            if (abort.signal.aborted) return;
+            this.historyResponse.set(null);
+            this.historyError.set(
+              error instanceof Error ? error.message : 'Não foi possível consultar o histórico.',
+            );
+          })
+          .finally(() => {
+            if (!abort.signal.aborted) this.historyLoading.set(false);
           });
       });
     });
@@ -1696,7 +1841,82 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected setHistorySearch(query: string): void {
-    this.historyQuery.set(query);
+    this.updateHistoryFilters({ text: query });
+  }
+
+  protected setHistoryPeriod(edge: 'start' | 'end', value: string): void {
+    this.updateHistoryFilters(edge === 'start' ? { periodStart: value } : { periodEnd: value });
+  }
+
+  protected isHistoryCategorySelected(category: string): boolean {
+    return (this.historyFilters().categories ?? this.categories.map((item) => item.id)).includes(
+      category,
+    );
+  }
+
+  protected toggleHistoryCategory(category: string): void {
+    const selected = this.historyFilters().categories ?? this.categories.map((item) => item.id);
+    const next = selected.includes(category)
+      ? selected.filter((value) => value !== category)
+      : [...selected, category];
+    this.updateHistoryFilters({ categories: next });
+  }
+
+  protected setHistoryType(type: string): void {
+    this.updateHistoryFilters({ types: type ? [type] : [], subtypes: [] });
+  }
+
+  protected setHistorySubtype(subtype: string): void {
+    this.updateHistoryFilters({ subtypes: subtype ? [subtype] : [] });
+  }
+
+  protected setHistoryTerritory(field: 'municipality' | 'neighborhood', value: string): void {
+    this.updateHistoryFilters(
+      field === 'municipality' ? { municipality: value } : { neighborhood: value },
+    );
+  }
+
+  protected setHistorySource(sourceId: string): void {
+    this.updateHistoryFilters({ sourceId });
+  }
+
+  protected setHistoryReliability(bound: 'minReliability' | 'maxReliability', value: string): void {
+    this.updateHistoryFilters({ [bound]: value ? Number(value) : null });
+  }
+
+  protected setHistorySituation(value: string): void {
+    this.updateHistoryFilters({ situation: value as Situation | '' });
+  }
+
+  protected clearHistoryFilters(): void {
+    this.historyFilters.set({
+      text: '',
+      periodStart: '',
+      periodEnd: '',
+      types: [],
+      subtypes: [],
+      municipality: '',
+      neighborhood: '',
+      sourceId: '',
+      minReliability: null,
+      maxReliability: null,
+      situation: '',
+    });
+    this.historyPage.set(1);
+  }
+
+  protected refreshHistory(): void {
+    this.historyPage.set(1);
+    if (this.persistedQueryEnabled) this.historyRetry.update((value) => value + 1);
+  }
+
+  protected setHistoryPage(page: number): void {
+    this.historyPage.set(Math.max(1, Math.min(page, this.historyPageCount())));
+  }
+
+  private updateHistoryFilters(update: Partial<HistoryFilters>): void {
+    this.historyFilters.update((filters) => ({ ...filters, ...update }));
+    this.historyPage.set(1);
   }
 
   protected selectQueryMunicipality(value: string): void {
@@ -2870,7 +3090,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected linkClip(clipId: string): void {
     const eventId = this.clipTarget()[clipId];
-    if (!eventId || !this.historyRecords().some((record) => record.id === eventId)) return;
+    if (!eventId || !this.filteredHistoryRecords().some((record) => record.id === eventId)) return;
     this.updateClip(clipId, 'LINKED', eventId);
   }
 

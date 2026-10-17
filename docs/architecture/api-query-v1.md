@@ -13,6 +13,8 @@ Este contrato implementa o Ticket 12 em desenvolvimento local. O banco e as quat
 
 `GET /api/v1/occurrences`
 
+`GET /api/v1/history/occurrences` usa os mesmos filtros, sessão obrigatória e leitura repetível, com período omitido para consultar todo o histórico publicado. Quando um período é informado, início e fim devem vir juntos e continuam no intervalo semiaberto `[início, fim)`. A resposta contém o recorte completo e seus totais; a interface divide esse snapshot em páginas de 25 itens e só o recalcula ao aplicar filtros ou atualizar explicitamente. A ordem usa o instante de datas exatas ou o limite final conhecido e exclusivo dos intervalos, em ordem decrescente, com identificador decrescente no empate; isso é uma chave de navegação e não converte limites aproximados em datas exatas.
+
 `GET /api/v1/reports/occurrences` usa os mesmos filtros e resposta, inclusive ocorrências relacionadas, e exige sessão completa no servidor. Executa a consulta autenticada sobre PostGIS e devolve todos os itens do recorte na mesma leitura repetível. `generatedAt` identifica o instante da resposta. O relatório fica apenas na sessão do navegador; o servidor não persiste um relatório ou uma fotografia de filtros. A ação Atualizar faz outra leitura explícita com os filtros guardados no relatório.
 
 Filtros podem ser repetidos para alternativas do mesmo campo; campos diferentes se combinam. O cliente envia o intervalo consultado e o servidor valida todos os valores:

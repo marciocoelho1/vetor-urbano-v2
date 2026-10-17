@@ -28,12 +28,25 @@ public class OccurrenceQueryParser {
             "radiusMeters", "timeStart", "timeEnd", "west", "south", "east", "north");
 
     public OccurrenceQuery parse(MultiValueMap<String, String> parameters) {
+        return parse(parameters, false);
+    }
+
+    public OccurrenceQuery parseHistory(MultiValueMap<String, String> parameters) {
+        return parse(parameters, true);
+    }
+
+    private OccurrenceQuery parse(MultiValueMap<String, String> parameters, boolean allowAllPublished) {
         rejectUnknownParameters(parameters);
 
         boolean ongoingOnly = values(parameters, "situation").equals(List.of("ONGOING"));
         boolean withoutPeriod = !parameters.containsKey("periodStart") && !parameters.containsKey("periodEnd");
-        var periodStart = ongoingOnly && withoutPeriod ? null : requiredInstant(parameters, "periodStart");
-        var periodEnd = ongoingOnly && withoutPeriod ? null : requiredInstant(parameters, "periodEnd");
+        if (parameters.containsKey("periodStart") != parameters.containsKey("periodEnd")) {
+            throw invalid("periodStart e periodEnd precisam ser informados juntos.");
+        }
+        var periodStart = withoutPeriod && (ongoingOnly || allowAllPublished)
+                ? null : requiredInstant(parameters, "periodStart");
+        var periodEnd = withoutPeriod && (ongoingOnly || allowAllPublished)
+                ? null : requiredInstant(parameters, "periodEnd");
         if (periodStart != null && !periodStart.isBefore(periodEnd)) {
             throw invalid("periodStart precisa ser anterior a periodEnd.");
         }

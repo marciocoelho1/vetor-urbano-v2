@@ -97,6 +97,7 @@ export function persistedQueryParameters(filters: LocalFilters): URLSearchParams
 }
 
 export function persistedRecord(item: PersistedOccurrence): DemoRecord & {
+  kind: 'occurrence';
   name: string;
   description: string;
   location: string;
@@ -149,6 +150,13 @@ export async function fetchPersistedQuery(
   signal: AbortSignal,
 ): Promise<PersistedQueryResponse> {
   return fetchQueryResponse('occurrences', params, signal);
+}
+
+export async function fetchPersistedHistoryQuery(
+  params: URLSearchParams,
+  signal: AbortSignal,
+): Promise<PersistedQueryResponse> {
+  return fetchQueryResponse('history/occurrences', params, signal);
 }
 
 export async function fetchPersistedReportQuery(

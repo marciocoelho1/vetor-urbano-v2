@@ -189,6 +189,101 @@ class OccurrenceQueryHttpIT {
     }
 
     @Test
+    void authenticatedHistoryQueryReturnsAllPublishedRecordsInStableImprecisionAwareOrder() throws Exception {
+        try (var application = startApi()) {
+            var jdbc = application.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            jdbc.update("DELETE FROM occurrences WHERE id LIKE 'vu-history-test-%'");
+            jdbc.update("DELETE FROM happenings WHERE id = 'vu-history-test-happening'");
+            jdbc.update("INSERT INTO happenings (id, title, description) VALUES (?, ?, ?)",
+                    "vu-history-test-happening", "Acontecimento de teste", "Dados sintéticos do teste HTTP.");
+            jdbc.update("""
+                    INSERT INTO occurrences (
+                        id, happening_id, title, description, category, occurrence_type, subtype,
+                        situation, reliability_score, municipality, neighborhood, location_precision,
+                        location, occurred_at, occurred_from, occurred_until, publication_status
+                    )
+                    SELECT 'vu-history-test-' || series, 'vu-history-test-happening',
+                           'Registro histórico sintético ' || series, 'Descrição de teste.',
+                           'TRANSITO', 'ACIDENTE', 'COLISAO', 'CLOSED', 3,
+                           'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                           TIMESTAMPTZ '2026-10-13T00:00:00Z' - series * INTERVAL '1 day',
+                           NULL, NULL, 'PUBLISHED'
+                    FROM generate_series(1, 27) AS series
+                    """);
+            jdbc.update("""
+                    INSERT INTO occurrences (
+                        id, happening_id, title, description, category, occurrence_type, subtype,
+                        situation, reliability_score, municipality, neighborhood, location_precision,
+                        location, occurred_at, occurred_from, occurred_until, publication_status
+                    ) VALUES
+                        ('vu-history-test-z-exact', 'vu-history-test-happening', 'Data pontual sintética', 'Empate para ordenação.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'CLOSED', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2026-09-01T12:00:00Z', NULL, NULL, 'PUBLISHED'),
+                        ('vu-history-test-m-exact-inside-interval', 'vu-history-test-happening', 'Instante dentro do intervalo', 'Instante sintético para diferenciar o limite final.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'CLOSED', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2026-09-01T11:30:00Z', NULL, NULL, 'PUBLISHED'),
+                        ('vu-history-test-a-interval', 'vu-history-test-happening', 'Intervalo sintético', 'Fim exclusivo conhecido.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'ONGOING', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         NULL, '2026-09-01T11:00:00Z', '2026-09-01T12:00:00Z', 'PUBLISHED'),
+                        ('vu-history-test-old-ongoing', 'vu-history-test-happening', 'Situação vigente antiga', 'Data sintética antiga.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'ONGOING', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2000-01-01T00:00:00Z', NULL, NULL, 'PUBLISHED'),
+                        ('vu-history-test-pending', 'vu-history-test-happening', 'Pendente privado', 'Não pode ser retornado.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2026-10-16T00:00:00Z', NULL, NULL, 'PENDING'),
+                        ('vu-history-test-dismissed', 'vu-history-test-happening', 'Descartado privado', 'Não pode ser retornado.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2026-10-17T00:00:00Z', NULL, NULL, 'DISMISSED'),
+                        ('vu-history-test-withdrawn', 'vu-history-test-happening', 'Retirado privado', 'Não pode ser retornado.',
+                         'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3, 'Rio de Janeiro', 'Centro', 'TERRITORY', NULL,
+                         '2026-10-18T00:00:00Z', NULL, NULL, 'WITHDRAWN')
+                    """);
+
+            var unauthorized = getPath(application, "/api/v1/history/occurrences", "", false);
+            assertEquals(401, unauthorized.statusCode());
+
+            var response = getPath(application, "/api/v1/history/occurrences", "", true);
+            assertEquals(200, response.statusCode());
+            var body = JSON.readTree(response.body());
+            var items = body.path("items");
+            assertEquals(35, body.path("counts").path("occurrences").asInt());
+            assertEquals(items.size(), body.path("counts").path("occurrences").asInt());
+            assertTrue(items.size() > 25);
+            assertEquals("vu-history-test-old-ongoing", findItem(body, "vu-history-test-old-ongoing").path("id").asString());
+            assertFalse(response.body().contains("vu-history-test-pending"));
+            assertFalse(response.body().contains("vu-history-test-dismissed"));
+            assertFalse(response.body().contains("vu-history-test-withdrawn"));
+
+            var exactIndex = itemIndex(items, "vu-history-test-z-exact");
+            var intervalIndex = itemIndex(items, "vu-history-test-a-interval");
+            var insideIndex = itemIndex(items, "vu-history-test-m-exact-inside-interval");
+            assertEquals(exactIndex + 1, intervalIndex);
+            assertTrue(intervalIndex < insideIndex, "intervalo ordenado pelo limite final conhecido, não pelo início");
+            assertEquals("2026-09-01T12:00:00Z",
+                    items.get(exactIndex).path("temporal").path("occurredAt").asString());
+            assertEquals("2026-09-01T12:00:00Z",
+                    items.get(intervalIndex).path("temporal").path("occurredUntil").asString());
+
+            var ordinaryQuery = getPath(application, "/api/v1/occurrences",
+                    "periodStart=2026-09-01T00:00:00Z&periodEnd=2026-09-02T00:00:00Z&text=vu-history-test-", true);
+            assertEquals(200, ordinaryQuery.statusCode());
+            var ordinaryItems = JSON.readTree(ordinaryQuery.body()).path("items");
+            assertEquals(3, ordinaryItems.size());
+            assertTrue(itemIndex(ordinaryItems, "vu-history-test-z-exact")
+                    < itemIndex(ordinaryItems, "vu-history-test-m-exact-inside-interval"));
+            assertTrue(itemIndex(ordinaryItems, "vu-history-test-m-exact-inside-interval")
+                    < itemIndex(ordinaryItems, "vu-history-test-a-interval"));
+
+            var identifierSearch = getPath(application, "/api/v1/history/occurrences",
+                    "text=vu-history-test-z-exact", true);
+            assertEquals(200, identifierSearch.statusCode());
+            var matching = JSON.readTree(identifierSearch.body());
+            assertEquals(1, matching.path("counts").path("occurrences").asInt());
+            assertEquals("vu-history-test-z-exact", matching.path("items").get(0).path("id").asString());
+        }
+    }
+
+    @Test
     void httpHonorsOffsetHalfOpenIntervalsAndPostgisDistanceBoundary() throws Exception {
         try (var application = startApi()) {
             var endExclusive = get(application,
@@ -434,6 +529,13 @@ class OccurrenceQueryHttpIT {
 
     private static JsonNode findItem(JsonNode response, String id) {
         return findIn(response.path("items"), id);
+    }
+
+    private static int itemIndex(JsonNode items, String id) {
+        for (int index = 0; index < items.size(); index++) {
+            if (id.equals(items.get(index).path("id").asString())) return index;
+        }
+        throw new AssertionError("Expected occurrence " + id + " in HTTP response.");
     }
 
     private static JsonNode findIn(JsonNode items, String id) {
