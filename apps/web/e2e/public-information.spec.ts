@@ -149,7 +149,7 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(termsHeading).toBeFocused();
   const termsSection = page.getByRole('region', { name: 'Termos de uso', exact: true });
   await expect(termsSection).toContainText('Rascunho de revisão local');
-  await expect(termsSection).toContainText('Versão demonstrativa v1.2 · 15/10/2026');
+  await expect(termsSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
   await expect(termsSection).toContainText('não constitui canal de emergência');
   await expect(termsSection).toContainText('registros sintéticos e fictícios');
   await expect(termsSection).toContainText('190');
@@ -166,10 +166,12 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(privacyHeading).toBeFocused();
   const privacySection = page.getByRole('region', { name: 'Política de privacidade', exact: true });
   await expect(privacySection).toContainText('Rascunho de revisão local');
-  await expect(privacySection).toContainText('Versão demonstrativa v1.2 · 15/10/2026');
+  await expect(privacySection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
   await expect(privacySection).toContainText('Consulta na demonstração local');
   await expect(privacySection).toContainText('endereços residenciais privados');
-  await expect(privacySection).toContainText('60 dias ou 1 ano');
+  await expect(privacySection).toContainText(
+    '60 dias para uso, 180 dias para segurança e 365 dias para operação administrativa',
+  );
   await privacySection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
   await expect(privacyLink).toBeFocused();
 
@@ -180,7 +182,7 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(methodHeading).toBeFocused();
   const methodSection = page.getByRole('region', { name: 'Metodologia dos dados', exact: true });
   await expect(methodSection).toContainText('Rascunho de revisão local');
-  await expect(methodSection).toContainText('Versão demonstrativa v1.2 · 15/10/2026');
+  await expect(methodSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
   await expect(methodSection).toContainText('Clipping');
   await expect(methodSection).toContainText('Ocorrência');
   await expect(methodSection).toContainText('Acontecimento');
@@ -206,12 +208,14 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
     exact: true,
   });
   await expect(correctionsSection).toContainText('Rascunho de revisão local');
-  await expect(correctionsSection).toContainText('Versão demonstrativa v1.2 · 15/10/2026');
+  await expect(correctionsSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
   await expect(correctionsSection).toContainText('Distinção entre correção e novo registro');
   await expect(correctionsSection).toContainText('não deve ser usada para relatar um novo fato');
-  await expect(correctionsSection).toContainText('não recebe pedidos de correção');
-  await expect(correctionsSection).toContainText('não oferece protocolo ou acompanhamento');
-  await expect(correctionsSection).toContainText('Não há formulário ou fila ativa');
+  await expect(correctionsSection).toContainText('canal privado local exige autenticação');
+  await expect(correctionsSection).toContainText('O pedido não altera o registro automaticamente');
+  await expect(correctionsSection).toContainText(
+    'Recebida, Em análise, Concluída e Não procedente',
+  );
   await expect(correctionsSection).not.toContainText(
     'Na versão operacional futura, haverá formulário',
   );

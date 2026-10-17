@@ -5,6 +5,8 @@
 **27 em verificação:** canal privado HTTP/PostGIS e Angular implementado; alvo validado separado do editor territorial experimental. Testes direcionados: 15 unitários + 2 integrações e Playwright 2/2 Chromium/Firefox (teclado, estados, 390 px). Revisão e suítes completas pendentes. [Evidências](docs/history/ticket-27-progress-2026-10-17.md). Baseline preservado; sem push. Próxima ação: concluir revisão do 27 e integrar documentos no 36.
 
 
+**36 em verificação:** quatro rascunhos v1.3 reconciliados com canal 27, conta/encerramento e retenção aprovada; sem publicação jurídica. [Evidências](docs/history/ticket-36-progress-2026-10-17.md). Próxima ação: finalizar revisão e iniciar revisão/publicação sintética do 17.
+
 Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Checkpoints do lote local 29 → 28 → 33

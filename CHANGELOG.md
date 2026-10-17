@@ -1,3 +1,8 @@
+## 2026-10-17 — Ticket local 36: documentos e canal disponível
+
+- Quatro rascunhos locais v1.3 refletem autenticação, canal privado efetivo de correções, ciclo da conta e prazos aprovados, com limites de minimização e de backups explícitos.
+- Conteúdo permanece sem aprovação jurídica/publicação externa. [Evidências](docs/history/ticket-36-progress-2026-10-17.md).
+
 ## 2026-10-17 — Ticket local 27: canal privado de correções
 
 - Recebimento/acompanhamento autenticados, alvos validados, fila ADMIN/MFA, motivos e versões de decisão; nenhum efeito automático na publicação.
