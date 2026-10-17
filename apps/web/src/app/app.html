@@ -64,6 +64,16 @@
           <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#plus" /></svg>Registrar
           ocorrência
         </button>
+        @if (session.state()?.role === 'ADMIN' && session.state()?.authenticated) {
+          <button
+            type="button"
+            class="nav-link"
+            (click)="openView('logs')"
+            [attr.aria-current]="activeView() === 'logs' ? 'page' : null"
+          >
+            Logs administrativos
+          </button>
+        }
       </nav>
       <div class="topbar-actions">
         @if (session.state()) {
@@ -2728,6 +2738,9 @@
         </section>
       }
 
+      @if (activeView() === 'logs') {
+        <app-audit-log />
+      }
       @if (activeView() === 'sources') {
         @if (persistedQueryEnabled) {
           <app-source-management />

@@ -1,0 +1,23 @@
+# Logs e retenção locais — ticket 19
+
+Contrato sintético de D13/CA23, RF05/RNF02/RNF06 e [E04/E08–E10/E16](../product/account-and-records-policy.md). Não homologa tratamento de dados reais, guarda legal, backups ou preservação excepcional operacional.
+
+## Eventos e acesso
+
+As três tabelas existentes permanecem separadas. V6 acrescenta classe gerada pela finalidade, sem reescrever V1–V5: `account_audit_events` é SECURITY; `auth_audit_events` é USE para módulo query, ADMIN para audit e SECURITY para access; `source_audit_events` é ADMIN. Versões/configurações de fonte são histórico de domínio e não participam do expurgo. Não criar eventos de coleta/revisão ainda não implementadas. Leitura e limpeza dos logs geram administração; execução automática não recebe identidade de usuário.
+
+`GET /api/v1/admin/logs?eventClass=USE|SECURITY|ADMIN&cursor=...` exige sessão ADMIN completa, com MFA no servidor. Sem classe: todas. Página de 50 eventos, ordem instante/classe de origem/ID numérico decrescentes; cursor segue a última tupla e evita deslocar páginas quando chegam novos eventos. Retorna ator interno, instante UTC, ação, módulo, resultado, classe e parâmetros minimizados; ausência de ator significa evento não atribuído/sistema. Datas na tela usam America/Sao_Paulo.
+
+Parâmetros de uso são projetados por lista permitida E08, inclusive na leitura de eventos legados: período, categorias/tipos/subtipos/fontes, notas, situação, município/bairro, indicadores de busca/recorte espacial e contagens. Nunca retornar texto pesquisado, coordenadas, raio, bounds ou credenciais. Eventos de fonte incluem referência, antes/depois de campos administrativos aprovados, sem duplicar authorId do snapshot na resposta. Leitura de logs não é exportação de arquivo; essa capacidade não foi acrescentada.
+
+## Expiração e execução
+
+Tempo do evento (`occurred_at`) determina o vencimento inclusivo; execução tardia não renova retenção. Leitura exclui vencidos mesmo antes da eliminação física. `vetor.audit.use-retention`, `security-retention` e `admin-retention` têm padrões de 60/180/365 dias e aceitam reduções até um segundo para testes. Valores acima dos tetos ou não positivos impedem inicialização, sem ampliação silenciosa.
+
+Expurgo transacional automático a cada 60 segundos (`cleanup-delay`, atraso inicial `cleanup-initial-delay`, ambos em milissegundos). `POST /api/v1/admin/logs/cleanup` também exige ADMIN+MFA e CSRF. Resposta/evento registram instante da execução e quantidade eliminada, sem conteúdo dos eventos. Falha HTTP retorna 503, nunca contagem zero; falha agendada gera mensagem genérica no servidor, sinal visível na leitura e nova tentativa. Não se oferece preservação ilimitada ou override de prazo por Administrador. E18 depende de autorização expressa e mecanismo segregado, fora desta execução ordinária; nenhum conjunto preservado foi autorizado ou aplicado.
+
+## Integração exigida antes de encerrar conta no 15
+
+Na mesma transação da eliminação cadastral: apagar USE do ator (E10); desligar account_id dos eventos SECURITY e atribuir UUID residual novo, distinto de login/autoria, sem mapa de correspondência; desligar ator de ADMIN e versões/configurações, substituindo por outra referência histórica nova e papel, compartilhada apenas entre atos históricos desse autor (E09/E16/ADR 0001). Remover IDs recuperáveis também dos snapshots, tokens, sessões e chaves de limites individuais. Nunca reutilizar esses identificadores no novo cadastro. Não apagar versões, ocorrências ou decisões por cascata. Migração e prova desse encerramento pertencem ao 15; este contrato não declara essa integração implementada.
+
+Mecanismos de supressão/reaplicação após restauração e teto de sete dias dos backups (E17), enquadramento legal e canal excepcional continuam complementos operacionais. Não há backup configurado ou restauração comprovada nesta fatia.

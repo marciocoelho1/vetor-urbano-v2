@@ -1,5 +1,10 @@
 # Histórico de mudanças
 
+## 2026-10-17 — Seleção local 34 → 19 → 15
+
+- Ticket 19: consulta administrativa de eventos existentes, minimização de parâmetros e cursor por instante/origem/ID; V6 explicita classes e expurgo preserva versões. Prazos limitados aos tetos E16, autorização HTTP com MFA/CSRF e limpeza automática verificadas com dados sintéticos. Revisão em andamento; evidências no registro da seleção.
+- Ticket 34: composição de PDF aprovada; implementação aguarda checkpoint do trabalho independente no 19. Ticket 15 ainda não iniciado.
+
 ## Seleção local 30 → 31 — 17/10/2026
 
 - Ticket 31: comparação explícita de snapshots A/B, distribuições, variação, duração e médias somente com precisão suficiente. Cobertura desconhecida e base zero identificadas. Verificado localmente com dados sintéticos, incluindo base zero, precisão temporal e duração curta.

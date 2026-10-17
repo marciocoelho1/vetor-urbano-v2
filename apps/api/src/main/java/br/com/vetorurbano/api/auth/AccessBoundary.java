@@ -33,7 +33,7 @@ public class AccessBoundary extends OncePerRequestFilter {
         var auth=service.getIfAvailable();
         if(auth==null) {fail(response,503,"ACCESS_UNAVAILABLE","Serviço de acesso indisponível.");return;}
         AuthService.Reply decision;
-        boolean administrator = path.equals("/api/v1/admin/sources") || path.startsWith("/api/v1/admin/sources/");
+        boolean administrator = path.startsWith("/api/v1/admin/");
         try {decision=auth.authorize(AuthController.token(request),administrator);}
         catch(RuntimeException e) {fail(response,503,"ACCESS_UNAVAILABLE","Serviço de acesso indisponível. Tente novamente.");return;}
         if(decision.status()!=200) {response.setStatus(decision.status());response.setContentType("application/json");json.writeValue(response.getOutputStream(),decision.body());return;}

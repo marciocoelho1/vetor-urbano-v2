@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.audit-log {
+  max-width: 960px;
+  margin: auto;
+  padding: 24px;
+  overflow-wrap: anywhere;
+}
+.audit-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-block: 20px;
+}
+select,
+button {
+  min-height: 44px;
+  max-width: 100%;
+}
+ol {
+  padding-inline-start: 24px;
+}
+li {
+  padding: 16px;
+  margin-block: 16px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+}
+h2 {
+  font-size: 1rem;
+}
+dt {
+  font-weight: 600;
+}
+dd {
+  margin: 0 0 12px;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+summary {
+  cursor: pointer;
+  padding-block: 12px;
+}
+@media (max-width: 600px) {
+  .audit-log {
+    padding: 16px;
+  }
+}
+
+select {
+  color: var(--color-text-main);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  padding: 8px;
+}

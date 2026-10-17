@@ -28,8 +28,8 @@ public class AuthController {
     ResponseEntity<Map<String,Object>> login(@RequestBody Map<String,Object> body,HttpServletRequest request) { return respond(service.login(body,token(request))); }
     @GetMapping("/session") ResponseEntity<Map<String,Object>> status(HttpServletRequest request) {return respond(service.status(token(request)));}
     @GetMapping("/access/{module}") ResponseEntity<Map<String,Object>> access(@PathVariable String module,HttpServletRequest request) {
-        if(!Set.of("query","sources","report","history","insights","active").contains(module))return ResponseEntity.notFound().build();
-        return respond(service.authorize(token(request),Set.of("sources","report").contains(module)));
+        if(!Set.of("query","sources","report","history","insights","active","logs").contains(module))return ResponseEntity.notFound().build();
+        return respond(service.authorize(token(request),Set.of("sources","report","logs").contains(module)));
     }
     @PostMapping(value="/logout",consumes=MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Map<String,Object>> logout(HttpServletRequest request,@RequestHeader(value="X-CSRF-Token",required=false)String csrf) {return respond(service.logout(token(request),csrf));}

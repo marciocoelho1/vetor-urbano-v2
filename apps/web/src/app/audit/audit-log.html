@@ -1,0 +1,86 @@
+<section
+  class="workspace-view audit-log"
+  aria-labelledby="audit-title"
+  [attr.aria-busy]="loading()"
+>
+  <h1 id="audit-title" data-view-title="logs" tabindex="-1">Logs administrativos</h1>
+  <p>
+    Registros sintéticos restritos. Uso: 60 dias; segurança e conta: 180 dias; operação
+    administrativa: 365 dias. Versões têm ciclo próprio.
+  </p>
+  <p>
+    Eventos vencidos não aparecem. O expurgo automático verifica os prazos a cada minuto. Pesquisa
+    livre e localização exata não são exibidas nos parâmetros de uso.
+  </p>
+  <div class="audit-controls">
+    <label for="audit-class">Classe de retenção</label>
+    <select
+      id="audit-class"
+      [value]="eventClass"
+      (change)="changeClass($any($event.target).value)"
+      [disabled]="loading()"
+    >
+      <option value="">Todas</option>
+      <option value="USE">Uso</option>
+      <option value="SECURITY">Segurança e conta</option>
+      <option value="ADMIN">Operação administrativa</option>
+    </select>
+    <button
+      class="map-tool-button"
+      type="button"
+      (click)="reload()"
+      [attr.aria-disabled]="loading()"
+    >
+      Atualizar registros
+    </button>
+  </div>
+  @if (loading()) {
+    <p data-testid="audit-loading" role="status">Carregando registros…</p>
+  }
+  @if (error()) {
+    <p id="audit-error" data-testid="audit-error" role="alert" tabindex="-1">{{ error() }}</p>
+  }
+  @if (maintenanceFailed()) {
+    <p role="alert">
+      O último expurgo automático falhou. Eventos vencidos permanecem indisponíveis; nova tentativa
+      está prevista.
+    </p>
+  }
+  @if (!loading() && !error()) {
+    @if (events().length === 0) {
+      <p data-testid="audit-empty" role="status">Nenhum registro vigente nesta classe.</p>
+    } @else {
+      <ol data-testid="audit-events" aria-label="Eventos administrativos">
+        @for (event of events(); track event.id) {
+          <li class="workspace-card">
+            <h2>{{ event.action }} · {{ event.outcome }}</h2>
+            <dl>
+              <dt>Instante (America/Sao_Paulo)</dt>
+              <dd>{{ event.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' : '-0300' }}</dd>
+              <dt>Ator interno</dt>
+              <dd>{{ event.actor || 'Sistema ou tentativa não atribuída' }}</dd>
+              <dt>Módulo</dt>
+              <dd>{{ event.module }}</dd>
+              <dt>Classe</dt>
+              <dd>{{ event.eventClass }}</dd>
+            </dl>
+            <details>
+              <summary>Parâmetros e antes/depois</summary>
+              <pre>{{ event.parameters | json }}</pre>
+            </details>
+          </li>
+        }
+      </ol>
+      @if (nextCursor()) {
+        <button
+          class="map-tool-button"
+          type="button"
+          (click)="reload(true)"
+          [attr.aria-disabled]="loading()"
+        >
+          Carregar mais antigos
+        </button>
+      }
+    }
+  }
+</section>

@@ -12,6 +12,8 @@ Atualização: 16/10/2026. Único roadmap ativo; entregas anteriores no [diário
 
 ## Estado e foco atual
 
+**Seleção autorizada 34 → 19 → 15 — em andamento:** baseline `a2da26b`; composição PDF do 34 aprovada nesta conversa. O 19 avançou de forma independente durante a espera: V6, autorização ADMIN+MFA, consulta paginada/minimizada e retenção/expurgo; web 111 testes, API 14 + 33 HTTP/PostGIS e Playwright 2/2 passaram. Revisão Standards + Spec pendente, sem aceite ainda. O 15 aguarda o checkpoint do 19. [Baseline e evidências](docs/history/selected-34-19-15-2026-10-17.md). Sem push, deploy ou dados reais.
+
 **Seleção 30 → 31 — concluída localmente em 17/10:** checkpoints sequenciais preservaram o trabalho preexistente. Síntese e comparação A/B aprovadas, revisadas em Standards + Spec sem findings. Web: 111 testes/build; API: 14 unitários + 29 HTTP/PostGIS; Playwright: regressão 22/22 e rodada final 4/4 após corrigir duração curta. Commits funcionais `b5cbde5`, `e3bbfea`, `6440b48`; checkpoint do 30 `0fbcb14`. [Ticket 30](docs/history/ticket-30-progress-2026-10-17.md) e [ticket 31](docs/history/ticket-31-progress-2026-10-17.md). Sem prontidão operacional; cobertura não aferida e aviso de bundle 704,58 kB. Próxima ação: selecionar outro ticket, sem início automático.
 
 **Envio da branch — 16/10:** README atualizado com as duas contas sintéticas locais e exigência de MFA para ADMIN. Push autorizado somente de `integration/functional-spec-v1`, sem merge ou alteração da `main`; alterações locais anteriores preservadas fora deste commit. Verificação documental: `bash scripts/verify.sh planning` e `git diff --cached --check`. Próxima ação: conferir o hash remoto após o envio; credenciais dependem de provisionamento no banco local.

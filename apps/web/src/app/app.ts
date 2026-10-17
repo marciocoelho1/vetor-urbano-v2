@@ -7,6 +7,7 @@ import {
 import { summarizeReport } from './domain/report-summary';
 import { Session } from './auth/session';
 import { SessionPanel } from './auth/session-panel';
+import { AuditLog } from './audit/audit-log';
 import { SourceManagement } from './sources/source-management';
 import { PublicSourceList } from './sources/public-source-list';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -109,7 +110,8 @@ type Category = 'TRANSITO' | 'SEGURANCA' | 'CONTINGENCIA';
 type ModuleId = 'intelligence' | 'information' | 'territory';
 type PublicPage =
   'public-sources' | 'reliability' | 'terms' | 'privacy' | 'methodology' | 'corrections';
-type ViewId = 'map' | 'active' | 'history' | 'insights' | 'sources' | 'report' | PublicPage;
+type ViewId =
+  'map' | 'active' | 'history' | 'insights' | 'sources' | 'report' | 'logs' | PublicPage;
 type TerritoryCode = RiskAreaCode;
 type TerritoryProperties = { n: string; f: TerritoryCode; demoDetails?: RiskAreaDetails };
 type TerritoryFeature = Feature<Polygon | MultiPolygon, TerritoryProperties> & { id: number };
@@ -415,6 +417,7 @@ interface SuspendedAdvancedFilters {
   imports: [
     SessionPanel,
     SourceManagement,
+    AuditLog,
     PublicSourceList,
     CommonModule,
     FormsModule,
@@ -453,7 +456,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly moduleAllowed = computed(
     () =>
       Boolean(this.session.state()?.authenticated) &&
-      (!['sources', 'report'].includes(this.activeView()) ||
+      (!['sources', 'report', 'logs'].includes(this.activeView()) ||
         this.session.state()?.role === 'ADMIN'),
   );
 
