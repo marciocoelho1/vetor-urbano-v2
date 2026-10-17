@@ -292,3 +292,7 @@ textarea {
     border-bottom: 1px solid var(--color-border-subtle);
   }
 }
+
+.summary-table th:first-child {
+  width: 50%;
+}

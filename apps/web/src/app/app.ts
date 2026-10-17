@@ -1,3 +1,9 @@
+import {
+  compareReports,
+  snapshotDuration,
+  snapshotDailyAverage,
+  type AnalysisSnapshot,
+} from './domain/report-comparison';
 import { summarizeReport } from './domain/report-summary';
 import { Session } from './auth/session';
 import { SessionPanel } from './auth/session-panel';
@@ -674,6 +680,22 @@ export class App implements AfterViewInit, OnDestroy {
     const snapshot = this.reportSnapshot();
     return snapshot ? summarizeReport(snapshot.items, snapshot.filters) : null;
   });
+  protected readonly comparisonA = signal<AnalysisSnapshot | null>(null);
+  protected readonly comparisonB = signal<AnalysisSnapshot | null>(null);
+  protected readonly reportComparison = computed(() => {
+    const a = this.comparisonA(),
+      b = this.comparisonB();
+    return a && b ? compareReports(a, b) : null;
+  });
+  protected readonly snapshotDuration = snapshotDuration;
+  protected readonly snapshotDailyAverage = snapshotDailyAverage;
+  protected formatAnalysisNumber(value: number): string {
+    return value.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  }
+  protected captureComparison(slot: 'A' | 'B'): void {
+    const snapshot = this.reportSnapshot();
+    if (snapshot) (slot === 'A' ? this.comparisonA : this.comparisonB).set(snapshot);
+  }
   protected readonly pendingReportTransfer = signal<LocalFilters | null>(null);
   protected readonly reportQueryLoading = signal(false);
   protected readonly reportQueryError = signal('');

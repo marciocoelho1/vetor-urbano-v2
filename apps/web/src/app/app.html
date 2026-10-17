@@ -2365,6 +2365,152 @@
                     }
                   </section>
                 }
+                <section aria-label="Comparar snapshots do relatório">
+                  <h3>Comparar dois recortes gerados</h3>
+                  <p>
+                    Gere cada período ou território pelo mapa e capture explicitamente A e B.
+                    Alterar ou atualizar o relatório não substitui as capturas. Para atualizar a
+                    comparação, capture novamente.
+                  </p>
+                  <button
+                    type="button"
+                    class="primary-button"
+                    (click)="captureComparison('A')"
+                    [disabled]="reportQueryLoading()"
+                  >
+                    Usar relatório como base A
+                  </button>
+                  <button
+                    type="button"
+                    class="primary-button"
+                    (click)="captureComparison('B')"
+                    [disabled]="reportQueryLoading()"
+                  >
+                    Usar relatório como recorte B
+                  </button>
+                  @if (!reportComparison()) {
+                    <p role="status" data-testid="report-comparison-pending">
+                      {{
+                        comparisonA()
+                          ? 'Selecione o recorte B'
+                          : comparisonB()
+                            ? 'Selecione a base A'
+                            : 'Selecione a base A e o recorte B'
+                      }}
+                      a partir de relatórios gerados.
+                    </p>
+                  }
+                  @if (reportComparison(); as comparison) {
+                    <div data-testid="report-comparison" aria-live="polite">
+                      <h4>Comparação A → B</h4>
+                      @for (
+                        entry of [
+                          {
+                            label: 'A (base)',
+                            snapshot: comparisonA()!,
+                            certainty: comparison.certaintyA,
+                          },
+                          {
+                            label: 'B',
+                            snapshot: comparisonB()!,
+                            certainty: comparison.certaintyB,
+                          },
+                        ];
+                        track entry.label
+                      ) {
+                        <article>
+                          <h4>{{ entry.label }}</h4>
+                          <p>
+                            Gerado em {{ formatDateTime(entry.snapshot.generatedAt) }} ·
+                            {{ entry.snapshot.counts.occurrences }} ocorrências ·
+                            {{ entry.snapshot.counts.happenings }} acontecimentos
+                          </p>
+                          <p>{{ reportFilterSummaryFor(entry.snapshot.filters) }}</p>
+                          <p>
+                            Inclusão temporal: {{ entry.certainty.certain }} certamente ·
+                            {{ entry.certainty.possible }} possivelmente ·
+                            {{ entry.certainty.unknown }} sem classificação.
+                          </p>
+                          <p>
+                            Duração:
+                            {{
+                              snapshotDuration(entry.snapshot) === null
+                                ? 'não calculável — período sem limites completos'
+                                : formatAnalysisNumber(snapshotDuration(entry.snapshot)!) +
+                                  ' dias de 24 horas'
+                            }}.
+                          </p>
+                          @if (snapshotDailyAverage(entry.snapshot) !== null) {
+                            <p>
+                              Média de registros disponíveis por dia:
+                              {{ formatAnalysisNumber(snapshotDailyAverage(entry.snapshot)!) }}.
+                            </p>
+                          } @else {
+                            <p>
+                              Média diária não calculável — exige período delimitado, datas exatas,
+                              inclusões certas e ausência de filtro de horário diário.
+                            </p>
+                          }
+                          <p>
+                            Cobertura não aferida. Zero registros não comprova ausência de cobertura
+                            ou de fatos.
+                          </p>
+                        </article>
+                      }
+                      <p>
+                        Variação B − A: {{ comparison.delta > 0 ? '+' : ''
+                        }}{{ comparison.delta }} ocorrências.
+                      </p>
+                      <p>
+                        Percentual:
+                        {{
+                          comparison.percent === null
+                            ? 'não calculável — base zero ou filtros não comparáveis'
+                            : (comparison.percent > 0 ? '+' : '') +
+                              formatAnalysisNumber(comparison.percent) +
+                              '%'
+                        }}.
+                      </p>
+                      <p>
+                        Comparação de registros disponíveis, sem taxa de risco ou classificação de
+                        segurança. Durações, fontes e precisão podem limitar a interpretação.
+                        Categorias sobrepostas não devem ser somadas.
+                      </p>
+                      @for (table of comparison.tables; track table.title) {
+                        <table class="summary-table">
+                          <caption>
+                            Comparação —
+                            {{
+                              table.title
+                            }}
+                          </caption>
+                          <thead>
+                            <tr>
+                              <th scope="col">Grupo</th>
+                              <th scope="col">A</th>
+                              <th scope="col">B</th>
+                              <th scope="col">B − A</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (row of table.rows; track row.label) {
+                              <tr>
+                                <th scope="row">{{ row.label }}</th>
+                                <td>{{ row.a }}</td>
+                                <td>{{ row.b }}</td>
+                                <td>{{ row.delta }}</td>
+                              </tr>
+                            } @empty {
+                              <tr>
+                                <td colspan="4">Nenhum registro nos dois recortes.</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      }
+                    </div>
+                  }
+                </section>
                 <ol class="report-snapshot-list" aria-label="Ocorrências deste relatório">
                   @for (point of snapshot.items; track point.id) {
                     <li>
