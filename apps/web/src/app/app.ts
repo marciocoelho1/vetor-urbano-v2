@@ -689,8 +689,8 @@ export class App implements AfterViewInit, OnDestroy {
   });
   protected readonly snapshotDuration = snapshotDuration;
   protected readonly snapshotDailyAverage = snapshotDailyAverage;
-  protected formatAnalysisNumber(value: number): string {
-    return value.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  protected formatAnalysisNumber(value: number, maximumFractionDigits = 2): string {
+    return value.toLocaleString('pt-BR', { maximumFractionDigits });
   }
   protected captureComparison(slot: 'A' | 'B'): void {
     const snapshot = this.reportSnapshot();

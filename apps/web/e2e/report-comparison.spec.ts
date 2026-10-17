@@ -144,6 +144,14 @@ test('média de registros disponíveis compara 4/2 dias e 6/3 dias sem taxa de r
       true,
     );
     await comparison.screenshot({ path: '/tmp/vu31-comparison-mobile.png' });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page
+      .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
+      .selectOption('Centro');
+    await generateWindow('2026-10-04T09:00', '2026-10-04T09:01', '6');
+    await page.getByRole('button', { name: 'Usar relatório como recorte B', exact: true }).click();
+    await expect(comparison).toContainText('Duração: 0,000694 dias de 24 horas');
   } finally {
     sql("DELETE FROM occurrences WHERE id LIKE 'vu-compare-%'");
   }
