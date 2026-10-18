@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, effect, ElementRef, inject, signal, untracked, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Session } from '../auth/session';
+import { RiskAreaManagement } from '../risk-areas/risk-area-management';
+import { isLocalPersistedQuery } from '../data/persisted-query';
 
 type Correction = {
   id: string;
@@ -30,11 +32,13 @@ type Preparation = {
 };
 @Component({
   selector: 'app-correction-channel',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RiskAreaManagement],
   templateUrl: './correction-channel.html',
   styleUrl: './correction-channel.scss',
 })
 export class CorrectionChannel {
+  protected readonly persistedAreasEnabled = isLocalPersistedQuery();
+  protected readonly openAreaId = signal('');
   protected readonly session = inject(Session);
   protected readonly items = signal<Correction[]>([]);
   protected readonly loading = signal(false);

@@ -28,8 +28,9 @@
             maxlength="200"
         /></label>
         <p>
-          Somente alvos persistidos validados. As áreas da demonstração e do editor experimental não
-          estão habilitadas.
+          Somente alvos persistidos validados. Para AREA, use a identidade territorial da versão
+          aprovada na consulta pela API. Áreas da demonstração e revisões ainda não aprovadas não
+          estão habilitadas; preparar revisão não comprova aplicação de correção.
         </p>
         <label
           >Tipo de problema<select name="problemType" [(ngModel)]="problemType">
@@ -121,7 +122,7 @@
               Confirmar minimização factual
             </button>
           } @else if (admin() && (item.state === 'RECEIVED' || item.state === 'IN_REVIEW')) {
-            <h5>Correção da ocorrência publicada</h5>
+            <h5>Correção do registro publicado</h5>
             @if (item.target_kind === 'OCCURRENCE') {
               <button type="button" (click)="openPublication(item)" [disabled]="saving()">
                 Abrir edição da publicação {{ item.target_id }}
@@ -224,8 +225,22 @@
                   }
                 }
               }
+            } @else if (item.target_kind === 'AREA' && persistedAreasEnabled) {
+              <p>
+                Revise e aprove a área persistida explicitamente. Somente a versão aprovada comprova
+                aplicação; depois informe a versão ao concluir o pedido.
+              </p>
+              <button type="button" (click)="openAreaId.set(item.id)">
+                Abrir revisão territorial {{ item.target_id }}
+              </button>
+              @if (openAreaId() === item.id) {
+                <app-risk-area-management [territoryId]="item.target_id" />
+              }
             } @else {
-              <p>Áreas experimentais não recebem edição de publicação neste incremento.</p>
+              <p>
+                Ative a consulta pela API para revisar áreas persistidas aprovadas. Áreas da
+                demonstração não recebem correção.
+              </p>
             }
             <label
               >Motivo visível ao solicitante<textarea

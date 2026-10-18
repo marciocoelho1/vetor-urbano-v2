@@ -1,0 +1,154 @@
+<section aria-labelledby="area-admin-heading">
+  <h3 id="area-admin-heading">Revisão de versões territoriais</h3>
+  <p>
+    Ambiente local sintético. Revisar não publica. A aprovação é uma decisão explícita; não comprova
+    domínio, atualidade ou precisão operacional.
+  </p>
+  <button type="button" (click)="reload()" [disabled]="loading() || saving()">
+    Atualizar versões territoriais
+  </button>
+  <button type="button" (click)="create()" [disabled]="loading() || saving() || !loaded()">
+    Nova área sintética
+  </button>
+  @if (loading()) {
+    <p role="status">Carregando revisões territoriais…</p>
+  } @else if (loaded() && !error() && !items().length) {
+    <p>Nenhuma revisão territorial cadastrada.</p>
+  }
+  <ul>
+    @for (item of items(); track item.territoryId) {
+      <li>
+        <button type="button" (click)="select(item.territoryId)" [disabled]="loading() || saving()">
+          Revisar {{ item.name }}
+        </button>
+        · revisão {{ item.version }} · aprovada {{ item.approvedVersion ?? 'Indisponível' }}
+      </li>
+    }
+  </ul>
+  @if (id() && !loading()) {
+    <form (submit)="save($event)">
+      <label>Identidade territorial<input [value]="id()" readonly /></label>
+      <label
+        >Nome da área<input
+          id="area-name"
+          [value]="form().name"
+          (input)="set('name', $any($event.target).value)"
+          required
+          maxlength="200"
+      /></label>
+      <label
+        >Grupo indicado<input
+          [value]="form().indicatedGroup"
+          (input)="set('indicatedGroup', $any($event.target).value)"
+          maxlength="200"
+      /></label>
+      <p>
+        Ausência de grupo é Não determinado. Disputado exige evidência específica de disputa, não
+        simples divergência.
+      </p>
+      <label
+        >Fonte original<select
+          aria-label="Fonte original"
+          [value]="form().sourceId"
+          (change)="set('sourceId', $any($event.target).value)"
+        >
+          <option value="">Indisponível</option>
+          @for (source of sources(); track source.id) {
+            <option [value]="source.id">{{ source.name }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Referência da evidência<textarea
+          [value]="form().evidenceReference"
+          (input)="set('evidenceReference', $any($event.target).value)"
+          maxlength="4000"
+        ></textarea>
+      </label>
+      <label
+        >Data de referência conhecida<input
+          type="date"
+          [value]="form().referenceDate"
+          (input)="set('referenceDate', $any($event.target).value)"
+      /></label>
+      <p>
+        Deixe vazia se desconhecida. Data de registro técnico não é referência temporal nem início
+        real de presença.
+      </p>
+      <label
+        >Limitações da versão<textarea
+          [value]="form().limitations"
+          (input)="set('limitations', $any($event.target).value)"
+          maxlength="4000"
+        ></textarea>
+      </label>
+      <label
+        >Geometria GeoJSON<textarea
+          rows="6"
+          [value]="form().geometry"
+          (input)="set('geometry', $any($event.target).value)"
+          required
+        ></textarea>
+      </label>
+      <p>
+        Objeto Polygon/MultiPolygon 2D WGS 84, [longitude, latitude]. Validação espacial no
+        servidor; sem correção automática.
+      </p>
+      <label
+        >Justificativa da revisão<textarea
+          [value]="form().justification"
+          (input)="set('justification', $any($event.target).value)"
+          required
+          maxlength="2000"
+        ></textarea>
+      </label>
+      <button type="submit" [disabled]="saving()">Salvar revisão sem publicar</button>
+    </form>
+    @if (latest(); as latest) {
+      <div class="comparison">
+        <section aria-label="Antes: versão aprovada">
+          <h4>Antes: versão aprovada</h4>
+          @if (before(); as before) {
+            <p class="recorded-at">Registro técnico: {{ instantLabel(before.recordedAt) }}</p>
+            <p>Snapshot original; instantes brutos em UTC:</p>
+            <pre>{{ json(before) }}</pre>
+          } @else {
+            <p>Nenhuma versão aprovada; fora da consulta.</p>
+          }
+        </section>
+        <section aria-label="Depois: revisão mais recente">
+          <h4>Depois: revisão mais recente</h4>
+          <p class="recorded-at">Registro técnico: {{ instantLabel(latest.recordedAt) }}</p>
+          <p>Snapshot original; instantes brutos em UTC:</p>
+          <pre>{{ json(latest) }}</pre>
+        </section>
+      </div>
+      <p>
+        Histórico imutável: autoria viva e histórica são distintas; campos ausentes não são
+        presumidos.
+      </p>
+      <details>
+        <summary>Histórico completo de versões</summary>
+        @for (version of history(); track version.version) {
+          <h4>Versão {{ version.version }}</h4>
+          <p class="recorded-at">Registro técnico: {{ instantLabel(version.recordedAt) }}</p>
+          <p>Snapshot original; instantes brutos em UTC:</p>
+          <pre>{{ json(version) }}</pre>
+        }
+      </details>
+      @if (latest.version !== latest.approvedVersion) {
+        <label
+          >Justificativa da aprovação<textarea
+            [value]="approvalReason()"
+            (input)="approvalReason.set($any($event.target).value)"
+            maxlength="2000"
+          ></textarea>
+        </label>
+        <button type="button" (click)="approve()" [disabled]="saving() || !approvalReason().trim()">
+          Aprovar versão mais recente
+        </button>
+      }
+    }
+  }
+  <p id="area-status" tabindex="-1" role="status">{{ error() || status() }}</p>
+</section>

@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  min-width: 0;
+  margin-block: 1rem;
+}
+section,
+form,
+label {
+  min-width: 0;
+}
+form,
+label {
+  display: grid;
+  gap: 0.5rem;
+}
+form {
+  gap: 1rem;
+}
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--border-color, #8893a0);
+  background: var(--surface, transparent);
+  border-radius: 0.4rem;
+  padding: 0.65rem;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+input,
+select,
+textarea {
+  width: 100%;
+}
+button {
+  cursor: pointer;
+  margin: 0.3rem 0.3rem 0.3rem 0;
+  white-space: normal;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+:focus-visible {
+  outline: 3px solid #d78928;
+  outline-offset: 2px;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  max-height: 24rem;
+  overflow: auto;
+}
+.comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+li,
+p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

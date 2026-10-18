@@ -655,7 +655,8 @@ app-root .public-map {
       padding: 12px;
     }
     &.consultation-list,
-    &.consultation-map-error {
+    &.consultation-map-error,
+    &:has(.risk-areas-panel[open]) {
       .map-first-screen {
         height: auto;
       }
@@ -881,6 +882,7 @@ app-root .app-shell.map-view {
 }
 
 .public-map .risk-areas-panel {
+  flex-shrink: 0;
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--color-border-subtle);

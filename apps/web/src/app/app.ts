@@ -14,6 +14,9 @@ import { AuditLog } from './audit/audit-log';
 import { ReviewQueue } from './moderation/review-queue';
 import { CorrectionChannel } from './corrections/correction-channel';
 import { SourceManagement } from './sources/source-management';
+import { RiskAreaManagement } from './risk-areas/risk-area-management';
+import { fetchRiskAreas } from './data/risk-area-api';
+import { persistedRiskAreaFeature } from './domain/persisted-risk-areas';
 import { PublicSourceList } from './sources/public-source-list';
 import { SelfAccount } from './accounts/self-account';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -461,6 +464,7 @@ interface SuspendedAdvancedFilters {
     SessionPanel,
     SelfAccount,
     SourceManagement,
+    RiskAreaManagement,
     CorrectionChannel,
     ReviewQueue,
     AuditLog,
@@ -725,9 +729,10 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly territories = signal<TerritoryFeature[]>([]);
   protected readonly showSyntheticRiskAreas = signal(false);
   protected readonly riskAreaQuery = signal('');
+  protected readonly riskAreaAdminOpen = signal(false);
   protected readonly allRiskAreaFeatures = computed<TerritoryFeature[]>(() => [
     ...this.territories(),
-    ...SYNTHETIC_RISK_AREAS,
+    ...(this.persistedQueryEnabled ? [] : SYNTHETIC_RISK_AREAS),
   ]);
   protected readonly availableRiskAreas = computed(() => {
     const selected = new Set(
@@ -738,7 +743,8 @@ export class App implements AfterViewInit, OnDestroy {
     const query = normalizeSearch(this.riskAreaQuery());
     return this.allRiskAreaFeatures().filter(
       (area) =>
-        (area.id < 0 ? this.showSyntheticRiskAreas() : selected.has(area.properties.f)) &&
+        (this.persistedQueryEnabled ||
+          (area.id < 0 ? this.showSyntheticRiskAreas() : selected.has(area.properties.f))) &&
         (!query || normalizeSearch(area.properties.n).includes(query)),
     );
   });
@@ -1581,6 +1587,19 @@ export class App implements AfterViewInit, OnDestroy {
   constructor() {
     void this.session.refresh();
     effect(() => {
+      if (!this.persistedQueryEnabled) return;
+      const authenticated = this.session.state()?.authenticated;
+      untracked(() => {
+        if (authenticated) void this.loadTerritories();
+        else {
+          this.territories.set([]);
+          this.territoryStatus.set('idle');
+          this.selectedTerritoryId.set(null);
+          this.riskAreaAdminOpen.set(false);
+        }
+      });
+    });
+    effect(() => {
       const enabled = this.heatEnabled();
       const records = this.visiblePoints();
       this.heatOverlay?.update(records, enabled);
@@ -2328,6 +2347,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected retryTerritories(): void {
+    this.territoryStatus.set('idle');
     void this.loadTerritories();
   }
 
@@ -4661,6 +4681,26 @@ export class App implements AfterViewInit, OnDestroy {
     this.territoryStatus.set('loading');
     this.territoryLoadPromise = (async () => {
       try {
+        if (this.persistedQueryEnabled) {
+          const items = await fetchRiskAreas();
+          if (!this.session.state()?.authenticated) return;
+          const ids = new Map(
+            this.territories().map((area) => [area.properties.demoDetails?.territoryId, area.id]),
+          );
+          let nextId = Math.max(0, ...this.territories().map((area) => area.id)) + 1;
+          this.territories.set(
+            items.map((item) =>
+              persistedRiskAreaFeature(item, ids.get(item.territoryId) ?? nextId++),
+            ),
+          );
+          this.territoryStatus.set('loaded');
+          const source = this.map?.getSource('territory-source') as
+            maplibregl.GeoJSONSource | undefined;
+          source?.setData({ type: 'FeatureCollection', features: this.allRiskAreaFeatures() });
+          this.installTerritoryLayer();
+          this.applyTerritoryFilter();
+          return;
+        }
         const response = await fetch(new URL(TERRITORY_DATA_URL, document.baseURI));
         if (!response.ok) throw new Error(`Territorial data request failed: ${response.status}`);
         const collection = (await response.json()) as FeatureCollection<
@@ -4827,6 +4867,8 @@ export class App implements AfterViewInit, OnDestroy {
       .filter((filter) => filter.startsWith('territory:'))
       .map((filter) => filter.slice('territory:'.length));
     if (this.showSyntheticRiskAreas()) selectedGroups.push('DEMO_DISPUTED', 'DEMO_UNKNOWN');
+    if (this.persistedQueryEnabled && this.territorySelected())
+      selectedGroups.push('DEMO_DISPUTED', 'DEMO_UNKNOWN');
     this.map.setFilter('territory-polygons-fill', [
       'in',
       ['get', 'f'],
@@ -4851,12 +4893,16 @@ export class App implements AfterViewInit, OnDestroy {
       selectedGroups.add('DEMO_DISPUTED');
       selectedGroups.add('DEMO_UNKNOWN');
     }
+    if (this.persistedQueryEnabled && this.territorySelected()) {
+      selectedGroups.add('DEMO_DISPUTED');
+      selectedGroups.add('DEMO_UNKNOWN');
+    }
     const selectedId = this.selectedTerritoryId();
 
     for (const area of this.allRiskAreaFeatures()) {
       if (!selectedGroups.has(area.properties.f)) continue;
       const group = TERRITORY_GROUP_BY_ID.get(area.properties.f) ?? {
-        color: area.id === -1 ? '#D98232' : '#8993A1',
+        color: area.properties.f === 'DEMO_DISPUTED' ? '#D98232' : '#8993A1',
       };
       const isSelected = selectedId === area.id;
       this.leaflet

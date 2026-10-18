@@ -1272,21 +1272,49 @@
                 class="risk-areas-panel"
                 role="region"
                 aria-label="Áreas de Risco disponíveis"
-                [open]="territorySelected() || showSyntheticRiskAreas()"
+                [open]="persistedQueryEnabled || territorySelected() || showSyntheticRiskAreas()"
               >
                 <summary>Áreas de Risco</summary>
                 <p class="query-note">
                   Polígonos de contexto; não entram nas contagens de ocorrências ou no calor. Cores
                   não comprovam risco ou segurança atual.
                 </p>
-                <label class="risk-layer-toggle"
-                  ><input
-                    type="checkbox"
-                    [checked]="showSyntheticRiskAreas()"
-                    (change)="toggleSyntheticRiskAreas()"
-                  />Exibir exemplos territoriais fictícios</label
-                >
-                @if (territorySelected() || showSyntheticRiskAreas()) {
+                @if (persistedQueryEnabled) {
+                  <p class="query-note">
+                    Consulta local pela API: somente versões explicitamente aprovadas. Dados
+                    sintéticos não comprovam cobertura operacional.
+                  </p>
+                  <button
+                    type="button"
+                    class="map-tool-button"
+                    (click)="retryTerritories()"
+                    [disabled]="territoryStatus() === 'loading'"
+                  >
+                    Atualizar áreas aprovadas
+                  </button>
+                  @if (session.state()?.role === 'ADMIN') {
+                    <button
+                      type="button"
+                      class="map-tool-button"
+                      (click)="riskAreaAdminOpen.set(!riskAreaAdminOpen())"
+                      [attr.aria-expanded]="riskAreaAdminOpen()"
+                    >
+                      Revisar versões territoriais
+                    </button>
+                    @if (riskAreaAdminOpen()) {
+                      <app-risk-area-management (approved)="retryTerritories()" />
+                    }
+                  }
+                } @else {
+                  <label class="risk-layer-toggle"
+                    ><input
+                      type="checkbox"
+                      [checked]="showSyntheticRiskAreas()"
+                      (change)="toggleSyntheticRiskAreas()"
+                    />Exibir exemplos territoriais fictícios</label
+                  >
+                }
+                @if (persistedQueryEnabled || territorySelected() || showSyntheticRiskAreas()) {
                   <label class="field"
                     >Buscar Área de Risco<input
                       type="search"
@@ -1303,7 +1331,7 @@
                       Tentar novamente a camada
                     </button>
                   }
-                  @if (territorySelected() && riskLayerWarning()) {
+                  @if (!persistedQueryEnabled && territorySelected() && riskLayerWarning()) {
                     <p class="source-warning" role="note">{{ riskLayerWarning() }}</p>
                   }
                   @if (availableRiskAreas().length) {
@@ -1339,6 +1367,14 @@
                       ×
                     </button>
                     <h3 id="risk-area-detail-heading" tabindex="-1">{{ area.name }}</h3>
+                    @if (area.territoryId) {
+                      <p>
+                        Identidade territorial: {{ area.territoryId }} · versão aprovada
+                        {{ area.version }}. Use este identificador e tipo AREA no canal privado de
+                        correções.
+                      </p>
+                      <p>Limitações: {{ area.limitations || 'Indisponíveis' }}</p>
+                    }
                     @if (area.synthetic) {
                       <p class="query-note">
                         Polígono e informações inteiramente fictícios; não descrevem o local real.
@@ -1388,7 +1424,11 @@
                         <dd>{{ area.version }}</dd>
                       </div>
                       <div>
-                        <dt>Evidência de disputa</dt>
+                        <dt>
+                          {{
+                            area.territoryId ? 'Referência da evidência' : 'Evidência de disputa'
+                          }}
+                        </dt>
                         <dd>
                           {{
                             area.evidence ||
@@ -1405,14 +1445,22 @@
                       prova início da presença. Não confirma situação atual, controle, influência,
                       segurança ou limites municipais oficiais.
                     </p>
-                    <h4>Versões disponíveis</h4>
+                    <h4>
+                      {{ area.territoryId ? 'Registro vigente aprovado' : 'Versões disponíveis' }}
+                    </h4>
                     @for (revision of area.revisions; track revision.version) {
                       <p>
                         {{ revision.version }} · {{ revision.group }} ·
                         {{ riskDateLabel(revision.referenceTime) }} · {{ revision.note }}
                       </p>
                     } @empty {
-                      <p>Histórico de versões da fonte indisponível.</p>
+                      <p>
+                        {{
+                          area.territoryId
+                            ? 'A consulta mostra somente a versão aprovada. Histórico editorial restrito à Administração.'
+                            : 'Histórico de versões da fonte indisponível.'
+                        }}
+                      </p>
                     }
                   </section>
                 }

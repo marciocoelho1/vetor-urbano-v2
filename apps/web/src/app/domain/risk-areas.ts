@@ -10,6 +10,8 @@ export interface RiskAreaRevision {
   note: string;
 }
 export interface RiskAreaDetails {
+  territoryId?: string;
+  limitations?: string;
   name: string;
   group: string;
   sourceName: string;
