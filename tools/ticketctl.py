@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Control sequential ticket work through Codex CLI and Antigravity CLI."""
+"""Control sequential ticket work exclusively through Codex CLI."""
 from __future__ import annotations
 
 import argparse
@@ -9,6 +9,8 @@ import json
 import os
 from pathlib import Path
 import shlex
+import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -17,7 +19,6 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "tools/ticketctl.json"
 STATE = Path(os.environ.get("TICKETCTL_STATE", ROOT / ".scratch/consulta-coerente/controller-state.json"))
-LOGS = ROOT / ".scratch/consulta-coerente/controller-logs"
 LOCK = ROOT / ".scratch/consulta-coerente/controller.lock"
 
 
@@ -37,28 +38,25 @@ def defaults(config):
             "queue": config["queue"]}
 
 
-def ticket_id(raw):
-    return f"{int(raw):02d}"
-
-
 def event(state, kind, **data):
     state["events"].append({"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                             "kind": kind, **data})
 
 
 def worktree_snapshot():
-    status = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=ROOT,
-                            text=True, capture_output=True, check=True).stdout.splitlines()
-    files = {}
-    staged = False
-    for line in status:
-        if len(line) < 4:
+    # -z preserves spaces, unicode and renames; include the index as well as worktree bytes.
+    status = git(["status", "--porcelain=v1", "-z", "--untracked-files=all"])
+    files, staged = {}, False
+    entries = status.split("\0")
+    while entries:
+        line = entries.pop(0)
+        if not line:
             continue
-        staged = staged or line[0] != " "
+        staged = staged or line[0] not in {" ", "?"}
         path = line[3:]
-        target = ROOT / path
-        digest = hashlib.sha256(target.read_bytes()).hexdigest() if target.is_file() else None
-        files[path] = digest
+        if "R" in line[:2] or "C" in line[:2]:
+            entries.pop(0)
+        files[path] = file_digest(ROOT / path)
     return {"files": files, "staged": staged}
 
 
@@ -69,7 +67,12 @@ def commit_ticket(name, config, state, rec):
         save(STATE, state)
         print(f"Ticket {name}: commit bloqueado porque o índice já tinha trabalho staged antes da execução.")
         return 3
-    current = worktree_snapshot()["files"]
+    current_snapshot = worktree_snapshot()
+    if current_snapshot["staged"]:
+        rec.update(status="awaiting_commit", commit_block="index changed during ticket execution")
+        save(STATE, state)
+        return 3
+    current = current_snapshot["files"]
     conflicts = [path for path, digest in baseline["files"].items() if current.get(path) != digest]
     if conflicts:
         rec.update(status="awaiting_commit", commit_block="ticket modified files already dirty at start", commit_conflicts=conflicts)
@@ -82,18 +85,18 @@ def commit_ticket(name, config, state, rec):
         save(STATE, state)
         print(f"Ticket {name}: revisão passou, mas não há alterações isoladas para commit.")
         return 3
-    add = subprocess.run(["git", "add", "--", *candidates], cwd=ROOT, text=True, capture_output=True)
+    add = git_result(["add", "--", *candidates])
     if add.returncode:
         rec.update(status="awaiting_commit", commit_block="git add failed", commit_output=add.stderr[-2000:])
         save(STATE, state)
         return add.returncode
     message = f"feat: implement ticket {name}"
-    commit = subprocess.run(["git", "commit", "-m", message], cwd=ROOT, text=True, capture_output=True)
+    commit = git_result(["commit", "-m", message])
     if commit.returncode:
         rec.update(status="awaiting_commit", commit_block="git commit failed", commit_output=commit.stderr[-2000:])
         save(STATE, state)
         return commit.returncode
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, capture_output=True, check=True).stdout.strip()
+    head = git(["rev-parse", "HEAD"]).strip()
     rec.update(status="accepted", acceptance="verified_and_reviewed", commit=head, committed_files=candidates)
     state["active"] = None
     event(state, "accepted", ticket=name, commit=head)
@@ -102,25 +105,76 @@ def commit_ticket(name, config, state, rec):
     return 0
 
 
+def file_digest(path):
+    if path.is_symlink():
+        return "symlink:" + os.readlink(path)
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def managed_run(command, cwd, *, output=None, prompt=None, timeout=30):
+    """Own a process group, including grandchildren, until every exit path is cleaned up."""
+    proc = None
+    try:
+        proc = subprocess.Popen(command, cwd=cwd, stdin=subprocess.PIPE if prompt is not None else subprocess.DEVNULL,
+                                stdout=output or subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, start_new_session=True)
+        data, _ = proc.communicate(input=prompt, timeout=timeout)
+        return proc.returncode, "exit", data or ""
+    except subprocess.TimeoutExpired:
+        return 124, "timeout", ""
+    except KeyboardInterrupt:
+        return 130, "interrupted", ""
+    except OSError as error:
+        if output:
+            output.write(f"\nCLI_START_ERROR: {error}\n")
+        return 127, "unavailable", str(error)
+    finally:
+        if proc:
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+                # Kill the group even when its leader has already exited.
+                try:
+                    proc.wait(timeout=0.2)
+                except subprocess.TimeoutExpired:
+                    pass
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                if stream:
+                    stream.close()
+
+
+def git(argv):
+    code, kind, output = managed_run(["git", *argv], ROOT)
+    if code:
+        raise RuntimeError(f"git {argv[0]}: {kind} ({code}): {output[-1000:]}")
+    return output
+
+
+def snapshot():
+    paths = git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"]).split("\0")
+    return digest({"head": git(["rev-parse", "HEAD"]).strip(),
+                   "index": git(["diff", "--cached", "--binary"]),
+                   "files": {p: [file_digest(ROOT / p), (ROOT / p).lstat().st_mode if (ROOT / p).exists() else None]
+                             for p in sorted(set(paths)) if p}})
+
+
 def run_command(command, cwd, log, timeout):
     if isinstance(command, dict):
         cwd = cwd / command.get("cwd", ".")
         command = command["argv"]
+    log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a") as output:
         output.write("\n$ " + shlex.join(command) + "\n")
         output.flush()
-        try:
-            result = subprocess.run(command, cwd=cwd, stdout=output, stderr=subprocess.STDOUT,
-                                    timeout=timeout, check=False)
-            return result.returncode, "exit"
-        except KeyboardInterrupt:
-            output.write("\nCHECKPOINT: execução interrompida pelo operador\n")
-            return 130, "interrupted"
-        except subprocess.TimeoutExpired:
-            return 124, "timeout"
-        except OSError as error:
-            output.write(f"\nCLI_START_ERROR: {error}\n")
-            return 127, "unavailable"
+        code, kind, _ = managed_run(command, cwd, output=output, timeout=timeout)
+        return code, kind
 
 
 def render_prompt(template, values):
@@ -130,65 +184,86 @@ def render_prompt(template, values):
     return text
 
 
-def final_response(path):
-    raw = path.read_text(errors="replace") if path.exists() else ""
-    final_start = raw.rfind("\ncodex\n")
-    text = raw[final_start + len("\ncodex\n"):] if final_start >= 0 else ""
-    return text.split("\ntokens used", 1)[0].strip()
+QUOTA_MARKERS = ("quota exceeded", "usage limit", "rate limit", "insufficient_quota",
+                 "usage_limit_reached", "rate_limit_exceeded", "quota_exhausted", "too many requests")
 
 
 def classify_cli_failure(log, kind):
+    lines = log.read_text(errors="replace").splitlines() if log.exists() else []
+    errors = []
+    for line in lines:
+        if line.startswith("$ "):
+            continue
+        try:
+            entry = json.loads(line)
+            if entry.get("type") not in {"error", "turn.failed"}:
+                continue
+        except (ValueError, AttributeError):
+            pass
+        errors.append(line)
+    content = "\n".join(errors).lower()
+    if any(marker in content for marker in ("error loading config.toml", "failed to load bootstrap configuration", "reserved built-in provider ids")):
+        return "config_rejected"
+    if any(marker in content for marker in QUOTA_MARKERS):
+        return "quota_exhausted"
     if kind != "exit":
         return kind
-    content = log.read_text(errors="replace").lower() if log.exists() else ""
     if "operation not permitted" in content or "read-only file system" in content:
         return "sandbox_blocked"
-    if any(marker in content for marker in ("quota exceeded", "usage limit", "rate limit")):
-        return "quota_exhausted"
     if any(marker in content for marker in ("unauthorized", "authentication required", "not logged in")):
         return "authentication_unavailable"
     return kind
 
 
-def invoke(config, role, profile, prompt, log, cwd):
+def error_excerpt(log):
+    """Keep detailed logs on disk; show errors rather than agent content in the terminal."""
+    if not log or not Path(log).is_file():
+        return ""
+    lines = []
+    for raw in Path(log).read_text(errors="replace").splitlines():
+        if not raw.strip() or raw.startswith("$ "):
+            continue
+        try:
+            entry = json.loads(raw)
+            if not isinstance(entry, dict) or entry.get("type") not in {"error", "turn.failed"}:
+                continue
+            raw = json.dumps(entry.get("error", entry.get("message", entry)), ensure_ascii=False)
+        except ValueError:
+            pass
+        lines.append(raw)
+    relevant = [line for line in lines if any(word in line.lower() for word in
+                ("error", "failed", "exception", "quota", "limit", "not permitted", "unavailable", "reserved built-in", "cannot be overridden"))]
+    return "\n".join((relevant or lines)[-5:])[-2000:]
+
+
+def invoke(config, role, profile, prompt, log, cwd, result_path):
     spec = config["profiles"][profile]
-    adapter = config["adapters"][spec["tool"]]
-    command = [adapter["binary"], *adapter["args"], "--model", spec["model"]]
-    if spec.get("effort"):
-        command += ["--effort", spec["effort"]] if spec["tool"] == "antigravity" else ["-c", f'model_reasoning_effort="{spec["effort"]}"']
-    if spec["tool"] == "codex":
-        command += ["-C", str(cwd), "--sandbox", "workspace-write", "-"]
-        # codex exec accepts prompt from stdin when argument is '-'.
-        with log.open("a") as output:
-            output.write("\n$ " + shlex.join(command) + "\n")
-            output.flush()
-            try:
-                result = subprocess.run(command, input=prompt, text=True, cwd=cwd,
-                                        stdout=output, stderr=subprocess.STDOUT,
-                                        timeout=config["timeout_seconds"], check=False)
-                return result.returncode, "exit"
-            except subprocess.TimeoutExpired:
-                return 124, "timeout"
-            except KeyboardInterrupt:
-                output.write("\nCHECKPOINT: execução interrompida pelo operador\n")
-                return 130, "interrupted"
-            except OSError as error:
-                output.write(f"\nCLI_START_ERROR: {error}\n")
-                return 127, "unavailable"
-    command += ["--mode", adapter.get("mode", "accept-edits"), "--print-timeout", f'{config["timeout_seconds"]}s', f"--print={prompt}"]
-    return run_command(command, cwd, log, config["timeout_seconds"] + 30)
+    if spec["tool"] != "codex":
+        raise ValueError("Somente Codex CLI é permitido")
+    adapter = config["adapters"]["codex"]
+    command = [adapter["binary"], *adapter["args"], "--model", spec["model"],
+               "-c", f'model_reasoning_effort="{spec["effort"]}"',
+               "-c", 'service_tier="default"', "-c", 'model_provider="openai"',
+               "-c", "features.multi_agent=false", "-c", "features.fast_mode=false",
+               "-c", "features.step_model_switching=false", "-c", "agents.max_threads=1",
+               "-c", "features.unbounded_connection_retries=false",
+               "-c", 'approval_policy="never"', "--json",
+               "--output-schema", str(ROOT / "tools/ticketctl-result.schema.json"),
+               "--output-last-message", str(result_path),
+               "-C", str(cwd), "--sandbox", "read-only" if role == "reviewer" else "workspace-write", "-"]
+    with log.open("a") as output:
+        output.write("\n$ " + shlex.join(command) + "\n")
+        output.flush()
+        code, kind, _ = managed_run(command, cwd, output=output, prompt=prompt,
+                                    timeout=config["timeout_seconds"])
+    kind = classify_cli_failure(log, kind)
+    return code, kind
 
 
 def check_models(config):
-    results = {}
-    for tool, adapter in config["adapters"].items():
-        cmd = [adapter["binary"], *adapter["models_args"]]
-        try:
-            p = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, timeout=30)
-            results[tool] = {"returncode": p.returncode, "output": (p.stdout + p.stderr)[-6000:]}
-        except (OSError, subprocess.TimeoutExpired) as error:
-            results[tool] = {"returncode": 127, "output": str(error)}
-    return results
+    # Local inventory only: models availability is not probed with paid inference.
+    return {"profiles": config["profiles"], "speed": config["codex_speed"],
+            "availability": "não consultada; nenhum fallback permitido"}
 
 
 def dependency_map(config):
@@ -209,396 +284,463 @@ def sync_historical_state(state):
                                       "commit": "a836616", "pending": ["effective correction intake/tracking depends on ticket 27"]}
 
 
-def run_next(config, state):
-    if state.get("active"):
-        print(f"Execução ativa para {state['active']['ticket']}; retome com: python3 tools/ticketctl.py resume")
-        return 3
-    statuses = state["tickets"]
-    deps = dependency_map(config)
-    for item in config["queue"]:
-        record = statuses.get(item, {})
-        if record.get("status") in {"accepted", "accepted_partial", "simulation_only"}:
-            continue
-        if item in config["phase_profiles"]:
-            return run_phase(item, config, state)
-        if all(statuses.get(dep, {}).get("status") == "accepted" for dep in deps.get(item, set())):
-            fake = argparse.Namespace(ticket=item, scenario="happy")
-            return run_ticket(fake, config, state)
-    print("Nenhum ticket está pronto; consulte status para dependências e bloqueios.")
-    return 3
+def git_result(argv):
+    from types import SimpleNamespace
+    code, _, output = managed_run(["git", *argv], ROOT)
+    return SimpleNamespace(returncode=code, stderr=output)
 
 
-def choose_profile(config, ticket, phase=None):
-    if phase:
-        return config["phase_profiles"][phase]
-    return config["ticket_profiles"][ticket]
+def canonical(name):
+    return "integrated-review" if name == "integrated_review" else name
 
 
-def run_phase(name, config, state):
-    allowed = {"reconciliation", "06", "36", "07", "10", "integrated-review"}
-    if name not in allowed:
-        print(f"Fase desconhecida: {name}")
-        return 2
-    if state.get("active") and state["active"].get("ticket") != name:
-        print("Há outra execução ativa; retome-a antes de iniciar esta fase.")
-        return 3
-    runid = (state.get("active") or {}).get("run_id") or uuid.uuid4().hex[:12]
-    state["active"] = {"ticket": name, "run_id": runid, "phase": "implement"}
-    rec = state["tickets"].setdefault(name, {"attempts": 0})
-    rec.update(status="running", phase="implement", run_id=runid, attempts=rec.get("attempts", 0) + 1)
-    event(state, "phase_start", phase=name, run_id=runid)
-    save(STATE, state)
-    LOGS.mkdir(parents=True, exist_ok=True)
-    log = LOGS / f"phase-{name}-{runid}.log"
-    prompt_file = ROOT / ("tools/prompts/reconcile.md" if name == "reconciliation" else "tools/prompts/implement.md")
-    if name == "reconciliation":
-        prompt = prompt_file.read_text()
-    elif name == "integrated-review":
-        prompt = render_prompt(ROOT / "tools/prompts/review.md", {
-            "ticket": "revisão integrada das fases iniciais", "ticket_file": "tickets originais 06, 07, 10 e 36",
-            "logs": json.dumps({key: state["tickets"].get(key, {}) for key in ["reconciliation", "06", "36", "07", "10"]}, ensure_ascii=False)})
-    else:
-        phase_files = {"06": "06-dois-modos.md", "07": "07-agrupamentos-sobreposicoes.md", "10": "10-consulta-atualizacao-estados.md", "36": "36-documentos-institucionais.md"}
-        prompt = render_prompt(prompt_file, {"ticket": name, "ticket_file": ROOT / ".scratch/consulta-coerente/issues" / phase_files[name], "repo": ROOT})
-        if name == "07":
-            prompt += ("\n\nDiagnóstico atual: os testes direcionados passam para agrupamentos em MapLibre/Leaflet e sobreposições em Leaflet; a seleção MapLibre passa em Chromium, mas no Firefox o clique físico no botão do popup não aciona o handler. A seleção por Enter passa. Investigue e corrija o caminho real de mouse/Firefox sem reduzir a cobertura. Preserve identidade, total, coordenadas antes/depois, seleção de cada item, teclado e lista. Remova toda instrumentação DEBUG temporária e execute as verificações do controlador.\n")
-    prior_log = rec.get("executor_log")
-    if prior_log:
-        prompt += f"\n\nCheckpoint anterior: leia e continue a partir do log {ROOT / prior_log}. Não repita etapas concluídas sem motivo.\n"
-    profile = config["phase_profiles"]["integrated_review" if name == "integrated-review" else name]
-    code, kind = invoke(config, "executor", profile, prompt, log, ROOT)
-    if code:
-        kind = classify_cli_failure(log, kind)
-        rec.update(status="paused", pause_reason=kind, returncode=code, checkpoint="implement", executor_log=str(log.relative_to(ROOT)))
-        event(state, "checkpoint", ticket=name, reason=kind, returncode=code)
-        save(STATE, state)
-        return code
-    if name == "integrated-review":
-        result = final_response(log)
-        rec["review_log"] = str(log.relative_to(ROOT))
-        if result.startswith("REVIEW_ACCEPTED"):
-            rec.update(status="accepted", acceptance="integrated_initial_review", commit=None)
-            state["active"] = None
-            event(state, "accepted", ticket=name, commit=None)
-            save(STATE, state)
-            print("Revisão integrada inicial aprovada; sem aceite adicional de tickets funcionais.")
-            return 0
-        rec.update(status="correction_required", correction_rounds=rec.get("correction_rounds", 0))
-        save(STATE, state)
-        print(f"Revisão integrada encontrou achados; consulte {log}.")
-        return 4
-    checks = config.get("phase_checks", {}).get(name, [])
-    if name == "reconciliation":
-        checks = [["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]]
-    check_results = []
-    for command in checks:
-        result, kind = run_command(command, ROOT, log, config["timeout_seconds"])
-        check_results.append({"command": command, "returncode": result, "kind": kind})
-        if result:
-            rec.update(status="paused", pause_reason="verification_failed", checkpoint="verification", verification=check_results)
-            state["active"]["phase"] = "verification"
-            event(state, "verification_failed", ticket=name, command=command, returncode=result)
-            save(STATE, state)
-            return result
-    rec.update(status="awaiting_review", executor_log=str(log.relative_to(ROOT)), verification=check_results)
-    state["active"]["phase"] = "review"
-    event(state, "executor_finished", ticket=name, log=str(log.relative_to(ROOT)))
-    save(STATE, state)
-    print(f"Fase {name} executada; verificações passaram. Execute review {name} para revisão independente.")
-    return 0
+def migrate(config, state):
+    """Add operational metadata without rewriting any historical acceptance."""
+    state.setdefault("mode", "real")
+    state.setdefault("phase_completed", {})
+    if state.get("version", 1) < 2:
+        for old, new in [("integrated_review", "integrated-review")]:
+            if old in state["tickets"]:
+                if new in state["tickets"]:
+                    state.setdefault("legacy_aliases", {})[old] = state["tickets"][old]
+                else:
+                    state["tickets"][new] = state["tickets"][old]
+                del state["tickets"][old]
+        if state.get("active"):
+            active = state["active"]
+            active["ticket"] = canonical(active["ticket"])
+            rec = state["tickets"][active["ticket"]]
+            phase = rec.get("checkpoint", active.get("phase", "implement"))
+            if rec.get("status") == "awaiting_review":
+                phase = "review"
+            elif rec.get("status") == "correction_required":
+                phase = "correction"
+            elif rec.get("status") == "awaiting_commit":
+                phase = "commit"
+            active["phase"] = phase
+        # Documentary pilot was actually completed; keep its historical evidence.
+        if state["tickets"].get("reconciliation", {}).get("status") == "accepted":
+            state["phase_completed"]["reconciliation"] = {"source": "legacy_documentary_pilot"}
+        rec = state["tickets"].get("07")
+        if rec:
+            rec["executor_profile"] = "sol_medium"
+            rec["migration_note"] = "Codex Sol Medium; diagnóstico e alterações anteriores preservados; Firefox/MapLibre pendente"
+        state["version"] = 2
+        event(state, "codex_only_migration", executor_07="sol_medium")
+    state["queue"] = config["queue"]
+    return state
 
 
-def review_phase(name, config, state):
-    rec = state["tickets"].get(name, {})
-    if not state.get("active") or state["active"].get("ticket") != name or rec.get("status") != "awaiting_review":
-        print(f"Fase {name} não está aguardando revisão.")
-        return 3
-    log = LOGS / f"review-{name}-{state['active']['run_id']}.log"
-    ticket_path = config.get("ticket_files", {}).get(name, f"ticket {name}")
-    prompt = render_prompt(ROOT / "tools/prompts/review.md", {
-        "ticket": name, "ticket_file": ROOT / ("tickets 06, 07, 09, 10, 11, 12 e 36" if name == "reconciliation" else ticket_path),
-        "logs": rec.get("executor_log", "") + " " + str(rec.get("verification", []))})
-    code, kind = invoke(config, "reviewer", config["review_profile"], prompt, log, ROOT)
-    if code:
-        rec.update(status="paused", pause_reason=kind, checkpoint="review")
-        save(STATE, state)
-        return code
-    result = final_response(log)
-    rec["review_log"] = str(log.relative_to(ROOT))
-    if result.startswith("REVIEW_ACCEPTED"):
-        if name in config["ticket_profiles"]:
-            return commit_ticket(name, config, state, rec)
-        rec.update(status="accepted", acceptance="local_documentary_review", commit=None)
-        state["active"] = None
-        event(state, "accepted", ticket=name, commit=None)
-        save(STATE, state)
-        print(f"Revisão da fase {name} aprovada; registro documental concluído sem commit isolado.")
-        return 0
-    rec.update(status="correction_required", correction_rounds=rec.get("correction_rounds", 0))
-    save(STATE, state)
-    print(f"Revisão da fase {name} requer correção; consulte {log}.")
-    return 4
+class Controller:
+    def __init__(self, config, state, state_path, logs, *, simulated=False, scenario="happy"):
+        self.config, self.state = config, state
+        self.path, self.logs = state_path, logs
+        self.simulated, self.scenario = simulated, scenario
+        expected = "simulation" if simulated else "real"
+        if state.get("mode", "real") != expected:
+            raise ValueError("Estado incompatível: simulação e operação real não podem se misturar")
+        self.logs.mkdir(parents=True, exist_ok=True)
 
+    def persist(self):
+        save(self.path, self.state)
 
-def correct_phase(name, config, state):
-    rec = state["tickets"].get(name, {})
-    # Revalidate any legacy/provisional acceptance from logs before corrections.
-    prior_log = ROOT / rec.get("review_log", "") if rec.get("review_log") else None
-    prior = prior_log.read_text(errors="replace") if prior_log and prior_log.exists() else ""
-    final_start = prior.rfind("\ncodex\n")
-    prior_final = prior[final_start + len("\ncodex\n"):] if final_start >= 0 else ""
-    prior_final = prior_final.split("\ntokens used", 1)[0].strip()
-    if rec.get("status") == "accepted" and not prior_final.startswith("REVIEW_ACCEPTED"):
-        rec["status"] = "correction_required"
-        state["active"] = {"ticket": name, "run_id": rec.get("run_id"), "phase": "review"}
-    if not state.get("active") or state["active"].get("ticket") != name or rec.get("status") != "correction_required":
-        print(f"Fase {name} não tem achados aguardando correção.")
-        return 3
-    rounds = rec.get("correction_rounds", 0)
-    if rounds >= 2:
-        rec.update(status="blocked", pause_reason="correction_limit")
-        save(STATE, state)
-        print(f"Fase {name} bloqueada após duas rodadas de correção.")
-        return 3
-    runid = state["active"]["run_id"]
-    review_log = ROOT / rec["review_log"]
-    findings = review_log.read_text(errors="replace") if review_log.exists() else "Log de revisão ausente."
-    prompt = ("Corrija somente os achados concretos da revisão independente abaixo. Preserve trabalho existente, não marque critérios como aceitos sem evidência e não faça commit. "
-              "Reexecute apenas verificações afetadas e descreva arquivos alterados e resultados.\n\nACHADOS:\n" + findings)
-    log = LOGS / f"correction-{name}-{runid}-{rounds + 1}.log"
-    profile = (config["phase_profiles"].get("reconciliation" if name == "reconciliation" else name)
-               or config["ticket_profiles"].get(name))
-    if not profile:
-        print(f"Perfil de correção não configurado para {name}.")
-        return 3
-    code, kind = invoke(config, "executor", profile, prompt, log, ROOT)
-    rec["correction_rounds"] = rounds + 1
-    if code:
-        rec.update(status="paused", pause_reason=kind, checkpoint="correction")
-        save(STATE, state)
-        return code
-    commands = ([["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]]
-                if name == "reconciliation" else config.get("ticket_checks", {}).get(name, []))
-    results = []
-    for command in commands:
-        result, kind = run_command(command, ROOT, log, config["timeout_seconds"])
-        results.append({"command": command, "returncode": result, "kind": kind})
-        if result:
-            rec.update(status="paused", pause_reason="verification_failed", checkpoint="verification", verification=results)
-            save(STATE, state)
-            return result
-    rec.update(status="awaiting_review", verification=results, correction_log=str(log.relative_to(ROOT)))
-    state["active"]["phase"] = "review"
-    save(STATE, state)
-    print(f"Correção rodada {rounds + 1} concluída; rode review {name}.")
-    return 0
+    def accepted(self, name):
+        rec = self.state["tickets"].get(name, {})
+        return (rec.get("status") == "accepted" and
+                rec.get("acceptance") not in {"simulation_only", "simulation_fixture"}) if not self.simulated else rec.get("status") == "simulated_complete"
 
+    def gate_done(self, name):
+        return name in self.state.get("phase_completed", {})
 
-def verify_ticket(name, config, state):
-    rec = state["tickets"].get(name, {})
-    if not state.get("active") or state["active"].get("ticket") != name or rec.get("status") not in {"awaiting_verification", "paused"}:
-        print(f"Ticket {name} não está aguardando verificação.")
-        return 3
-    checks = config.get("ticket_checks", {}).get(name, [])
-    if not checks:
-        rec.update(status="blocked", pause_reason="checks_missing", checkpoint="verification")
-        save(STATE, state)
-        print(f"Ticket {name} sem comandos de verificação configurados; aceite bloqueado.")
-        return 3
-    runid = state["active"]["run_id"]
-    log = LOGS / f"verify-{name}-{runid}.log"
-    results = []
-    for command in checks:
-        code, kind = run_command(command, ROOT, log, config["timeout_seconds"])
-        results.append({"command": command, "returncode": code, "kind": kind})
-        rec["verification"] = results
-        save(STATE, state)
-        if code:
-            rec.update(status="paused", pause_reason="verification_failed", returncode=code, checkpoint="verification",
-                       verification_log=str(log.relative_to(ROOT)))
-            state["active"]["phase"] = "verification"
-            event(state, "verification_failed", ticket=name, command=command, returncode=code)
-            save(STATE, state)
-            print(f"Verificação falhou ({kind}, código {code}); checkpoint: {log}")
-            return code
-    rec.update(status="awaiting_review", verification_log=str(log.relative_to(ROOT)))
-    state["active"]["phase"] = "review"
-    save(STATE, state)
-    print(f"Verificações de {name} passaram; execute review {name}.")
-    return 0
+    def ready(self, name):
+        mandatory = self.config.get("mandatory_phases", [])
+        preceding = mandatory[:mandatory.index(name)] if name in mandatory else mandatory
+        if not all(self.gate_done(p) for p in preceding):
+            return False
+        return all(self.accepted(dep) for dep in self.config["dependencies"].get(name, []))
 
+    def select(self):
+        for name in self.config["queue"]:
+            rec = self.state["tickets"].get(name, {})
+            if name in self.config.get("mandatory_phases", []):
+                if self.gate_done(name):
+                    continue
+            elif self.accepted(name):
+                continue
+            if rec.get("status") in {"blocked", "awaiting_commit", "paused"}:
+                continue
+            if self.ready(name):
+                return name
+        return None
 
-def run_ticket(args, config, state, *, simulated=False):
-    tid = ticket_id(args.ticket)
-    profiles = config["profiles"]
-    deps = dependency_map(config).get(tid, set())
-    statuses = state["tickets"]
-    blocked = [d for d in sorted(deps) if statuses.get(d, {}).get("status") != "accepted"]
-    if simulated and args.scenario == "dependency-blocked":
-        blocked = sorted(deps)
-    if blocked and (not simulated or args.scenario == "dependency-blocked"):
-        print(f"Ticket {tid} bloqueado por dependências não aceitas: {', '.join(blocked)}")
-        statuses[tid] = {"status": "blocked_dependency", "blocked_by": blocked}
-        event(state, "dependency_block", ticket=tid, blocked_by=blocked)
-        save(STATE, state)
-        return 3
-    if state.get("active") and state["active"].get("ticket") != tid:
-        print("Há uma execução ativa; retome-a antes de iniciar outra.")
-        return 3
-    active = state.get("active") or {}
-    runid = active.get("run_id") or uuid.uuid4().hex[:12]
-    record = statuses.setdefault(tid, {"status": "queued", "attempts": 0})
-    record.setdefault("baseline_worktree", worktree_snapshot())
-    record.update({"run_id": runid, "status": "running", "phase": "implement", "attempts": record.get("attempts", 0) + 1})
-    state["active"] = {"ticket": tid, "run_id": runid, "phase": "implement"}
-    event(state, "ticket_start", ticket=tid, run_id=runid)
-    save(STATE, state)
-    log = LOGS / f"{tid}-{runid}.log"
-    ticket_file = ROOT / config["ticket_files"][tid]
-    prompt = render_prompt(ROOT / "tools/prompts/implement.md", {"ticket": tid, "ticket_file": ticket_file, "repo": ROOT})
-
-    if simulated:
-        fail = args.scenario == "failure-resume" and record["attempts"] == 1
-        (log.parent).mkdir(parents=True, exist_ok=True)
-        log.write_text(f"SIMULATED ticket={tid} attempt={record['attempts']} failure={fail}\n")
-        if fail:
-            record.update(status="paused", pause_reason="simulated_failure", checkpoint="implement")
-            state["active"] = {"ticket": tid, "run_id": runid, "phase": "implement"}
-            event(state, "checkpoint", ticket=tid, reason="simulated_failure")
-            save(STATE, state)
-            print(f"Falha simulada; checkpoint salvo. Retome com: python3 tools/ticketctl.py resume")
-            return 1
-        record.update(status="accepted", acceptance="simulation_only", commit=None, evidence=[])
-        state["active"] = None
-        event(state, "simulated_acceptance", ticket=tid)
-        save(STATE, state)
-        print(f"Ticket {tid}: simulação concluída (não é aceite funcional).")
+    def start(self, name):
+        if not self.ready(name):
+            print(f"{name}: dependências ou fases obrigatórias pendentes")
+            return 3
+        rec = self.state["tickets"].setdefault(name, {})
+        if name in self.config.get("mandatory_phases", []) and rec.get("acceptance"):
+            rec.setdefault("historical_before_phase", dict(rec))
+        rec.setdefault("baseline_worktree", worktree_snapshot())
+        runid = uuid.uuid4().hex[:12]
+        rec.update(run_id=runid, status="running", attempts=rec.get("attempts", 0) + 1)
+        self.state["active"] = {"ticket": name, "run_id": runid,
+                                "phase": "verification" if name == "integrated-review" else "implement"}
+        self.transition(self.state["active"]["phase"])
         return 0
 
-    profile = choose_profile(config, tid)
-    stages = config.get("ticket_stages", {}).get(tid, [])
-    stage_index = record.get("stage_index", 0)
-    while stage_index < max(1, len(stages)):
-        stage_prompt = prompt
-        if stages:
-            stage_prompt += (f"\n\nETAPA TÉCNICA {stage_index + 1}/{len(stages)}: {stages[stage_index]}. "
-                             "Implemente somente esta etapa, preserve as anteriores e deixe o estado local pronto para a próxima. "
-                             "Não declare o ticket aceito até todas as etapas e verificações completas.")
-        code, kind = invoke(config, "executor", profile, stage_prompt, log, ROOT)
-        if code:
-            kind = classify_cli_failure(log, kind)
-            record.update(status="paused", pause_reason=kind, returncode=code, checkpoint="implement",
-                          stage_index=stage_index, executor_log=str(log.relative_to(ROOT)))
-            event(state, "checkpoint", ticket=tid, reason=kind, stage=stage_index + 1, returncode=code,
-                  log=str(log.relative_to(ROOT)))
-            save(STATE, state)
-            print(f"Executor parou ({kind}, código {code}); checkpoint da etapa {stage_index + 1} e log salvos em {log}.")
-            return code
-        stage_index += 1
-        record.update(stage_index=stage_index, checkpoint="implement")
-        save(STATE, state)
-    record.update(status="awaiting_verification", executor_log=str(log.relative_to(ROOT)))
-    state["active"]["phase"] = "verification"
-    record["phase"] = "verification"
-    event(state, "executor_finished", ticket=tid, log=str(log.relative_to(ROOT)))
-    save(STATE, state)
-    return verify_ticket(tid, config, state)
+    def transition(self, phase):
+        active = self.state["active"]
+        active["phase"] = phase
+        rec = self.state["tickets"][active["ticket"]]
+        rec.update(phase=phase, checkpoint=phase, status="running")
+        event(self.state, "transition", ticket=active["ticket"], phase=phase)
+        self.persist()
+
+    def profile(self, name, phase):
+        if phase == "review":
+            return self.config.get("review_profiles", {}).get(name, self.config["review_profile"])
+        return self.config["phase_profiles"].get(name) or self.config["ticket_profiles"][name]
+
+    def report_failure(self, reason, details=None):
+        active = self.state["active"]
+        details = details or {}
+        log = details.get("log")
+        code = details.get("returncode", "não se aplica")
+        print(f"Falha: tarefa={active['ticket']} etapa={active['phase']} motivo={reason} "
+              f"código de saída={code} log={log or 'não gerado'}", file=sys.stderr, flush=True)
+        excerpt = details.get("error") or error_excerpt(log)
+        if excerpt:
+            print(excerpt, file=sys.stderr, flush=True)
+
+    def stop(self, reason, *, blocked=False):
+        active = self.state["active"]
+        rec = self.state["tickets"][active["ticket"]]
+        details = rec.get("last_cli") if rec.get("last_cli", {}).get("phase") == active["phase"] else rec.get("last_verification") if active["phase"] == "verification" else None
+        self.report_failure(reason, details)
+        rec.update(status="blocked" if blocked else "paused", pause_reason=reason,
+                   checkpoint=active["phase"])
+        event(self.state, "checkpoint", ticket=active["ticket"], phase=active["phase"], reason=reason)
+        if reason == "quota_exhausted":
+            self.state["provider_pause"] = {"reason": reason, "ticket": active["ticket"]}
+        elif blocked:
+            self.state["active"] = None
+        self.persist()
+        return 3
+
+    def checks(self, name):
+        return self.config.get("phase_checks", {}).get(name) or self.config.get("ticket_checks", {}).get(name, [])
+
+    def fingerprint(self):
+        name = (self.state.get("active") or {}).get("ticket", "")
+        names = self.config.get("mandatory_phases", []) if name == "integrated-review" else [name]
+        tickets = {t: self.config.get("ticket_files", {}).get(t) for t in names}
+        return digest({"repository": snapshot(), "configuration": self.config,
+                       "tickets": {t: file_digest(ROOT / p) if p else None for t, p in tickets.items()}})
+
+    def verification_valid(self, rec):
+        v = rec.get("verification_v2", {})
+        payload = {k: v[k] for k in ("snapshot", "results", "checks") if k in v}
+        return (bool(v.get("results")) and v.get("id") == digest(payload) and
+                v.get("snapshot") == self.fingerprint() and
+                v.get("checks") == self.checks(self.state["active"]["ticket"]) and
+                len(v["results"]) == len(v["checks"]) and
+                all(r["returncode"] == 0 and bool(r["log_sha256"]) and file_digest(Path(r["log"])) == r["log_sha256"]
+                    for r in v["results"]))
+
+    def request(self, name, phase, rec):
+        before = self.fingerprint()
+        context = {"ticket": name, "phase": phase, "run_id": rec["run_id"],
+                   "request_id": uuid.uuid4().hex, "snapshot": before,
+                   "verification_id": rec.get("verification_v2", {}).get("id", "") if phase == "review" else ""}
+        profile = self.profile(name, phase)
+        stem = self.logs / f"{name}-{phase}-{context['request_id']}"
+        log, result_path = stem.with_suffix(".log"), stem.with_suffix(".json")
+        rec[f"{phase}_log"] = str(log)
+        event(self.state, "invocation", **context, profile=profile, spec=self.config["profiles"][profile])
+        self.persist()
+        if self.simulated:
+            outcome = "accepted" if phase == "review" else "completed"
+            count = sum(e.get("kind") == "invocation" and e.get("ticket") == name and e.get("phase") == phase for e in self.state["events"])
+            if self.scenario in {"correction", "two-tasks"} and name == self.config["queue"][0] and phase == "review" and count == 1:
+                outcome = "changes_required"
+            if self.scenario == "correction-limit" and phase == "review":
+                outcome = "changes_required"
+            if self.scenario == "blocked" and name == self.config["queue"][0]:
+                outcome = "blocked"
+            if self.scenario == "quota" and phase == "review":
+                log.write_text('rate_limit_exceeded\n')
+                rec["last_cli"] = {"phase": phase, "returncode": 1, "log": str(log)}
+                return None, "quota_exhausted"
+            if self.scenario == "failure-resume" and phase == "review" and count == 1:
+                log.write_text('SIMULATED interruption\n')
+                rec["last_cli"] = {"phase": phase, "returncode": 130, "log": str(log)}
+                return None, "interrupted"
+            result = {**context, "outcome": outcome, "findings": ["achado simulado"] if outcome == "changes_required" else [], "summary": "SIMULATED"}
+            save(result_path, result)
+            log.write_text(json.dumps(result) + "\n")
+            code, kind = 0, "exit"
+        else:
+            template = ROOT / "tools/prompts" / ("review.md" if phase == "review" else "reconcile.md" if name == "reconciliation" else "implement.md")
+            prompt = render_prompt(template, {"ticket": name, "ticket_file": self.config.get("ticket_files", {}).get(name, "tickets iniciais 06/07/10/36"), "repo": ROOT, "logs": json.dumps(rec, ensure_ascii=False)})
+            stages = self.config.get("ticket_stages", {}).get(name, [])
+            if phase == "implement" and stages:
+                prompt += f"\nImplemente somente etapa {rec.get('stage_index', 0) + 1}: {stages[rec.get('stage_index', 0)]}. Preserve etapas anteriores."
+            if phase == "correction":
+                prompt += "\nCorrija somente estes achados da verificação/revisão: " + json.dumps(rec.get("findings", []), ensure_ascii=False)
+            if name == "36":
+                prompt += "\nEscopo desta fase: ajuste documental; recebimento/acompanhamento efetivo continua pendente do 27. Não aceite o ticket inteiro."
+            if name == "integrated-review":
+                prompt += "\nRevise os critérios e o código atual das fases iniciais, incluindo código já em HEAD; não limite ao diff. Tickets e evidências: " + json.dumps({t: {"ticket_file": self.config.get("ticket_files", {}).get(t), "record": self.state["tickets"].get(t, {})} for t in self.config.get("mandatory_phases", []) if t != name}, ensure_ascii=False)
+            prompt += "\nContinue exatamente o checkpoint e leia logs anteriores:\n" + json.dumps(rec, ensure_ascii=False)
+            prompt += "\nContrato: devolva apenas JSON conforme schema; copie estes vínculos exatamente: " + json.dumps(context)
+            prompt += "\nNunca crie subagentes, troque modelo, repita chamada após cota, compre créditos, faça commit/push ou publique. Se houver cota esgotada, use outcome quota_exhausted. Para outro bloqueio, use outcome blocked e descreva. Na revisão, accepted exige evidência dos critérios; achados exigem changes_required. Execução/correção concluída usa completed."
+            code, kind = invoke(self.config, "reviewer" if phase == "review" else "executor", profile, prompt, log, ROOT, result_path)
+        rec["last_cli"] = {"phase": phase, "returncode": code, "kind": kind, "log": str(log)}
+        if kind == "quota_exhausted" or code:
+            rec["returncode"] = code
+            return None, kind if kind != "exit" else f"cli_exit_{code}"
+        try:
+            result = load(result_path, None)
+            if not isinstance(result, dict) or set(result) != set(context) | {"outcome", "findings", "summary"}:
+                raise ValueError("campos inesperados")
+            if any(result.get(k) != v for k, v in context.items()):
+                raise ValueError("vínculo divergente")
+            if not isinstance(result["findings"], list) or not all(isinstance(f, str) for f in result["findings"]) or not isinstance(result["summary"], str):
+                raise ValueError("tipos inválidos")
+            allowed = {"accepted", "changes_required", "blocked", "quota_exhausted"} if phase == "review" else {"completed", "blocked", "quota_exhausted"}
+            if result["outcome"] not in allowed or (result["outcome"] == "accepted" and result["findings"]):
+                raise ValueError("resultado incoerente")
+            if phase == "review" and self.fingerprint() != before:
+                return None, "review_changed_content"
+        except (ValueError, TypeError, KeyError) as error:
+            rec["result_error"] = str(error)
+            rec["last_cli"]["error"] = str(error)
+            return None, "invalid_structured_result"
+        rec["last_result"] = result
+        rec[f"{phase}_result"] = str(result_path)
+        self.persist()
+        return result, None
+
+    def correction_needed(self, rec, findings):
+        rec["findings"] = findings
+        if rec.get("correction_rounds", 0) >= 2:
+            return self.stop("correction_limit", blocked=True)
+        self.transition("correction")
+        return 0
+
+    def step(self):
+        if self.state.get("provider_pause"):
+            print("Provedor pausado por cota; nenhuma chamada realizada.")
+            return 3
+        active = self.state["active"]
+        name, phase = active["ticket"], active["phase"]
+        spec = self.config["profiles"][self.profile(name, phase)]
+        print(f"Tarefa={name} etapa={phase} modelo={spec['model']} esforço={spec['effort']}"
+              + (" (verificação local)" if phase == "verification" else ""), flush=True)
+        rec = self.state["tickets"][name]
+        if phase in {"implement", "correction"}:
+            if phase == "correction" and not rec.get("correction_inflight"):
+                if rec.get("correction_rounds", 0) >= 2:
+                    return self.stop("correction_limit", blocked=True)
+                rec["correction_rounds"] = rec.get("correction_rounds", 0) + 1
+                rec["correction_inflight"] = True
+                self.persist()
+            result, failure = self.request(name, phase, rec)
+            if failure:
+                return self.stop(failure)
+            if result["outcome"] == "quota_exhausted":
+                return self.stop("quota_exhausted")
+            if result["outcome"] == "blocked":
+                return self.stop(result["summary"], blocked=True)
+            if phase == "implement":
+                rec["stage_index"] = rec.get("stage_index", 0) + 1
+                if rec["stage_index"] < len(self.config.get("ticket_stages", {}).get(name, [])):
+                    self.persist()
+                    return 0
+            rec.pop("correction_inflight", None)
+            rec.pop("verification_v2", None)
+            self.transition("verification")
+        elif phase == "verification":
+            checks = self.checks(name)
+            if not checks:
+                return self.stop("checks_missing", blocked=True)
+            before = self.fingerprint()
+            v = rec.get("verification_v2", {})
+            if v.get("snapshot") != before or v.get("checks") != checks:
+                v = {"snapshot": before, "checks": checks, "results": []}
+                rec["verification_v2"] = v
+            for index in range(len(v["results"]), len(checks)):
+                log = self.logs / f"verify-{name}-{uuid.uuid4().hex}.log"
+                self.persist()
+                print(f"Verificação {index + 1}/{len(checks)}: {checks[index]} log={log}", flush=True)
+                if self.simulated:
+                    code, kind = 0, "exit"
+                    log.write_text("SIMULATED verification\n")
+                else:
+                    code, kind = run_command(checks[index], ROOT, log, self.config["timeout_seconds"])
+                result = {"command": checks[index], "returncode": code, "kind": kind, "log": str(log), "log_sha256": file_digest(log)}
+                rec["last_verification"] = result
+                if code:
+                    if kind in {"interrupted", "timeout", "unavailable"}:
+                        return self.stop(kind)
+                    self.report_failure("verification_failed", result)
+                    rec.pop("verification_v2", None)
+                    return self.correction_needed(rec, [json.dumps(result)])
+                v["results"].append(result)
+                self.persist()
+            if self.fingerprint() != before:
+                rec.pop("verification_v2", None)
+                return self.stop("content_changed_during_verification")
+            v["id"] = digest({k: v[k] for k in ("snapshot", "checks", "results")})
+            self.transition("review")
+        elif phase == "review":
+            if not self.verification_valid(rec):
+                rec.pop("verification_v2", None)
+                self.transition("verification")
+                return 0
+            result, failure = self.request(name, phase, rec)
+            if failure:
+                return self.stop(failure)
+            if result["outcome"] == "quota_exhausted":
+                return self.stop("quota_exhausted")
+            if result["outcome"] == "blocked":
+                return self.stop(result["summary"], blocked=True)
+            if result["outcome"] == "changes_required":
+                return self.correction_needed(rec, result["findings"] or [result["summary"]])
+            rec["approved_result"] = result
+            self.transition("commit")
+        elif phase == "commit":
+            approved = rec.get("approved_result", {})
+            if not self.verification_valid(rec) or approved.get("snapshot") != self.fingerprint() or approved.get("verification_id") != rec["verification_v2"]["id"]:
+                rec.pop("verification_v2", None)
+                self.transition("verification")
+                return 0
+            if not self.simulated and name not in self.config.get("mandatory_phases", []):
+                code = commit_ticket(name, self.config, self.state, rec)
+                if code:
+                    rec.update(status="awaiting_commit", checkpoint="commit")
+                    self.state["active"] = None
+                    self.persist()
+                    return code
+            else:
+                if name in self.config.get("mandatory_phases", []):
+                    self.state.setdefault("phase_completed", {})[name] = {"review": approved, "verification": rec["verification_v2"]}
+                historical = rec.get("historical_before_phase")
+                if historical:
+                    rec["status"] = historical["status"]
+                    rec["acceptance"] = historical["acceptance"]
+                else:
+                    rec.update(status="simulated_complete" if self.simulated else "accepted",
+                               acceptance="simulation_only" if self.simulated else "verified_and_reviewed_phase")
+                self.state["active"] = None
+            event(self.state, "completed", ticket=name, simulated=self.simulated)
+            self.persist()
+        else:
+            return self.stop("unknown_checkpoint", blocked=True)
+        return 0
+
+    def auto(self, *, one=False):
+        while True:
+            if self.state.get("provider_pause"):
+                print("Fila pausada por cota; chamadas ao provedor suspensas.")
+                return 3
+            if not self.state.get("active"):
+                name = self.select()
+                if not name:
+                    pending = [n for n in self.config["queue"] if not (self.gate_done(n) if n in self.config.get("mandatory_phases", []) else self.accepted(n))]
+                    print("Fila concluída." if not pending else "Fila sem tarefa pronta: " + ", ".join(pending))
+                    return 0 if not pending else 3
+                self.start(name)
+            code = self.step()
+            if one:
+                return code
+            if code and self.state.get("active"):
+                return code
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models"])
+    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "clear-quota"])
     parser.add_argument("ticket", nargs="?")
-    parser.add_argument("--scenario", choices=["happy", "failure-resume", "dependency-blocked"], default="happy")
     parser.add_argument("--ticket", dest="resume_ticket")
+    parser.add_argument("--scenario", choices=["happy", "two-tasks", "correction", "failure-resume", "dependency-blocked", "quota", "correction-limit", "blocked"], default="happy")
     args = parser.parse_args()
     global STATE
-    if args.command == "simulate" or os.environ.get("TICKETCTL_SIMULATE") == "1":
-        STATE = ROOT / ".scratch/consulta-coerente/controller-simulation-state.json"
-        if args.command == "simulate" and args.scenario != "failure-resume":
-            STATE.unlink(missing_ok=True)
-    config = load(CONFIG, {})
-    state = load(STATE, defaults(config))
-    if (args.command == "simulate" and args.scenario == "failure-resume"
-            and not (state.get("active") or {}).get("ticket") == ticket_id(args.ticket or "12")):
-        state = defaults(config)
-    sync_historical_state(state)
-    if args.command == "models":
-        print(json.dumps(check_models(config), indent=2, ensure_ascii=False))
-        return 0
-    if args.command == "status":
-        print(json.dumps(state, indent=2, ensure_ascii=False))
-        return 0
-    if args.command == "next":
-        with LOCK.open("w") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                print("Outro controlador está executando um ticket.")
-                return 3
-            return run_next(config, state)
-    if args.command in {"phase", "verify", "review", "correct"}:
-        if not args.ticket:
-            parser.error("fase é obrigatória")
-        with LOCK.open("w") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                print("Outro controlador está executando um ticket.")
-                return 3
-            if args.command == "phase":
-                return run_phase(args.ticket, config, state)
-            if args.command == "verify":
-                return verify_ticket(args.ticket, config, state)
-            if args.command == "review":
-                return review_phase(args.ticket, config, state)
-            return correct_phase(args.ticket, config, state)
-    if args.command in {"run", "simulate"}:
-        if not args.ticket:
-            parser.error("ticket é obrigatório")
-        if args.command == "simulate" and args.scenario == "dependency-blocked":
-            args.ticket = "12"
-        if args.command == "simulate" and args.scenario != "dependency-blocked":
-            # Simulation validates control flow without pretending historical work was accepted.
-            state["tickets"].setdefault("02", {"status": "accepted", "acceptance": "simulation_fixture"})
-            state["tickets"].setdefault("04", {"status": "accepted", "acceptance": "simulation_fixture"})
-            state["tickets"].setdefault("05", {"status": "accepted", "acceptance": "simulation_fixture"})
-        lockfile = LOCK
-        lockfile.parent.mkdir(parents=True, exist_ok=True)
-        with lockfile.open("w") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                print("Outro controlador está executando um ticket.")
-                return 3
-            return run_ticket(args, config, state, simulated=args.command == "simulate")
-    if args.command == "resume":
-        active = state.get("active")
-        tid = args.resume_ticket or (active or {}).get("ticket")
-        if not tid:
-            print("Não há checkpoint retomável.")
+    simulated = args.command == "simulate" or os.environ.get("TICKETCTL_SIMULATE") == "1"
+    # TICKETCTL_STATE is a real-state path only. Simulation never reads or writes it.
+    if simulated:
+        STATE = ROOT / ".scratch/consulta-coerente/controller-simulation-v2/state.json"
+    logs = STATE.parent / ("logs" if simulated else "controller-logs")
+    LOCK.parent.mkdir(parents=True, exist_ok=True)
+    with LOCK.open("a+") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print("Outro controlador está ativo; nenhuma operação executada.")
             return 3
-        tid = ticket_id(tid)
-        if not active or active.get("ticket") != tid:
-            print(f"Ticket {tid} não tem checkpoint ativo.")
-            return 3
-        if tid in config["phase_profiles"]:
-            with LOCK.open("w") as lock:
-                fcntl.flock(lock, fcntl.LOCK_EX)
-                return run_phase(tid, config, state)
-        record = state["tickets"].get(tid, {})
-        if record.get("checkpoint") == "verification":
-            return verify_ticket(tid, config, state)
-        state["tickets"].setdefault(tid, {})["status"] = "queued"
-        # A simulation failure is resumed explicitly as a clean subsequent attempt.
-        active["phase"] = "implement"
-        fake = argparse.Namespace(ticket=tid, scenario="failure-resume")
-        with LOCK.open("w") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            simulated = (STATE == ROOT / ".scratch/consulta-coerente/controller-simulation-state.json"
-                         or os.environ.get("TICKETCTL_SIMULATE") == "1")
-            return run_ticket(fake, config, state, simulated=simulated)
+        # All reads, migration, initialization and writes happen inside the lock.
+        config = load(CONFIG, {})
+        if args.command == "models":
+            print(json.dumps(check_models(config), indent=2, ensure_ascii=False))
+            return 0
+        if simulated:
+            config = {**config, "queue": ["12", "13"], "mandatory_phases": [], "dependencies": {"13": ["12"]}, "ticket_stages": {}}
+        state = load(STATE, defaults(config))
+        if simulated:
+            if not STATE.exists():
+                state.update(mode="simulation", version=2, scenario=args.scenario)
+            args.scenario = state.get("scenario", args.scenario)
+            if args.scenario == "dependency-blocked":
+                config["dependencies"] = {"12": ["missing"], "13": ["12"]}
+        else:
+            if state.get("version", 1) < 2 and STATE.exists():
+                backup = STATE.with_name(STATE.name + ".pre-codex-" + uuid.uuid4().hex[:8])
+                shutil.copy2(STATE, backup)
+            sync_historical_state(state)
+            migrate(config, state)
+        ctl = Controller(config, state, STATE, logs, simulated=simulated, scenario=args.scenario)
+        ctl.persist()
+        if args.command == "status":
+            print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+        if args.command == "migrate":
+            print("Checkpoint migrado; nenhuma chamada ao provedor.")
+            return 0
+        if args.command == "clear-quota":
+            state.pop("provider_pause", None)
+            event(state, "quota_pause_cleared_by_operator")
+            ctl.persist()
+            print("Pausa removida explicitamente. Use auto quando a cota estiver disponível.")
+            return 0
+        name = canonical(args.resume_ticket or args.ticket or (state.get("active") or {}).get("ticket", ""))
+        if args.command in {"run", "phase"}:
+            if not name or state.get("active"):
+                print("Informe tarefa sem outra execução ativa; use resume para o checkpoint.")
+                return 3
+            if name not in config["queue"]:
+                print("Tarefa fora da fila configurada")
+                return 2
+            if ctl.start(name):
+                return 3
+        if args.command in {"verify", "review", "correct", "resume"}:
+            active = state.get("active")
+            if not active and name and state["tickets"].get(name, {}).get("checkpoint"):
+                rec = state["tickets"][name]
+                state["active"] = {"ticket": name, "run_id": rec["run_id"], "phase": rec["checkpoint"]}
+                active = state["active"]
+            if not active or (name and active["ticket"] != name):
+                print("Não há checkpoint ativo correspondente.")
+                return 3
+            required = {"verify": "verification", "review": "review", "correct": "correction"}.get(args.command)
+            if required and active["phase"] != required:
+                print(f"Checkpoint está em {active['phase']}; use resume.")
+                return 3
+        try:
+            return ctl.auto(one=args.command in {"next", "verify", "review", "correct"})
+        except KeyboardInterrupt:
+            return ctl.stop("interrupted") if state.get("active") else 130
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     sys.exit(main())

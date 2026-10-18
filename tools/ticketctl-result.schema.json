@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ticket",
+    "phase",
+    "run_id",
+    "request_id",
+    "snapshot",
+    "verification_id",
+    "summary",
+    "outcome",
+    "findings"
+  ],
+  "properties": {
+    "ticket": {
+      "type": "string"
+    },
+    "phase": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "snapshot": {
+      "type": "string"
+    },
+    "verification_id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "accepted",
+        "changes_required",
+        "blocked",
+        "quota_exhausted"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
