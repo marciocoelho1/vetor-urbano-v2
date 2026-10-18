@@ -3,6 +3,13 @@
 - Lote conferido por agente independente em worktree sobre a revisão commitada: API 14 unitários + 62 integrações HTTP/PostGIS (PostGIS real via Testcontainers), web lint + 114 testes + build, `planning` 395 links e Playwright Chromium/Firefox com 2/2 do 27, 2/2 do 17 e 1/1 do 36.
 - Três testes herdados de demonstração em `public-information.spec.ts` ainda falham porque exigem consulta anônima que `app.html` não oferece desde a sessão de módulos; o mesmo defeito foi reproduzido na revisão anterior ao lote (`67f29ae`), sem relação com estes commits. [Evidências](docs/history/ticket-17-progress-2026-10-17.md).
 
+## 2026-10-17 — Estado do lote 27 → 36 → 17 → 18 e acesso local
+
+- Lote entregue e enviado em `origin/integration/functional-spec-v1` (HEAD `0ece764`): 27 `5af44ed`, 36 `a7469e4`, 17 `28911b7` e `66d6fa6`, 18 `a86fca2` e `0ece764`. Estado consolidado, evidências reais e pendências em [batch-27-36-17-18](docs/history/batch-27-36-17-18-2026-10-17.md).
+- Pendência aberta do 18 registrada como pendência: a suíte de navegador do editor não passa (valores digitados existem no DOM e não chegam ao modelo do componente; o POST sai vazio e o servidor recusa com 400). API verde: 3 unitários + 3 integrações HTTP/PostGIS (`/tmp/vu-18-api16.log`) e IT do detalhe (1 + 18); `verify.sh web` e `planning` verdes.
+- Acesso local investigado: as credenciais documentadas não funcionam porque vivem em `vetor_spec_test` (contêiner `vetor-spec-postgis`, porta 55436), que não está ativo; a API em `127.0.0.1:8080` servia o banco descartável do lote (`vu-batch-27361718-db`:55439), onde `auth_audit_events` registra 7 `LOGIN DENIED` com `account_id` nulo. `vetor_urbano` (55432, 215 contas) recusa startup pela divergência de checksum do `V9` já registrada no ticket 32. Documentado em [operação da web](docs/operations/web.md#banco-e-credenciais-locais) e no inventário de tickets.
+- `apps/web/src/main.ts` (normalização `localhost` → `127.0.0.1` exigida pelo cookie `SameSite=Strict`) segue **sem commit**; o comportamento documentado depende do diretório de trabalho até que o trabalho de sessão a que pertence seja commitado.
+
 ## 2026-10-17 — Ticket local 18: correção e retirada de publicação sintética
 
 - Preparação de correção não altera a versão consultável: só a aprovação explícita da Administração (MFA/CSRF) acrescenta versão, com antes/depois, motivo, evidência e autoria da sessão convertida para referência histórica no encerramento da conta.

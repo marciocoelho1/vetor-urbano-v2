@@ -2,6 +2,23 @@
 
 Este guia descreve o artefato frontend atual. O Vetor Urbano ainda é uma demonstração; não há ambiente de produção ou deploy automatizado configurado.
 
+## Acesso local com sessão
+
+Após `npm start` em `apps/web/`, use `http://127.0.0.1:4201/?consulta=api` para a consulta integrada à API. A entrada em `http://localhost:4201` é encaminhada automaticamente para `127.0.0.1`, preservando caminho, parâmetros e fragmento antes de iniciar a aplicação. Isso mantém o frontend no mesmo host da API local e permite o cookie de sessão `SameSite=Strict`; sem essa normalização, o login pode responder com sucesso e a configuração do autenticador perder a sessão na requisição seguinte. O cadastro local (`?conta=local`) segue o mesmo encaminhamento.
+
+### Banco e credenciais locais
+
+A sessão só funciona se a API em `127.0.0.1:8080` estiver apontada para **o banco que contém a conta usada**. Conferir antes de investigar senha:
+
+```bash
+podman ps --format '{{.Names}} {{.Ports}}'
+podman exec <contêiner> psql -U postgres -tAc "select email,role,status from local_accounts order by created_at desc limit 5"
+```
+
+Contas válidas que a API desconhece geram `LOGIN DENIED` **com `account_id` nulo** em `auth_audit_events` — é o sinal de e-mail ausente no banco em uso, não de senha errada. Em 17/10/2026 as fixtures documentadas em [tickets-status.md](../product/tickets-status.md) existiam apenas em `vetor_spec_test` (contêiner `vetor-spec-postgis`, porta 55436), que não está ativo; a API local do momento servia o banco descartável do lote (`vu-batch-27361718-db`:55439) e o banco `vetor_urbano` (`vu-selected-db`:55432, 215 contas) recusava startup pela divergência de checksum do `V9` registrada no ticket 32 — esse banco exige decisão explícita antes de `repair`.
+
+Para criar ou recuperar uma conta local no banco em uso, use o provisionador documentado (`scripts/local-account-admin.py`, entrada por stdin, sem senha em histórico de shell). Nada disso vale para dados reais: o ambiente é sintético.
+
 ## Gerar o artefato
 
 Na raiz do repositório, com o Node.js de `.nvmrc`:

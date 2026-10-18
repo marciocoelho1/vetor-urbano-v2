@@ -1,0 +1,94 @@
+# Vetor Urbano — situação dos tickets
+
+Atualizado em **17/10/2026** após o lote autorizado 27 → 36 → 17 → 18, entregue e enviado na branch `integration/functional-spec-v1` (HEAD `0ece764`). Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Esta atualização reconcilia o plano, os checkpoints, os arquivos locais e o trabalho visível no repositório. O estado remoto das issues não foi confirmado. Estado consolidado do lote, evidências e pendências em [batch-27-36-17-18-2026-10-17](../history/batch-27-36-17-18-2026-10-17.md).
+
+## Visão geral
+
+- **26 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **4 parciais ou com pendência de aceite:** 07, 19, 25 e 26.
+- **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
+
+“Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
+
+## Implementados localmente
+
+**01–06, 08–18, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 15, 17, 18, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
+
+## Parciais ou com pendência
+
+**07, 19, 25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
+
+## Ainda não iniciados
+
+**20, 21, 22, 23, 24 e 35** — ainda não há implementação local do fluxo correspondente. Dependências e decisões em aberto aparecem na descrição individual.
+
+## Inventário dos 36 tickets
+
+| ID | Ticket | Descrição breve | Estado atual |
+|---|---|---|---|
+| 01 | [Consultar o catálogo aprovado na abertura](../../.scratch/consulta-coerente/issues/01-catalogo-consulta-inicial.md) | Exibe três pilares, tipos e subtipos aprovados; inicia a consulta pelas últimas 24 horas. | Implementado localmente; testes anteriores registrados. |
+| 02 | [Explorar ocorrências de um mesmo acontecimento](../../.scratch/consulta-coerente/issues/02-ocorrencias-acontecimentos.md) | Relaciona ocorrências do mesmo acontecimento e suas referências sem duplicar fatos. | Implementado localmente; testes anteriores registrados. |
+| 03 | [Combinar e remover filtros sem duplicar resultados](../../.scratch/consulta-coerente/issues/03-filtros-combinados.md) | Combina filtros temáticos, temporais e espaciais com mapa e lista sincronizados. | Implementado localmente; testes anteriores registrados. |
+| 04 | [Consultar tempo impreciso e confirmação de andamento](../../.scratch/consulta-coerente/issues/04-tempo-situacao-precisao.md) | Distingue datas imprecisas, situação e confirmação de andamento com expiração. | Implementado localmente; testes anteriores registrados. |
+| 05 | [Aplicar território e distinguir registros apenas em lista](../../.scratch/consulta-coerente/issues/05-territorio-mapa-lista.md) | Filtra município/bairro e mantém registros sem coordenadas apenas na lista. | Implementado localmente; regressões direcionadas registradas. |
+| 06 | [Alternar Modo simples e Análise e Inteligência](../../.scratch/consulta-coerente/issues/06-dois-modos.md) | Alterna os modos, suspende filtros ocultos e preserva preferências. | Implementado localmente; regressões direcionadas registradas. |
+| 07 | [Selecionar agrupamentos e pins sobrepostos](../../.scratch/consulta-coerente/issues/07-agrupamentos-sobreposicoes.md) | Agrupa ocorrências e permite selecionar pins na mesma posição do mapa. | Parcial: o defeito de seleção em MapLibre/Firefox foi corrigido; faltam aceite dos agrupamentos e conferência das contagens e cenários de estado. |
+| 08 | [Consultar Informes Ativos por ponto manual](../../.scratch/consulta-coerente/issues/08-informes-manuais.md) | Consulta informes recentes e vigentes próximos a um ponto, respeitando raio máximo de 5 km. | Implementado localmente; testes anteriores registrados. |
+| 09 | [Consultar Áreas de Risco com referência temporal](../../.scratch/consulta-coerente/issues/09-areas-risco-demo.md) | Exibe camada territorial demonstrativa, fonte, referência temporal e limites de interpretação. | Implementado como demonstração; persistência e versões territoriais pertencem ao ticket 26. |
+| 10 | [Atualizar a consulta sem perder contexto](../../.scratch/consulta-coerente/issues/10-consulta-atualizacao-estados.md) | Apresenta estados de carregamento, vazio e erro; atualização mantém filtros e câmera. | Implementado localmente; atualização de dados ainda é demonstrativa. |
+| 11 | [Conhecer fontes e avaliação pela consulta](../../.scratch/consulta-coerente/issues/11-paginas-publicas-demo.md) | Apresenta fontes demonstrativas e explicação pública resumida da confiabilidade. | Implementado localmente; coleta automatizada não está integrada. |
+| 12 | [Consultar publicadas persistidas pela API](../../.scratch/consulta-coerente/issues/12-consulta-persistida.md) | Consulta ocorrências publicadas pela API Java/PostGIS com filtros no servidor. | Implementado localmente; integração e persistência verificadas em ambiente sintético. |
+| 13 | [Criar e confirmar conta de usuário](../../.scratch/consulta-coerente/issues/13-cadastro-confirmacao.md) | Cria conta sintética USER e confirma endereço por caixa local e token de uso único. | Implementado localmente; fluxo verificado em ambiente sintético. |
+| 14 | [Proteger módulos e administração com sessão e MFA](../../.scratch/consulta-coerente/issues/14-acesso-sessao-mfa.md) | Implementa sessão, permissões verificadas no servidor e MFA para Administração. | Implementado localmente; fluxo verificado em ambiente sintético. |
+| 15 | [Recuperar, alterar e encerrar a própria conta](../../.scratch/consulta-coerente/issues/15-ciclo-conta.md) | Reúne recuperação de acesso, autoatendimento de perfil/credenciais e encerramento da conta. | Implementado localmente nas fatias 15A, 15B e 15C; aceite usa dados sintéticos e não representa prontidão operacional. |
+| 16 | [Administrar fontes e consultar sua lista pública](../../.scratch/consulta-coerente/issues/16-gestao-fontes.md) | Administra fontes versionadas e auditadas; publica apenas nome e link. | Implementado localmente; gestão não executa coleta. |
+| 17 | [Revisar e publicar ocorrências sem duplicar clippings](../../.scratch/consulta-coerente/issues/17-revisar-publicar.md) | Revisa clippings, associa acontecimentos e decide publicação sem duplicar ocorrências. | Implementado localmente; fila ADMIN/MFA, núcleo validado no servidor, replay/concorrência e histórico registrados no checkpoint. |
+| 18 | [Corrigir ou retirar uma ocorrência publicada](../../.scratch/consulta-coerente/issues/18-corrigir-retirar.md) | Corrige ou retira publicação com revisão e histórico auditável. | Implementado localmente no servidor/HTTP (API 3 unitários + 3 integrações verdes, commits `a86fca2` e `0ece764`); **pendência aberta**: a suíte de navegador do editor não passa (valores digitados não chegam ao modelo do componente). |
+| 19 | [Consultar logs administrativos com retenção configurada](../../.scratch/consulta-coerente/issues/19-consultar-logs.md) | Permite consulta administrativa de logs com retenção definida para o ambiente. | Parcial: consulta e retenção implementadas e verificadas com dados sintéticos; falta projetar o autor histórico na leitura de `/api/v1/admin/logs`. |
+| 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | Ainda não iniciado; a fonte e os parâmetros operacionais continuam sem autorização/definição final. |
+| 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Ainda não iniciado; depende da trilha de coleta recente do ticket 20. |
+| 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | Ainda não iniciado; depende de eventos e estados produzidos pela coleta (ticket 20). |
+| 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Ainda não iniciado; calibração e fórmula de confiabilidade precisam ser definidas. |
+| 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Ainda não iniciado; depende das definições e do mecanismo de avaliação do ticket 23. |
+| 25 | [Consultar proximidade e vigência no fluxo integrado](../../.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md) | Integra localização consentida ou ponto manual às regras de vigência dos Informes. | Parcial: serviço de consulta temporal/espacial iniciado; ainda faltam endpoint integrado, política operacional e transições persistidas. |
+| 26 | [Revisar versões persistidas de Áreas de Risco](../../.scratch/consulta-coerente/issues/26-versoes-areas-risco.md) | Persiste versões de áreas territoriais com referência temporal e procedência. | Parcial: modelo e validações experimentais iniciados; faltam integração completa, migração e fluxo/API operacional. |
+| 27 | [Solicitar e acompanhar correção de dados](../../.scratch/consulta-coerente/issues/27-solicitar-correcao.md) | Recebe solicitações de correção e permite acompanhar o andamento. | Implementado localmente; canal autenticado privado com quatro estados, fila ADMIN/MFA e alvo validado. |
+| 28 | [Percorrer Histórico avançado paginado](../../.scratch/consulta-coerente/issues/28-historico-avancado.md) | Oferece Histórico publicado, filtrado e paginado, com snapshot consistente. | Implementado localmente; web, API/PostGIS, jornadas e revisão estão registradas no checkpoint. |
+| 29 | [Gerar relatório com recorte independente](../../.scratch/consulta-coerente/issues/29-relatorios-recorte.md) | Gera relatório com recorte próprio, transferido explicitamente da consulta. | Implementado localmente; web, API/PostGIS, jornadas e revisão estão registradas no checkpoint. |
+| 30 | [Ler síntese determinística do relatório](../../.scratch/consulta-coerente/issues/30-sintese-deterministica.md) | Produz síntese determinística sem inferir causas, respeitando precisão e cobertura. | Implementado localmente e verificado com dados sintéticos; checkpoint e revisão registrados. |
+| 31 | [Comparar períodos ou territórios com limites explícitos](../../.scratch/consulta-coerente/issues/31-comparar-recortes.md) | Compara recortes com unidades, precisão e limites de interpretação explícitos. | Implementado localmente e verificado com dados sintéticos; checkpoint e revisão registrados. |
+| 32 | [Ler concentração de ocorrências no modo avançado](../../.scratch/consulta-coerente/issues/32-mancha-termica.md) | Exibe concentração de ocorrências únicas geograficamente compatíveis no modo avançado. | Implementado e integrado localmente; aceite verificado com dados sintéticos. |
+| 33 | [Baixar XLSX de todo o recorte avançado](../../.scratch/consulta-coerente/issues/33-exportar-xlsx.md) | Exporta o recorte completo para XLSX com abas, filtros, metadados e limitações. | Implementado localmente; exportação, jornadas, abertura no LibreOffice e revisão estão registradas no checkpoint. |
+| 34 | [Baixar PDF do relatório gerado](../../.scratch/consulta-coerente/issues/34-exportar-pdf.md) | Exporta relatório diagramado em PDF com mapa, síntese e indicadores. | Implementado localmente e verificado com dados sintéticos; checkpoint e revisão registrados. |
+| 35 | [Avisar atualizações publicadas na consulta aberta](../../.scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md) | Informa sobre publicações/correções e permite atualizar a consulta explicitamente. | Ainda não iniciado; depende dos eventos de publicação/correção do ticket 18. |
+| 36 | [Consultar documentos de uso, privacidade e metodologia](../../.scratch/consulta-coerente/issues/36-documentos-institucionais.md) | Apresenta termos, privacidade, metodologia e procedimento de correção versionados. | Implementado localmente como rascunho v1.3 com canal de correções disponível; publicação jurídica e revisão final de conteúdo pendentes do responsável. |
+
+## Evidências recentes
+
+- [Ticket 28](../history/ticket-28-progress-2026-10-17.md), [29](../history/ticket-29-progress-2026-10-17.md), [30](../history/ticket-30-progress-2026-10-17.md) e [31](../history/ticket-31-progress-2026-10-17.md), [32](../history/ticket-32-progress-2026-10-17.md), [33](../history/ticket-33-progress-2026-10-17.md) e [34](../history/ticket-34-progress-2026-10-17.md): checkpoints e verificações locais.
+- [Estado do lote 27 → 36 → 17 → 18](../history/batch-27-36-17-18-2026-10-17.md): commits, verificações reais, pendência de navegador do 18 e diagnóstico do acesso local.
+- [Ticket 17](../history/ticket-17-progress-2026-10-17.md), [18](../history/ticket-18-progress-2026-10-17.md), [27](../history/ticket-27-progress-2026-10-17.md) e [36](../history/ticket-36-progress-2026-10-17.md): lote autorizado 27 → 36 → 17 → 18, com HTTP/PostGIS sintéticos e Playwright separado.
+- [Ticket 15](../history/ticket-15-progress-2026-10-17.md), [19](../../.scratch/consulta-coerente/issues/19-consultar-logs.md) e [25/26](../history/): estado das fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
+
+## Acessos de teste
+
+Contas criadas e confirmadas **somente no banco sintético local** `vetor-spec-postgis`, banco `vetor_spec_test`, porta `55436`. Não são contas de produção nem dados de pessoas reais.
+
+> **Não funcionam no ambiente atual (17/10/2026):** esse contêiner e esse banco não existem mais nesta máquina. A API em `127.0.0.1:8080` precisa apontar para o banco que contém a conta usada; com o banco errado, `auth_audit_events` registra `LOGIN DENIED` com `account_id` nulo (e-mail ausente), não senha inválida. Situação dos contêineres, bancos e o que fazer estão em [operação da web](../operations/web.md#banco-e-credenciais-locais).
+
+| Perfil | Login | Senha |
+|---|---|---|
+| Administrador | `admin@vetorurbano.test` | `123456` |
+| Usuário | `usuario@vetorurbano.test` | `123456` |
+
+Acesse [o ambiente integrado local](http://127.0.0.1:4201/?consulta=api). Use `127.0.0.1` tanto no frontend quanto na API; `localhost` usa outro domínio de cookies. O endereço só funciona no computador onde os serviços locais estiverem ativos.
+
+No primeiro acesso do Administrador, clique em **Configurar autenticador**, adicione a chave apresentada ao seu aplicativo TOTP (SHA-1, seis dígitos, 30 segundos) e confirme o código. A senha sozinha inicia uma sessão parcial; o acesso administrativo exige o segundo fator. O autenticador foi deixado sem configuração para o responsável cadastrá-lo. Nenhuma chave MFA é incluída neste documento.
+
+A senha curta foi provisionada como exceção offline explícita apenas para estas duas fixtures, a pedido do responsável. O banco guarda PBKDF2-SHA256 com salt aleatório por conta e 600.000 iterações. Cadastro público e bootstrap administrativo habitual mantêm suas validações. O [provisionador local](../../scripts/create-local-test-accounts.py) exige ativação explícita, não redefine contas existentes e não remove MFA.
+
+## Conferência desta entrega
+
+As duas senhas e perfis foram conferidos por HTTP real, incluindo senha inválida, sessão, consulta, restrição administrativa, logout/revogação e exigência de MFA. O cadastro público continuou recusando `123456` (400). Os testes de navegador e a verificação documental estão detalhados no [registro desta entrega](../history/tickets-and-test-access-2026-10-16.md). As suítes completas dos 36 tickets não foram reexecutadas.
+
+Base de rastreabilidade: [plano atual](../../PLAN.md), [inventário local de execução](../../.scratch/consulta-coerente/implementation-state.json), [revalidação 05](../history/ticket-05-dependency-retest-2026-10-15.md), [06](../history/ticket-06-resume-2026-10-15.md), [07](../history/ticket-07-resume-2026-10-15.md), [10](../history/ticket-10-retest-2026-10-15.md), [12](../history/ticket-12-progress-2026-10-15.md), [13](../history/ticket-13-progress-2026-10-15.md), [14](../history/ticket-14-progress-2026-10-15.md) e [16](../history/ticket-16-progress-2026-10-15.md). O plano e checkpoints recentes prevalecem sobre estados antigos ainda não reconciliados no inventário JSON e em outros resumos.
