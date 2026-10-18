@@ -126,7 +126,9 @@
               <button type="button" (click)="openPublication(item)" [disabled]="saving()">
                 Abrir edição da publicação {{ item.target_id }}
               </button>
-              @if (preparation()) {
+              @if (openItemId === item.id && preparationLoading()) {
+                <p role="status">Carregando editor da publicação…</p>
+              } @else if (openItemId === item.id && preparation()) {
                 <p>
                   Preparação: {{ preparation()?.preparation_state }} · versão de referência
                   {{ preparation()?.target_revision }}
@@ -134,88 +136,92 @@
                     · versão aplicada {{ preparation()?.applied_version }}
                   }
                 </p>
-              }
-              <label
-                >Ação sobre o registro<select
-                  name="preparationAction"
-                  [value]="preparationAction()"
-                  (change)="preparationAction.set($any($event.target).value)"
-                >
-                  <option value="CORRECTION">Corrigir campos sustentados</option>
-                  <option value="RETRACTION">Retirar registro por erro essencial</option>
-                </select></label
-              >
-              @if (preparationAction() === 'CORRECTION') {
                 <label
-                  >Título corrigido<input
-                    name="preparationTitle"
-                    [(ngModel)]="preparationTitle"
-                    maxlength="200"
-                /></label>
-                <label
-                  >Descrição corrigida<textarea
-                    name="preparationDescription"
-                    [(ngModel)]="preparationDescription"
-                    maxlength="8000"
-                  ></textarea>
-                </label>
-                <p>Campo vazio mantém o valor publicado; nada é inferido.</p>
-              } @else {
-                <label
-                  >Razão essencial da retirada<select
-                    name="preparationEssential"
-                    [(ngModel)]="preparationEssential"
+                  >Ação sobre o registro<select
+                    name="preparationAction"
+                    [value]="preparationAction()"
+                    (change)="preparationAction.set($any($event.target).value)"
                   >
-                    @for (reason of essentialReasons(); track reason.code) {
-                      <option [value]="reason.code">{{ reason.label }}</option>
-                    }
+                    <option value="CORRECTION">Corrigir campos sustentados</option>
+                    <option value="RETRACTION">Retirar registro por erro essencial</option>
                   </select></label
                 >
-              }
-              <label
-                >Motivo da preparação<textarea
-                  name="preparationReason"
-                  [(ngModel)]="preparationReason"
-                  maxlength="2000"
-                ></textarea>
-              </label>
-              <label
-                >Evidência da conferência<textarea
-                  name="preparationEvidence"
-                  [(ngModel)]="preparationEvidence"
-                  maxlength="2000"
-                ></textarea>
-              </label>
-              <button type="button" (click)="prepare(item)" [disabled]="saving() || !preparation()">
-                Preparar alteração sem publicar
-              </button>
-              @if (preparation()?.preparation_state === 'PREPARED') {
+                @if (preparationAction() === 'CORRECTION') {
+                  <label
+                    >Título corrigido<input
+                      name="preparationTitle"
+                      [(ngModel)]="preparationTitle"
+                      maxlength="200"
+                  /></label>
+                  <label
+                    >Descrição corrigida<textarea
+                      name="preparationDescription"
+                      [(ngModel)]="preparationDescription"
+                      maxlength="8000"
+                    ></textarea>
+                  </label>
+                  <p>Campo vazio mantém o valor publicado; nada é inferido.</p>
+                } @else {
+                  <label
+                    >Razão essencial da retirada<select
+                      name="preparationEssential"
+                      [(ngModel)]="preparationEssential"
+                    >
+                      @for (reason of essentialReasons(); track reason.code) {
+                        <option [value]="reason.code">{{ reason.label }}</option>
+                      }
+                    </select></label
+                  >
+                }
                 <label
-                  >Motivo da decisão final<textarea
-                    name="decisionReason"
-                    [(ngModel)]="decisionReason"
+                  >Motivo da preparação<textarea
+                    name="preparationReason"
+                    [(ngModel)]="preparationReason"
+                    maxlength="2000"
+                  ></textarea>
+                </label>
+                <label
+                  >Evidência da conferência<textarea
+                    name="preparationEvidence"
+                    [(ngModel)]="preparationEvidence"
                     maxlength="2000"
                   ></textarea>
                 </label>
                 <button
                   type="button"
-                  (click)="decidePreparation(item, 'APPROVE')"
-                  [disabled]="saving() || !decisionReason"
+                  (click)="prepare(item)"
+                  [disabled]="saving() || !preparation()"
                 >
-                  Aprovar e aplicar nova versão
+                  Preparar alteração sem publicar
                 </button>
-                <button
-                  type="button"
-                  (click)="decidePreparation(item, 'DISCARD')"
-                  [disabled]="saving() || !decisionReason"
-                >
-                  Descartar preparação
-                </button>
-                @if (preparation()?.preparation_action === 'RETRACTION') {
-                  <p>
-                    Aprovar remove o registro da consulta, contagens, histórico e exportações
-                    futuras.
-                  </p>
+                @if (preparation()?.preparation_state === 'PREPARED') {
+                  <label
+                    >Motivo da decisão final<textarea
+                      name="decisionReason"
+                      [(ngModel)]="decisionReason"
+                      maxlength="2000"
+                    ></textarea>
+                  </label>
+                  <button
+                    type="button"
+                    (click)="decidePreparation(item, 'APPROVE')"
+                    [disabled]="saving() || !decisionReason"
+                  >
+                    Aprovar e aplicar nova versão
+                  </button>
+                  <button
+                    type="button"
+                    (click)="decidePreparation(item, 'DISCARD')"
+                    [disabled]="saving() || !decisionReason"
+                  >
+                    Descartar preparação
+                  </button>
+                  @if (preparation()?.preparation_action === 'RETRACTION') {
+                    <p>
+                      Aprovar remove o registro da consulta, contagens, histórico e exportações
+                      futuras.
+                    </p>
+                  }
                 }
               }
             } @else {

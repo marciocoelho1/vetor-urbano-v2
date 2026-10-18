@@ -1,22 +1,22 @@
 # Vetor Urbano — situação dos tickets
 
-Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11 e 07 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
+Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11, 07 e 18 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
 
 ## Visão geral
 
-- **27 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **3 parciais ou com pendência de aceite:** 18, 25 e 26.
+- **28 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **2 parciais:** 25 e 26.
 - **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
 
 ## Implementados localmente
 
-**01–17, 19, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
+**01–19, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Parciais ou com pendência
 
-**18, 25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O 18 permanece parcial até a conclusão ou bloqueio documentado do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
+**25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O ticket 18 foi movido para implementados após a conclusão local do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
 
 ## Ainda não iniciados
 
@@ -43,7 +43,7 @@ Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11 e 07 na rod
 | 15 | [Recuperar, alterar e encerrar a própria conta](../../.scratch/consulta-coerente/issues/15-ciclo-conta.md) | Reúne recuperação de acesso, autoatendimento de perfil/credenciais e encerramento da conta. | Implementado localmente nas fatias 15A, 15B e 15C; aceite usa dados sintéticos e não representa prontidão operacional. |
 | 16 | [Administrar fontes e consultar sua lista pública](../../.scratch/consulta-coerente/issues/16-gestao-fontes.md) | Administra fontes versionadas e auditadas; publica apenas nome e link. | Implementado localmente; gestão não executa coleta. |
 | 17 | [Revisar e publicar ocorrências sem duplicar clippings](../../.scratch/consulta-coerente/issues/17-revisar-publicar.md) | Revisa clippings, associa acontecimentos e decide publicação sem duplicar ocorrências. | Implementado localmente; fila ADMIN/MFA, núcleo validado no servidor, replay/concorrência e histórico registrados no checkpoint. |
-| 18 | [Corrigir ou retirar uma ocorrência publicada](../../.scratch/consulta-coerente/issues/18-corrigir-retirar.md) | Corrige ou retira publicação com revisão e histórico auditável. | Parcial: servidor/HTTP implementados; pendência aberta no E2E opt-in do editor (os valores digitados não chegam ao modelo do componente). |
+| 18 | [Corrigir ou retirar uma ocorrência publicada](../../.scratch/consulta-coerente/issues/18-corrigir-retirar.md) | Corrige ou retira publicação com revisão e histórico auditável. | Concluído localmente em 18/10: E2E editor e canal 4/4 cada em Chromium/Firefox, incluindo erro/retry por teclado e fila vazia; API 18 + 86 prova remoção de query/export, contagens e trilha de snapshots; web 124, `planning` 433 links e `git diff --check` passaram. [Checkpoint](../history/ticket-18-progress-2026-10-18.md). Aceite sintético; sem prontidão operacional. |
 | 19 | [Consultar logs administrativos com retenção configurada](../../.scratch/consulta-coerente/issues/19-consultar-logs.md) | Permite consulta administrativa de logs com retenção definida para o ambiente. | Concluído localmente em 18/10: `/api/v1/admin/logs` devolve `actor` e `historicalActor` para conta viva e autoria residual; `AuditHttpIT` prova o encerramento, a ausência do UUID eliminado e as duas referências distintas. [Checkpoint](../history/ticket-19-progress-2026-10-18.md). |
 | 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | Ainda não iniciado; a fonte e os parâmetros operacionais continuam sem autorização/definição final. |
 | 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Ainda não iniciado; depende da trilha de coleta recente do ticket 20. |
@@ -68,7 +68,7 @@ Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11 e 07 na rod
 - [Ticket 28](../history/ticket-28-progress-2026-10-17.md), [29](../history/ticket-29-progress-2026-10-17.md), [30](../history/ticket-30-progress-2026-10-17.md) e [31](../history/ticket-31-progress-2026-10-17.md), [32](../history/ticket-32-progress-2026-10-17.md), [33](../history/ticket-33-progress-2026-10-17.md) e [34](../history/ticket-34-progress-2026-10-17.md): checkpoints e verificações locais.
 - [Estado do lote 27 → 36 → 17 → 18](../history/batch-27-36-17-18-2026-10-17.md): commits, verificações reais, pendência de navegador do 18 e diagnóstico do acesso local.
 - [Ticket 17](../history/ticket-17-progress-2026-10-17.md), [18](../history/ticket-18-progress-2026-10-17.md), [27](../history/ticket-27-progress-2026-10-17.md) e [36](../history/ticket-36-progress-2026-10-17.md): lote autorizado 27 → 36 → 17 → 18, com HTTP/PostGIS sintéticos e Playwright separado.
-- [Ticket 07](../history/ticket-07-progress-2026-10-18.md), [11](../history/ticket-11-progress-2026-10-18.md), [15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das contagens/estados cartográficos, jornadas públicas, fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
+- [Ticket 07](../history/ticket-07-progress-2026-10-18.md), [11](../history/ticket-11-progress-2026-10-18.md), [18](../history/ticket-18-progress-2026-10-18.md), [15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das contagens/estados cartográficos, jornadas públicas, editor de publicação, fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
 
 ## Acessos de teste
 

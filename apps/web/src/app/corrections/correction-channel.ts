@@ -58,6 +58,7 @@ export class CorrectionChannel {
   protected reasons: Record<string, string> = {};
   protected versions: Record<string, string> = {};
   protected readonly preparation = signal<Preparation | null>(null);
+  protected readonly preparationLoading = signal(false);
   protected readonly essentialReasons = signal<{ code: string; label: string }[]>([]);
   protected readonly preparationAction = signal('CORRECTION');
   protected preparationTitle = '';
@@ -69,10 +70,11 @@ export class CorrectionChannel {
   protected lookupId = '';
   protected readonly lookup = signal<{ status: string; message: string } | null>(null);
   private sequence = 0;
+  private publicationSequence = 0;
   /** Última identidade aplicada; a fila só é limpa quando a sessão realmente muda. */
   private appliedSession = '';
-  /** Pedido com a edição aberta: recarregar o mesmo item não remonta o formulário nem perde o texto digitado. */
-  private openItemId = '';
+  /** Item selecionado para edição; os demais itens não renderizam controles de publicação. */
+  protected openItemId = '';
   @ViewChild('notice') private notice?: ElementRef<HTMLElement>;
   constructor() {
     effect(() => {
@@ -82,6 +84,10 @@ export class CorrectionChannel {
       if (identity === this.appliedSession) return;
       this.appliedSession = identity;
       this.sequence++;
+      this.publicationSequence++;
+      this.preparationLoading.set(false);
+      this.preparation.set(null);
+      this.openItemId = '';
       this.items.set([]);
       this.admin.set(false);
       this.error.set('');
@@ -165,9 +171,10 @@ export class CorrectionChannel {
     });
   }
   protected async openPublication(item: Correction): Promise<void> {
+    if (!this.admin() || item.target_kind !== 'OCCURRENCE') return;
+    const sequence = ++this.publicationSequence;
     if (this.openItemId !== item.id) {
       this.openItemId = item.id;
-      this.preparation.set(null);
       this.preparationTitle = '';
       this.preparationDescription = '';
       this.preparationAction.set('CORRECTION');
@@ -176,16 +183,20 @@ export class CorrectionChannel {
     this.decisionReason = '';
     this.preparationReason = '';
     this.preparationEvidence = '';
-    if (!this.admin() || item.target_kind !== 'OCCURRENCE') return;
+    this.preparation.set(null);
+    this.preparationLoading.set(true);
+    this.error.set('');
     try {
       const detail = (await this.request(
         `admin/corrections/${item.id}/publication`,
       )) as Preparation;
+      if (sequence !== this.publicationSequence) return;
       // A revisão de referência vem do próprio registro publicado quando ainda não existe preparação.
       if (detail.target_revision == null) {
         const target = (await this.request(
           `admin/corrections/publication-targets/${encodeURIComponent(item.target_id)}`,
         )) as { revision: number };
+        if (sequence !== this.publicationSequence) return;
         detail.target_revision = target.revision;
       }
       this.preparation.set(detail);
@@ -197,8 +208,11 @@ export class CorrectionChannel {
       this.preparationReason = detail.preparation_reason ?? '';
       this.preparationEvidence = detail.preparation_evidence ?? '';
     } catch (error) {
+      if (sequence !== this.publicationSequence) return;
       this.preparation.set(null);
       this.error.set((error as Error).message);
+    } finally {
+      if (sequence === this.publicationSequence) this.preparationLoading.set(false);
     }
   }
   protected async prepare(item: Correction): Promise<void> {

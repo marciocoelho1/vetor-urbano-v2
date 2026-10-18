@@ -5,6 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
+  // Account fixtures truncate shared tables in the synthetic database; serialize both projects.
+  workers: process.env['VETOR_ACCOUNTS_E2E'] === '1' ? 1 : undefined,
   reporter: 'list',
   timeout: 90_000,
   expect: { timeout: 20_000 },

@@ -1,3 +1,9 @@
+## 2026-10-18 — Ticket 18: editor aguarda hidratação
+
+- Causa raiz: `openPublication()` buscava o detalhe em paralelo à edição visível, e a resposta assíncrona inicializava os campos com valores vazios depois da digitação. O editor agora mostra estado de carregamento, mantém os controles ocultos até a resposta e descarta resultados obsoletos.
+- Playwright opt-in com banco sintético allowlisted: GET bloqueado mantém campos ocultos; erro 503 fica acessível e retry por teclado carrega o formulário vazio. O POST contém título, motivo e evidência; correção/aprovação e retirada passam em Chromium/Firefox (4/4, 390 px). `correction-channel.spec.ts` também passa 4/4 e cobre fila vazia, teclado, carga/erro e 390 px. A configuração serializa testes de conta porque as fixtures limpam tabelas compartilhadas.
+- `PublishedEditorHttpIT` também verifica, com filtro de categoria, a queda nas contagens de consulta e exportação futura, ausência do retirado e autoria do ADMIN autenticado na trilha com snapshots `PUBLISHED → WITHDRAWN`. `bash scripts/verify.sh api`: 18 unitários + 86 integrações PostGIS; `bash scripts/verify.sh web`: lint, 124 testes e build passaram. Build inicial 798,33 kB (aviso +298,33 kB); `pako` CommonJS. `bash scripts/verify.sh planning`: 433 links; `git diff --check` passou. [Checkpoint](docs/history/ticket-18-progress-2026-10-18.md). Sem prontidão operacional, dados reais, push ou deploy.
+
 ## 2026-10-18 — Ticket 07: contagem exata e estados do mapa
 
 - A cobertura usa um único filtro do modelo para 17 ocorrências mapeáveis com IDs únicos. MapLibre confirma as folhas dos clusters visíveis 2/3/4/7; Leaflet confirma a partição integral dos IDs em grupos 2/2/3/3 e 7 individuais. O Leaflet expõe `data-cluster-members` apenas como dado DOM não visual para verificar essa partição. Pins visíveis não são tratados como total; coordenadas preservadas.

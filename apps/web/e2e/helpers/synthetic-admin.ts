@@ -3,19 +3,27 @@ import { createHmac } from 'node:crypto';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { confirmedUser, testPassword } from './local-account';
 
-/** Only the isolated database explicitly named by the batch runner may receive these fixtures. */
+/** Only explicitly allowlisted synthetic databases may receive these fixtures. */
 export function fixtureSql(sql: string): string {
   const container = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  if (container !== 'vu-batch-27361718-db')
-    throw new Error('Exige banco sintético isolado deste lote.');
+  const databaseByContainer: Record<string, string> = {
+    'vu-batch-27361718-db': 'vetor_batch_review',
+    'vetor-spec-postgis': 'vetor_spec_test',
+  };
+  const database = container ? databaseByContainer[container] : undefined;
+  if (!container || !database) throw new Error('Exige banco sintético isolado permitido.');
+  const postgresUser = execFileSync('podman', ['exec', container, 'printenv', 'POSTGRES_USER'])
+    .toString()
+    .trim();
+  if (!/^[a-zA-Z0-9_]+$/.test(postgresUser)) throw new Error('Usuário de fixture inválido.');
   return execFileSync('podman', [
     'exec',
     container,
     'psql',
     '-U',
-    'postgres',
+    postgresUser,
     '-d',
-    'vetor_batch_review',
+    database,
     '-v',
     'ON_ERROR_STOP=1',
     '-tAc',

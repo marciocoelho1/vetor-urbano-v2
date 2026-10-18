@@ -52,6 +52,7 @@ async function openQueueItem(
   page: import('@playwright/test').Page,
   target: string,
   explanation: string,
+  afterOpen?: (item: import('@playwright/test').Locator) => Promise<void>,
 ): Promise<import('@playwright/test').Locator> {
   const queue = page.locator('app-correction-channel');
   await expect(
@@ -63,7 +64,11 @@ async function openQueueItem(
   // A ação pertence ao pedido aberto: com mais de um item na fila a busca global seria ambígua.
   await item.getByRole('button', { name: 'Iniciar análise' }).click();
   await expect(item.getByText(/Em análise/)).toBeVisible();
-  await item.getByRole('button', { name: `Abrir edição da publicação ${target}` }).click();
+  const editorButton = item.getByRole('button', { name: `Abrir edição da publicação ${target}` });
+  await editorButton.focus();
+  await expect(editorButton).toBeFocused();
+  await page.keyboard.press('Enter');
+  await afterOpen?.(item);
   await expect(item.getByLabel('Ação sobre o registro')).toBeVisible();
   return item;
 }
@@ -76,6 +81,13 @@ test('ADMIN prepara, aprova nova versão e confere o endereço publicado', async
   const { syntheticAdmin, fixtureSql } = await import('./helpers/synthetic-admin');
   const target = 'vu-demo-occurrence-traffic-001';
   resetPublicationFixture(fixtureSql, target, 'Colisão demonstrativa');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await syntheticAdmin(page, request);
+  await page.locator('#corrections-link').click();
+  const correctionChannel = page.locator('app-correction-channel');
+  await correctionChannel.getByRole('button', { name: 'Fila administrativa de correções' }).click();
+  await expect(correctionChannel.getByText('Nenhum pedido nesta fila.')).toBeVisible();
+  await correctionChannel.getByRole('button', { name: 'Meus pedidos' }).click();
   await requestCorrection(
     browser,
     request,
@@ -84,17 +96,65 @@ test('ADMIN prepara, aprova nova versão e confere o endereço publicado', async
     'Título sintético divergente do publicado',
   );
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await syntheticAdmin(page, request);
-  await page.locator('#corrections-link').click();
-  const item = await openQueueItem(page, target, 'Título sintético divergente do publicado');
+  let releasePublication!: () => void;
+  let failPublication = true;
+  const publicationGate = new Promise<void>((resolve) => {
+    releasePublication = resolve;
+  });
+  await page.route('**/api/v1/admin/corrections/*/publication', async (route) => {
+    if (failPublication) {
+      await publicationGate;
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.continue();
+  });
+  const item = await openQueueItem(
+    page,
+    target,
+    'Título sintético divergente do publicado',
+    async (openedItem) => {
+      try {
+        expect(await openedItem.getByLabel('Título corrigido').count()).toBe(0);
+        await expect(
+          openedItem.getByRole('status').filter({ hasText: 'Carregando editor da publicação' }),
+        ).toBeVisible();
+      } finally {
+        releasePublication();
+      }
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Não foi possível acessar o canal' }),
+      ).toBeVisible();
+      expect(await openedItem.getByLabel('Título corrigido').count()).toBe(0);
+      failPublication = false;
+      const retryButton = openedItem.getByRole('button', {
+        name: `Abrir edição da publicação ${target}`,
+      });
+      await retryButton.focus();
+      await page.keyboard.press('Enter');
+    },
+  );
   await expect(item.getByLabel('Título corrigido')).toBeVisible();
+  await expect(item.getByLabel('Título corrigido')).toHaveValue('');
+  await expect(item.getByLabel('Motivo da preparação')).toHaveValue('');
+  await expect(item.getByLabel('Evidência da conferência')).toHaveValue('');
 
   await item.getByLabel('Título corrigido').fill('Título corrigido sintético 18');
   await expect(item.getByLabel('Título corrigido')).toHaveValue('Título corrigido sintético 18');
+
   await item.getByLabel('Motivo da preparação').fill('Referência independente conferida');
   await item.getByLabel('Evidência da conferência').fill('Segunda referência sintética');
+  const preparationRequestPromise = page.waitForRequest(
+    (request) => request.method() === 'POST' && request.url().includes('/publication/preparations'),
+  );
   await item.getByRole('button', { name: 'Preparar alteração sem publicar' }).click();
+  const preparationRequest = await preparationRequestPromise;
+  expect(preparationRequest.postDataJSON()).toMatchObject({
+    action: 'CORRECTION',
+    changes: { title: 'Título corrigido sintético 18' },
+    reason: 'Referência independente conferida',
+    evidence: 'Segunda referência sintética',
+  });
   await expect(item.getByText(/Preparação: PREPARED/)).toBeVisible();
   // Preparar não altera o que está publicado.
   expect(fixtureSql(`SELECT title FROM occurrences WHERE id='${target}'`)).toBe(
@@ -132,6 +192,7 @@ test('retirada por erro essencial torna o endereço indisponível sem repetir o 
   resetPublicationFixture(fixtureSql, target, 'Bloqueio demonstrativo na borda do raio');
   await requestCorrection(browser, request, 'requester18b', target, 'Fato demonstrado incorreto');
 
+  await page.setViewportSize({ width: 390, height: 844 });
   await syntheticAdmin(page, request);
   await page.locator('#corrections-link').click();
   const item = await openQueueItem(page, target, 'Fato demonstrado incorreto');
@@ -161,4 +222,7 @@ test('retirada por erro essencial torna o endereço indisponível sem repetir o 
   await queue.getByLabel('Identificador do registro').fill(target);
   await queue.getByRole('button', { name: 'Conferir registro' }).click();
   await expect(queue.getByText(/UNAVAILABLE —/)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
 });

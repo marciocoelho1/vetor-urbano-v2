@@ -73,6 +73,7 @@ class PublishedEditorHttpIT extends LocalAuthHttpSupport {
             assertEquals(403,request(app,"POST","admin/corrections/"+id+"/publication/preparations",preparation("CORRECTION",proposal("Título corrigido"),revision(app,occurrence))).statusCode());
             assertEquals(403,request(app,"GET","admin/corrections/"+id+"/publication",null).statusCode());
             cookie=null;csrf=null;admin(app);
+            UUID adminId=app.getBean(JdbcTemplate.class).queryForObject("SELECT id FROM local_accounts WHERE email=?",UUID.class,"admin14@example.test");
             assertEquals(404,request(app,"GET","admin/corrections/"+UUID.randomUUID()+"/publication",null).statusCode());
             assertEquals(200,request(app,"GET","admin/corrections/"+id+"/publication",null).statusCode());
             // Approval before the administrative review is a document error, not an application.
@@ -102,8 +103,8 @@ class PublishedEditorHttpIT extends LocalAuthHttpSupport {
             assertTrue(request(app,"GET",query(),null).body().contains("Título corrigido sintético"));
             // A decided preparation is never applied twice, and the audit trail keeps both snapshots.
             assertEquals(409,request(app,"POST","admin/corrections/"+id+"/publication/decisions",decision("APPROVE",version(app,id))).statusCode());
-            var trail=app.getBean(JdbcTemplate.class).queryForList("SELECT action,before_snapshot::text AS before,after_snapshot::text AS after FROM correction_editor_audit WHERE request_id=?",id);
-            assertEquals(1,trail.size());assertTrue(trail.getFirst().get("before").toString().contains(occurrence));
+            var trail=app.getBean(JdbcTemplate.class).queryForList("SELECT action,author_id,before_snapshot::text AS before,after_snapshot::text AS after FROM correction_editor_audit WHERE request_id=?",id);
+            assertEquals(1,trail.size());assertEquals(adminId,trail.getFirst().get("author_id"));assertTrue(trail.getFirst().get("before").toString().contains(occurrence));
             assertTrue(trail.getFirst().get("after").toString().contains("Título corrigido sintético"));
         }
         try(var app=start()){
@@ -113,9 +114,16 @@ class PublishedEditorHttpIT extends LocalAuthHttpSupport {
     }
 
     @Test void retractionRemovesTheRegisterFromEveryLaterReadAndTheOldAddressExplainsItself()throws Exception {
-        String occurrence;UUID id;
+        String occurrence;UUID id;int revisionBeforeRetraction;
         try(var app=start()){
-            admin(app);occurrence=publishedId(app);id=correction(app,occurrence,"CONTEUDO");review(app,id);
+            admin(app);
+            var jdbc=app.getBean(JdbcTemplate.class);
+            UUID adminId=jdbc.queryForObject("SELECT id FROM local_accounts WHERE email=?",UUID.class,"admin14@example.test");
+            occurrence=publishedId(app);
+            revisionBeforeRetraction=revision(app,occurrence);
+            String category=jdbc.queryForObject("SELECT category FROM occurrences WHERE id=?",String.class,occurrence);
+            String filteredQuery=query()+"&category="+category;
+            id=correction(app,occurrence,"CONTEUDO");review(app,id);
             var withoutEvidence=request(app,"POST","admin/corrections/"+id+"/publication/preparations",Map.of("action","RETRACTION","changes",Map.of(),"reason","Erro essencial demonstrado","evidence","","essentialReason","FATO_INCORRETO","expectedVersion",revision(app,occurrence)));
             assertEquals(400,withoutEvidence.statusCode(),withoutEvidence.body());
             var unknownReason=request(app,"POST","admin/corrections/"+id+"/publication/preparations",Map.of("action","RETRACTION","changes",Map.of(),"reason","Erro essencial demonstrado","evidence","Evidência sintética","essentialReason","INVENTADA","expectedVersion",revision(app,occurrence)));
@@ -124,16 +132,46 @@ class PublishedEditorHttpIT extends LocalAuthHttpSupport {
             assertEquals(400,mixed.statusCode(),mixed.body());
             var retraction=request(app,"POST","admin/corrections/"+id+"/publication/preparations",Map.of("action","RETRACTION","changes",Map.of(),"reason","Erro essencial demonstrado","evidence","Duas referências independentes sintéticas","essentialReason","FATO_INCORRETO","expectedVersion",revision(app,occurrence)));
             assertEquals(200,retraction.statusCode(),retraction.body());
-            assertTrue(request(app,"GET",query(),null).body().contains(occurrence));
+            var beforeQuery=request(app,"GET",filteredQuery,null);
+            assertEquals(200,beforeQuery.statusCode(),beforeQuery.body());
+            int beforeQueryCount=JSON.readTree(beforeQuery.body()).path("counts").path("occurrences").asInt();
+            assertTrue(beforeQuery.body().contains(occurrence));
+            String exportPath=filteredQuery.replace("occurrences?","reports/occurrences/export?");
+            String historyPath=filteredQuery.replace("occurrences?","history/occurrences?");
+            var beforeExport=request(app,"GET",exportPath,null);
+            assertEquals(200,beforeExport.statusCode(),beforeExport.body());
+            int beforeExportCount=JSON.readTree(beforeExport.body()).path("counts").path("occurrences").asInt();
+            assertEquals(beforeQueryCount,beforeExportCount);
+            assertTrue(beforeExport.body().contains(occurrence));
             assertEquals(200,request(app,"POST","admin/corrections/"+id+"/publication/decisions",decision("APPROVE",version(app,id))).statusCode());
-            assertFalse(request(app,"GET",query(),null).body().contains(occurrence));
-            assertFalse(request(app,"GET","history/occurrences?periodStart=2026-10-14T15:00:00Z&periodEnd=2026-10-15T15:00:00Z",null).body().contains(occurrence));
+            var afterQuery=request(app,"GET",filteredQuery,null);
+            assertEquals(200,afterQuery.statusCode(),afterQuery.body());
+            int afterQueryCount=JSON.readTree(afterQuery.body()).path("counts").path("occurrences").asInt();
+            assertEquals(beforeQueryCount-1,afterQueryCount);
+            assertFalse(afterQuery.body().contains(occurrence));
+            assertFalse(request(app,"GET",historyPath,null).body().contains(occurrence));
+            var afterExport=request(app,"GET",exportPath,null);
+            assertEquals(200,afterExport.statusCode(),afterExport.body());
+            int afterExportCount=JSON.readTree(afterExport.body()).path("counts").path("occurrences").asInt();
+            assertEquals(beforeExportCount-1,afterExportCount);
+            assertEquals(afterQueryCount,afterExportCount);
+            assertFalse(afterExport.body().contains(occurrence));
             var direct=request(app,"GET","occurrences/"+occurrence,null);
             assertEquals(200,direct.statusCode(),direct.body());
             assertEquals("UNAVAILABLE",JSON.readTree(direct.body()).path("status").asString());
             assertTrue(JSON.readTree(direct.body()).path("unavailable").asBoolean());
             assertNotNull(JSON.readTree(direct.body()).path("withdrawnAt"));
             assertFalse(direct.body().contains("description"));
+            var trail=jdbc.queryForMap("SELECT action,author_id,before_snapshot::text AS before,after_snapshot::text AS after FROM correction_editor_audit WHERE request_id=?",id);
+            assertEquals("CORRECTION_RETRACTED",trail.get("action"));
+            assertEquals(adminId,trail.get("author_id"));
+            var beforeSnapshot=JSON.readTree(trail.get("before").toString());
+            var afterSnapshot=JSON.readTree(trail.get("after").toString());
+            assertEquals("PUBLISHED",beforeSnapshot.path("publication_status").asString());
+            assertEquals("WITHDRAWN",afterSnapshot.path("publication_status").asString());
+            assertEquals(revisionBeforeRetraction,beforeSnapshot.path("revision").asInt());
+            assertEquals(revisionBeforeRetraction+1,afterSnapshot.path("revision").asInt());
+            assertTrue(afterSnapshot.hasNonNull("withdrawn_at"));
             // A withdrawn register accepts no new preparation and no repeat withdrawal.
             assertEquals(409,request(app,"POST","admin/corrections/"+id+"/publication/preparations",preparation("CORRECTION",proposal("Outro título"),revision(app,occurrence))).statusCode());
         }
