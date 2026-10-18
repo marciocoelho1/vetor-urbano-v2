@@ -7,10 +7,8 @@ import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +19,7 @@ class TerritorialVersionRepositoryIT {
     @Container
     static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>(DockerImageName
             .parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres"));
+    static final UUID AUTHOR=UUID.randomUUID();
     static TerritorialVersionRepository repository;
     static JdbcTemplate jdbc;
     static final String POLYGON = "SRID=4326;POLYGON((-43 -23,-42 -23,-42 -22,-43 -22,-43 -23))";
@@ -29,10 +28,14 @@ class TerritorialVersionRepositoryIT {
     static void prepare() {
         var source = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
         Flyway.configure().dataSource(source).load().migrate();
-        new ResourceDatabasePopulator(new ClassPathResource("territories/territorial-version-prototype.sql"))
-                .execute(source);
+
         jdbc = new JdbcTemplate(source);
+        jdbc.update("INSERT INTO local_accounts(id,display_name,email,password_hash,role,created_at,last_sent_at,resend_window_start) VALUES(?, 'Autor sintético', 'repo26@example.test','not-a-login-credential','ADMIN',now(),now(),now())", AUTHOR);
         repository = new TerritorialVersionRepository(jdbc);
+    }
+
+    private void append(UUID id, int expected, TerritorialVersion details) {
+        repository.append(id, expected, details, AUTHOR, "Revisão sintética de repositório");
     }
 
     private TerritorialVersion draft(String geometry, LocalDate reference) {
@@ -59,9 +62,9 @@ class TerritorialVersionRepositoryIT {
     void rejectsInvalidBoundaryAtomically(String boundary) {
         UUID id = UUID.randomUUID();
         assertThrows(org.springframework.dao.DataAccessException.class,
-                () -> repository.append(id, 0, draft(boundary, null)));
+                () -> append(id, 0, draft(boundary, null)));
         assertTrue(repository.history(id).isEmpty());
-        repository.append(id, 0, draft(POLYGON, null));
+        append(id, 0, draft(POLYGON, null));
         assertEquals(1, repository.history(id).size());
     }
 
@@ -72,7 +75,7 @@ class TerritorialVersionRepositoryIT {
         var details = new TerritorialVersion("Outra área sintética", "Grupo indicado sintético", sourceId,
                 "Documento B / página 4", LocalDate.of(2019, 3, 4), "Referência histórica, não atual",
                 "SRID=4326;MULTIPOLYGON(((-43 -23,-42 -23,-42 -22,-43 -23)))");
-        repository.append(id, 0, details);
+        append(id, 0, details);
         var saved = repository.history(id).get(0).details();
         assertEquals(sourceId, saved.sourceId());
         assertEquals("Documento B / página 4", saved.evidenceReference());
@@ -84,14 +87,14 @@ class TerritorialVersionRepositoryIT {
     @Test
     void changesGeometryAndDetailsWithoutRewritingBeforeSnapshotAndRollsBackInvalidSuccessor() {
         UUID id = UUID.randomUUID();
-        repository.append(id, 0, draft(POLYGON, null));
+        append(id, 0, draft(POLYGON, null));
         var before = repository.history(id).get(0);
         assertThrows(org.springframework.dao.DataAccessException.class,
-                () -> repository.append(id, 1, draft("SRID=4326;POINT(0 0)", null)));
+                () -> append(id, 1, draft("SRID=4326;POINT(0 0)", null)));
         assertEquals(java.util.List.of(before), repository.history(id));
         var after = new TerritorialVersion("Nome revisado sintético", null, null, null, null, null,
                 "SRID=4326;POLYGON((0 0,1 0,1 1,0 0))");
-        repository.append(id, 1, after);
+        append(id, 1, after);
         var history = repository.history(id);
         assertEquals(before, history.get(0));
         assertEquals("Nome revisado sintético", history.get(1).details().name());
@@ -102,25 +105,25 @@ class TerritorialVersionRepositoryIT {
     @Test
     void staleAppendDoesNotOverwritePreviousDetailsOrConsumeVersion() {
         UUID id = UUID.randomUUID();
-        repository.append(id, 0, draft(POLYGON, null));
+        append(id, 0, draft(POLYGON, null));
         assertThrows(org.springframework.dao.OptimisticLockingFailureException.class,
-                () -> repository.append(id, 0, draft(POLYGON, LocalDate.of(2020, 1, 1))));
+                () -> append(id, 0, draft(POLYGON, LocalDate.of(2020, 1, 1))));
         assertEquals(1, repository.history(id).size());
         assertNull(repository.history(id).get(0).details().referenceDate());
-        repository.append(id, 1, draft(POLYGON, LocalDate.of(2020, 1, 1)));
+        append(id, 1, draft(POLYGON, LocalDate.of(2020, 1, 1)));
         assertEquals(2, repository.history(id).get(1).version());
     }
 
     @Test
     void concurrentAppendAllowsOnlyOneSuccessor() throws Exception {
         UUID id = UUID.randomUUID();
-        repository.append(id, 0, draft(POLYGON, null));
+        append(id, 0, draft(POLYGON, null));
         var gate = new java.util.concurrent.CountDownLatch(1);
         try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
             java.util.concurrent.Callable<Boolean> append = () -> {
                 gate.await();
                 try {
-                    repository.append(id, 1, draft(POLYGON, LocalDate.of(2021, 1, 1)));
+                    append(id, 1, draft(POLYGON, LocalDate.of(2021, 1, 1)));
                     return true;
                 } catch (org.springframework.dao.OptimisticLockingFailureException conflict) {
                     return false;
@@ -138,8 +141,8 @@ class TerritorialVersionRepositoryIT {
     @Test
     void appendsVersionsWithStableIdentityAndPreservesUnknownWithoutUsingRegistrationDate() {
         UUID id = UUID.randomUUID();
-        repository.append(id, 0, draft(POLYGON, null));
-        repository.append(id, 1, draft(POLYGON, LocalDate.of(2020, 1, 2)));
+        append(id, 0, draft(POLYGON, null));
+        append(id, 1, draft(POLYGON, LocalDate.of(2020, 1, 2)));
         var history = repository.history(id);
         assertEquals(2, history.size());
         assertEquals(id, history.get(0).territoryId());

@@ -29,7 +29,7 @@ public class CorrectionService {
         if(!Set.of("LOCAL","DATA","CONTEUDO","REFERENCIA","OUTRO").contains(problem))throw invalid("Tipo de problema inválido.");
         boolean valid=switch(kind){
             case "OCCURRENCE" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM occurrences WHERE id=? AND publication_status='PUBLISHED')",Boolean.class,target));
-            case "AREA" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets WHERE id=?)",Boolean.class,target));
+            case "AREA" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets t JOIN territorial_identities i ON i.id::text=t.id AND i.approved_version=t.version JOIN territorial_approvals a ON a.territory_id=i.id AND a.version=i.approved_version WHERE t.id=?)",Boolean.class,target));
             default -> false;
         };
         if(!valid)throw invalid("Alvo inexistente ou não validado. Áreas experimentais não recebem pedidos.");
@@ -81,7 +81,7 @@ public class CorrectionService {
             applied=((Number)body.get("appliedVersion")).intValue();
             // Ticket 18: an applied occurrence version must be proven by the published/withdrawn register.
             boolean proven=switch((String)row.get("target_kind")){
-                case "AREA" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets WHERE id=? AND version=?)",Boolean.class,row.get("target_id"),applied));
+                case "AREA" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets t JOIN territorial_identities i ON i.id::text=t.id AND i.approved_version=t.version JOIN territorial_approvals a ON a.territory_id=i.id AND a.version=i.approved_version WHERE t.id=? AND t.version=?)",Boolean.class,row.get("target_id"),applied));
                 case "OCCURRENCE" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM occurrences WHERE id=? AND revision=?)",Boolean.class,row.get("target_id"),applied));
                 default -> false;
             };

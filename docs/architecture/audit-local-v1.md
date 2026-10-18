@@ -12,6 +12,23 @@ Parâmetros de uso são projetados por lista permitida E08, inclusive na leitura
 
 A exportação em PDF (ticket 34) registra `REPORT_PDF_EXPORT` na mesma classe USE de uso do módulo query. O evento conserva os filtros permitidos e as seis contagens do snapshot (ocorrências, acontecimentos, mapeadas, apenas em lista e certeza/possibilidade temporal), além de `snapshotGeneratedAt` (instante original da geração no cliente), `snapshotOrigin=CLIENT_SNAPSHOT` e `format=PDF`; nenhum conteúdo do documento, texto pesquisado, coordenada ou raio entra no log. A tentativa é registrada com `outcome=FAILED` sempre que o evento de sucesso não for aceito pelo servidor, e o registro só ocorre após autorização de sessão completa com CSRF.
 
+## Administração territorial — ticket 26
+
+[Versões territoriais](territorial-versions-local-v1.md) acrescentam o módulo `territories` em
+`auth_audit_events`, explicitamente classe ADMIN (V13). Eventos de revisão/aprovação e leituras
+administrativas usam a retenção de administração já estabelecida, sem ampliar os tetos.
+`safeParameters` permite `territoryId`, `version`, `approvedVersion` e antes/depois resumidos a
+identidade, versão, ponteiro, nome, grupo indicado, fonte, referência temporal e registro técnico.
+Geometria, evidência, limitações, justificativa e UUID de autor embutido não são armazenados nesses
+parâmetros; a leitura aplica a mesma allowlist também a eventos legados. `actor` e `historicalActor`
+continuam separados na projeção de logs.
+
+A tabela `territorial_audit_events` é **histórico de domínio**, não mais uma origem sujeita ao
+expurgo de logs. Preserva antes/depois completos, autor/papel/justificativa e decisões anteriores,
+com conteúdo imutável e desligamento de autoria transacional no encerramento. Versões, decisões e
+auditoria territorial recebem a referência histórica de domínio, distinta daquela de segurança;
+seus JSONs factuais não contêm UUID de login duplicado.
+
 ## Expiração e execução
 
 Tempo do evento (`occurred_at`) determina o vencimento inclusivo; execução tardia não renova retenção. Leitura exclui vencidos mesmo antes da eliminação física. `vetor.audit.use-retention`, `security-retention` e `admin-retention` têm padrões de 60/180/365 dias e aceitam reduções até um segundo para testes. Valores acima dos tetos ou não positivos impedem inicialização, sem ampliação silenciosa.

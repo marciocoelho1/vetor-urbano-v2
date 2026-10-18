@@ -10,12 +10,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Inactive persistence prototype: deliberately not a Spring bean or HTTP write boundary.
- * Schema exists only in test resources until authorship/closure and rollout are integrated.
- * A version is a historical snapshot, NOT a candidate or a publication decision.
- */
-public final class TerritorialVersionRepository {
+/** Attributed append-only snapshots; publication is a separate explicit decision. */
+@org.springframework.stereotype.Repository
+public class TerritorialVersionRepository {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
 
@@ -25,7 +22,7 @@ public final class TerritorialVersionRepository {
                 Objects.requireNonNull(jdbc.getDataSource())));
     }
 
-    public void append(UUID territoryId, int expectedVersion, TerritorialVersion details) {
+    public void append(UUID territoryId, int expectedVersion, TerritorialVersion details, UUID author, String justification) {
         Objects.requireNonNull(territoryId);
         Objects.requireNonNull(details);
         if (expectedVersion < 0) throw new IllegalArgumentException("Negative version");
@@ -39,11 +36,13 @@ public final class TerritorialVersionRepository {
             jdbc.update("""
                     INSERT INTO territorial_versions
                     (territory_id, version, name, indicated_group, source_id, evidence_reference,
-                     reference_date, limitations, boundary)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromEWKT(?))
+                     reference_date, limitations, boundary, author_id, actor_role, justification, source_version)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromEWKT(?), ?,
+                        (SELECT role FROM local_accounts WHERE id=?), ?,
+                        (SELECT current_version FROM sources WHERE id=?))
                     """, territoryId, revision + 1, details.name(), details.indicatedGroup(),
                     details.sourceId(), details.evidenceReference(), details.referenceDate(),
-                    details.limitations(), details.boundaryEwkt());
+                    details.limitations(), details.boundaryEwkt(), author, author, justification, details.sourceId());
             jdbc.update("UPDATE territorial_identities SET revision = ? WHERE id = ?", revision + 1, territoryId);
         });
     }

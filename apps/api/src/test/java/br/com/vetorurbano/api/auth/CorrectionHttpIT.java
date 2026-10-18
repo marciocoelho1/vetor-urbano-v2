@@ -58,12 +58,24 @@ class CorrectionHttpIT extends LocalAuthHttpSupport {
             assertEquals(409,request(app,"POST","admin/corrections/"+id+"/decisions",Map.of("expectedVersion",1,"state","IN_REVIEW","reason","Reenvio antigo")).statusCode());
             assertEquals(400,request(app,"POST","admin/corrections/"+id+"/decisions",Map.of("expectedVersion",3,"state","COMPLETED","reason","Correção inexistente","appliedVersion",999)).statusCode());
             assertEquals(200,request(app,"POST","admin/corrections/"+id+"/decisions",Map.of("expectedVersion",3,"state","NOT_APPLICABLE","reason","Referência confirma o registro original")).statusCode());
-            app.getBean(JdbcTemplate.class).update("INSERT INTO correction_area_targets(id,version,name,evidence_reference,validated_by,validated_at) VALUES('area27',1,'Área sintética','fixture-27',?,now())",admin);
-            var area=request(app,"POST","corrections",draft("AREA","area27"));assertEquals(201,area.statusCode());
+            app.getBean(JdbcTemplate.class).update("INSERT INTO correction_area_targets(id,version,name,evidence_reference,validated_by,validated_at) VALUES('independent-fixture',1,'Projeção sem território','fixture',?,now())",admin);
+            assertEquals(400,request(app,"POST","corrections",draft("AREA","independent-fixture")).statusCode(),"Uma projeção independente não comprova aprovação territorial");
+            String territory=UUID.randomUUID().toString(),path="admin/risk-areas/"+territory;
+            var created=request(app,"POST",path+"/versions",TerritorialHttpIT.draft(0,"Área sintética 27"));
+            assertEquals(200,created.statusCode(),created.body());
+            assertEquals(400,request(app,"POST","corrections",draft("AREA",territory)).statusCode(),"Uma revisão não é alvo publicado");
+            assertEquals(200,request(app,"POST",path+"/approvals",Map.of("expectedVersion",1,"justification","Conferência territorial sintética")).statusCode());
+            var area=request(app,"POST","corrections",draft("AREA",territory));assertEquals(201,area.statusCode(),area.body());
             String areaId=JSON.readTree(area.body()).path("id").asString();
             assertEquals(200,request(app,"POST","admin/corrections/"+areaId+"/decisions",Map.of("expectedVersion",1,"state","IN_REVIEW","reason","Conferindo versão validada")).statusCode());
-            var completed=request(app,"POST","admin/corrections/"+areaId+"/decisions",Map.of("expectedVersion",2,"state","COMPLETED","reason","Versão validada confirmada","appliedVersion",1));
-            assertEquals(200,completed.statusCode(),completed.body());assertEquals(1,JSON.readTree(completed.body()).path("applied_version").asInt());
+            assertEquals(200,request(app,"POST",path+"/versions",TerritorialHttpIT.draft(1,"Área corrigida 27")).statusCode());
+            var completion=Map.<String,Object>of("expectedVersion",2,"state","COMPLETED","reason","Revisão territorial aplicada","appliedVersion",2);
+            assertEquals(400,request(app,"POST","admin/corrections/"+areaId+"/decisions",completion).statusCode(),"Preparar revisão não comprova aplicação");
+            assertEquals(200,request(app,"POST",path+"/approvals",Map.of("expectedVersion",2,"justification","Correção explicitamente aprovada")).statusCode());
+            var completed=request(app,"POST","admin/corrections/"+areaId+"/decisions",completion);
+            assertEquals(200,completed.statusCode(),completed.body());assertEquals(2,JSON.readTree(completed.body()).path("applied_version").asInt());
+            var current=JSON.readTree(request(app,"GET","risk-areas",null).body()).path("items");
+            assertEquals(2,current.get(0).path("version").asInt());assertEquals("Área corrigida 27",current.get(0).path("name").asString());
         }
     }
 

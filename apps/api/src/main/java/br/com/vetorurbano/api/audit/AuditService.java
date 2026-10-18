@@ -98,6 +98,7 @@ public class AuditService {
         var keys = switch (module) {
             case "query" -> Set.of("periodStart", "periodEnd", "categories", "types", "subtypes", "categorySelection", "municipalities", "neighborhoods", "sourceIds", "situations", "hasText", "minReliability", "maxReliability", "timeStart", "timeEnd", "hasSpatialFilter", "occurrences", "happenings", "mappedOccurrences", "listOnlyOccurrences", "temporallyCertain", "temporallyPossible", "snapshotGeneratedAt", "snapshotOrigin", "format");
             case "sources" -> Set.of("sourceId", "before", "after");
+            case "territories" -> Set.of("territoryId", "version", "approvedVersion", "before", "after");
             case "audit" -> Set.of("executedAt", "deleted");
             default -> Set.<String>of();
         };
@@ -106,6 +107,11 @@ public class AuditService {
             if (module.equals("sources") && (key.equals("before") || key.equals("after")) && !input.path(key).isNull()) {
                 var snapshot = new LinkedHashMap<String, Object>();
                 for (var field : Set.of("name", "channel", "url", "territories", "pillars", "accessMethod", "accessConfigurationRef", "rating", "ratingJustification", "version", "createdAt"))
+                    if (input.path(key).has(field)) snapshot.put(field, input.path(key).get(field));
+                output.put(key, snapshot);
+            } else if (module.equals("territories") && (key.equals("before") || key.equals("after")) && !input.path(key).isNull()) {
+                var snapshot = new LinkedHashMap<String, Object>();
+                for (var field : Set.of("territoryId", "version", "approvedVersion", "name", "indicatedGroup", "sourceId", "referenceDate", "recordedAt"))
                     if (input.path(key).has(field)) snapshot.put(field, input.path(key).get(field));
                 output.put(key, snapshot);
             } else output.put(key, input.get(key));

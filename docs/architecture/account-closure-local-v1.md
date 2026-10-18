@@ -85,10 +85,23 @@ teclado, 390 px e alternativa em lista permanecem os do painel.
 
 `GET /api/v1/admin/logs` agora mantém `actor` (conta ativa, se houver) e projeta `historicalActor` em campo separado para `auth_audit_events`, `account_audit_events` e `source_audit_events`. A integração HTTP/PostGIS prova a referência viva antes do encerramento, as duas referências residuais diferentes depois dele e a ausência do UUID eliminado na resposta. Ver [ticket-19-progress-2026-10-18.md](../history/ticket-19-progress-2026-10-18.md).
 
+## Extensão territorial — ticket 26
+
+A migração [territorial v1](territorial-versions-local-v1.md) integra `territorial_versions`,
+`territorial_approvals` e `territorial_audit_events` ao desligamento transacional. Seus `author_id`
+ficam nulos e `historical_actor_id` recebe a referência de domínio; papel, justificativa e conteúdo
+factual são preservados. `correction_area_targets.validated_by` segue o mesmo desligamento.
+Antes/depois territoriais não embutem UUID de login; por isso não é necessário reescrever seus JSONs.
+Triggers protegem conteúdo histórico e permitem somente a troca irreversível de autoria.
+O teste HTTP territorial verifica as referências históricas distintas, a consulta preservada e busca
+o UUID eliminado em todas as tabelas públicas do banco descartável antes de abrir novo ADMIN.
+A projeção administrativa de logs continua distinguindo `actor` e `historicalActor`.
+
 ## Limites
 
 Sintético e local: sem dados reais, sem transporte de e-mail, sem guarda legal, sem preservação
-excepcional (E18), sem backups/restauração (E17) e sem canal de solicitação de correção implementado
-(E12 trata da continuidade quando existir). A separação de autoria é irreversível, mas não é
+excepcional (E18) e sem backups/restauração (E17). O canal privado de correções preserva o conteúdo
+factual com minimização e desligamento do solicitante no encerramento; isso não certifica tratamento
+operacional de dados pessoais. A separação de autoria é irreversível, mas não é
 anonimização garantida: contexto, datas e textos podem permitir identificação e exigem avaliação
 própria em operação real.
