@@ -17,9 +17,60 @@ O cadastro não envia informações. As importações permanecem na aba atual e 
 
 ## O que está por vir
 
-A próxima etapa prevista é integrar uma API Java com PostgreSQL/PostGIS para persistir e consultar ocorrências. Depois vêm autenticação, permissões de Operador e Gestor, moderação e auditoria. A evolução também prevê filtros no servidor e revisão das fontes e da cobertura territorial.
+Esta branch já traz a API Java com PostgreSQL/PostGIS persistindo e consultando ocorrências, além de autenticação, permissões, moderação e auditoria — o passo a passo está em [Acessar esta branch de integrações](#acessar-esta-branch-de-integrações). A evolução prevê filtros no servidor, coleta das fontes autorizadas e revisão da cobertura territorial.
 
 Alertas, notificações e colaboração por votos fazem parte do backlog e dependem de pesquisa e decisões de produto. A ordem e as condições de cada etapa estão no [plano de trabalho](PLAN.md).
+
+## Acessar esta branch de integrações
+
+Esta branch (`integration/functional-spec-v1`) reúne a API Java, o PostgreSQL/PostGIS, as contas com sessão e a moderação/revisão. Para abrir o Vetor Urbano aqui, com os dados sintéticos, são **três processos** — banco, API e frontend — mais o acesso pelo host correto.
+
+### 1. Banco sintético
+
+```bash
+podman start vetor-spec-postgis          # contêiner PostGIS 17/3.5 em 127.0.0.1:55436, banco vetor_spec_test
+podman exec vetor-spec-postgis sh -c 'psql -U "$POSTGRES_USER" -d vetor_spec_test -tAc \
+  "select email,role,status from local_accounts order by created_at"'   # confere as contas de teste
+```
+
+O contêiner e o banco precisam ser os que contêm as contas usadas no login. Conta existente em outro banco produz `LOGIN DENIED` com `account_id` nulo em `auth_audit_events` — é e-mail ausente no banco em uso, não senha errada.
+
+### 2. API Java em `127.0.0.1:8080`
+
+```bash
+export JAVA_HOME=<jdk-21>
+PW=$(podman exec vetor-spec-postgis printenv POSTGRES_PASSWORD)
+$JAVA_HOME/bin/java -jar apps/api/target/vetor-urbano-api-0.1.0-SNAPSHOT.jar \
+  --spring.profiles.active=local \
+  --spring.datasource.url=jdbc:postgresql://127.0.0.1:55436/vetor_spec_test \
+  --spring.datasource.username=vetor_spec_test --spring.datasource.password="$PW" \
+  --vetor.accounts.enabled=true --vetor.accounts.mailbox-port=8025 \
+  --vetor.accounts.key-file=<chave do autenticador fora do repositório>
+```
+
+O jar sai de `cd apps/api && ./mvnw -DskipTests package`. As migrações pendentes são aplicadas no startup (evolução por migração nova; sem `repair` nem reset). Duas instâncias não podem compartilhar a caixa local: a segunda falha com `Endereço já em uso`.
+
+### 3. Frontend em `127.0.0.1:4201`
+
+```bash
+npm ci --prefix apps/web
+npm start --prefix apps/web
+```
+
+Abra **http://127.0.0.1:4201/?consulta=api**. Use `127.0.0.1` também na API: o cookie de sessão é `SameSite=Strict`, e `localhost` é outro domínio de cookies — a sessão se perde na requisição seguinte. O frontend redireciona `localhost:4201` para `127.0.0.1` antes de iniciar.
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Usuário (USER) | `usuario@vetorurbano.test` | `123456` |
+| Administrador (ADMIN) | `admin@vetorurbano.test` | `123456` |
+
+O Administrador exige MFA: no primeiro acesso, use **Configurar autenticador**, registre a chave no aplicativo TOTP (SHA-1, seis dígitos, 30 s) e confirme o código.
+
+### O que já funciona nesta branch
+
+Consulta persistida pela API, contas com confirmação, sessão e MFA, canal privado de correções (27), revisão/publicação humana de clippings (17) e correção/retirada de publicação com histórico auditável (18). Estado consolidado, evidências e a pendência aberta estão em [estado do lote 27 → 36 → 17 → 18](docs/history/batch-27-36-17-18-2026-10-17.md) e no [plano de trabalho](PLAN.md). Detalhes operacionais em [operação da web](docs/operations/web.md).
+
+Continua sendo demonstração local com dados fictícios: sem publicação, deploy, coleta real ou prontidão operacional. Nada aqui autoriza merge para `main`.
 
 ## Executar localmente
 
@@ -30,7 +81,7 @@ npm ci --prefix apps/web
 npm start --prefix apps/web
 ```
 
-Abra **http://localhost:4201/**. Os mapas precisam de acesso ao provedor cartográfico. A configuração atual atende ao desenvolvimento em `localhost` e `127.0.0.1`; outros domínios precisam de configuração própria. Consulte o [guia de operação](docs/operations/web.md) antes de preparar hospedagem.
+Abra **http://127.0.0.1:4201/**. Os mapas precisam de acesso ao provedor cartográfico. A configuração atual atende ao desenvolvimento em `localhost` e `127.0.0.1`; outros domínios precisam de configuração própria. Para a consulta persistida com sessão, suba também banco e API como em [Acessar esta branch de integrações](#acessar-esta-branch-de-integrações) e consulte o [guia de operação](docs/operations/web.md) antes de preparar hospedagem.
 
 ## Credenciais de teste locais
 
@@ -66,7 +117,7 @@ npm run test:e2e -- --workers=1
 
 ```text
 apps/web/       Aplicação Angular, testes e protótipos isolados
-apps/api/       Espaço reservado para a futura API Java
+apps/api/       API Java (Spring Boot) e migrações Flyway
 assets/brand/   Materiais e fontes dos vídeos de marca
 docs/           Produto, arquitetura, operação e registros históricos
 scripts/        Verificações do repositório
