@@ -79,8 +79,13 @@ public class CorrectionService {
         if(body.containsKey("appliedVersion")){
             if(!next.equals("COMPLETED")||!(body.get("appliedVersion") instanceof Number n)||n.intValue()<1)throw invalid("Versão aplicada inválida.");
             applied=((Number)body.get("appliedVersion")).intValue();
-            // Intake never invents an applied edit. Occurrence editor supplies versions in ticket 18.
-            if(!row.get("target_kind").equals("AREA")||!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets WHERE id=? AND version=?)",Boolean.class,row.get("target_id"),applied)))throw invalid("Versão aplicada não comprovada.");
+            // Ticket 18: an applied occurrence version must be proven by the published/withdrawn register.
+            boolean proven=switch((String)row.get("target_kind")){
+                case "AREA" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM correction_area_targets WHERE id=? AND version=?)",Boolean.class,row.get("target_id"),applied));
+                case "OCCURRENCE" -> Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM occurrences WHERE id=? AND revision=?)",Boolean.class,row.get("target_id"),applied));
+                default -> false;
+            };
+            if(!proven)throw invalid("Versão aplicada não comprovada.");
         }
         jdbc.update("UPDATE correction_requests SET state=?,reason=?,applied_version=?,version=version+1 WHERE id=?",next,reason,applied,id);
         jdbc.update("INSERT INTO correction_decisions(request_id,version,previous_state,state,reason,applied_version,author_id,occurred_at) VALUES(?,?,?,?,?,?,?,?)",id,version+1,previous,next,reason,applied,actor,Timestamp.from(clock.instant()));

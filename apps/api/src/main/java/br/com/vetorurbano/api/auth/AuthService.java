@@ -158,6 +158,11 @@ public class AuthService {
                 "temporallyCertain", counts.temporallyCertain(), "temporallyPossible", counts.temporallyPossible()),
             outcome);
     }
+    /** Ticket 18: reading one register by identifier is audited without copying its content. */
+    @Transactional public void auditRecordLookup(UUID account,String recordId) {
+        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?, 'query','RECORD_LOOKUP','SUCCEEDED',jsonb_build_object('recordId',?::text))",
+                account,now(),recordId);
+    }
     private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Map<String,Object> additional, String outcome) {
         var parameters=new LinkedHashMap<String,Object>();

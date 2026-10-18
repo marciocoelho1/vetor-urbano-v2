@@ -298,6 +298,9 @@ public class AccountService {
         jdbc.update("UPDATE clipping_review_decisions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         jdbc.update("UPDATE correction_area_targets SET validated_by=NULL,historical_actor_id=? WHERE validated_by=?",domainResidual,account);
         jdbc.update("UPDATE correction_decisions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        // Ticket 18: prepared corrections and their audit trail keep domain authorship, not login identity.
+        jdbc.update("UPDATE occurrence_editor_preparations SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        jdbc.update("UPDATE correction_editor_audit SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         // E11: retain factual evidence while removing direct identity from retained copies.
         String closingName=jdbc.queryForObject("SELECT display_name FROM local_accounts WHERE id=?",String.class,account);
         br.com.vetorurbano.api.corrections.CorrectionPrivacy.detach(jdbc,account,closingName,email);
