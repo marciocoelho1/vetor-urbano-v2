@@ -74,7 +74,7 @@ Atualizado em **17/10/2026** após o lote autorizado 27 → 36 → 17 → 18, en
 
 Contas criadas e confirmadas **somente no banco sintético local** `vetor-spec-postgis`, banco `vetor_spec_test`, porta `55436`. Não são contas de produção nem dados de pessoas reais.
 
-> **Não funcionam no ambiente atual (17/10/2026):** esse contêiner e esse banco não existem mais nesta máquina. A API em `127.0.0.1:8080` precisa apontar para o banco que contém a conta usada; com o banco errado, `auth_audit_events` registra `LOGIN DENIED` com `account_id` nulo (e-mail ausente), não senha inválida. Situação dos contêineres, bancos e o que fazer estão em [operação da web](../operations/web.md#banco-e-credenciais-locais).
+> **Acesso local em 17/10/2026:** o contêiner `vetor-spec-postgis` estava **parado**, e a API em `127.0.0.1:8080` servia outro banco — por isso o login era recusado com `LOGIN DENIED` de `account_id` nulo (e-mail ausente no banco em uso, não senha inválida). Depois de `podman start vetor-spec-postgis` e de subir a API contra `vetor_spec_test` (`55436`, migrações pendentes aplicadas até `v12`), as duas contas foram conferidas por HTTP real: `usuario@vetorurbano.test` responde 200 com cookie de sessão e `admin@vetorurbano.test` responde 200 exigindo o autenticador. Comandos e cuidados em [operação da web](../operations/web.md#banco-e-credenciais-locais).
 
 | Perfil | Login | Senha |
 |---|---|---|

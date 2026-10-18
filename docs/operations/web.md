@@ -15,7 +15,20 @@ podman ps --format '{{.Names}} {{.Ports}}'
 podman exec <contêiner> psql -U postgres -tAc "select email,role,status from local_accounts order by created_at desc limit 5"
 ```
 
-Contas válidas que a API desconhece geram `LOGIN DENIED` **com `account_id` nulo** em `auth_audit_events` — é o sinal de e-mail ausente no banco em uso, não de senha errada. Em 17/10/2026 as fixtures documentadas em [tickets-status.md](../product/tickets-status.md) existiam apenas em `vetor_spec_test` (contêiner `vetor-spec-postgis`, porta 55436), que não está ativo; a API local do momento servia o banco descartável do lote (`vu-batch-27361718-db`:55439) e o banco `vetor_urbano` (`vu-selected-db`:55432, 215 contas) recusava startup pela divergência de checksum do `V9` registrada no ticket 32 — esse banco exige decisão explícita antes de `repair`.
+Contas válidas que a API desconhece geram `LOGIN DENIED` **com `account_id` nulo** em `auth_audit_events` — é o sinal de e-mail ausente no banco em uso, não de senha errada. Em 17/10/2026 as fixtures documentadas em [tickets-status.md](../product/tickets-status.md) estavam em `vetor_spec_test` (contêiner `vetor-spec-postgis`, porta 55436) com o contêiner **parado**, enquanto a API em `127.0.0.1:8080` servia o banco descartável do lote (`vu-batch-27361718-db`:55439) — daí o `LOGIN DENIED`. A correção verificada foi `podman start vetor-spec-postgis`, aplicar as migrações pendentes subindo a API contra esse banco e manter a API em `127.0.0.1:8080`:
+
+```bash
+podman start vetor-spec-postgis
+export JAVA_HOME=<jdk-21>
+PW=$(podman exec vetor-spec-postgis printenv POSTGRES_PASSWORD)
+$JAVA_HOME/bin/java -jar apps/api/target/vetor-urbano-api-0.1.0-SNAPSHOT.jar --spring.profiles.active=local \
+  --spring.datasource.url=jdbc:postgresql://127.0.0.1:55436/vetor_spec_test \
+  --spring.datasource.username=vetor_spec_test --spring.datasource.password="$PW" \
+  --vetor.accounts.enabled=true --vetor.accounts.mailbox-port=8025 \
+  --vetor.accounts.key-file=<chave fora do repositório>
+```
+
+Duas instâncias não podem compartilhar a caixa local: a segunda falha no startup com `Endereço já em uso`. O banco `vetor_urbano` (`vu-selected-db`:55432, 215 contas) continua recusando startup pela divergência de checksum do `V9` registrada no ticket 32 — exige decisão explícita antes de `repair`.
 
 Para criar ou recuperar uma conta local no banco em uso, use o provisionador documentado (`scripts/local-account-admin.py`, entrada por stdin, sem senha em histórico de shell). Nada disso vale para dados reais: o ambiente é sintético.
 
