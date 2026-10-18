@@ -1,4 +1,86 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+type MapEngine = 'MapLibre' | 'Leaflet';
+
+const SYNTHETIC_URBAN_STYLE = {
+  version: 8,
+  name: 'Vetor Urbano — fundo sintético para QA',
+  sources: {},
+  sprite: 'maps/occurrence-pins',
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#edf0f2' } }],
+};
+const SYNTHETIC_TILE =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#edf0f2"/></svg>';
+const EXPECTED_MAPPED_OCCURRENCE_COUNT = 17;
+const EXPECTED_LEAFLET_CLUSTER_COUNTS = [2, 2, 3, 3];
+const EXPECTED_MAPLIBRE_CLUSTERS = [
+  { count: 2, ids: ['demo-contingencia-002', 'demo-transito-002'] },
+  { count: 3, ids: ['demo-002', 'demo-contingencia-003', 'demo-contingencia-004'] },
+  {
+    count: 4,
+    ids: ['demo-001', 'demo-contingencia-005', 'demo-transito-001', 'demo-transito-005'],
+  },
+  {
+    count: 7,
+    ids: [
+      'demo-contingencia-001',
+      'demo-seguranca-002',
+      'demo-seguranca-003',
+      'demo-seguranca-004',
+      'demo-seguranca-005',
+      'demo-transito-003',
+      'demo-transito-004',
+    ],
+  },
+];
+
+async function openMap(page: Page, engine: MapEngine): Promise<void> {
+  await page.goto('/');
+  if (engine === 'MapLibre') {
+    await expect(page.locator('#map-canvas canvas.maplibregl-canvas')).toBeVisible();
+  } else {
+    await expect(page.locator('#map-canvas.leaflet-container')).toBeVisible();
+  }
+}
+
+async function openRecordFromList(page: Page, activation: 'click' | 'keyboard'): Promise<void> {
+  const toggle = page.locator('[data-result-detail-toggle="demo-002"]');
+  if (activation === 'keyboard') {
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+  } else {
+    await toggle.click();
+  }
+  const detail = page.locator('[data-result-detail="demo-002"]');
+  await expect(detail).toBeVisible();
+  await expect(detail).toContainText('Interdição parcial');
+}
+
+function isMappedOccurrence(point: any): boolean {
+  return (
+    point.kind === 'occurrence' &&
+    point.locationPrecision !== 'TERRITORY' &&
+    Array.isArray(point.coordinates) &&
+    point.coordinates.length === 2 &&
+    point.coordinates.every(Number.isFinite)
+  );
+}
+
+async function getMappedOccurrenceIds(page: Page): Promise<string[]> {
+  const points = await page.evaluate(() => {
+    const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+    return app.visiblePoints().map((point: any) => ({
+      id: point.id,
+      kind: point.kind,
+      locationPrecision: point.locationPrecision,
+      coordinates: point.coordinates,
+    }));
+  });
+  return points
+    .filter(isMappedOccurrence)
+    .map((point: any) => point.id)
+    .sort();
+}
 
 for (const engine of ['MapLibre', 'Leaflet'] as const) {
   test.describe(`Motor cartográfico: ${engine}`, () => {
@@ -24,24 +106,14 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
           };
         });
         await page.route('**/maps/urban-style.json', (route) =>
-          route.fulfill({
-            json: {
-              version: 8,
-              name: 'Vetor Urbano — fundo sintético para QA',
-              sources: {},
-              sprite: 'maps/occurrence-pins',
-              layers: [
-                { id: 'background', type: 'background', paint: { 'background-color': '#edf0f2' } },
-              ],
-            },
-          }),
+          route.fulfill({ json: SYNTHETIC_URBAN_STYLE }),
         );
       }
       await page.route('https://tiles.stadiamaps.com/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'image/svg+xml',
-          body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#edf0f2"/></svg>',
+          body: SYNTHETIC_TILE,
         }),
       );
       // Sessão sintética: este ticket testa o mapa demonstrativo, não a API de acesso.
@@ -56,18 +128,104 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
           },
         }),
       );
-      await page.goto('/');
+    });
 
+    test(`mantém a lista consultável enquanto o mapa ${engine} está carregando`, async ({
+      page,
+    }) => {
       if (engine === 'MapLibre') {
+        let releaseStyle!: () => void;
+        const styleReleased = new Promise<void>((resolve) => {
+          releaseStyle = resolve;
+        });
+        await page.route('**/maps/urban-style.json', async (route) => {
+          await styleReleased;
+          await route.fulfill({ json: SYNTHETIC_URBAN_STYLE });
+        });
+        try {
+          await page.goto('/', { waitUntil: 'domcontentloaded' });
+          await expect(page.locator('.map-loading')).toBeVisible();
+          await expect(page.locator('.result-list > li')).toHaveCount(17);
+          await expect(page.getByTestId('event-count')).toHaveText('17');
+          await openRecordFromList(page, 'keyboard');
+        } finally {
+          releaseStyle();
+        }
+        await expect(page.locator('.map-loading')).toHaveCount(0);
         await expect(page.locator('#map-canvas canvas.maplibregl-canvas')).toBeVisible();
       } else {
+        let releaseTiles!: () => void;
+        const tilesReleased = new Promise<void>((resolve) => {
+          releaseTiles = resolve;
+        });
+        await page.route('https://tiles.stadiamaps.com/**', async (route) => {
+          await tilesReleased;
+          await route.fulfill({
+            status: 200,
+            contentType: 'image/svg+xml',
+            body: SYNTHETIC_TILE,
+          });
+        });
+        try {
+          await page.goto('/', { waitUntil: 'domcontentloaded' });
+          await expect(page.locator('.map-loading')).toBeVisible();
+          await expect(page.locator('.result-list > li')).toHaveCount(17);
+          await expect(page.getByTestId('event-count')).toHaveText('17');
+          await openRecordFromList(page, 'keyboard');
+        } finally {
+          releaseTiles();
+        }
+        await expect(page.locator('.map-loading')).toHaveCount(0);
         await expect(page.locator('#map-canvas.leaflet-container')).toBeVisible();
       }
+    });
+
+    test(`a falha do mapa ${engine} mostra erro sem transformar a lista em zero e permite recuperar`, async ({
+      page,
+    }) => {
+      let allowTiles = false;
+      await page.route('https://tiles.stadiamaps.com/**', (route) =>
+        allowTiles
+          ? route.fulfill({
+              status: 200,
+              contentType: 'image/svg+xml',
+              body: SYNTHETIC_TILE,
+            })
+          : route.abort(),
+      );
+      if (engine === 'MapLibre') {
+        await page.route('**/maps/urban-style.json', (route) =>
+          route.fulfill({ status: 503, body: 'Unavailable' }),
+        );
+      }
+
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      const mapFallback = page.locator('.map-fallback');
+      await expect(mapFallback).toBeVisible();
+      await expect(mapFallback).toContainText('Não foi possível carregar o mapa');
+      await expect(mapFallback).toContainText(
+        'A falha no mapa não indica ausência de ocorrências nem comprovação de segurança.',
+      );
+      await expect(page.locator('.result-list > li')).toHaveCount(17);
+      await expect(page.getByTestId('event-count')).toHaveText('17');
+      await openRecordFromList(page, 'click');
+      const retryMap = page.getByTestId('retry-map');
+      await expect(retryMap).toBeVisible();
+      await retryMap.focus();
+      await expect(retryMap).toBeFocused();
+      allowTiles = true;
+      await page.keyboard.press('Enter');
+
+      await expect(mapFallback).toHaveCount(0);
+      await expect(page.locator('.map-loading')).toHaveCount(0);
+      await expect(page.locator('.result-list > li')).toHaveCount(17);
+      await expect(page.locator('#map-canvas.leaflet-container')).toBeVisible();
     });
 
     test(`afastar o mapa exibe agrupamentos de ocorrências e clique aproxima sem incluir POIs nem polígonos (${engine})`, async ({
       page,
     }) => {
+      await openMap(page, engine);
       // Ativa polígonos de Áreas de Risco diretamente nos controles do mapa
       await page.getByLabel('Exibir Áreas de Risco').check();
       if (engine === 'Leaflet') {
@@ -106,9 +264,52 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
         // Agrupamentos devem estar visíveis com contagem apenas de ocorrências
         const cluster = page.locator('#map-canvas .occurrence-cluster').first();
         await expect(cluster).toBeVisible();
-        const countText = await cluster.textContent();
-        const count = Number(countText);
-        expect(count).toBeGreaterThan(1);
+        const modelOccurrenceIds = await getMappedOccurrenceIds(page);
+        const clusterOracle = await page.evaluate((modelOccurrenceIds: string[]) => {
+          const app = (window as any).ng.getComponent(document.querySelector('app-root'));
+          const clusterCounts = Array.from(
+            document.querySelectorAll<HTMLElement>('#map-canvas [data-cluster-count]'),
+          )
+            .map((element) => Number(element.dataset['clusterCount']))
+            .sort((a, b) => a - b);
+          const clusterMembership = Array.from(
+            document.querySelectorAll<HTMLElement>('#map-canvas [data-cluster-members]'),
+          ).map((element) => {
+            const members = element.dataset['clusterMembers'];
+            return {
+              count: Number(element.dataset['clusterCount']),
+              ids: members ? (JSON.parse(members) as string[]).sort() : [],
+            };
+          });
+          const singleOccurrenceIds = [...app.fallbackPointMarkers.keys()].filter((id: string) =>
+            modelOccurrenceIds.includes(id),
+          );
+          return {
+            modelOccurrenceCount: modelOccurrenceIds.length,
+            modelOccurrenceIds,
+            clusterCounts,
+            clusterMembership,
+            singleOccurrenceIds,
+          };
+        }, modelOccurrenceIds);
+        expect(clusterOracle.modelOccurrenceCount).toBe(EXPECTED_MAPPED_OCCURRENCE_COUNT);
+        expect(new Set(clusterOracle.modelOccurrenceIds).size).toBe(
+          EXPECTED_MAPPED_OCCURRENCE_COUNT,
+        );
+        expect(clusterOracle.clusterCounts).toEqual(EXPECTED_LEAFLET_CLUSTER_COUNTS);
+        expect(
+          clusterOracle.clusterMembership.map((cluster) => cluster.count).sort((a, b) => a - b),
+        ).toEqual(EXPECTED_LEAFLET_CLUSTER_COUNTS);
+        expect(
+          clusterOracle.clusterMembership.every((cluster) => cluster.ids.length === cluster.count),
+        ).toBe(true);
+        expect(clusterOracle.singleOccurrenceIds).toHaveLength(7);
+        const renderedOccurrenceIds = [
+          ...clusterOracle.clusterMembership.flatMap((cluster) => cluster.ids),
+          ...clusterOracle.singleOccurrenceIds,
+        ].sort();
+        expect(new Set(renderedOccurrenceIds).size).toBe(EXPECTED_MAPPED_OCCURRENCE_COUNT);
+        expect(renderedOccurrenceIds).toEqual(clusterOracle.modelOccurrenceIds);
 
         // POIs não entram em agrupamentos: fallback-poi-code permanece visível isolado
         await expect(poiMarker).toBeVisible();
@@ -149,19 +350,63 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
             pixel,
           };
         });
-
-        // Contagem de agrupamento reflete apenas ocorrências
-        expect(clusterInfo.pointCount).toBeGreaterThan(1);
-
-        // POIs não estão na fonte demo-points com agrupamento
-        const poiInClusterSource = await page.evaluate(() => {
+        const modelOccurrenceIds = await getMappedOccurrenceIds(page);
+        const clusterOracle = await page.evaluate(async (modelOccurrenceIds: string[]) => {
           const app = (window as any).ng.getComponent(document.querySelector('app-root'));
-          const source = app.map.getSource('demo-points');
-          const data = source?._data;
-          if (!data || !data.features) return false;
-          return data.features.some((f: any) => f.properties?.kind === 'poi');
-        });
-        expect(poiInClusterSource).toBe(false);
+          const map = app.map;
+          const source = map.getSource('demo-points');
+          const features = map.queryRenderedFeatures({ layers: ['demo-occurrence-clusters'] });
+          const uniqueClusters = [
+            ...new Map(
+              features.map((feature: any) => [feature.properties.cluster_id, feature]),
+            ).values(),
+          ];
+          const renderedClusters = (
+            await Promise.all(
+              uniqueClusters.map(async (feature: any) => {
+                const count = Number(feature.properties.point_count);
+                const leaves = await source.getClusterLeaves(
+                  Number(feature.properties.cluster_id),
+                  count,
+                  0,
+                );
+                return {
+                  count,
+                  ids: leaves.map((leaf: any) => leaf.properties.recordId).sort(),
+                  kinds: [...new Set(leaves.map((leaf: any) => leaf.properties.kind))].sort(),
+                };
+              }),
+            )
+          ).sort((left, right) => left.count - right.count);
+          const sourceFeatures = map.querySourceFeatures('demo-points');
+          return {
+            modelOccurrenceIds,
+            renderedClusters,
+            sourceFeatureCount: sourceFeatures.length,
+            sourceHasPoi: sourceFeatures.some((feature: any) => feature.properties?.kind === 'poi'),
+            sourceHasNonPoint: sourceFeatures.some(
+              (feature: any) => feature.geometry.type !== 'Point',
+            ),
+          };
+        }, modelOccurrenceIds);
+        // Oráculo: 17 ocorrências mapeáveis após a janela; as feições renderizadas são recorte do mapa.
+        expect(clusterOracle.modelOccurrenceIds).toHaveLength(EXPECTED_MAPPED_OCCURRENCE_COUNT);
+        expect(new Set(clusterOracle.modelOccurrenceIds).size).toBe(
+          EXPECTED_MAPPED_OCCURRENCE_COUNT,
+        );
+        expect(clusterOracle.renderedClusters).toEqual(
+          EXPECTED_MAPLIBRE_CLUSTERS.map((cluster) => ({ ...cluster, kinds: ['occurrence'] })),
+        );
+        const clusteredOccurrenceIds = clusterOracle.renderedClusters.flatMap(
+          (cluster) => cluster.ids,
+        );
+        expect(new Set(clusteredOccurrenceIds).size).toBe(clusteredOccurrenceIds.length);
+        expect(
+          clusteredOccurrenceIds.every((id) => clusterOracle.modelOccurrenceIds.includes(id)),
+        ).toBe(true);
+        expect(clusterOracle.sourceFeatureCount).toBeGreaterThan(0);
+        expect(clusterOracle.sourceHasPoi).toBe(false);
+        expect(clusterOracle.sourceHasNonPoint).toBe(false);
 
         // Clica no cluster para aproximar
         const canvas = page.locator('#map-canvas canvas.maplibregl-canvas');
@@ -189,6 +434,7 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
       page,
       browserName,
     }) => {
+      await openMap(page, engine);
       // Snapshot estrito do modelo ANTES de qualquer interação de mapa ou seleção
       const modelBefore = await page.evaluate(() => {
         const app = (window as any).ng.getComponent(document.querySelector('app-root'));
@@ -401,17 +647,20 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
 
-      // Verificação de estado vazio: quando a busca não coincide, mapa limpa e exibe estado vazio acessível
-      const searchInput = page.getByPlaceholder('Buscar por título, via, bairro ou referência');
-      if (await searchInput.isVisible()) {
-        await searchInput.fill('TERMO_INEXISTENTE_XYZ');
-        await expect(page.getByTestId('consultation-empty')).toBeVisible();
-        await expect(page.getByTestId('consultation-empty')).toContainText(
-          'Não encontramos ocorrências publicadas para estes filtros',
-        );
-        await page.getByTestId('empty-clear-filters-btn').click();
-        await expect(toggle002).toBeVisible();
-      }
+      // Vazio obrigatório na Lista móvel, sem depender de um controle exclusivo do mapa.
+      const municipalityFilter = page.getByRole('combobox', { name: 'Município (demonstração)' });
+      await expect(municipalityFilter).toBeVisible();
+      await municipalityFilter.selectOption({ label: 'Belford Roxo' });
+      await expect(page.locator('.result-list > li')).toHaveCount(0);
+      await expect(page.getByTestId('consultation-empty')).toBeVisible();
+      await expect(page.getByTestId('consultation-empty')).toContainText(
+        'Não encontramos ocorrências publicadas para estes filtros',
+      );
+      await page.getByTestId('empty-clear-filters-btn').click();
+      await expect(toggle002).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
     });
   });
 }

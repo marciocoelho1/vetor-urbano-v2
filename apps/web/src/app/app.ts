@@ -5056,6 +5056,10 @@ export class App implements AfterViewInit, OnDestroy {
             clusterElement.className = 'occurrence-cluster';
             clusterElement.setAttribute('data-testid', 'occurrence-cluster');
             clusterElement.setAttribute('data-cluster-count', String(cluster.points.length));
+            clusterElement.setAttribute(
+              'data-cluster-members',
+              JSON.stringify(cluster.points.map((point) => point.id).sort()),
+            );
             clusterElement.textContent = String(cluster.points.length);
 
             const marker = leaflet.marker([cluster.center[1], cluster.center[0]], {

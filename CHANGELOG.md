@@ -1,3 +1,9 @@
+## 2026-10-18 — Ticket 07: contagem exata e estados do mapa
+
+- A cobertura usa um único filtro do modelo para 17 ocorrências mapeáveis com IDs únicos. MapLibre confirma as folhas dos clusters visíveis 2/3/4/7; Leaflet confirma a partição integral dos IDs em grupos 2/2/3/3 e 7 individuais. O Leaflet expõe `data-cluster-members` apenas como dado DOM não visual para verificar essa partição. Pins visíveis não são tratados como total; coordenadas preservadas.
+- Nos dois motores e browsers, a lista seleciona o mesmo registro por teclado durante carga e por clique durante erro; a lista vazia é obrigatória na vista Lista móvel de 390 px. Tiles/estilos e dados são sintéticos locais.
+- `npm run test:e2e -- --project=chromium --project=firefox --workers=2 e2e/clustering-and-overlap.spec.ts`: 16/16; `bash scripts/verify.sh web`: lint, 124 testes unitários e build passaram; `bash scripts/verify.sh planning`: 429 links; `git diff --check`: passou. Bundle inicial 797,72 kB (aviso +297,72 kB); `pako` CommonJS. A bateria histórica com `--repeat-each=2` não foi repetida; seleção original ocorreu uma vez no arquivo exigido. [Checkpoint](docs/history/ticket-07-progress-2026-10-18.md). Sem QA físico ou prontidão operacional.
+
 ## 2026-10-18 — Ticket 11: jornadas públicas e retorno ao Histórico
 
 - Specs ajustados ao contrato atual: consultas de módulo recebem sessão sintética USER; fontes abrem pela página pública do rodapé (`public-sources-heading`); quatro documentos institucionais seguem acessíveis sem login. O efeito que focava o título do módulo depois do retorno público autenticado agora é suprimido uma única vez para preservar o foco de origem; revisões Standards + Spec sem achados pendentes.

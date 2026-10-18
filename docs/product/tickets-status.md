@@ -1,22 +1,22 @@
 # Vetor Urbano — situação dos tickets
 
-Atualizado em **18/10/2026** após os checkpoints dos tickets 19 e 11 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
+Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11 e 07 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
 
 ## Visão geral
 
-- **26 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **4 parciais ou com pendência de aceite:** 07, 18, 25 e 26.
+- **27 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **3 parciais ou com pendência de aceite:** 18, 25 e 26.
 - **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
 
 ## Implementados localmente
 
-**01–06, 08–17, 19, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 15, 17, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
+**01–17, 19, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Parciais ou com pendência
 
-**07, 18, 25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O 18 permanece parcial até a conclusão ou bloqueio documentado do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
+**18, 25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O 18 permanece parcial até a conclusão ou bloqueio documentado do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
 
 ## Ainda não iniciados
 
@@ -32,7 +32,7 @@ Atualizado em **18/10/2026** após os checkpoints dos tickets 19 e 11 na rodada 
 | 04 | [Consultar tempo impreciso e confirmação de andamento](../../.scratch/consulta-coerente/issues/04-tempo-situacao-precisao.md) | Distingue datas imprecisas, situação e confirmação de andamento com expiração. | Implementado localmente; testes anteriores registrados. |
 | 05 | [Aplicar território e distinguir registros apenas em lista](../../.scratch/consulta-coerente/issues/05-territorio-mapa-lista.md) | Filtra município/bairro e mantém registros sem coordenadas apenas na lista. | Implementado localmente; regressões direcionadas registradas. |
 | 06 | [Alternar Modo simples e Análise e Inteligência](../../.scratch/consulta-coerente/issues/06-dois-modos.md) | Alterna os modos, suspende filtros ocultos e preserva preferências. | Implementado localmente; regressões direcionadas registradas. |
-| 07 | [Selecionar agrupamentos e pins sobrepostos](../../.scratch/consulta-coerente/issues/07-agrupamentos-sobreposicoes.md) | Agrupa ocorrências e permite selecionar pins na mesma posição do mapa. | Parcial: o defeito de seleção em MapLibre/Firefox foi corrigido; faltam aceite dos agrupamentos e conferência das contagens e cenários de estado. |
+| 07 | [Selecionar agrupamentos e pins sobrepostos](../../.scratch/consulta-coerente/issues/07-agrupamentos-sobreposicoes.md) | Agrupa ocorrências e permite selecionar pins na mesma posição do mapa. | Concluído localmente em 18/10: IDs únicos e contagens exatas; lista seleciona durante carga/erro e vazio aprovado na Lista a 390 px em Chromium/Firefox. [Checkpoint](../history/ticket-07-progress-2026-10-18.md). Coordenadas preservadas; sem QA físico ou prontidão operacional. |
 | 08 | [Consultar Informes Ativos por ponto manual](../../.scratch/consulta-coerente/issues/08-informes-manuais.md) | Consulta informes recentes e vigentes próximos a um ponto, respeitando raio máximo de 5 km. | Implementado localmente; testes anteriores registrados. |
 | 09 | [Consultar Áreas de Risco com referência temporal](../../.scratch/consulta-coerente/issues/09-areas-risco-demo.md) | Exibe camada territorial demonstrativa, fonte, referência temporal e limites de interpretação. | Implementado como demonstração; persistência e versões territoriais pertencem ao ticket 26. |
 | 10 | [Atualizar a consulta sem perder contexto](../../.scratch/consulta-coerente/issues/10-consulta-atualizacao-estados.md) | Apresenta estados de carregamento, vazio e erro; atualização mantém filtros e câmera. | Implementado localmente; atualização de dados ainda é demonstrativa. |
@@ -68,7 +68,7 @@ Atualizado em **18/10/2026** após os checkpoints dos tickets 19 e 11 na rodada 
 - [Ticket 28](../history/ticket-28-progress-2026-10-17.md), [29](../history/ticket-29-progress-2026-10-17.md), [30](../history/ticket-30-progress-2026-10-17.md) e [31](../history/ticket-31-progress-2026-10-17.md), [32](../history/ticket-32-progress-2026-10-17.md), [33](../history/ticket-33-progress-2026-10-17.md) e [34](../history/ticket-34-progress-2026-10-17.md): checkpoints e verificações locais.
 - [Estado do lote 27 → 36 → 17 → 18](../history/batch-27-36-17-18-2026-10-17.md): commits, verificações reais, pendência de navegador do 18 e diagnóstico do acesso local.
 - [Ticket 17](../history/ticket-17-progress-2026-10-17.md), [18](../history/ticket-18-progress-2026-10-17.md), [27](../history/ticket-27-progress-2026-10-17.md) e [36](../history/ticket-36-progress-2026-10-17.md): lote autorizado 27 → 36 → 17 → 18, com HTTP/PostGIS sintéticos e Playwright separado.
-- [Ticket 11](../history/ticket-11-progress-2026-10-18.md), [15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das jornadas públicas, fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
+- [Ticket 07](../history/ticket-07-progress-2026-10-18.md), [11](../history/ticket-11-progress-2026-10-18.md), [15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das contagens/estados cartográficos, jornadas públicas, fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
 
 ## Acessos de teste
 
