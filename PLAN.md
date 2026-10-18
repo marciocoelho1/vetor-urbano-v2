@@ -2,11 +2,12 @@
 
 Atualização: 18/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
-## Rodada autorizada 19 → 11 → 07 → 18 — checkpoint 19
+## Rodada autorizada 19 → 11 → 07 → 18 — checkpoints 19 e 11
 
-- Baseline local: branch `integration/functional-spec-v1`, HEAD `0da31f5`; sem alterações rastreadas. O arquivo não rastreado preexistente `docs/product/tickets-checklist.html` foi preservado, apesar da descrição inicial de árvore limpa.
-- **Ticket 19 concluído localmente:** `/api/v1/admin/logs` projeta `actor` e `historicalActor` em campos separados nas três origens; prova HTTP/PostGIS cobre conta viva, encerramento, UUID eliminado e as duas referências residuais distintas. Contratos de auditoria e encerramento atualizados. `bash scripts/verify.sh api`: 18 unitários + 86 integrações, sem falhas/erros/pulados; `bash scripts/verify.sh planning`: 421 links locais; `git diff --check`: passou. [Evidências](docs/history/ticket-19-progress-2026-10-18.md).
-- Próxima ação desta rodada: adaptar e validar o E2E do **11**, sem alterar decisões de sessão ou páginas públicas. Depois 07 e, por último, diagnóstico do binding do 18. O controlador `ticketctl.py` não foi executado nem reconciliado.
+- Baseline da rodada: branch `integration/functional-spec-v1`, HEAD `0da31f5`; sem alterações rastreadas. O arquivo não rastreado preexistente `docs/product/tickets-checklist.html` foi preservado, apesar da descrição inicial de árvore limpa.
+- **Ticket 19 concluído e commitado (`4ba550e`):** `/api/v1/admin/logs` projeta `actor` e `historicalActor` em campos separados nas três origens; prova HTTP/PostGIS cobre conta viva, encerramento, UUID eliminado e as duas referências residuais distintas. Contratos de auditoria e encerramento atualizados. `bash scripts/verify.sh api`: 18 unitários + 86 integrações, sem falhas/erros/pulados; `bash scripts/verify.sh planning`: 421 links locais; `git diff --check`: passou. [Evidências](docs/history/ticket-19-progress-2026-10-18.md).
+- **Ticket 11 concluído localmente:** jornadas de módulo usam sessão sintética USER; fontes públicas são abertas pelo rodapé e assertadas em `public-sources-heading`; institucional continua anônimo. O retorno preserva foco autenticado com supressão consumida uma vez na view restaurada. Revisões Standards + Spec sem achados pendentes. Playwright: 8/8 Chromium/Firefox; `bash scripts/verify.sh web`: lint, 124 testes unitários e build passaram; `bash scripts/verify.sh planning`: 425 links; `git diff --check`: passou. A lacuna das antigas asserções de importação/triagem administrativas está registrada no [checkpoint](docs/history/ticket-11-progress-2026-10-18.md); bundle inicial 797,63 kB excede o orçamento de 500 kB em 297,63 kB e `pako` é CommonJS.
+- Próxima ação desta rodada: fechar o aceite do **07**, sem refazer a correção cruzada já aprovada; depois diagnosticar o binding do **18**. O controlador `ticketctl.py` não foi executado nem reconciliado.
 
 ## Lote autorizado 27 → 36 → 17 → 18
 

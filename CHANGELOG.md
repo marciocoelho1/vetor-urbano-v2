@@ -1,3 +1,9 @@
+## 2026-10-18 — Ticket 11: jornadas públicas e retorno ao Histórico
+
+- Specs ajustados ao contrato atual: consultas de módulo recebem sessão sintética USER; fontes abrem pela página pública do rodapé (`public-sources-heading`); quatro documentos institucionais seguem acessíveis sem login. O efeito que focava o título do módulo depois do retorno público autenticado agora é suprimido uma única vez para preservar o foco de origem; revisões Standards + Spec sem achados pendentes.
+- Asserções de importação local de fontes e triagem foram retiradas deste spec porque pertenciam à tela administrativa (`sources-heading`), não à página pública; a lacuna permanece explícita no checkpoint, sem ampliar escopo.
+- `npx playwright test public-information.spec.ts --project=chromium --project=firefox`: 8/8; `bash scripts/verify.sh web`: lint, 124 testes unitários e build passaram; `bash scripts/verify.sh planning`: 425 links e `git diff --check` passaram. Bundle inicial de 797,63 kB excede orçamento em 297,63 kB; `pako` CommonJS. [Checkpoint](docs/history/ticket-11-progress-2026-10-18.md). Aceite local sintético, sem prontidão operacional.
+
 ## 2026-10-18 — Ticket 19: projeção de autoria histórica nos logs
 
 - `/api/v1/admin/logs` agora expõe `actor` e `historicalActor` em campos separados nas origens de segurança/conta e autoria de domínio. O contrato de auditoria foi atualizado e a pendência do encerramento de conta foi fechada; HTTP/PostGIS comprova os dois atores, o UUID eliminado ausente e referências residuais distintas.

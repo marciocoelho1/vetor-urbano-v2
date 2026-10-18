@@ -1,11 +1,11 @@
 # Vetor Urbano — situação dos tickets
 
-Atualizado em **18/10/2026** no checkpoint intermediário da rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
+Atualizado em **18/10/2026** após os checkpoints dos tickets 19 e 11 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
 
 ## Visão geral
 
 - **26 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **4 parciais ou com pendência de aceite:** 07, 19, 25 e 26.
+- **4 parciais ou com pendência de aceite:** 07, 18, 25 e 26.
 - **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
@@ -36,7 +36,7 @@ Atualizado em **18/10/2026** no checkpoint intermediário da rodada autorizada 1
 | 08 | [Consultar Informes Ativos por ponto manual](../../.scratch/consulta-coerente/issues/08-informes-manuais.md) | Consulta informes recentes e vigentes próximos a um ponto, respeitando raio máximo de 5 km. | Implementado localmente; testes anteriores registrados. |
 | 09 | [Consultar Áreas de Risco com referência temporal](../../.scratch/consulta-coerente/issues/09-areas-risco-demo.md) | Exibe camada territorial demonstrativa, fonte, referência temporal e limites de interpretação. | Implementado como demonstração; persistência e versões territoriais pertencem ao ticket 26. |
 | 10 | [Atualizar a consulta sem perder contexto](../../.scratch/consulta-coerente/issues/10-consulta-atualizacao-estados.md) | Apresenta estados de carregamento, vazio e erro; atualização mantém filtros e câmera. | Implementado localmente; atualização de dados ainda é demonstrativa. |
-| 11 | [Conhecer fontes e avaliação pela consulta](../../.scratch/consulta-coerente/issues/11-paginas-publicas-demo.md) | Apresenta fontes demonstrativas e explicação pública resumida da confiabilidade. | Implementado localmente; coleta automatizada não está integrada. |
+| 11 | [Conhecer fontes e avaliação pela consulta](../../.scratch/consulta-coerente/issues/11-paginas-publicas-demo.md) | Apresenta fontes demonstrativas e explicação pública resumida da confiabilidade. | Concluído localmente em 18/10: `public-information.spec.ts` passou 8/8 Chromium/Firefox; jornadas de módulo usam sessão sintética e a página pública segue acessível pelo rodapé sem autenticação. [Checkpoint](../history/ticket-11-progress-2026-10-18.md). Coleta automatizada não está integrada. |
 | 12 | [Consultar publicadas persistidas pela API](../../.scratch/consulta-coerente/issues/12-consulta-persistida.md) | Consulta ocorrências publicadas pela API Java/PostGIS com filtros no servidor. | Implementado localmente; integração e persistência verificadas em ambiente sintético. |
 | 13 | [Criar e confirmar conta de usuário](../../.scratch/consulta-coerente/issues/13-cadastro-confirmacao.md) | Cria conta sintética USER e confirma endereço por caixa local e token de uso único. | Implementado localmente; fluxo verificado em ambiente sintético. |
 | 14 | [Proteger módulos e administração com sessão e MFA](../../.scratch/consulta-coerente/issues/14-acesso-sessao-mfa.md) | Implementa sessão, permissões verificadas no servidor e MFA para Administração. | Implementado localmente; fluxo verificado em ambiente sintético. |
@@ -68,7 +68,7 @@ Atualizado em **18/10/2026** no checkpoint intermediário da rodada autorizada 1
 - [Ticket 28](../history/ticket-28-progress-2026-10-17.md), [29](../history/ticket-29-progress-2026-10-17.md), [30](../history/ticket-30-progress-2026-10-17.md) e [31](../history/ticket-31-progress-2026-10-17.md), [32](../history/ticket-32-progress-2026-10-17.md), [33](../history/ticket-33-progress-2026-10-17.md) e [34](../history/ticket-34-progress-2026-10-17.md): checkpoints e verificações locais.
 - [Estado do lote 27 → 36 → 17 → 18](../history/batch-27-36-17-18-2026-10-17.md): commits, verificações reais, pendência de navegador do 18 e diagnóstico do acesso local.
 - [Ticket 17](../history/ticket-17-progress-2026-10-17.md), [18](../history/ticket-18-progress-2026-10-17.md), [27](../history/ticket-27-progress-2026-10-17.md) e [36](../history/ticket-36-progress-2026-10-17.md): lote autorizado 27 → 36 → 17 → 18, com HTTP/PostGIS sintéticos e Playwright separado.
-- [Ticket 15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
+- [Ticket 11](../history/ticket-11-progress-2026-10-18.md), [15](../history/ticket-15-progress-2026-10-17.md), [19](../history/ticket-19-progress-2026-10-18.md) e [25/26](../history/): estado das jornadas públicas, fatias de conta, auditoria e incrementos parciais. O [plano de trabalho](../../PLAN.md) contém o checkpoint mais recente.
 
 ## Acessos de teste
 

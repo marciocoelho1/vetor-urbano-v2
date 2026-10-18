@@ -663,6 +663,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly syntheticSources = SYNTHETIC_PUBLIC_SOURCES;
   protected readonly sourceCards = [SOURCE_PLACEHOLDER, ...SYNTHETIC_PUBLIC_SOURCES];
   private publicPageOrigins: { view: ViewId; focusId: string; scrollY: number }[] = [];
+  private suppressViewTitleFocusFor: ViewId | null = null;
   protected readonly aggregateData = computed(() =>
     this.importedAggregates().length ? this.importedAggregates() : DEMO_AGGREGATES,
   );
@@ -1595,10 +1596,15 @@ export class App implements AfterViewInit, OnDestroy {
         this.mapResizeObserver?.disconnect();
       }
       if (isPlatformBrowser(this.platformId) && this.moduleAllowed() && !this.publicView()) {
+        const view = this.activeView();
         requestAnimationFrame(() => {
-          if (this.activeView() === 'map' && !this.map && !this.fallbackMap)
-            void this.initializeMap();
-          document.querySelector<HTMLElement>(`[data-view-title="${this.activeView()}"]`)?.focus();
+          const suppressTitleFocus = this.suppressViewTitleFocusFor === view;
+          if (suppressTitleFocus) this.suppressViewTitleFocusFor = null;
+          if (this.activeView() !== view) return;
+          if (view === 'map' && !this.map && !this.fallbackMap) void this.initializeMap();
+          if (!suppressTitleFocus) {
+            document.querySelector<HTMLElement>(`[data-view-title="${view}"]`)?.focus();
+          }
         });
       }
     });
@@ -1792,6 +1798,7 @@ export class App implements AfterViewInit, OnDestroy {
       );
     }
     this.publicPageOrigins = [];
+    this.suppressViewTitleFocusFor = null;
     this.activeView.set(view);
     this.mapExpanded.set(false);
     this.reportStatus.set('');
@@ -1827,6 +1834,10 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected returnFromPublicPage(): void {
     const origin = this.publicPageOrigins.pop();
+    this.suppressViewTitleFocusFor =
+      origin && this.session.state()?.authenticated && !PUBLIC_VIEWS.includes(origin.view)
+        ? origin.view
+        : null;
     this.activeView.set(origin?.view ?? 'map');
     requestAnimationFrame(() => {
       if (this.activeView() === 'map') {
