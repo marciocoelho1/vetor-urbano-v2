@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 import { Theme } from './core/theme/theme';
 import type { SpreadsheetSheet } from './data-exchange/xlsx-export';
-import type { Coordinates } from './domain/occurrences';
+import type { Coordinates, DemoRecord } from './domain/occurrences';
 
 const territorialFixture = {
   type: 'FeatureCollection',
@@ -42,6 +42,8 @@ const maplibreWorkerMock = vi.hoisted(() => {
     flyTo: vi.fn(() => undefined),
     getCenter: vi.fn(() => ({ lng: -43.19156448029434, lat: -22.903318808380494 })),
     getZoom: vi.fn(() => 12.2),
+    getContainer: vi.fn(() => document.createElement('div')),
+    off: vi.fn(),
     getLayer: vi.fn(() => ({ id: 'layer' })),
     getSource: vi.fn((_id: string): unknown => undefined),
     getStyle: vi.fn(() => ({ layers: [{ id: 'place-labels', type: 'symbol' }] })),
@@ -157,6 +159,17 @@ describe('Vetor Urbano', () => {
       sprite: 'maps/occurrence-pins',
     });
     fixture.detectChanges();
+  });
+
+  it('explains unique eligible occurrences and a fixed color scale when heat is enabled', () => {
+    fixture.nativeElement.querySelector('.heatmap-button').click();
+    fixture.detectChanges();
+    const legend = fixture.nativeElement.querySelector('[data-testid="heatmap-legend"]');
+    expect(legend).not.toBeNull();
+    expect(legend.textContent).toContain('ocorrências elegíveis');
+    expect(legend.textContent).toContain('sem pesos');
+    expect(legend.textContent).toContain('POIs e locais apenas territoriais não contribuem');
+    expect(legend.textContent).not.toContain('Densidades de ocorrências e POIs');
   });
 
   it('starts both maps in the page theme, including a map opened later', async () => {
@@ -847,10 +860,7 @@ describe('Vetor Urbano', () => {
         return frames.length;
       });
     const sources = new Map(
-      ['demo-points', 'heat-occurrences', 'heat-pois', 'search-radius-source'].map((id) => [
-        id,
-        { setData: vi.fn() },
-      ]),
+      ['demo-points', 'demo-pois', 'search-radius-source'].map((id) => [id, { setData: vi.fn() }]),
     );
     maplibreWorkerMock.map.getSource.mockImplementation((id?: string) => sources.get(id!));
     app.map = maplibreWorkerMock.map;
@@ -1835,6 +1845,158 @@ describe('Vetor Urbano', () => {
     app.retryQuery();
     fixture.detectChanges();
     expect(app.queryError()).toBe(false);
+  });
+
+  it('ticket 07: toGeoJson calcula contagem coincidente sem incluir POIs e preserva coordenadas', () => {
+    const app = fixture.componentInstance as unknown as {
+      toGeoJson: (kind?: string) => {
+        type: string;
+        features: Array<{
+          id: string;
+          geometry: { type: string; coordinates: Coordinates };
+          properties: Record<string, unknown>;
+        }>;
+      };
+      allPoints: () => DemoRecord[];
+    };
+
+    const occurrenceGeoJson = app.toGeoJson('occurrence');
+    const poiGeoJson = app.toGeoJson('poi');
+
+    // POIs não entram no GeoJSON de ocorrências
+    expect(occurrenceGeoJson.features.some((f) => f.properties['kind'] === 'poi')).toBe(false);
+    expect(poiGeoJson.features.every((f) => f.properties['kind'] === 'poi')).toBe(true);
+
+    // Par coincidente em Glória (demo-002 e demo-contingencia-004)
+    const demo002 = occurrenceGeoJson.features.find((f) => f.id === 'demo-002');
+    const demoContingencia = occurrenceGeoJson.features.find(
+      (f) => f.id === 'demo-contingencia-004',
+    );
+    expect(demo002).toBeDefined();
+    expect(demoContingencia).toBeDefined();
+    expect(demo002?.geometry.coordinates).toEqual(demoContingencia?.geometry.coordinates);
+    expect(demo002?.properties['coincidentCount']).toBe(2);
+    expect(demoContingencia?.properties['coincidentCount']).toBe(2);
+
+    // Registros não coincidentes têm coincidentCount 1
+    const nonCoincident = occurrenceGeoJson.features.find(
+      (f) => f.id !== 'demo-002' && f.id !== 'demo-contingencia-004',
+    );
+    expect(nonCoincident?.properties['coincidentCount']).toBe(1);
+  });
+
+  it('ticket 07: createCoincidentPointsPopup gera painel acessível de seleção individual e foca detalhe sem alterar modelo', () => {
+    const app = fixture.componentInstance as unknown as {
+      allPoints: () => Array<DemoRecord & { coordinates?: Coordinates }>;
+      visiblePoints: () => Array<DemoRecord & { coordinates?: Coordinates }>;
+      createCoincidentPointsPopup: (points: unknown[]) => HTMLElement;
+      selectAndFocusRecordDetail: (pointId: string) => void;
+      isResultDetailOpen: (pointId: string) => boolean;
+      selectedPointId: () => string | null;
+    };
+
+    const coincidents = app
+      .allPoints()
+      .filter((p) => p.id === 'demo-002' || p.id === 'demo-contingencia-004');
+    expect(coincidents).toHaveLength(2);
+
+    const coordsBefore = coincidents.map((p) => (p.coordinates ? [...p.coordinates] : null));
+    expect(coordsBefore[0]).toEqual(coordsBefore[1]);
+
+    const popup = app.createCoincidentPointsPopup(coincidents);
+    expect(popup.getAttribute('data-testid')).toBe('coincident-pins-expansion');
+    expect(popup.querySelector('.coincident-title')?.textContent).toContain(
+      'Ocorrências sobrepostas (2)',
+    );
+
+    const btnDemo002 = popup.querySelector<HTMLButtonElement>(
+      '[data-coincident-select="demo-002"]',
+    );
+    const btnContingencia = popup.querySelector<HTMLButtonElement>(
+      '[data-coincident-select="demo-contingencia-004"]',
+    );
+    expect(btnDemo002).not.toBeNull();
+    expect(btnContingencia).not.toBeNull();
+
+    // Dispara seleção de demo-contingencia-004
+    btnContingencia?.click();
+    expect(app.selectedPointId()).toBe('demo-contingencia-004');
+    expect(app.isResultDetailOpen('demo-contingencia-004')).toBe(true);
+
+    // Dispara seleção de demo-002
+    btnDemo002?.click();
+    expect(app.selectedPointId()).toBe('demo-002');
+    expect(app.isResultDetailOpen('demo-002')).toBe(true);
+
+    // Coordenadas reais permanecem absolutamente inalteradas no modelo
+    const coordsAfter = coincidents.map((p) => (p.coordinates ? [...p.coordinates] : null));
+    expect(coordsAfter).toEqual(coordsBefore);
+    expect(coordsAfter[0]).toEqual(coordsBefore[0]);
+    expect(coordsAfter[1]).toEqual(coordsBefore[1]);
+  });
+
+  it('ticket 07: inicialização MapLibre registra camadas de cluster e sobreposição com badge de coincidentes', async () => {
+    const webGL2 = stubWebGL2Context(true);
+    const previousDescriptor = Object.getOwnPropertyDescriptor(window, 'WebGLRenderingContext');
+    Object.defineProperty(window, 'WebGLRenderingContext', {
+      configurable: true,
+      value: class WebGLRenderingContext {},
+    });
+
+    try {
+      const app = fixture.componentInstance as unknown as {
+        initializeMap: () => Promise<void>;
+        mapReady: () => boolean;
+      };
+      await app.initializeMap();
+      maplibreWorkerMock.callbacks.get('load')?.();
+      maplibreWorkerMock.callbacks.get('idle')?.();
+
+      const demoPointsSource = maplibreWorkerMock.map.addSource.mock.calls.find(
+        ([id]) => id === 'demo-points',
+      );
+      expect(demoPointsSource?.[1]).toMatchObject({
+        cluster: true,
+        clusterMaxZoom: 11,
+      });
+
+      const demoPoisSource = maplibreWorkerMock.map.addSource.mock.calls.find(
+        ([id]) => id === 'demo-pois',
+      );
+      expect(demoPoisSource?.[1]).toMatchObject({
+        cluster: false,
+      });
+
+      const layers = maplibreWorkerMock.map.addLayer.mock.calls.map(
+        ([layer]) => layer as { id: string; filter?: unknown[]; type: string },
+      );
+
+      const clusterCircle = layers.find((l) => l.id === 'demo-occurrence-clusters');
+      const clusterCount = layers.find((l) => l.id === 'demo-occurrence-cluster-count');
+      const pinsLayer = layers.find((l) => l.id === 'demo-occurrence-pins');
+      const coincidentBadge = layers.find((l) => l.id === 'demo-occurrence-coincident-badge');
+      const coincidentCount = layers.find((l) => l.id === 'demo-occurrence-coincident-count');
+
+      expect(clusterCircle).toBeDefined();
+      expect(clusterCount).toBeDefined();
+      expect(pinsLayer).toBeDefined();
+      expect(coincidentBadge).toBeDefined();
+      expect(coincidentCount).toBeDefined();
+
+      expect(coincidentBadge?.filter).toEqual([
+        'all',
+        ['==', ['get', 'kind'], 'occurrence'],
+        ['!', ['has', 'point_count']],
+        ['>', ['get', 'coincidentCount'], 1],
+      ]);
+    } finally {
+      webGL2.restore();
+      if (previousDescriptor) {
+        Object.defineProperty(window, 'WebGLRenderingContext', previousDescriptor);
+      } else {
+        Reflect.deleteProperty(window, 'WebGLRenderingContext');
+      }
+    }
   });
 
   it('preserva o recorte de relatório gerado enquanto os filtros do mapa mudam', async () => {

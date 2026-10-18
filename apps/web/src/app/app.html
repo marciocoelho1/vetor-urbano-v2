@@ -1080,11 +1080,35 @@
                     Raio de busca · {{ radiusMeters() }} m · estimativa local
                   </span>
                 }
-                @if (heatmap()) {
-                  <span class="legend-note"
-                    >Densidades de ocorrências e POIs são camadas distintas; não representam nível
-                    de risco.</span
+                @if (heatmap() && consultationMode() === 'advanced') {
+                  <section
+                    class="legend-note"
+                    data-testid="heatmap-legend"
+                    aria-live="polite"
+                    aria-label="Legenda da mancha térmica"
                   >
+                    <p>{{ heatLegend }}</p>
+                    <div class="heat-scale" aria-hidden="true"></div>
+                    @if (queryLoading()) {
+                      <p>Atualizando recorte; calor suspenso durante a consulta.</p>
+                    } @else if (queryError()) {
+                      <p>
+                        Consulta indisponível; calor suspenso. Os resultados anteriores não são um
+                        novo recorte.
+                      </p>
+                    } @else {
+                      <p>{{ heatEligibleCount() }} ocorrências elegíveis no recorte.</p>
+                      @if (heatEligibleCount() === 0) {
+                        <p>
+                          Sem ocorrências com precisão suficiente para calor. Consulte a lista para
+                          registros territoriais.
+                        </p>
+                      }
+                    }
+                    @if (heatmapError()) {
+                      <p role="status">{{ heatmapError() }}</p>
+                    }
+                  </section>
                 }
               </div>
             </section>

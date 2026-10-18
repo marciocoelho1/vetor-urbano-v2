@@ -7,6 +7,8 @@ import {
 } from './domain/report-comparison';
 import { summarizeReport } from './domain/report-summary';
 import { Session } from './auth/session';
+import { mountOccurrenceHeatmap } from './maps/occurrence-heatmap-overlay';
+import { createHeatmapSnapshot, HEAT_LEGEND } from './maps/occurrence-heatmap';
 import { SessionPanel } from './auth/session-panel';
 import { AuditLog } from './audit/audit-log';
 import { ReviewQueue } from './moderation/review-queue';
@@ -666,6 +668,47 @@ export class App implements AfterViewInit, OnDestroy {
   );
   protected readonly exportStatus = signal('');
   protected readonly heatmap = signal(false);
+  protected readonly heatLegend = HEAT_LEGEND;
+  protected readonly heatmapError = signal('');
+  protected readonly heatEligibleCount = computed(
+    () => createHeatmapSnapshot(this.visiblePoints()).eligibleCount,
+  );
+  private heatOverlay?: ReturnType<typeof mountOccurrenceHeatmap>;
+  private heatEnabled(): boolean {
+    return (
+      this.heatmap() &&
+      this.consultationMode() === 'advanced' &&
+      Boolean(this.session.state()?.authenticated) &&
+      !this.queryLoading() &&
+      !this.queryError()
+    );
+  }
+  private destroyHeatOverlay(): void {
+    this.heatOverlay?.destroy();
+    this.heatOverlay = undefined;
+  }
+  private mountHeatOverlay(map: maplibregl.Map | LeafletMap, raster: boolean): void {
+    this.destroyHeatOverlay();
+    this.heatmapError.set('');
+    this.heatOverlay = mountOccurrenceHeatmap({
+      container: map.getContainer(),
+      project: (c) => {
+        const point = raster
+          ? (map as LeafletMap).latLngToContainerPoint([c[1], c[0]])
+          : (map as maplibregl.Map).project([c[0], c[1]]);
+        return [point.x, point.y];
+      },
+      subscribe: (redraw) => {
+        map.on('move', redraw);
+        return () => {
+          map.off('move', redraw);
+        };
+      },
+      onError: (message) => this.heatmapError.set(message),
+      onReady: () => this.heatmapError.set(''),
+    });
+    this.heatOverlay.update(this.visiblePoints(), this.heatEnabled());
+  }
   protected readonly mapError = signal(false);
   protected readonly mapErrorDetails = signal('');
   protected readonly mapReady = signal(false);
@@ -963,8 +1006,7 @@ export class App implements AfterViewInit, OnDestroy {
   private rasterTileProviderPromise?: Promise<RasterTileProvider>;
   private fallbackMap?: LeafletMap;
   private fallbackPointsLayer?: LeafletLayerGroup;
-  private fallbackEventHeatLayer?: LeafletLayerGroup;
-  private fallbackPoiHeatLayer?: LeafletLayerGroup;
+
   private fallbackRadiusLayer?: LeafletLayerGroup;
   private fallbackTerritoryLayer?: LeafletLayerGroup;
   private fallbackPointMarkers = new Map<string, import('leaflet').Marker>();
@@ -1538,7 +1580,14 @@ export class App implements AfterViewInit, OnDestroy {
   constructor() {
     void this.session.refresh();
     effect(() => {
+      const enabled = this.heatEnabled();
+      const records = this.visiblePoints();
+      this.heatOverlay?.update(records, enabled);
+    });
+    effect(() => {
       if (!this.session.state()?.authenticated) {
+        this.destroyHeatOverlay();
+        this.heatmap.set(false);
         this.map?.remove();
         this.map = undefined;
         this.fallbackMap?.remove();
@@ -1706,6 +1755,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.reportMap?.remove();
     this.reportFallbackMarker?.remove();
     this.reportFallbackMap?.remove();
+    this.destroyHeatOverlay();
     this.map?.remove();
     this.fallbackMap?.remove();
   }
@@ -2196,14 +2246,14 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected retryMap(): void {
     this.stopMapMonitoring?.();
+    this.destroyHeatOverlay();
     this.map?.remove();
     this.map = undefined;
     this.fallbackMap?.remove();
     this.fallbackMap = undefined;
     this.fallbackPointsLayer = undefined;
     this.fallbackPointMarkers.clear();
-    this.fallbackEventHeatLayer = undefined;
-    this.fallbackPoiHeatLayer = undefined;
+
     this.fallbackRadiusLayer = undefined;
     this.fallbackTerritoryLayer = undefined;
     this.mapReady.set(false);
@@ -3850,6 +3900,7 @@ export class App implements AfterViewInit, OnDestroy {
           this.mapErrorDetails.set(this.describeMapError(error));
           this.useRasterMaps = true;
           this.map = undefined;
+          this.destroyHeatOverlay();
           map.remove();
           this.mapReady.set(false);
           void this.initializeLeafletMap([center.lng, center.lat], zoom);
@@ -3878,11 +3929,7 @@ export class App implements AfterViewInit, OnDestroy {
           data: this.toGeoJson('poi'),
           cluster: false,
         });
-        this.map?.addSource('heat-occurrences', {
-          type: 'geojson',
-          data: this.toGeoJson('occurrence'),
-        });
-        this.map?.addSource('heat-pois', { type: 'geojson', data: this.toGeoJson('poi') });
+        if (this.map) this.mountHeatOverlay(this.map, false);
         this.map?.addLayer({
           id: 'search-radius-fill',
           type: 'fill',
@@ -3982,6 +4029,46 @@ export class App implements AfterViewInit, OnDestroy {
           },
         });
         this.map?.addLayer({
+          id: 'demo-occurrence-coincident-badge',
+          type: 'circle',
+          source: 'demo-points',
+          filter: [
+            'all',
+            ['==', ['get', 'kind'], 'occurrence'],
+            ['!', ['has', 'point_count']],
+            ['>', ['get', 'coincidentCount'], 1],
+          ],
+          paint: {
+            'circle-color': '#0f766e',
+            'circle-radius': 9,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#ffffff',
+            'circle-translate': [10, -28],
+          },
+        });
+        this.map?.addLayer({
+          id: 'demo-occurrence-coincident-count',
+          type: 'symbol',
+          source: 'demo-points',
+          filter: [
+            'all',
+            ['==', ['get', 'kind'], 'occurrence'],
+            ['!', ['has', 'point_count']],
+            ['>', ['get', 'coincidentCount'], 1],
+          ],
+          layout: {
+            'text-field': ['to-string', ['get', 'coincidentCount']],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 10,
+            'text-offset': [1, -2.8],
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: {
+            'text-color': '#ffffff',
+          },
+        });
+        this.map?.addLayer({
           id: 'demo-points-code',
           type: 'symbol',
           source: 'demo-pois',
@@ -3999,10 +4086,12 @@ export class App implements AfterViewInit, OnDestroy {
             'text-halo-width': 0.5,
           },
         });
-        this.map?.on('click', 'demo-occurrence-clusters', async (event) => {
+        const handleClusterClick = async (
+          event: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
+        ) => {
           if (!this.map) return;
           const features = this.map.queryRenderedFeatures(event.point, {
-            layers: ['demo-occurrence-clusters'],
+            layers: ['demo-occurrence-clusters', 'demo-occurrence-cluster-count'],
           });
           const clusterId = features[0]?.properties?.['cluster_id'];
           if (clusterId === undefined) return;
@@ -4017,11 +4106,19 @@ export class App implements AfterViewInit, OnDestroy {
           } catch {
             this.map.zoomIn();
           }
-        });
+        };
+        this.map?.on('click', 'demo-occurrence-clusters', handleClusterClick);
+        this.map?.on('click', 'demo-occurrence-cluster-count', handleClusterClick);
         this.map?.on('mouseenter', 'demo-occurrence-clusters', () => {
           if (this.map) this.map.getCanvas().style.cursor = 'pointer';
         });
         this.map?.on('mouseleave', 'demo-occurrence-clusters', () => {
+          if (this.map) this.map.getCanvas().style.cursor = '';
+        });
+        this.map?.on('mouseenter', 'demo-occurrence-cluster-count', () => {
+          if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+        });
+        this.map?.on('mouseleave', 'demo-occurrence-cluster-count', () => {
           if (this.map) this.map.getCanvas().style.cursor = '';
         });
         this.map?.on('click', 'demo-points-dot', (event) => {
@@ -4050,8 +4147,17 @@ export class App implements AfterViewInit, OnDestroy {
             .setDOMContent(content)
             .addTo(this.map);
         });
-        this.map?.on('click', 'demo-occurrence-pins', (event) => {
+        let lastOccurrenceClickEvent: MouseEvent | null = null;
+        const handleOccurrencePinClick = (
+          event: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
+        ) => {
           if (this.useRadius() || this.mapPickPurpose() || !this.map) return;
+          const orig = (event as any).originalEvent as MouseEvent | undefined;
+          if (orig && orig === lastOccurrenceClickEvent) return;
+          lastOccurrenceClickEvent = orig ?? null;
+
+          document.querySelectorAll('.maplibregl-popup').forEach((popup) => popup.remove());
+
           const coords = (event.features?.[0]?.geometry as GeoJSON.Point).coordinates as [
             number,
             number,
@@ -4065,9 +4171,22 @@ export class App implements AfterViewInit, OnDestroy {
                 Math.abs(point.coordinates[1] - coords[1]) < 0.0001,
             );
           if (coincidentPoints.length > 1) {
-            new maplibre.Popup({ closeButton: true, offset: [0, -40] })
+            // Keep the entire chooser inside the map. Scrolling a clipped popup in
+            // Firefox otherwise scrolls the map container, invalidating hit testing.
+            const pixel = this.map.project(coords);
+            const height = this.map.getContainer().clientHeight;
+            const below = height - pixel.y + 40;
+            const above = pixel.y - 40;
+            const content = this.createCoincidentPointsPopup(coincidentPoints);
+            content.style.maxHeight = `${Math.max(60, Math.max(above, below) - 50)}px`;
+            content.style.overflowY = 'auto';
+            new maplibre.Popup({
+              closeButton: true,
+              offset: [0, -40],
+              anchor: below >= above ? 'top' : 'bottom',
+            })
               .setLngLat(coords)
-              .setDOMContent(this.createCoincidentPointsPopup(coincidentPoints))
+              .setDOMContent(content)
               .addTo(this.map);
             return;
           }
@@ -4078,11 +4197,26 @@ export class App implements AfterViewInit, OnDestroy {
             .setLngLat(point.coordinates)
             .setDOMContent(this.createRasterPointPopup(point))
             .addTo(this.map);
-        });
+        };
+        this.map?.on('click', 'demo-occurrence-pins', handleOccurrencePinClick);
+        this.map?.on('click', 'demo-occurrence-coincident-badge', handleOccurrencePinClick);
+        this.map?.on('click', 'demo-occurrence-coincident-count', handleOccurrencePinClick);
         this.map?.on('mouseenter', 'demo-occurrence-pins', () => {
           if (this.map) this.map.getCanvas().style.cursor = 'pointer';
         });
         this.map?.on('mouseleave', 'demo-occurrence-pins', () => {
+          if (this.map) this.map.getCanvas().style.cursor = '';
+        });
+        this.map?.on('mouseenter', 'demo-occurrence-coincident-badge', () => {
+          if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+        });
+        this.map?.on('mouseleave', 'demo-occurrence-coincident-badge', () => {
+          if (this.map) this.map.getCanvas().style.cursor = '';
+        });
+        this.map?.on('mouseenter', 'demo-occurrence-coincident-count', () => {
+          if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+        });
+        this.map?.on('mouseleave', 'demo-occurrence-coincident-count', () => {
           if (this.map) this.map.getCanvas().style.cursor = '';
         });
         this.map?.on('mouseenter', 'demo-points-dot', () => {
@@ -4096,6 +4230,7 @@ export class App implements AfterViewInit, OnDestroy {
       });
     } catch (error: unknown) {
       this.mapErrorDetails.set(this.describeMapError(error));
+      this.destroyHeatOverlay();
       this.map?.remove();
       this.map = undefined;
       this.stopMapMonitoring?.();
@@ -4132,8 +4267,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.fallbackMap = map;
       leaflet.control.zoom({ position: 'topright' }).addTo(map);
       this.fallbackPointsLayer = leaflet.layerGroup().addTo(map);
-      this.fallbackEventHeatLayer = leaflet.layerGroup();
-      this.fallbackPoiHeatLayer = leaflet.layerGroup();
+      this.mountHeatOverlay(map, true);
       this.fallbackRadiusLayer = leaflet.layerGroup().addTo(map);
       this.fallbackTerritoryLayer = leaflet.layerGroup().addTo(map);
 
@@ -4817,53 +4951,25 @@ export class App implements AfterViewInit, OnDestroy {
     const leaflet = this.leaflet;
     const map = this.fallbackMap;
     const pointsLayer = this.fallbackPointsLayer;
-    const eventHeatLayer = this.fallbackEventHeatLayer;
-    const poiHeatLayer = this.fallbackPoiHeatLayer;
+
     const radiusLayer = this.fallbackRadiusLayer;
-    if (!leaflet || !map || !pointsLayer || !eventHeatLayer || !poiHeatLayer || !radiusLayer) {
+    if (!leaflet || !map || !pointsLayer || !radiusLayer) {
       return;
     }
 
-    const showHeat = this.heatmap();
-    for (const [layer, visible] of [
-      [pointsLayer, !showHeat],
-      [eventHeatLayer, showHeat],
-      [poiHeatLayer, showHeat],
-    ] as [LeafletLayerGroup, boolean][]) {
+    const showHeat = this.heatEnabled();
+    this.heatOverlay?.update(this.visiblePoints(), showHeat);
+    for (const [layer, visible] of [[pointsLayer, !showHeat]] as [LeafletLayerGroup, boolean][]) {
       if (visible && !map.hasLayer(layer)) layer.addTo(map);
       else if (!visible && map.hasLayer(layer)) map.removeLayer(layer);
     }
-    eventHeatLayer.clearLayers();
-    poiHeatLayer.clearLayers();
+
     pointsLayer.clearLayers();
     this.fallbackPointMarkers.clear();
 
     const visible: MappedDemoPoint[] = this.visiblePoints().filter(isMappedRecord);
 
-    if (showHeat) {
-      for (const point of visible) {
-        const [longitude, latitude] = point.coordinates;
-        const color =
-          point.kind === 'poi'
-            ? '#a3e635'
-            : point.category === 'TRANSITO'
-              ? '#22c55e'
-              : point.category === 'SEGURANCA'
-                ? '#ef4444'
-                : '#facc15';
-        leaflet
-          .circleMarker([latitude, longitude], {
-            radius: point.kind === 'occurrence' ? 26 : 22,
-            color,
-            weight: 0,
-            opacity: 0.35,
-            fillColor: color,
-            fillOpacity: 0.22,
-            interactive: false,
-          })
-          .addTo(point.kind === 'occurrence' ? eventHeatLayer : poiHeatLayer);
-      }
-    } else {
+    if (!showHeat) {
       // 1. POIs are never clustered
       const pois = visible.filter((point) => point.kind === 'poi');
       for (const poi of pois) {
@@ -5062,10 +5168,13 @@ export class App implements AfterViewInit, OnDestroy {
     marker.on('click', () => {
       if (this.useRadius() || this.mapPickPurpose()) return;
       if (isCoincident) {
+        const content = this.createCoincidentPointsPopup(group);
+        content.style.maxHeight = `${Math.max(60, map.getContainer().clientHeight - 80)}px`;
+        content.style.overflowY = 'auto';
         leaflet
           .popup({ closeButton: true, offset: [0, -38] })
           .setLatLng([latitude, longitude])
-          .setContent(this.createCoincidentPointsPopup(group))
+          .setContent(content)
           .openOn(map);
       } else {
         this.selectedPointId.set(point.id);
@@ -5151,6 +5260,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.expandedResultDetailIds.set([...ids.slice(-4), pointId]);
     }
     this.fallbackMap?.closePopup();
+    document.querySelectorAll('.leaflet-popup').forEach((popup) => popup.remove());
     if (this.map) {
       const popups = document.querySelectorAll('.maplibregl-popup');
       popups.forEach((popup) => popup.remove());
@@ -5238,11 +5348,7 @@ export class App implements AfterViewInit, OnDestroy {
     occurrenceSource?.setData(this.toGeoJson('occurrence'));
     const poiSource = this.map?.getSource('demo-pois') as maplibregl.GeoJSONSource | undefined;
     poiSource?.setData(this.toGeoJson('poi'));
-    const occurrenceHeatSource = this.map?.getSource('heat-occurrences') as
-      maplibregl.GeoJSONSource | undefined;
-    occurrenceHeatSource?.setData(this.toGeoJson('occurrence'));
-    const poiHeatSource = this.map?.getSource('heat-pois') as maplibregl.GeoJSONSource | undefined;
-    poiHeatSource?.setData(this.toGeoJson('poi'));
+    this.heatOverlay?.update(this.visiblePoints(), this.heatEnabled());
     if (this.map?.getLayer('demo-occurrence-clusters')) {
       this.map.setLayoutProperty(
         'demo-occurrence-clusters',
@@ -5264,69 +5370,22 @@ export class App implements AfterViewInit, OnDestroy {
         this.heatmap() ? 'none' : 'visible',
       );
     }
-    if (this.heatmap() && this.map?.getLayer('demo-points-dot')) {
-      this.map.setLayoutProperty('demo-points-dot', 'visibility', 'none');
-      if (this.map.getLayer('demo-points-code')) {
-        this.map.setLayoutProperty('demo-points-code', 'visibility', 'none');
-      }
-      this.map.setLayoutProperty('demo-points-glow', 'visibility', 'none');
-      for (const [id, heatSource, gradient] of [
-        [
-          'demo-heatmap-events',
-          'heat-occurrences',
-          [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0,
-            'rgba(56,189,248,0)',
-            0.35,
-            '#38bdf8',
-            1,
-            '#f87171',
-          ],
-        ],
-        [
-          'demo-heatmap-pois',
-          'heat-pois',
-          [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0,
-            'rgba(163,230,53,0)',
-            0.35,
-            '#a3e635',
-            1,
-            '#c084fc',
-          ],
-        ],
-      ] as [string, string, unknown[]][]) {
-        if (!this.map.getLayer(id)) {
-          this.map.addLayer({
-            id,
-            type: 'heatmap',
-            source: heatSource,
-            paint: {
-              'heatmap-weight': 1,
-              'heatmap-intensity': 0.8,
-              'heatmap-radius': 36,
-              'heatmap-opacity': 0.78,
-              'heatmap-color': gradient as maplibregl.ExpressionSpecification,
-            },
-          });
-        }
-        this.map.setLayoutProperty(id, 'visibility', 'visible');
-      }
-    } else if (this.map?.getLayer('demo-points-dot')) {
-      this.map.setLayoutProperty('demo-points-dot', 'visibility', 'visible');
-      if (this.map.getLayer('demo-points-code')) {
-        this.map.setLayoutProperty('demo-points-code', 'visibility', 'visible');
-      }
-      this.map.setLayoutProperty('demo-points-glow', 'visibility', 'visible');
-      for (const id of ['demo-heatmap-events', 'demo-heatmap-pois']) {
-        if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', 'none');
-      }
+    if (this.map?.getLayer('demo-occurrence-coincident-badge')) {
+      this.map.setLayoutProperty(
+        'demo-occurrence-coincident-badge',
+        'visibility',
+        this.heatmap() ? 'none' : 'visible',
+      );
+    }
+    if (this.map?.getLayer('demo-occurrence-coincident-count')) {
+      this.map.setLayoutProperty(
+        'demo-occurrence-coincident-count',
+        'visibility',
+        this.heatmap() ? 'none' : 'visible',
+      );
+    }
+    for (const id of ['demo-points-dot', 'demo-points-code', 'demo-points-glow']) {
+      if (this.map?.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', 'visible');
     }
   }
 

@@ -15,7 +15,7 @@ export function fixtureSql(sql: string): string {
     '-U',
     'postgres',
     '-d',
-    'vetor_batch_final',
+    'vetor_batch_review',
     '-v',
     'ON_ERROR_STOP=1',
     '-tAc',

@@ -3,6 +3,18 @@
 @use './styles/public-map';
 @use './styles/theme';
 @use './styles/theme-motion';
+
+.heat-scale {
+  width: min(100%, 18rem);
+  height: 0.6rem;
+  border-radius: 1rem;
+  background: linear-gradient(to right, #2563eb, #facc15, #dc2626);
+}
+
+#map-canvas .maplibregl-control-container {
+  position: relative;
+  z-index: 500;
+}
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
@@ -218,11 +230,13 @@ h6 {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text-main);
+  pointer-events: none;
 }
 .coincident-pins-expansion .coincident-item-meta {
   font-size: 0.7rem;
   color: var(--color-text-muted);
   margin-top: 2px;
+  pointer-events: none;
 }
 #map-canvas .fallback-poi-code {
   display: grid;
