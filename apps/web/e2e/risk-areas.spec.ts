@@ -23,6 +23,18 @@ const collection = {
   ],
 };
 test.beforeEach(async ({ page }) => {
+  // Regressão demonstrativa do 09: sessão explícita, sem substituir a integração do 26.
+  await page.route('**/api/v1/auth/session', (route) =>
+    route.fulfill({
+      json: {
+        code: 'SESSION',
+        message: 'Sessão sintética de QA',
+        authenticated: true,
+        role: 'USER',
+        csrfToken: 'synthetic-ticket-09',
+      },
+    }),
+  );
   await page.clock.setSystemTime(new Date('2026-10-15T15:00:00Z'));
   await page.addInitScript(() =>
     Object.defineProperty(window, 'WebGL2RenderingContext', { value: undefined }),
@@ -61,6 +73,7 @@ test('áreas preservam procedência, precisão e contagens com alternativa por t
   await expect(page.locator('.leaflet-tooltip')).toHaveText('Área neutra de teste');
   await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 2);
   await expect(detail).toBeVisible();
+  await page.locator('[data-mode-toggle]').click();
   await page.getByLabel('Período da consulta').selectOption('custom');
   await page.getByLabel('Início (horário de Brasília)', { exact: true }).fill('2026-06-01T00:00');
   await page.getByLabel('Fim (horário de Brasília; exclusivo)').fill('2026-06-30T23:59');

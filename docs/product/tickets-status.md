@@ -1,22 +1,22 @@
 # Vetor Urbano — situação dos tickets
 
-Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11, 07 e 18 na rodada autorizada 19 → 11 → 07 → 18; baseline `integration/functional-spec-v1` em `0da31f5`. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
+Atualizado em **18/10/2026** após a implementação local do ticket 26, sobre baseline `integration/functional-spec-v1` em `84fba01`; verificação sintética e revisão independente Standards + Spec concluídas. Inventário dos 36 tickets locais da especificação v1.1; IDs locais, sem correspondência presumida com issues do GitHub. Estado remoto não consultado nesta rodada. Evidências e sequência atual em [PLAN.md](../../PLAN.md) e nos checkpoints por ticket.
 
 ## Visão geral
 
-- **28 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **2 parciais:** 25 e 26.
+- **29 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **1 parcial:** 25.
 - **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
 
 ## Implementados localmente
 
-**01–19, 27–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
+**01–19, 26–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Parciais ou com pendência
 
-**25 e 26** — cada linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O ticket 18 foi movido para implementados após a conclusão local do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
+**25** — a linha descreve o que foi entregue e o que ainda falta para fechar o ticket. O 26 tem implementação e verificações locais; seu aceite operacional permanece aberto. O ticket 18 foi movido para implementados após a conclusão local do E2E opt-in; o 36 foi concluído no lote 27 → 36 → 17 → 18, com o canal de correções então disponível.
 
 ## Ainda não iniciados
 
@@ -51,7 +51,7 @@ Atualizado em **18/10/2026** após os checkpoints dos tickets 19, 11, 07 e 18 na
 | 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Ainda não iniciado; calibração e fórmula de confiabilidade precisam ser definidas. |
 | 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Ainda não iniciado; depende das definições e do mecanismo de avaliação do ticket 23. |
 | 25 | [Consultar proximidade e vigência no fluxo integrado](../../.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md) | Integra localização consentida ou ponto manual às regras de vigência dos Informes. | Parcial: serviço de consulta temporal/espacial iniciado; ainda faltam endpoint integrado, política operacional e transições persistidas. |
-| 26 | [Revisar versões persistidas de Áreas de Risco](../../.scratch/consulta-coerente/issues/26-versoes-areas-risco.md) | Persiste versões de áreas territoriais com referência temporal e procedência. | Parcial: modelo e validações experimentais iniciados; faltam integração completa, migração e fluxo/API operacional. |
+| 26 | [Revisar versões persistidas de Áreas de Risco](../../.scratch/consulta-coerente/issues/26-versoes-areas-risco.md) | Persiste versões de áreas territoriais com referência temporal e procedência. | Implementado localmente: V13, revisões/aprovação explícita, autoria histórica, HTTP ADMIN/MFA/CSRF, correções AREA e web opt-in; API 18 + 93, web 127 e Playwright 12/12 Chromium/Firefox. [Checkpoint](../history/ticket-26-progress-2026-10-18.md). Revisão Standards + Spec sem achados pendentes; aceite operacional aberto (autorização/evidência e validação cartográfica reais). |
 | 27 | [Solicitar e acompanhar correção de dados](../../.scratch/consulta-coerente/issues/27-solicitar-correcao.md) | Recebe solicitações de correção e permite acompanhar o andamento. | Implementado localmente; canal autenticado privado com quatro estados, fila ADMIN/MFA e alvo validado. |
 | 28 | [Percorrer Histórico avançado paginado](../../.scratch/consulta-coerente/issues/28-historico-avancado.md) | Oferece Histórico publicado, filtrado e paginado, com snapshot consistente. | Implementado localmente; web, API/PostGIS, jornadas e revisão estão registradas no checkpoint. |
 | 29 | [Gerar relatório com recorte independente](../../.scratch/consulta-coerente/issues/29-relatorios-recorte.md) | Gera relatório com recorte próprio, transferido explicitamente da consulta. | Implementado localmente; web, API/PostGIS, jornadas e revisão estão registradas no checkpoint. |

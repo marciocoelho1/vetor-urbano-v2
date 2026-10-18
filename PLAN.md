@@ -2,6 +2,13 @@
 
 Atualização: 18/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
+## Ticket 26 — concluído no incremento local sintético
+
+- Baseline: `integration/functional-spec-v1`, HEAD `84fba01`, sem alterações rastreadas; dois arquivos não rastreados preexistentes preservados fora dos commits.
+- V13 real, snapshots imutáveis e ponteiro explícito aprovado; autoria/encerramento, HTTP ADMIN/MFA/CSRF, alvo AREA derivado da aprovação e auditoria territorial. Web `?consulta=api` mantém demonstração padrão e acrescenta revisão/aprovação antes/depois. [Decisões, comandos e limites](docs/history/ticket-26-progress-2026-10-18.md).
+- Verificações após correções da primeira revisão: API completa **18 unitários + 93 integrações**, web lint/**127 testes**/build, Playwright **12/12 Chromium/Firefox** (09, versões, correções). `planning`: 443 links; V1–V12, GeoJSON original e dois arquivos preexistentes com hashes preservados. Host sem `javac`; API verificada pelo próprio executor em Maven/JDK 21 com Podman.
+- Segunda revisão independente Standards + Spec sem achados pendentes. Próxima ação: somente seleção explícita de outro ticket pelo responsável. Aceite operacional permanece aberto (autorização/evidência, atualização, topologia/precisão/cobertura reais). Bundle 816,47 kB acima do orçamento e `pako` CommonJS. Nenhum ticket adicional, `ticketctl.py`, push ou deploy.
+
 ## Rodada autorizada 19 → 11 → 07 → 18 — checkpoints 19, 11, 07 e 18
 
 - Baseline da rodada: branch `integration/functional-spec-v1`, HEAD `0da31f5`; sem alterações rastreadas. O arquivo não rastreado preexistente `docs/product/tickets-checklist.html` foi preservado, apesar da descrição inicial de árvore limpa.

@@ -1,3 +1,11 @@
+## 2026-10-18 — Ticket 26: revisão e aprovação territorial persistida
+
+- V13 promove o núcleo PostGIS para schema real com snapshots imutáveis, UUID estável, revisão incremental, referência temporal conhecida separada do cadastro, fonte versionada e geometria sem typmod com CHECKs explícitos. SQL sombra de teste removido; migrações V1–V12 e GeoJSON original preservados.
+- HTTP administrativo exige ADMIN/MFA/CSRF; preparar revisão não altera a consulta aprovada. Aprovação explícita atualiza atomicamente ponteiro, decisão, auditoria e alvo AREA do canal de correções. Encerramento substitui autoria pela referência histórica de domínio, sem UUID recuperável; logs do módulo `territories` têm parâmetros permitidos legíveis.
+- Web opt-in `?consulta=api` mantém demo padrão, fonte/limitações, lista e detalhe temporal, editor antes/depois e histórico. Disputado comprovado difere de Não determinado em ambos os mapas; instantes administrativos apresentados em America/Sao_Paulo. HTTP/browser incluem USER consultando versão aprovada e bloqueado na administração.
+- Verificações após correções da revisão: API **18 unitários + 93 integrações**; web lint/**127 testes**/build; Playwright **12/12 Chromium/Firefox** nos specs territorial original, versões e canal; `planning` e diff-check registrados no [checkpoint](docs/history/ticket-26-progress-2026-10-18.md). Revisão final independente Standards + Spec sem achados pendentes.
+- Ambiente sintético, sem prontidão operacional: autorização/evidência reais, atualização/topologia/precisão/cobertura e QA físico continuam abertos. Bundle 816,47 kB (aviso +316,47 kB), `pako` CommonJS. Sem push, deploy, coleta ou dados reais.
+
 ## 2026-10-18 — Ticket 18: editor aguarda hidratação
 
 - Causa raiz: `openPublication()` buscava o detalhe em paralelo à edição visível, e a resposta assíncrona inicializava os campos com valores vazios depois da digitação. O editor agora mostra estado de carregamento, mantém os controles ocultos até a resposta e descarta resultados obsoletos.
