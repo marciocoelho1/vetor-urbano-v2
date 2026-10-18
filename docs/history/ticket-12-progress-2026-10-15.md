@@ -44,6 +44,12 @@ Revisão própria, não independente: o endpoint é somente GET; parâmetros des
 - Contrato: commit `6d86498` (`docs: define persisted query contract (ticket 12)`); correções de referência do JDK estão no arquivo técnico local ainda modificado. O código do Ticket 12 permanece sem commit porque a verificação mais recente falhou. Nenhum arquivo preexistente de frontend ou de reconciliação foi staged.
 - Revisão do diff não encontrou razão para mudar critérios ou dados do produto; o único ajuste conhecido é a janela do caso de teste temporal. Não houve navegador conectado à API, commit do código, push, publicação, credencial real ou dado real.
 
+## Tickets adjacentes e continuidade
+
+- 06 e 10: verificados localmente nesta retomada; commits isolados `8ca44bc` (10) e dependência territorial `c528644` (05). 07: seleção por mouse MapLibre/Firefox ainda sem causa/correção reproduzível; permanece pendente após diagnósticos anteriores. 36: quatro textos v1.2 verificados em Chromium/Firefox; critérios 1, 2 e 4 atendidos localmente, critério 3 (envio/acompanhamento real) depende do canal do 27, sem canal inventado.
+- Nenhum ticket 16–35 está desbloqueado: 16/19 dependem do 14 reservado; 17→16→14, 18→17, 20→17 mais fonte/canal/autorização/limites/custo pendentes, 21/22→20, 23/24→17 e parâmetros numéricos pendentes, 25→08 e 14, 26→09 e 14, 27→26, 28/29/32/33→06 e 14, 30→29, 31/34→30 e 35→10 e 18. 13–15 permanecem sem alteração. Não foram criados parâmetros para contornar esses bloqueios.
+- **Resumo para revisão do Sol:** Ticket 12, nenhuma alteração de código commitada; contrato `6d86498`; API/migração/testes parciais locais. Evidência: 8 unitários + 2 migrações + 2/3 cenários HTTP passaram; o cenário temporal falha na linha 104 porque `08:00–10:00 -03` não inclui o ponto de `09:00Z`. Próxima verificação candidata: corrigir apenas a janela para `05:00–10:00 -03`, manter asserções e executar `api`; depois validar o raio que ainda não foi alcançado. Nenhum aceite independente declarado.
+
 ## Verificação deste checkpoint
 
 `bash scripts/verify.sh planning` passou e validou 212 links locais. `git diff --check` e checagem de whitespace dos novos arquivos da API/registros passaram. Nenhum processo da API permaneceu ativo; o único contêiner listado é o banco PostgreSQL/PostGIS sintético local em `127.0.0.1:55432`, mantido para retomada. O modo `web` não foi reexecutado porque esta etapa não alterou o frontend; sua integração com a API continua sem implementação/verificação.

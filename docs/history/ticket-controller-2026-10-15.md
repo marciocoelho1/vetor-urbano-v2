@@ -1,5 +1,7 @@
 # Controlador local de tickets — 15/10/2026
 
+Registro histórico. A operação foi posteriormente adaptada exclusivamente para Codex CLI; consulte [adaptação e comando auto](ticket-controller-codex-2026-10-15.md). As instruções Antigravity abaixo registram o estado anterior.
+
 ## Escopo e operação
 
 Criado `tools/ticketctl.py` com configuração declarativa em `tools/ticketctl.json` e prompts reutilizáveis em `tools/prompts/`. O controlador lê tickets/dependências, administra estado persistente e checkpoints, salva logs por execução, serializa execuções e oferece `status`, `models`, `simulate`, `run`, `next`, `phase`, `verify`, `review`, `correct` e `resume`. O fluxo padrão executa um único modelo por vez e exige revisão independente; correções têm limite de duas rodadas. As etapas de 12 e 15 são executadas em chamadas técnicas sequenciais, com índice de etapa salvo para retomada. A aprovação funcional dos tickets 12–35 exige as verificações declaradas, revisão e commit associado ao ticket. O commit recusa índice previamente staged e arquivos que já estavam sujos no início; as fases 06/07/10 e a revisão documental não criam commit automaticamente.

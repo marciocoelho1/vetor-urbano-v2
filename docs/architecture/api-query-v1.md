@@ -1,6 +1,6 @@
 # Contrato local de consulta persistida — v1
 
-Este contrato implementa o Ticket 12 em desenvolvimento local. O banco e as quatro ocorrências de exemplo são sintéticos. A API não está liberada como produto integrado, não recebe gravações e não consulta fontes externas. Antes da autenticação do Ticket 14, somente o ambiente local pode acessá-la.
+Este contrato descreve a consulta persistida e os incrementos locais dos Tickets 12, 28, 29 e 33. O banco e as ocorrências de exemplo são sintéticos. A API não está liberada como produto integrado, não recebe gravações da consulta e não consulta fontes externas. As rotas de consulta e relatório exigem sessão completa verificada no servidor.
 
 ## Versões selecionadas
 

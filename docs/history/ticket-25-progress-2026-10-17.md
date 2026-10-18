@@ -1,0 +1,38 @@
+# Ticket 25 — núcleo de consulta independente
+
+Estado: **núcleo backend local implementado; ticket completo NÃO encerrado**. Autorização desta fatia: iniciar sem escolher parâmetros de produto, sem endpoint se depender de decisões. Referências: [spec D05/D06](../product/specification.md), ticket local `.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md`, CA07/CA08, RF02; não implementa RF03.
+
+## Contrato desta fatia
+
+- `ActiveReportQueryService(repository, clock, validity).find(center, radiusMeters)` é uma interface Java de leitura, sem registro Spring nem endpoint. Exige centro explícito `Coordinates` WGS84 `[longitude,latitude]` e raio inteiro em `(0,5000]` metros. Validação de coordenadas reutiliza o value object existente; não consulta localização pessoal, endereço nem câmera.
+- Reutiliza `OccurrenceQueryRepository`/PostGIS `ST_DWithin(geography)` e a projeção existente `OccurrenceRecord`, preservando publicadas, precisão, referências, ordem e efeitos independentes. Não recebe filtros de Relatórios/Histórico nem expande relacionados. Registros territoriais sem ponto não são convertidos em pins nem incluídos no raio.
+- Uma única leitura de `Clock` determina a janela UTC `[agora−24h,agora)`, com a convenção existente de limite final exclusivo. União sem duplicar ocorrência: recentes, inclusive encerradas/desconhecidas, mais antigas em `ONGOING` cuja vigência é afirmada pela política explicitamente injetada. Intervalos usam sobreposição existente; `temporalMatch` distingue `CERTAIN`, `POSSIBLE` e `OUTSIDE` em relação à janela recente. Uma antiga incluída por vigência pode ter `OUTSIDE`, sem significar fora do conjunto completo dos Informes.
+- `ValidityPolicy.isCurrentlyValid(effect,evaluatedAt)` é porta de integração, não política operacional implementada. Deve negar quando configuração/evidência falta. Não existe implementação padrão, duração infinita implícita, bean de produção ou tabela de prazos. O construtor rejeita política ausente. Teste injeta conjunto sintético de IDs e uma expiração sintética de 60 segundos; esse número NÃO é prazo de produto nem semântica de confirmação.
+- Nenhum instante de ocorrência, publicação ou coleta é tratado como última confirmação. Nenhuma situação persistida é alterada: o retorno mantém a situação armazenada. Portanto **não ligar diretamente a UI/HTTP como confirmação atual de andamento** antes de definir/prover a evidência, projeção de insuficiência e persistência de transições exigidas em D06. Os recentes sem evidência continuam elegíveis por recência, não por vigência comprovada.
+- Erros de banco/política propagam; não são convertidos em lista vazia. A leitura recupera todos os candidatos espaciais publicados antes da união temporal: adequada ao incremento sintético, não comprova escala/cobertura operacional. A política futura deve usar evidência/configuração consistente com a consulta; não há transação distribuída implícita entre essa porta e um eventual armazenamento externo.
+
+## Limites e decisões pendentes
+
+1. Configuração real por tipo e evidência que sustenta última confirmação, validade e insuficiência; nenhuma tabela/prazo foi aprovado aqui.
+2. Persistência de transições e última verificação sem encerrar efeitos relacionados; esquema e atualização concorrente dependem do contrato anterior. **V10 permanece reservada ao 25, não criada**; V11 pertence ao 26.
+3. Endpoint autenticado, projeção pública de situação efetiva/insuficiência, auditoria e contrato de erro; exigir autorização no servidor e testes HTTP próprios quando o endpoint existir.
+4. Integração de localização consentida/manual, carga/erro/vazio e jornadas Chromium/Firefox/teclado/mobile continuam fora desta fatia. Não executar nem declarar aceite de UI nova inexistente.
+
+## Evidências de execução — 17/10/2026
+
+- JDK scratch existente `/tmp/vu-selected-jdk21` (Temurin 21.0.9) e socket existente `unix:///tmp/vu-selected-podman.sock`, sem instalação/alteração do host.
+- RED: compilação falhou por `ActiveReportQueryService` ausente (`t25-red.log` no scratch Hermes); também havia teste concorrente do ticket 26 ainda sem implementação. Não foi editado nem removido esse trabalho. A tentativa seguinte ficou bloqueada apenas pelo 26; a repetição ocorreu após seus fontes aparecerem.
+- Primeira execução efetiva detectou erro no teste: `Coordinates` já rejeita entrada inválida no construtor; asserção corrigida para respeitar o contrato existente. Outro ensaio detectou sensibilidade numérica da projeção PostGIS exatamente a 5000 m para azimute leste; fixture passou a projetar norte, sem adicionar tolerância à consulta nem alterar o repositório espacial existente. Isso não comprova todas as orientações/bordas numéricas em uso operacional.
+- GREEN selecionado: `JAVA_HOME=/tmp/vu-selected-jdk21 PATH=/tmp/vu-selected-jdk21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-selected-podman.sock TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -B -ntp -Dit.test=ActiveReportQueryIT verify` em `apps/api`: **15 unitários + 1 integração PostGIS, zero falhas/erros/pulados** (`t25-green-4.log`).
+- Integração usa contêiner Testcontainers PostGIS 17-3.5 novo e migrações existentes normalmente aplicadas. Dados do teste são explicitamente sintéticos: borda 5000/4999/5001 m, recentes encerradas, antigas válidas, ausência de validade, expiração no relógio injetado, rascunho, bairro sem ponto, janela temporal/intervalo e efeitos do mesmo acontecimento independentes. Read-only verificado pela situação de efeito excluído permanecer `ONGOING`; não há teste de persistência de transição porque não foi implementada.
+- Harness completo `JAVA_HOME=/tmp/vu-selected-jdk21 PATH=/tmp/vu-selected-jdk21/bin:$PATH DOCKER_HOST=unix:///tmp/vu-selected-podman.sock TESTCONTAINERS_RYUK_DISABLED=true bash scripts/verify.sh api`: **BUILD SUCCESS, 15 unitários + 73 integrações reais, zero falhas/erros/pulados**, XML contados por Python. Inclui trabalho concorrente do 26; não atribuir seus 17 testes ao 25. Log `t25-api-final.log` no scratch Hermes. Após revisão da classificação temporal, verificação final registrada abaixo.
+- Banco original `vu-selected-db/vetor_urbano` não foi aberto, reparado, migrado nem resetado por esta fatia. Nenhuma conexão do núcleo de teste aponta a ele. Migração V9 mantida: SHA-256 `49aa18d36c305c3f8896a0f7d9022d32660bf108f826e2a68904bf884b08e542`. Divergência Flyway preexistente não é resolvida por estes testes.
+
+## Verificação final após revisão
+
+- Repetido o harness completo com asserções de `POSSIBLE`/`OUTSIDE`: **15 unitários + 74 integrações, zero falhas/erros/pulados**, `BUILD SUCCESS` em 2min20s. O 26 passou a ter 18 integrações durante esta rodada compartilhada; o 25 possui 1 teste unitário e 1 integração. Log `/home/marciocoelho/.hermes/cache/scratch/t25-api-reviewed.log`.
+- `bash scripts/verify.sh planning`: **373 links locais**, OK; `git diff --check`: OK. SHA-256 V9 reconferido idêntico. A contagem documental antecede esta atualização textual sem links novos.
+
+## Revisão própria
+
+Standards: arquivos novos no módulo de ocorrências, sem dependências/migrações nem edição de fontes compartilhados/proibidos. Spec: revisão identificou necessidade de conservar inclusão temporal incerta no retorno; corrigida para `POSSIBLE`, com asserção sobre intervalo na borda, e `OUTSIDE` explícito para antiga vigente. Essa revisão não é apresentada como dois revisores independentes. Sem commit, push, deploy ou dados reais. `PLAN.md`/`CHANGELOG.md`, App e AccountService não foram editados por esta fatia.

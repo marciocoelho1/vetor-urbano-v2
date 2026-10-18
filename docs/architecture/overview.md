@@ -49,3 +49,7 @@ Contrato HTTP atual e versões estão no [api-query-v1](api-query-v1.md). O [con
 O projeto tem testes unitários e Playwright para Chromium/Firefox. O executor local é `scripts/verify.sh`; ainda não há workflow de CI ou deploy. Build de produção não significa serviço pronto para operação: segurança operacional, cobertura territorial e testes em dispositivos reais continuam pendentes. A persistência de leitura sintética tem verificações HTTP/PostGIS e navegador próprias do Ticket 12.
 
 Consulte o [plano](../../PLAN.md) para resultados atuais e o [guia de operação web](../operations/web.md) para preparar o artefato estático.
+
+## Reconciliação funcional em 15/10/2026
+
+A [spec interna v1.1](../product/specification.md) orienta catálogo, ocorrência/acontecimento, precisão, modos e situações. D01–D13 continuam a descrever intenção de produto. A [proposta local de tickets](../../.scratch/consulta-coerente/README.md) organiza os incrementos. O estado da consulta persistida, evidências e limites está no [plano](../../PLAN.md) e no [checkpoint do Ticket 12](../history/ticket-12-progress-2026-10-15.md); não indica prontidão operacional.

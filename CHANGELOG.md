@@ -35,6 +35,11 @@
 
 # Histórico de mudanças
 
+## 2026-10-17 — Ticket 32: calor integrado
+
+- Integrado overlay Canvas compartilhado por MapLibre/Leaflet com ocorrências únicas do recorte autorizado, sem calor de POIs ou localizações somente territoriais, escala fixa e sem pesos. Legenda e contagem acessíveis, suspensão em carga/erro, vazio explícito, recuperação de canvas e descarte no logout/retry/troca de motor. Preservada a correção concorrente do ticket 07.
+- Web: lint, 124 testes e build 755,24 kB; API: 14 unitários + 55 integrações HTTP/PostGIS; Playwright: 20/20 Chromium/Firefox nos dois motores, incluindo autorização real e regressão do 07. Limites: orçamento inicial +255,24 kB, pako, cartografia sintética e RNF05 sem aparelho físico. [Evidências](docs/history/ticket-32-progress-2026-10-17.md). Sem commit, publicação ou início de 25/26 por este incremento.
+
 ## 2026-10-17 — Seleção local 34 → 19 → 15
 
 - Ticket 34: PDF A4 do relatório gerado, composto no navegador a partir do snapshot já existente e com registro auditável `REPORT_PDF_EXPORT` no servidor. Preserva filtros, período em UTC e em America/Sao_Paulo, momento da geração, todas as contagens, distribuições do ticket 30, fontes, precisão e limitações; publicar dado novo não altera o PDF já gerado. Recorte vazio, falha de renderização, texto não representável pela fonte e auditoria recusada pelo servidor são explícitos, sem arquivo parcial. Web 113 testes/build; API 14 unitários + 34 integrações HTTP/PostGIS; Playwright 18/18 Chromium/Firefox (10 do PDF e 8 de regressão do XLSX). Revisões Standards + Spec corrigiram contagens persistidas, tentativa `FAILED` na recusa da gravação, contagens temporais do servidor e duplicação do bloco de entrega; aceito localmente com dados sintéticos.
@@ -48,6 +53,11 @@
 - Ticket 31: comparação explícita de snapshots A/B, distribuições, variação, duração e médias somente com precisão suficiente. Cobertura desconhecida e base zero identificadas. Verificado localmente com dados sintéticos, incluindo base zero, precisão temporal e duração curta.
 
 - Ticket 30: síntese determinística do snapshot de Relatórios, com distribuições, certeza temporal e limites de cobertura/precisão. Verificado localmente com dados sintéticos e revisão Standards + Spec.
+
+## 2026-10-17 — Próximos tickets após 29/28/33
+
+- Conferidos checkpoints/commits e atualizado o inventário para 17 entregues localmente e 19 restantes, com ordem, lotes, modelos e condições de entrada.
+- Prompt de implementação generalizado para um ticket ou lote, sem seleção fixa. Próxima trilha sugerida: 30 → 31 (Sol Medium), liberando 34 (Luna XHigh) após 30. Sem novo aceite funcional nesta consulta.
 
 ## 2026-10-17 — Ticket local 33: XLSX completo do recorte
 
@@ -66,10 +76,70 @@
 - Entregues geração explícita do relatório, preservação do recorte/resultados, escolha Substituir/Manter, atualização explícita e lista acessível, com endpoint autenticado e auditoria minimizada conforme E04/E08. Mantidos D08, CA14 e RF02; retenção E16 e propostas pendentes não foram alteradas.
 - Web passou (98 testes e build, com aviso de orçamento de +164,67 kB); API completa passou (14 unitários + 27 HTTP/PostGIS); Playwright separado passou 14/14 em Chromium/Firefox; `planning` passou (335 links). Revisão Standards + Spec contra `2e439143` sem desvios. Commits: `39b919e`, `1055ab0`, `8ec904b`; [checkpoint e comandos](docs/history/ticket-29-progress-2026-10-17.md). Evidências são sintéticas e não indicam prontidão operacional.
 
+## 2026-10-17 — Lotes de implementação após entrevista
+
+- Reconciliados os 22 tickets restantes com E01–E19 e ADR de autoria histórica; recomendação atual: 7 Luna XHigh, 9 Sol Medium, 6 Sol High, com 19 elevado por risco de retenção/eliminação.
+- Registrados lotes sequenciais, condições reais de entrada, lacunas MFA/backup e [prompt reutilizável](tools/prompts/implement-selected-batch.md). Sem novos tickets, implementação, publicação ou alteração do controlador; estado GitHub não confirmado.
+
+## 2026-10-17 — Quinta rodada e consolidação de conta/registros
+
+- E17 fixa teto de sete dias para dados em backups operacionais; E18 delimita preservações excepcionais e E19 aprova encerramento explícito de todas as sessões e revisão de meios comprometidos.
+- Política parcial/spec atualizadas; dependências externas de enquadramento, recuperação, mensageria, backups e textos finais registradas com responsáveis e limites. Próxima fase: primeira fonte de coleta, sem conectar produto ou manipular dados reais.
+- Pesquisada Agência Brasil/RSS Últimas Notícias como candidata prioritária, com condições de reprodução/terceiros e limitações históricas registradas; E20 permanece proposta, sem acesso operacional aprovado.
+- Sem atuação em tickets, implementação funcional, contratação ou publicação.
+
+## 2026-10-17 — Quarta rodada de conta e registros
+
+- E13 exige autorização exclusiva do responsável para recuperação excepcional; E14 aprova avisos de segurança e E15 fixa links sensíveis em dez minutos.
+- E16 aprova retenção ordinária de 60/180/365 dias para uso/segurança/administração, com regras próprias de histórico e identidade residual; spec/CA23 reconciliados sem alterar IDs. Guarda legal e backups ainda delimitados.
+- E17–E19 registradas como propostas; sem atuação em tickets, implementação funcional, contratação ou uso de dados reais.
+
+## 2026-10-17 — Terceira rodada de conta e registros
+
+- Aprovadas E09–E12: autoria histórica sem ligação recuperável com conta, eliminação de logs individuais de uso ao encerrar, continuidade das correções sem identificação desnecessária e fronteiras da recuperação excepcional.
+- Registrado ADR 0001 para a separação irreversível entre autoria e cadastro; glossário define Autor histórico. Política parcial/spec reconciliadas; E13–E16 permanecem propostas, inclusive prazos. Sem atuação em tickets ou implementação funcional.
+
+## 2026-10-17 — Segunda rodada de conta e registros
+
+- Consolidadas E05/E06/E08: recuperação MFA por códigos, configuração por QR com chave manual alternativa, saída do último Administrador e menor precisão nos logs de uso. QR ainda não implementado.
+- E07 definida sob delegação: eliminação do cadastro ativo, sem restauração de conta/privilégios, conservação excepcional justificada e restauração de backup sem desfazer exclusões. Sem inventar prazo universal; demais vínculos e retenções continuam pendentes.
+- Atualizadas política parcial, complementos da spec e continuidade do levantamento original; rodada E09–E12 registrada como proposta, sem atuação em tickets ou alteração funcional.
+
+## 2026-10-17 — Aprovação da primeira rodada de conta e registros
+
+- Aprovadas E01–E04: recuperação com revogação/MFA preservado, alterações sensíveis com confirmação, encerramento sem reativação e classificação dos registros pela ação. Consolidação em [política parcial](docs/product/account-and-records-policy.md), com referências na spec e dois termos no glossário.
+- Próxima rodada mantém exceções, eliminação cadastral e precisão dos logs como propostas. Retenção definitiva não aprovada; sem implementação funcional ou atuação em tickets.
+
+## 2026-10-17 — Abertura da entrevista de definições
+
+- Conferidos contratos e código recentes de conta, sessão, MFA e auditoria; registradas [árvore e propostas da primeira rodada](docs/history/decision-interview-2026-10-17.md), sem nova aprovação.
+- Entrevista limitada a decisões e documentação; alterações existentes preservadas, sem atuação em tickets ou implementação funcional.
+
+## 2026-10-17 — Definições pendentes para continuidade
+
+- Levantadas pendências delimitadas e propostas para conta/logs, coleta, confiabilidade, vigência/território, análises/arquivos e correções/documentos, com [caminho de resolução](docs/history/pending-decisions-2026-10-17.md).
+- Esclarecido que decisões operacionais não bloqueiam todos os tickets; preservados contratos locais, decisões aprovadas e trabalho existente. Propostas não representam aprovação.
+
+## 2026-10-17 — Conferência de tickets e distribuição de modelos
+
+- Registrados 22 tickets locais restantes e recomendação de Sol Medium/High ou Luna XHigh para uso da cota Plus, com dependências, parâmetros e limites da consulta remota em [histórico](docs/history/ticket-model-allocation-2026-10-17.md).
+- Consulta GitHub inconclusiva; sem novo aceite funcional, mudança de configuração ou modificação do trabalho preexistente.
+
 ## 2026-10-16 — Acessos de teste no README da branch de integração
 
 - Incluídas as credenciais sintéticas de ADMIN e USER, condições do ambiente local e exigência de MFA administrativo.
 - Envio limitado a `integration/functional-spec-v1`; trabalho local preexistente preservado e `main` intacta.
+
+## 2026-10-16 — Corrigir retorno ao login ao configurar autenticador
+
+- Abertura por localhost:4201 agora encaminha para o host canônico 127.0.0.1 antes do login, preservando caminho, parâmetros e fragmento. Corrige perda do cookie de sessão no próximo pedido à API local, sem alterar MFA, CSRF ou SameSite.
+- Regressão de navegador cobre configuração de MFA, Usuário com recarga/logout e entrada do cadastro; [diagnóstico e resultados](docs/history/localhost-mfa-session-2026-10-16.md).
+
+## 2026-10-16 — Inventário de tickets e acessos sintéticos
+
+- Documento simples e PDF com descrição dos 36 tickets, 14 com testes locais registrados, 2 com pendências e 20 restantes; reconciliação usa checkpoints recentes sem apagar evidências históricas.
+- Duas contas de teste locais provisionadas por ferramenta offline restrita ao banco sintético conhecido, com senha solicitada pelo responsável, PBKDF2/salts individuais e auditoria; repetição preserva contas. Política de cadastro e MFA administrativo mantidos.
+- HTTP real e 4 cenários Chromium/Firefox passaram para os acessos, incluindo teclado e 390 px. PDF de 4 páginas renderizado e inspecionado. [Registro](docs/history/tickets-and-test-access-2026-10-16.md).
 
 ## 2026-10-16 — Ticket 16 aceito localmente em desenvolvimento
 
@@ -96,6 +166,82 @@
 - Corrigida a expectativa temporal por conversão de fuso, preservando início incluído/fim excluído; ambas as janelas têm asserções. Borda geodésica real (1000/999 m), 400/503 e persistência após reinício comprovados. Falhas ao abrir transação também retornam 503; relacionados mantêm inclusão temporal correta.
 - Verificações: API 8 unitários + 2 migrações + 5 HTTP; web lint + 88 unitários + build 606,17 kB (aviso +106,17 kB); Playwright da integração 6/6 Chromium/Firefox e regressão afetada 26/26. Planejamento e revisão do diff registrados no [histórico do 12](docs/history/ticket-12-progress-2026-10-15.md#conclusão-local-após-retomada--15102026).
 - Aceite restrito a leitura local com dados sintéticos. Dependência técnica do 13 liberada; parâmetros de cadastro/confirmação continuam a fechar no próprio incremento. Ticket 07 e trabalho preexistente preservados, sem novo aceite.
+
+## 2026-10-15 — Ticket 12: API e persistência locais em verificação parcial
+
+- Implementados modelo/migração sintética V1 e endpoint Java GET, com filtros, precisão temporal/espacial, referências sem duplicação, totais públicos e respostas 400/503. Serviço vinculado a loopback; sem escrita ou coleta real.
+- `bash scripts/verify.sh api` compilou, passou 8/8 unitários e 2/2 testes de migração; dois dos três testes HTTP passaram, um falhou porque a janela do teste não inclui o instante pontual que esperava. Duas tentativas sem avanço registradas; não houve terceira repetição. Integração do navegador, borda espacial e API indisponível seguem pendentes.
+- `bash scripts/verify.sh planning` passou com 212 links e `git diff --check` passou. Diagnóstico, arquivos, revisão própria e próxima ação candidata estão no [checkpoint](docs/history/ticket-12-progress-2026-10-15.md). Código não commitado; sem aceite integral.
+
+## 2026-10-15 — Ticket 12, etapa 1: contrato de leitura persistida
+
+- Contrato local para `GET /api/v1/occurrences`: filtros, fuso/intervalos, precisão temporal e espacial, contagens, referências sem duplicação e erros 400/503. Registrados versões e uso exclusivo em desenvolvimento, com dados sintéticos.
+- PostGIS real disponível em loopback; ainda sem migração, API ou conexão do navegador. Critérios originais e pendências completos em [checkpoint](docs/history/ticket-12-contract-2026-10-15.md). Esta etapa não é aceite final do Ticket 12.
+
+## 2026-10-15 — Ticket 05 revalidado como dependência
+
+- Jornada territorial reexecutada em Chromium/Firefox: município/bairro, câmera e ação explícita, precisão de lista, contagens exatas, raio, calor, recorte visível, referência fora do recorte, detalhes e viewport de 390 px. Corrigido somente o teste que confundia pins visíveis/agrupados com a contagem de ocorrências mapeadas.
+- Playwright direcionado 4/4; `bash scripts/verify.sh web` (lint, 85 unitários, build 600,60 kB com aviso +100,60 kB); `planning` (198 links) e `git diff --check` passaram. Critérios e revisão própria: [registro](docs/history/ticket-05-dependency-retest-2026-10-15.md).
+- Commit isolado: `c528644`.
+
+## 2026-10-15 — Ticket 10 verificado e cenários E2E completados
+
+- E2E verifica agora centro/zoom após atualização, estados de carregamento da consulta e mapa, lista durante carga/falha, retry do mapa, teclado, movimento reduzido e 390 px. 12/12 passaram em Chromium/Firefox.
+- `bash scripts/verify.sh web`: lint, 85 unitários e build passaram (600,60 kB; aviso +100,60 kB). `planning`: 193 links; `git diff --check`: passou. Commit isolado `8ca44bc`; evidência e revisão própria em `docs/history/ticket-10-retest-2026-10-15.md`.
+
+## 2026-10-15 — Ticket 06 verificado em navegador
+
+- A suíte direcionada passou 10/10 em Chromium/Firefox: modos, filtros avançados, suspensão/reaplicação, incompatibilidade, município preservado, foco/teclado e viewport 390 px. Diff de implementação `01a005a` preservado; nenhum novo código ou commit.
+- `bash scripts/verify.sh web`: lint, 85 unitários e build passaram (600,60 kB; aviso +100,60 kB). `planning`: 193 links; `git diff --check`: passou. A dependência 05 mantém critérios próprios sem aceite; detalhes no registro do Ticket 06.
+
+## 2026-10-15 — Diagnóstico local do Ticket 07
+
+- Servidor HTTP, Chromium e Firefox iniciaram. E2E direcionado: 7/8 passaram; seleção do segundo pin no popup MapLibre/Firefox falhou. Clique normal foi interceptado; coordenadas de um clique direto ficaram defasadas após rolagem, e a sondagem de hit test não estabilizou. Causa/correção não confirmadas; tentativas interrompidas e ticket segue sem aceite.
+- `bash scripts/verify.sh web`: lint, 85 unitários e build passaram (600,60 kB; aviso +100,60 kB). `bash scripts/verify.sh planning`: 193 links. `git diff --check`: passou. Diagnóstico completo em `docs/history/ticket-07-resume-2026-10-15.md`; nenhum commit.
+
+## 2026-10-15 — Retomada do Ticket 06 e bloqueio de navegador
+
+- Preservados implementação histórica dos dois modos e trabalho preexistente; nenhuma nova edição funcional ou commit. Evidências e próxima ação em `docs/history/ticket-06-resume-2026-10-15.md` e `PLAN.md`.
+- Verificação web passou: lint, 85 unitários e build 600,60 kB (aviso +100,60 kB). Playwright direcionado Chromium/Firefox encerrou antes dos cenários com servidor exit 127; `curl` confirmou restrição de socket local (exit 7). Sem novo aceite de teclado, estados, lista ou apresentação móvel por evidência histórica.
+- `bash scripts/verify.sh planning` passou com 193 links locais; `git diff --check` passou. Logs novos preservados em `.scratch/consulta-coerente/evidence/06-3a9b5e2bcd16/`.
+
+## 2026-10-15 — Retomada bloqueada do Ticket 07
+
+- Preservados código, testes e diagnóstico anteriores de agrupamentos/sobreposições; nenhuma correção funcional nova nem commit. Registro em `docs/history/ticket-07-resume-2026-10-15.md` e checkpoint no plano.
+- Verificação web nova passou: lint, 85 unitários e build 600,60 kB (aviso +100,60 kB). Playwright direcionado Chromium/Firefox não executou cenários: erro 127 no webServer; diagnóstico confirmou `connect EPERM` em socket HTTP local, também negado ao curl. Clique físico MapLibre/Firefox continua pendente, sem aceite.
+- `bash scripts/verify.sh planning` passou com 192 links locais; `git diff --check` passou. Logs desta retomada preservados em `.scratch/consulta-coerente/evidence/07-cc8ef1577e5b/`.
+
+## 2026-10-15 — Correção de inicialização e diagnóstico do controlador
+
+- Removidos os overrides incompatíveis `model_providers.openai.{request_max_retries,stream_max_retries}`; mantidos provider interno, login ChatGPT, modelos, Standard e pausa persistente por cota. Sem garantia de retries internos desativados.
+- Progresso imediato com tarefa, etapa, modelo e esforço; falhas mostram motivo, código de saída do processo, caminho do log e erro relevante, preservando logs detalhados e checkpoint.
+- Regressões offline para configuração recusada, diagnóstico, flush anterior à chamada e retomada. Compatibilidade conferida no CLI 0.162.1 por comandos locais sem inferência; nenhum ticket real executado.
+
+## 2026-10-15 — Controlador autônomo exclusivamente Codex CLI
+
+- Adaptado controlador existente com `auto`, roteamento Luna Medium/Sol Medium/Sol High solicitado, Standard explícito, execução serial e sem subagentes/fallback. Antigravity removido da operação; histórico e logs preservados.
+- Unificados implementação/verificação/revisão/correção e retomada por etapa; JSON com nonce e hashes vincula revisão ao conteúdo e aos comandos/logs efetivamente verificados. Limite de duas correções; bloqueios permitem independentes com barreiras obrigatórias.
+- Isolados estado/logs da simulação, lock antes de qualquer leitura/migração e encerramento dos grupos de processos em saída normal, interrupção e timeout. Cota salva pausa persistente, sem repetição de chamadas pelo controlador após a pausa nem compra de créditos; retries internos do CLI não são garantidos.
+- Migrado checkpoint 07 para Sol Medium com backup integral, sem executar o ticket nem resolver/declarar resolvida a falha MapLibre/Firefox. Nenhum aceite histórico modificado. Validação: 24/24 testes offline com CLI falsa, sintaxe Python, planning (190 links) e diff-check passaram; detalhes em `docs/history/ticket-controller-codex-2026-10-15.md`.
+
+## 2026-10-15 — Controlador local e checkpoint do Ticket 07
+
+- Adicionado controlador Python sequencial com perfis por ticket, adaptadores Codex/Antigravity, prompts, estado persistente, logs e retomada. Simulações de execução, falha/retomada e dependência bloqueada passaram sem tocar no estado real.
+- CLI Codex e Antigravity e os modelos solicitados foram identificados; Codex usa velocidade Standard padrão. O Antigravity executou o Ticket 07 até iniciar E2E em segundo plano, mas o sandbox bloqueou seu socket/log em uma retomada subsequente; o estado foi pausado.
+- Piloto de reconciliação documental revisado e aceito, com `bash scripts/verify.sh planning` e `git diff --check` aprovados. Sem commit isolado porque os arquivos coincidem com alterações preexistentes.
+- Ticket 07 continua sem aceite: lint, 85 unitários e build passaram (600,60 kB, 100,60 kB acima do limite); E2E direcionado detectou falha de clique de sobreposição MapLibre no Firefox. Registro detalhado em `docs/history/ticket-controller-2026-10-15.md`.
+
+## 2026-10-15 — Correção da revisão documental dos Tickets 07 e 10
+
+- Mantida como parcial a evidência histórica do Ticket 10: além do checklist marcado, faltam registros explícitos para centro/câmera e alguns estados/acessibilidade previstos. Nenhum critério foi marcado ou aceito nesta correção.
+- Alinhado `implementation-state.json` ao ajuste de disponibilidade do Ticket 36 em `a836616`; recebimento/acompanhamento continua pendente do Ticket 27.
+- Preservados os vínculos 11/36, escopo demonstrativo de 09 e integração real exigida no 12. Sem execução da aplicação e sem commit.
+
+## 2026-10-15 — Checkpoint após revisão do Ticket 36
+
+- Estado: branch `integration/functional-spec-v1`, HEAD `a836616`. Ticket 36 revisado; critérios 1, 2 e 4 atendidos localmente, critério 3 pendente do canal real previsto no Ticket 27. Rascunhos v1.2 locais, não publicados.
+- `bash scripts/verify.sh web`: lint, 82 unitários e build passaram; 598,33 kB (98,33 kB acima do orçamento). `bash scripts/verify.sh planning`: 186 links passaram. E2E direcionado: 2/2 Chromium/Firefox, foco/teclado e viewport 390 px. `git diff --check` passou.
+- O checkpoint em `PLAN.md`, `CHANGELOG.md` e no histórico permanece não commitado, assim como as alterações preexistentes da reconciliação documental; lista e próxima ação exata em `PLAN.md` e no checkpoint do histórico. Esta atualização de planejamento passou com 187 links e `git diff --check`. Nenhum segredo registrado.
 
 ## 2026-10-15 — Ticket 36: transparência dos documentos institucionais
 
@@ -331,7 +477,11 @@ Revisado em 05/10/2026 para refletir os testes e a configuração final do worke
 
 ## 2026-10-15 — Reconciliação documental da continuidade
 
-- Corrigido o vínculo de tickets/commits: 11 → `2c34dd9` (fontes/explicação); 36 → `84bfa04` (documentos institucionais); `47cba99` não localizado no Git.
-- Qualificados os registros de aceite dos Tickets 06, 07, 10 e 36 como implementação/evidência histórica com pendências de revisão estática; nenhuma falha foi declarada reproduzida.
-- Esclarecido que o Ticket 12 requer API Java e PostgreSQL/PostGIS reais e que o versionamento territorial persistido pertence ao Ticket 26, além da demonstração do Ticket 09.
-- Atualizados estado local, status dos tickets, plano e histórico. Sem alterações de aplicação ou testes executados.
+- Corrigida a rastreabilidade: Ticket 11 → `2c34dd9` (fontes/explicação pública); Ticket 36 → `84bfa04` (documentos institucionais), com atualização posterior em `a836616`; `47cba99` não existe entre os objetos Git locais.
+- Reconciliados os registros com os tickets originais locais: checklists de 06 (`01a005a`) e 10 (`6c9e96b`) estão marcados; o de 07 (`b505ac6`) segue desmarcado. São evidências históricas, sem reexecução ou novo aceite nesta etapa.
+- Especificado que 09 demonstra camada territorial com referência temporal e exemplos sintéticos; versões persistidas pertencem ao 26. 12 é integração proposta com API Java e PostgreSQL/PostGIS reais, migrações e validação espacial no servidor.
+- Atualizados plano, status e históricos de continuidade. Nenhuma aplicação foi executada, nenhuma decisão aprovada foi alterada e nenhum commit foi criado.
+## 2026-10-17 — Situação atual dos tickets
+
+- Reconciliados os 36 tickets com o plano, checkpoints e estado local: 22 implementados, 5 parciais/com pendências e 9 ainda não iniciados.
+- Atualizado [inventário dos tickets](docs/product/tickets-status.md) com descrição breve e estado individual; sem confirmação do estado remoto do GitHub.

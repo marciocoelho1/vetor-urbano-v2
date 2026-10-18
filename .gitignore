@@ -64,3 +64,15 @@ logs/
 .vscode/
 *.swp
 *.swo
+
+# Planejamento interno local; publicação exige autorização de conteúdo/destino
+/docs/product/specification.md
+/.scratch/
+
+# Python tooling caches
+__pycache__/
+*.py[cod]
+
+# Travas e exportações locais de escritório
+docs/.~lock.*#
+*.~lock.*#

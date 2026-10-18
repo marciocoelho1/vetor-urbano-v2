@@ -11,3 +11,7 @@ O cadastro mantém o mapa embutido e coordenadas digitáveis para as três categ
 As decisões e verificações anteriores estão no [histórico visual](../history/design/visual-v6.md), nos [refinamentos](../history/design/interface-refinements-2026-10-14.md) e no [ajuste da primeira tela](../history/design/public-map-first-screen-2026-10-14.md). As medidas anteriores nesses registros descrevem cada entrega, não o layout atual.
 
 A [galeria experimental](../../apps/web/prototypes/ui-ux-gallery/README.md) preserva as seis alternativas para consulta. Ela tem execução própria e não integra o build principal.
+
+## Direção aprovada para os próximos incrementos
+
+A descrição acima é o código existente. A [spec v1.1](specification.md) aprova Modo simples e Análise e Inteligência, nova consulta em 24 h/três pilares, Áreas de Risco e acesso autenticado aos módulos. Histórico/Relatórios/calor são avançados; páginas de fontes/explicação continuam anônimas. Isso ainda não foi implementado e não autoriza redesenho visual completo. A [divisão local](../../.scratch/consulta-coerente/README.md) aguarda revisão antes de qualquer implementação.
