@@ -60,7 +60,8 @@ async function openQueueItem(
   await queue.getByRole('button', { name: 'Fila administrativa de correções' }).click();
   const item = queue.locator('li').filter({ hasText: explanation }).last();
   await item.getByLabel('Motivo visível ao solicitante').fill('Conferência iniciada');
-  await queue.getByRole('button', { name: 'Iniciar análise' }).click();
+  // A ação pertence ao pedido aberto: com mais de um item na fila a busca global seria ambígua.
+  await item.getByRole('button', { name: 'Iniciar análise' }).click();
   await expect(item.getByText(/Em análise/)).toBeVisible();
   await item.getByRole('button', { name: `Abrir edição da publicação ${target}` }).click();
   await expect(item.getByLabel('Ação sobre o registro')).toBeVisible();
