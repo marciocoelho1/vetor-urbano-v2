@@ -25,6 +25,13 @@ public class OccurrenceQueryController {
         return auditAndReturn(query, service.find(query), request);
     }
 
+    @GetMapping("/occurrences/{id}")
+    public Object findOne(@org.springframework.web.bind.annotation.PathVariable String id, jakarta.servlet.http.HttpServletRequest request) {
+        auth.getObject().auditRecordLookup(
+                java.util.UUID.fromString((String) request.getAttribute("vu.account")), id);
+        return service.findOne(id);
+    }
+
     @GetMapping("/history/occurrences")
     public OccurrenceQueryResponse findHistory(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
         var query = parser.parseHistory(parameters);

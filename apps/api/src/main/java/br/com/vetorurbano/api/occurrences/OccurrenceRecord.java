@@ -61,4 +61,11 @@ public record OccurrenceRecord(
         }
         clippings = List.copyOf(clippings == null ? List.of() : clippings);
     }
+
+    /** Same record with its public references replaced; no factual field is ever rewritten here. */
+    public OccurrenceRecord withClippings(List<ClippingReference> updated) {
+        return new OccurrenceRecord(id, happeningId, title, description, category, type, subtype, situation,
+                reliability, municipality, neighborhood, locationPrecision, coordinates, occurredAt, occurredFrom,
+                occurredUntil, temporalMatch, updated);
+    }
 }

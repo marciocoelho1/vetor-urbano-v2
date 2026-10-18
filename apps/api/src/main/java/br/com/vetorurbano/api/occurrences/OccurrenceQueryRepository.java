@@ -20,7 +20,7 @@ public class OccurrenceQueryRepository {
         HISTORY
     }
 
-    private static final String SELECT_SQL = """
+    private static final String SELECT_CORE = """
             SELECT
                 o.id,
                 o.happening_id,
@@ -48,6 +48,15 @@ public class OccurrenceQueryRepository {
                     WHEN o.occurred_from < :periodEnd AND o.occurred_until > :periodStart THEN 'POSSIBLE'
                     ELSE 'OUTSIDE'
                 END AS temporal_match
+            """;
+
+    private static final String SELECT_SQL = SELECT_CORE + "            FROM occurrences o\n            ";
+
+    /** Same projection plus the publication status that decides whether a register may still be read. */
+    private static final String SELECT_LOOKUP_SQL = SELECT_CORE + """
+            ,
+                o.publication_status,
+                o.withdrawn_at
             FROM occurrences o
             """;
 
@@ -221,6 +230,37 @@ public class OccurrenceQueryRepository {
                 .toList();
     }
 
+    /**
+     * Single-record read including withdrawn registers, so an old address can report unavailability
+     * without ever resending the retracted content. Absent identifiers return an empty list, and a
+     * withdrawn row carries no readable record.
+     */
+    public List<LookupRow> findAny(String id) {
+        var parameters = new MapSqlParameterSource()
+                .addValue("withoutPeriod", true)
+                .addValue("periodStart", null, java.sql.Types.TIMESTAMP)
+                .addValue("periodEnd", null, java.sql.Types.TIMESTAMP)
+                .addValue("id", id);
+        var rows = jdbc.query(SELECT_LOOKUP_SQL + " WHERE o.id = :id",
+                parameters,
+                (result, rowNumber) -> new LookupRow(
+                        result.getString("publication_status"),
+                        instant(result, "withdrawn_at"),
+                        OCCURRENCE_MAPPER.mapRow(result, rowNumber).toRecord(List.of())));
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        var row = rows.getFirst();
+        if (!"PUBLISHED".equals(row.publicationStatus()) || row.record() == null) {
+            return List.of(new LookupRow(row.publicationStatus(), row.withdrawnAt(), null));
+        }
+        return List.of(new LookupRow(row.publicationStatus(), row.withdrawnAt(),
+                row.record().withClippings(findClippings(List.of(id)).getOrDefault(id, List.of()))));
+    }
+
+    /** A stored row: either a readable record or only the fact and moment of its withdrawal. */
+    public record LookupRow(String publicationStatus, Instant withdrawnAt, OccurrenceRecord record) {}
+
     public List<OccurrenceRecord> findPublishedRelated(OccurrenceQuery query, List<String> happeningIds) {
         if (happeningIds.isEmpty()) return List.of();
         var parameters = new MapSqlParameterSource()
@@ -299,7 +339,7 @@ public class OccurrenceQueryRepository {
             Instant occurredFrom,
             Instant occurredUntil,
             TemporalMatch temporalMatch) {
-        private OccurrenceRecord toRecord(List<ClippingReference> clippings) {
+        OccurrenceRecord toRecord(List<ClippingReference> clippings) {
             return new OccurrenceRecord(
                     id,
                     happeningId,

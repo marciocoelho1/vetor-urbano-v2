@@ -3,6 +3,12 @@
 - Lote conferido por agente independente em worktree sobre a revisão commitada: API 14 unitários + 62 integrações HTTP/PostGIS (PostGIS real via Testcontainers), web lint + 114 testes + build, `planning` 395 links e Playwright Chromium/Firefox com 2/2 do 27, 2/2 do 17 e 1/1 do 36.
 - Três testes herdados de demonstração em `public-information.spec.ts` ainda falham porque exigem consulta anônima que `app.html` não oferece desde a sessão de módulos; o mesmo defeito foi reproduzido na revisão anterior ao lote (`67f29ae`), sem relação com estes commits. [Evidências](docs/history/ticket-17-progress-2026-10-17.md).
 
+## 2026-10-17 — Ticket local 18: correção e retirada de publicação sintética
+
+- Preparação de correção não altera a versão consultável: só a aprovação explícita da Administração (MFA/CSRF) acrescenta versão, com antes/depois, motivo, evidência e autoria da sessão convertida para referência histórica no encerramento da conta.
+- Retirada por erro essencial de lista fechada remove o registro de consulta, Histórico, contagens, relações, calor, XLSX e PDF; o endereço antigo responde `UNAVAILABLE` com o instante da retirada e nunca repete o conteúdo, e a trilha interna permanece.
+- Concorrência sem perda silenciosa: revisão nova, preparação concorrente e repetição da mesma decisão respondem 409 preservando as duas decisões para reconciliação. V12 adiciona `withdrawn_at`, razões essenciais, preparações e auditoria do editor; contrato em [publication-correction-local-v1](docs/architecture/publication-correction-local-v1.md). Suítes completas, navegador e revisão do lote serão registrados no [checkpoint](docs/history/ticket-18-progress-2026-10-17.md).
+
 ## 2026-10-17 — Ticket local 17: revisão humana de publicações
 
 - Fila ADMIN/MFA com original/extração, prioridade/espera, decisões justificadas, vários efeitos relacionados ou associação explícita de referência.

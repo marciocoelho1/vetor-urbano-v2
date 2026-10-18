@@ -1,15 +1,20 @@
 # Plano de trabalho
 
+Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
+
 ## Lote autorizado 27 → 36 → 17 → 18
 
 **27 em verificação:** canal privado HTTP/PostGIS e Angular implementado; alvo validado separado do editor territorial experimental. Testes direcionados: 15 unitários + 2 integrações e Playwright 2/2 Chromium/Firefox (teclado, estados, 390 px). Revisão e suítes completas pendentes. [Evidências](docs/history/ticket-27-progress-2026-10-17.md). Baseline preservado; sem push. Próxima ação: concluir revisão do 27 e integrar documentos no 36.
-
 
 **36 em verificação:** quatro rascunhos v1.3 reconciliados com canal 27, conta/encerramento e retenção aprovada; sem publicação jurídica. [Evidências](docs/history/ticket-36-progress-2026-10-17.md). Próxima ação: finalizar revisão e iniciar revisão/publicação sintética do 17.
 
 **Ticket local 17 — checkpoint concluído:** revisão/publicação sintética ADMIN/MFA com vários efeitos por clipping, associação explícita, núcleo/conflito validados no servidor, idempotência e autoria histórica. API 14 unitários + 62 integrações HTTP/PostGIS, web lint + 114 testes + build, `planning` 395 links e Playwright 2/2 Chromium/Firefox (mais 2/2 do 27 e 1/1 do 36). Três testes herdados de demonstração em `public-information.spec.ts` falham também na revisão anterior ao lote (`67f29ae`); não é regressão. [Evidências](docs/history/ticket-17-progress-2026-10-17.md). Próxima ação: o 18 segue em andamento por outro editor.
 
-Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
+**18 em verificação:** correção preparada não altera a versão publicada até aprovação explícita; retirada por erro essencial remove o registro da consulta/Histórico/contagens/exportações e o endereço antigo responde indisponibilidade sem repetir conteúdo; conflito concorrente preserva as duas decisões. V12 nova, `correction_editor_audit` append-only e `withdrawn_at` explícito; contrato em [docs/architecture/publication-correction-local-v1.md](docs/architecture/publication-correction-local-v1.md). [Evidências](docs/history/ticket-18-progress-2026-10-17.md). Próxima ação: concluir suítes completas, navegador e revisão do lote.
+
+## Situação consolidada dos tickets — 17/10
+
+O inventário atual registra **22 implementados localmente**, **5 parciais/com pendência de aceite** (07, 19, 25, 26, 36) e **9 ainda não iniciados** (17, 18, 20–24, 27, 35). A tabela com descrição breve e estado individual está em [docs/product/tickets-status.md](docs/product/tickets-status.md). Estado remoto do GitHub não confirmado; suítes completas não foram reexecutadas para esta conferência.
 
 ## Checkpoints do lote local 29 → 28 → 33
 

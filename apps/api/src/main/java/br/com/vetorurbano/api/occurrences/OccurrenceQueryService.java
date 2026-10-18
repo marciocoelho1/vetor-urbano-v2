@@ -25,6 +25,20 @@ public class OccurrenceQueryService {
         return toResponse(query, repository.findHistory(query));
     }
 
+    /** Single-record read; a record withdrawn after review answers only with its unavailability. */
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public java.util.Map<String,Object> findOne(String id) {
+        var rows = repository.findAny(id);
+        if (rows.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Ocorrência indisponível.");
+        }
+        var row = rows.getFirst();
+        if (row.record() == null) {
+            return OccurrenceLookup.unavailable(id, row.withdrawnAt());
+        }
+        return OccurrenceLookup.published(row.record());
+    }
     private OccurrenceQueryResponse toResponse(OccurrenceQuery query, List<OccurrenceRecord> records) {
         var uniqueHappenings = new HashSet<String>();
         long mapped = 0;

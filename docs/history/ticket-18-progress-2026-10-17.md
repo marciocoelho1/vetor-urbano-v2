@@ -1,0 +1,19 @@
+# Ticket local 18 — 17/10/2026
+
+Ordem preservada: 27 `5af44ed` → 36 `a7469e4` → 17 (commits próprios) → correção/retirada 18. Trabalho preexistente do repositório (mapa de calor, territórios experimentais, 25/26) permanece fora dos commits desta fatia.
+
+Implementados preparação de correção sem efeito na versão consultável, aprovação explícita da Administração com MFA/CSRF, retirada por erro essencial de lista fechada, leitura por endereço que responde indisponibilidade sem repetir conteúdo, conflito concorrente sem perda de decisão e desvinculação da autoria no encerramento da conta. Migração V12 nova; contrato em [publication-correction-local-v1](../architecture/publication-correction-local-v1.md).
+
+## Evidências
+
+- RED/iteração dirigida com JDK 21 local (`/tmp/vu-selected-jdk21`) e Podman/Testcontainers PostgreSQL 17/PostGIS 3.5 isolado: `VETOR_API_INTEGRATION_TESTS=PublishedEditorHttpIT VETOR_API_UNIT_TESTS=PublishedCoreTest bash scripts/verify.sh api` terminou em **3 unitários + 3 integrações HTTP, zero falhas/erros/pulados** (`/tmp/vu-18-api13.log`; reexecutado com o endpoint de alvo publicado em `/tmp/vu-18-api16.log`, mesmo 3 + 3, zero falhas).
+- Falhas reais encontradas e corrigidas durante a fatia, todas com teste: coluna `publication_status` ausente na leitura por identificador (503 em vez de indisponibilidade), `changes` devolvido como `PGobject` (java.lang.ClassCastException na decisão), par tipo/pilar `INTERDICAO`+`CONTINGENCIA` já publicado sendo recusado pelo catálogo de moderação, campos temporais `occurred_at`/`occurred_from`/`occurred_until` não mapeados na mesclagem e coordenadas do registro publicado ausentes no mapa de comparação (falso "ponto exige coordenadas"). O caso de ponto sustentado, o par publicado e a proposta idêntica ficaram cobertos por teste.
+- `PublishedCoreTest` cobre mesclagem somente das chaves propostas, catálogo/subtipo/nota/precisão/tempo recusados, bairro desconhecido explícito e par publicado legível. `PublishedEditorHttpIT` cobre autorização ADMIN/MFA e CSRF, 404 de preparação alheia, preparação sem efeito, conflito de versão, conflito concorrente preservando as duas decisões, replay recusado, retirada removendo consulta e Histórico, endereço antigo indisponível sem conteúdo e persistência da versão após reinício da JVM.
+
+## Estado da verificação de navegador (não aceito)
+
+`apps/web/e2e/publication-editor.spec.ts` (Chromium/Firefox, 390 px, opt-in por `VETOR_ACCOUNTS_E2E=1`) **não passa** e a suíte de navegador do 18 permanece **aberta**. Sintoma registrado nas rodadas `/tmp/vu-18-e2e21.log` a `/tmp/vu-18-e2e26.log`: a fila administrativa abre, o detalhe e a revisão respondem 200, mas os valores digitados nos campos do editor (título, motivo, evidência) não chegam ao componente — o `POST .../publication/preparations` sai com `changes:{}`, `reason:""` e `evidence:""` e o servidor recusa com 400 (comportamento correto do servidor, contrato do corpo já validado por HTTP). O `inputValue()` do DOM mantém o texto digitado, o que isola a falha na propagação para o modelo do componente, não no servidor nem no preenchimento do formulário. Correções tentadas e insuficientes nesta fatia: identidade de sessão estável no `effect()` (evita limpar a fila quando só o token CSRF rotaciona), reabertura do mesmo item sem remontar o bloco, ação `RETRACTION` por `[value]`/`(change)` em vez de `ngModel` e remoção do portão de habilitação baseado em campos simples. A suíte irmã do 17 (`publication-review.spec.ts`) passou 2/2 antes destas alterações.
+
+## Limites
+
+Sem prontidão operacional, publicação, deploy ou dados reais. A leitura por endereço é auditada como `RECORD_LOOKUP` e, no modo local integrado, exige sessão como o restante da consulta. Suítes completas web/api/planning, Playwright e revisão Standards + Spec do lote constam abaixo quando executadas; a retirada não apaga arquivos já baixados por terceiros.

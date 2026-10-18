@@ -15,13 +15,18 @@ import br.com.vetorurbano.api.auth.*;
 @ConditionalOnProperty(name="vetor.accounts.enabled",havingValue="true")
 public class CorrectionController {
     private final CorrectionService service;
-    public CorrectionController(CorrectionService service){this.service=service;}
+    private final br.com.vetorurbano.api.moderation.PublishedEditorService editor;
+    public CorrectionController(CorrectionService service,br.com.vetorurbano.api.moderation.PublishedEditorService editor){this.service=service;this.editor=editor;}
     public static UUID actor(HttpServletRequest request){return UUID.fromString((String)request.getAttribute("vu.account"));}
     public static void csrf(HttpServletRequest request){if(!AuthService.validCsrf(AuthController.token(request),request.getHeader("X-CSRF-Token")))throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Recarregue a sessão.");}
     @GetMapping("/corrections") public Object mine(HttpServletRequest request){return Map.of("items",service.list(actor(request),false));}
     @GetMapping("/corrections/{id}") public Object find(@PathVariable UUID id,HttpServletRequest request){return service.find(id,actor(request),false);}
     @PostMapping("/corrections") public ResponseEntity<?> create(@RequestBody Map<String,Object> body,HttpServletRequest request){csrf(request);return ResponseEntity.status(201).body(service.create(body,actor(request)));}
     @GetMapping("/admin/corrections") public Object queue(HttpServletRequest request){return Map.of("items",service.list(actor(request),true));}
+    /** Ticket 18: occurrences already requested for correction, with the prepared change if any. */
+    @GetMapping("/admin/corrections/publication-queue") public Object publicationQueue(HttpServletRequest request){return editor.queue(actor(request));}
+    /** Ticket 18: revision of the published record the editor must reference while preparing. */
+    @GetMapping("/admin/corrections/publication-targets/{targetId}") public Object publicationTarget(@PathVariable String targetId,HttpServletRequest request){return editor.occurrence(targetId,actor(request));}
     @GetMapping("/admin/corrections/{id}") public Object adminFind(@PathVariable UUID id,HttpServletRequest request){return service.find(id,actor(request),true);}
     @PostMapping("/admin/corrections/{id}/minimization") public Object minimize(@PathVariable UUID id,@RequestBody Map<String,Object> body,HttpServletRequest request){csrf(request);return service.minimize(id,body,actor(request));}
     @PostMapping("/admin/corrections/{id}/decisions") public Object decide(@PathVariable UUID id,@RequestBody Map<String,Object> body,HttpServletRequest request){csrf(request);return service.decide(id,body,actor(request));}

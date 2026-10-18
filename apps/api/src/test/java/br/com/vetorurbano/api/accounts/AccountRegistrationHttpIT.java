@@ -35,7 +35,7 @@ class AccountRegistrationHttpIT {
             var result=statement.executeQuery("SELECT to_regclass('public.local_accounts') IS NOT NULL");
             result.next(); boolean migrated=result.getBoolean(1); result.close();
             // Mesma lista de `LocalAuthHttpSupport`: inclua aqui toda tabela nova ligada a local_accounts.
-            if(migrated) statement.execute("TRUNCATE clipping_review_decisions,publication_versions,clipping_reviews,correction_decisions,correction_requests,correction_area_targets,auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,historical_actors,local_accounts RESTART IDENTITY");
+            if(migrated) statement.execute("TRUNCATE correction_editor_audit,occurrence_editor_preparations,clipping_review_decisions,publication_versions,clipping_reviews,correction_decisions,correction_requests,correction_area_targets,auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,historical_actors,local_accounts RESTART IDENTITY");
         }
     }
     private static final JsonMapper JSON=JsonMapper.builder().build();
