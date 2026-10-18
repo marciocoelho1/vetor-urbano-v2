@@ -1,6 +1,12 @@
 # Plano de trabalho
 
-Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
+Atualização: 18/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
+
+## Rodada autorizada 19 → 11 → 07 → 18 — checkpoint 19
+
+- Baseline local: branch `integration/functional-spec-v1`, HEAD `0da31f5`; sem alterações rastreadas. O arquivo não rastreado preexistente `docs/product/tickets-checklist.html` foi preservado, apesar da descrição inicial de árvore limpa.
+- **Ticket 19 concluído localmente:** `/api/v1/admin/logs` projeta `actor` e `historicalActor` em campos separados nas três origens; prova HTTP/PostGIS cobre conta viva, encerramento, UUID eliminado e as duas referências residuais distintas. Contratos de auditoria e encerramento atualizados. `bash scripts/verify.sh api`: 18 unitários + 86 integrações, sem falhas/erros/pulados; `bash scripts/verify.sh planning`: 421 links locais; `git diff --check`: passou. [Evidências](docs/history/ticket-19-progress-2026-10-18.md).
+- Próxima ação desta rodada: adaptar e validar o E2E do **11**, sem alterar decisões de sessão ou páginas públicas. Depois 07 e, por último, diagnóstico do binding do 18. O controlador `ticketctl.py` não foi executado nem reconciliado.
 
 ## Lote autorizado 27 → 36 → 17 → 18
 
@@ -23,7 +29,7 @@ Atualização: 17/10/2026. Único roadmap ativo; entregas anteriores no [diário
 
 **Ticket local 33 — checkpoint concluído:** D08, CA16 e RF02 preservados; dependências 06/14 atendidas, sem dependência do ticket 28. Aprovadas as abas Recorte/Ocorrências/Referências e suas colunas, exportação do recorte inteiro sem teto arbitrário, divisão acima de 1.048.575 linhas de dados por aba e erro visível sem arquivo parcial para conteúdo/tamanho incompatível com XLSX. Exportação exige sessão no servidor e registra `REPORT_EXPORT` com filtros minimizados conforme E08; workbook não contém fatores/notas internas. Commits de código/fix: `9bac3e4`, `6391a6c`. Web 111 testes; API 14 unitários + 29 integrações HTTP/PostGIS; Playwright 8/8 Chromium/Firefox; XLSX aberto no LibreOffice; `planning` validado após checkpoint. Bundle inicial excede 500 kB em 195,25 kB. Revisões Standards + Spec sem findings contra `1179973`. [Evidências detalhadas](docs/history/ticket-33-progress-2026-10-17.md). Dados sintéticos não indicam prontidão operacional. Próxima ação: selecionar o próximo ticket autorizado respeitando dependências e decisões aprovadas.
 
-## Estado e foco atual
+## Evidências históricas de continuidade
 
 **Início autorizado dos tickets 25 e 26 após a integração do 32 — 17/10:** 25 recebeu `ActiveReportQueryService`, com Clock e política de vigência injetados, consulta PostGIS independente por centro/raio até 5 km e união de recentes com antigas vigentes; sem endpoint, política operacional ou transições persistidas. 26 recebeu núcleo experimental de identidade territorial/versões incrementais, append transacional, conflito concorrente e validação Polygon/MultiPolygon 2D/SRID 4326 no PostGIS; SQL apenas de teste, sem migração produtiva, bean, endpoint ou autoria persistida. **Ambos iniciados, não concluídos nem ativados na aplicação.** API completa verificada: 15 unitários + 74 integrações, zero falhas/erros/pulados; 18 integrações territoriais. V9 e banco original preservados, sem repair/reset. Registros: [25](docs/history/ticket-25-progress-2026-10-17.md) e [26](docs/history/ticket-26-progress-2026-10-17.md). Próximas decisões: configuração sintética/semântica de confirmação no 25 e fluxo de edição/publicação territorial no 26; integrar autoria histórica antes de ativar persistência territorial. Sem commit, push ou deploy.
 

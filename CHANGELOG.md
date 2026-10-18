@@ -1,3 +1,10 @@
+## 2026-10-18 — Ticket 19: projeção de autoria histórica nos logs
+
+- `/api/v1/admin/logs` agora expõe `actor` e `historicalActor` em campos separados nas origens de segurança/conta e autoria de domínio. O contrato de auditoria foi atualizado e a pendência do encerramento de conta foi fechada; HTTP/PostGIS comprova os dois atores, o UUID eliminado ausente e referências residuais distintas.
+- `bash scripts/verify.sh api`: 18 unitários + 86 integrações HTTP/PostGIS, sem falhas/erros/pulados; `planning` (421 links) e `git diff --check` passaram. Sem mudança de tela; `web` e Playwright não foram reexecutados.
+- Para tornar a verificação completa executável, `ActiveReportQueryIT` limpa `publication_versions` da fixture migrada antes de apagar ocorrências; sem mudança de produção. `.editorconfig` agora explicita quatro espaços para Java, alinhada ao padrão já usado nos arquivos Java do projeto.
+- [Checkpoint do ticket 19](docs/history/ticket-19-progress-2026-10-18.md). Aceite sintético local; sem prontidão operacional, dados reais, push ou deploy.
+
 ## 2026-10-17 — Verificação isolada do lote 27 → 36 → 17
 
 - Lote conferido por agente independente em worktree sobre a revisão commitada: API 14 unitários + 62 integrações HTTP/PostGIS (PostGIS real via Testcontainers), web lint + 114 testes + build, `planning` 395 links e Playwright Chromium/Firefox com 2/2 do 27, 2/2 do 17 e 1/1 do 36.

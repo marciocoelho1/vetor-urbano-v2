@@ -115,6 +115,126 @@ class AuditHttpIT extends LocalAuthHttpSupport {
             assertEquals(400, request(app, "GET", "admin/logs?cursor=invalid", null).statusCode());
         }
     }
+    @Test void logsProjectLiveAndHistoricalActorsWithoutCollapsingAccountAndDomainReferences() throws Exception {
+        try (var app = start()) {
+            UUID closedAdmin = bootstrap(app);
+            accept(login(app, "admin14@example.test"));
+            byte[] closedAdminSecret = enrolledSecret(app, closedAdmin);
+            accept(request(app, "POST", "auth/mfa/verification", Map.of("code", code(closedAdminSecret))));
+
+            assertEquals(200, request(app, "POST", "account/display-name", Map.of("displayName", "Admin histórico sintético")).statusCode());
+            var created = request(app, "POST", "admin/sources", Map.of(
+                "name", "Fonte sintética de autoria histórica",
+                "channel", "Canal local sintético",
+                "territories", List.of("Rio de Janeiro"),
+                "pillars", List.of("TRANSITO"),
+                "accessMethod", "MANUAL",
+                "rating", 3,
+                "ratingJustification", "Avaliação fictícia para integração"
+            ));
+            assertEquals(201, created.statusCode(), created.body());
+            String sourceId = JSON.readTree(created.body()).path("id").asString();
+            var jdbc = app.getBean(JdbcTemplate.class);
+            long accountEventNumber = jdbc.queryForObject(
+                "SELECT id FROM account_audit_events WHERE account_id=? AND action='DISPLAY_NAME' ORDER BY id DESC LIMIT 1",
+                Long.class, closedAdmin);
+            long sourceEventNumber = jdbc.queryForObject(
+                "SELECT id FROM source_audit_events WHERE source_id=? AND action='CREATE' ORDER BY id DESC LIMIT 1",
+                Long.class, sourceId);
+            long securityEventNumber = jdbc.queryForObject(
+                "SELECT id FROM auth_audit_events WHERE account_id=? AND event_class='SECURITY' ORDER BY id DESC LIMIT 1",
+                Long.class, closedAdmin);
+
+            var liveLogs = JSON.readTree(request(app, "GET", "admin/logs", null).body());
+            long domainEventNumber = jdbc.queryForObject(
+                "SELECT id FROM auth_audit_events WHERE account_id=? AND event_class='ADMIN' ORDER BY id DESC LIMIT 1",
+                Long.class, closedAdmin);
+            var liveAccountEvent = findEvent(liveLogs, "account-" + accountEventNumber);
+            assertNotNull(liveAccountEvent);
+            assertEquals(closedAdmin.toString(), liveAccountEvent.path("actor").asString());
+            assertTrue(liveAccountEvent.has("historicalActor"));
+            assertTrue(liveAccountEvent.path("historicalActor").isNull());
+            var liveSourceEvent = findEvent(liveLogs, "source-" + sourceEventNumber);
+            assertNotNull(liveSourceEvent);
+            assertEquals(closedAdmin.toString(), liveSourceEvent.path("actor").asString());
+            assertTrue(liveSourceEvent.path("historicalActor").isNull());
+            var liveSecurityEvent = findEvent(liveLogs, "access-" + securityEventNumber);
+            assertNotNull(liveSecurityEvent);
+            assertEquals(closedAdmin.toString(), liveSecurityEvent.path("actor").asString());
+            assertTrue(liveSecurityEvent.path("historicalActor").isNull());
+            var liveDomainEvent = findEvent(liveLogs, "access-" + domainEventNumber);
+            assertNotNull(liveDomainEvent);
+            assertEquals(closedAdmin.toString(), liveDomainEvent.path("actor").asString());
+            assertTrue(liveDomainEvent.path("historicalActor").isNull());
+
+            var reader = JSON.readTree("""
+                {"action":"create","email":"logs-reader@example.test","displayName":"Leitor de logs","password":"Frase sintética para sessão 14"}
+                """);
+            new TransactionTemplate(app.getBean(org.springframework.transaction.PlatformTransactionManager.class))
+                .executeWithoutResult(status -> LocalAccountAdmin.execute(
+                    jdbc, app.getBean(AuthService.class), app.getBean(AccountPassword.class), CLOCK, reader));
+            UUID readerId = jdbc.queryForObject("SELECT id FROM local_accounts WHERE email='logs-reader@example.test'", UUID.class);
+            accept(login(app, "logs-reader@example.test"));
+            byte[] readerSecret = enrolledSecret(app, readerId);
+            accept(request(app, "POST", "auth/mfa/verification", Map.of("code", code(readerSecret))));
+            String readerCookie = cookie;
+            String readerCsrf = csrf;
+
+            CLOCK.advance(30);
+            cookie = null;
+            csrf = null;
+            accept(login(app, "admin14@example.test"));
+            accept(request(app, "POST", "auth/mfa/verification", Map.of("code", code(closedAdminSecret))));
+            CLOCK.advance(30);
+            var closure = request(app, "POST", "account/closure", Map.of(
+                "currentPassword", "Frase sintética para sessão 14",
+                "mfaCode", code(closedAdminSecret)
+            ));
+            assertEquals(200, closure.statusCode(), closure.body());
+            cookie = readerCookie;
+            csrf = readerCsrf;
+
+            var closedLogsResponse = request(app, "GET", "admin/logs", null);
+            assertEquals(200, closedLogsResponse.statusCode(), closedLogsResponse.body());
+            var closedLogs = JSON.readTree(closedLogsResponse.body());
+            assertFalse(closedLogsResponse.body().contains(closedAdmin.toString()),
+                "A resposta não pode expor o UUID da conta eliminada");
+
+            UUID securityReference = jdbc.queryForObject(
+                "SELECT historical_actor_id FROM account_audit_events WHERE action='ACCOUNT_CLOSURE' AND outcome='CLOSED'",
+                UUID.class);
+            UUID domainReference = jdbc.queryForObject(
+                "SELECT historical_actor_id FROM source_audit_events WHERE source_id=? AND action='CREATE'",
+                UUID.class, sourceId);
+            assertNotEquals(securityReference, domainReference,
+                "Segurança/conta e autoria de domínio precisam manter referências distintas");
+            assertNotEquals(closedAdmin, securityReference);
+            assertNotEquals(closedAdmin, domainReference);
+
+            var historicalAccountEvent = findEvent(closedLogs, "account-" + accountEventNumber);
+            assertNotNull(historicalAccountEvent);
+            assertTrue(historicalAccountEvent.path("actor").isNull());
+            assertEquals(securityReference.toString(), historicalAccountEvent.path("historicalActor").asString());
+            var historicalSourceEvent = findEvent(closedLogs, "source-" + sourceEventNumber);
+            assertNotNull(historicalSourceEvent);
+            assertTrue(historicalSourceEvent.path("actor").isNull());
+            assertEquals(domainReference.toString(), historicalSourceEvent.path("historicalActor").asString());
+            var historicalSecurityEvent = findEvent(closedLogs, "access-" + securityEventNumber);
+            assertNotNull(historicalSecurityEvent);
+            assertTrue(historicalSecurityEvent.path("actor").isNull());
+            assertEquals(securityReference.toString(), historicalSecurityEvent.path("historicalActor").asString());
+            var historicalDomainEvent = findEvent(closedLogs, "access-" + domainEventNumber);
+            assertNotNull(historicalDomainEvent);
+            assertTrue(historicalDomainEvent.path("actor").isNull());
+            assertEquals(domainReference.toString(), historicalDomainEvent.path("historicalActor").asString());
+        }
+    }
+
+    private static JsonNode findEvent(JsonNode page, String id) {
+        for (var event : page.path("items")) if (id.equals(event.path("id").asString())) return event;
+        return null;
+    }
+
     @Test void scheduledCleanupDeletesEligibleUsageWithoutHumanIntervention() throws Exception {
         try (var app = start("--vetor.audit.use-retention=1s", "--vetor.audit.cleanup-delay=100", "--vetor.audit.cleanup-initial-delay=100")) {
             UUID admin = bootstrap(app);

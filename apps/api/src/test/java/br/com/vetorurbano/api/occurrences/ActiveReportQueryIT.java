@@ -27,6 +27,7 @@ class ActiveReportQueryIT {
         Flyway.configure().dataSource(ds).load().migrate();
         var jdbc = new JdbcTemplate(ds);
         jdbc.update("DELETE FROM occurrence_clippings");
+        jdbc.update("DELETE FROM publication_versions");
         jdbc.update("DELETE FROM occurrences");
         // All inputs below are synthetic test cases, NOT approved product validity periods.
         add(jdbc, "recent-closed", "CLOSED", "2026-10-17T11:00:00Z", 0, "PUBLISHED");

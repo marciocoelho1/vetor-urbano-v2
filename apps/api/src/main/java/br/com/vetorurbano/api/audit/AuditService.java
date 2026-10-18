@@ -16,15 +16,16 @@ import tools.jackson.databind.json.JsonMapper;
 public class AuditService {
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String EVENTS = """
-        SELECT 'access-' || id AS id, 'access'::text AS event_kind, id AS event_number, account_id::text AS actor, occurred_at,
+        SELECT 'access-' || id AS id, 'access'::text AS event_kind, id AS event_number, account_id::text AS actor,
+               historical_actor_id::text AS historical_actor, occurred_at,
                module, action, outcome, parameters::text AS parameters,
                event_class
         FROM auth_audit_events
         UNION ALL
-        SELECT 'account-' || id, 'account', id, account_id::text, occurred_at, module, action, outcome,
+        SELECT 'account-' || id, 'account', id, account_id::text, historical_actor_id::text, occurred_at, module, action, outcome,
                '{}', event_class FROM account_audit_events
         UNION ALL
-        SELECT 'source-' || id, 'source', id, actor_id::text, occurred_at, 'sources', action, 'SUCCEEDED',
+        SELECT 'source-' || id, 'source', id, actor_id::text, historical_actor_id::text, occurred_at, 'sources', action, 'SUCCEEDED',
                jsonb_build_object('sourceId', source_id, 'before', before_snapshot,
                                   'after', after_snapshot)::text, event_class
         FROM source_audit_events
@@ -75,6 +76,7 @@ public class AuditService {
             (row, index) -> {
                 var event = new LinkedHashMap<String, Object>();
                 event.put("id", row.getString("id")); event.put("actor", row.getString("actor"));
+                event.put("historicalActor", row.getString("historical_actor"));
                 event.put("occurredAt", row.getTimestamp("occurred_at").toInstant());
                 event.put("module", row.getString("module")); event.put("action", row.getString("action"));
                 event.put("outcome", row.getString("outcome")); event.put("eventClass", row.getString("event_class"));

@@ -81,12 +81,9 @@ autenticador — sem eles a ação é recusada pelo servidor. Ao concluir qualqu
 acesso com aviso em foco e os campos sensíveis são limpos. Estados de carregamento/erro/vazio,
 teclado, 390 px e alternativa em lista permanecem os do painel.
 
-## Pendência registrada
+## Pendência encerrada — projeção de logs (ticket 19, 18/10/2026)
 
-A leitura administrativa de logs (`GET /api/v1/admin/logs`, ticket 19) projeta o ator a partir de
-`account_id`; depois do encerramento, os atos do autor histórico aparecem como "sistema". A
-referência residual existe no banco e é o que permite distinguir os atos do mesmo autor (ADR 0001);
-projetá-la na leitura pertence a um incremento da leitura de auditoria, não a esta fatia.
+`GET /api/v1/admin/logs` agora mantém `actor` (conta ativa, se houver) e projeta `historicalActor` em campo separado para `auth_audit_events`, `account_audit_events` e `source_audit_events`. A integração HTTP/PostGIS prova a referência viva antes do encerramento, as duas referências residuais diferentes depois dele e a ausência do UUID eliminado na resposta. Ver [ticket-19-progress-2026-10-18.md](../history/ticket-19-progress-2026-10-18.md).
 
 ## Limites
 
