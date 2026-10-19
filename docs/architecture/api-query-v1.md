@@ -106,3 +106,13 @@ Com a API em `127.0.0.1:8080` e o Angular em `127.0.0.1:4201`, abra `http://127.
 O cliente conserva opções territoriais e fontes já observadas na sessão; não é um catálogo oficial ou completo de fontes/territórios. Resultados relacionados preservam a situação publicada no banco; não recebem a regra de expiração das fixtures locais. A seleção Em andamento lê essa situação, sem afirmar validade operacional ainda não definida. Contas, moderação e regras operacionais seguem os tickets correspondentes.
 
 Indisponibilidade de conexão, consulta ou transação retorna 503; o servidor limita espera de conexão/socket/consulta. O navegador apresenta erro com retry e não chama esse estado de vazio. Durante carregamento/falha, o mapa anterior é identificado como último resultado, os totais atuais ficam suspensos. Uma resposta vazia válida continua distinta de erro.
+
+## Vigência humana (Trilha A do 25, 19/10/2026)
+
+`OccurrenceView.situation` continua factual/armazenada; `effectiveSituation` e `verification`
+acrescentam a projeção de vigência e o resumo temporal/versionado sem evidência ou identidade.
+Mapa, Histórico, Relatórios e detalhe usam essa projeção. O filtro estrito `situation=ONGOING`
+seleciona somente efeitos com evidência humana vigente da revisão atual; insuficientes/expirados
+entram em `situation=UNKNOWN`. Uma consulta usa um único instante do relógio e snapshot transacional;
+nenhuma leitura altera situação factual. Contagens e relacionados preservam o recorte do filtro
+efetivo. Sem evidência não se promete andamento. [Contrato de verificação](active-reports-local-v1.md).

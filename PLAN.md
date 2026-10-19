@@ -1,5 +1,12 @@
 # Plano de trabalho
 
+## Rodada de fechamento — 19/10/2026
+
+- Baseline `84013ad`, fetch e divergência `0 0`; **não commitar/push**, conforme último gate. [Decisões e evidências desta rodada](docs/history/closure-round-2026-10-19.md).
+- B1: logs exibem autoria histórica sem substituir conta viva; RED real antes do template. B2: importação/triagem localizadas na demonstração administrativa e cobertas separadamente, não confundidas com fila persistida. B3: runner containerizado documentado e exercitado. B4: medição da etapa B em 824,93 kB e da árvore final em 836,58 kB, proposta registrada sem mudar orçamento/carregamento. B5 não autorizado.
+- Verificação desta rodada: API dirigida **21 + 50** e completa **21 + 100** (zero falhas/erros/pulados); web lint/127/build; Playwright da seleção autorizada **42/42** Chromium/Firefox, incluindo auditoria real, encerramento, renovação de expiração, teclado/foco, 390 px e regressões 08/11/25. A dirigida 21/15 e a Playwright 30/30 foram evidência intermediária antes da Trilha A. Revisão independente ainda pendente.
+- **Trilha A entregue e verificada**: autorização para autor e ADMIN/MFA registrada antes do código; V14, histórico humano por efeito/versão, concorrência otimista, desligamento, vigência persistida, filtro estrito e toast/fila/editor/renovação administrativos implementados e provados com API/PostGIS reais. API final **21 unitários + 50 integrações** na dirigida e **21 + 100** na completa; web lint/127/build; Playwright **42/42** Chromium/Firefox. V1–V13 byte a byte intactas. Nada de staging/commit/push; revisão independente do coordenador pendente. [Checkpoint da rodada](docs/history/closure-round-2026-10-19.md#estado-final-da-trilha-a).
+
 Atualização: 18/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
 ## Ticket 25 — consulta integrada entregue; D06 persistido pendente

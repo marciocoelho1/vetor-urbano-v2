@@ -36,7 +36,36 @@ Para criar ou recuperar uma conta local no banco em uso, use o provisionador doc
 
 Em `?consulta=api`, autentique-se como USER e entre em Informes. A função solicita localização pontual; negativa/falha não bloqueia coordenadas WGS84 manuais nem escolha no mapa. A ação **Consultar proximidade** envia somente centro e raio (inteiro 1–5000 m) a `/api/v1/active-reports`; mudar os campos invalida o resultado anterior. Horário da consulta, insuficiência e falhas são explícitos; a distância no cliente é aproximada e não redefine a pertinência validada pelo PostGIS.
 
-A configuração `vetor.active-reports` inicia com mapas de duração/evidência **vazios**. Não adicionar prazos ou confirmações de operação sem aprovação. Evidência de vigência não é data do fato/publicação/coleta. Transições e última verificação persistidas de D06 permanecem pendentes, sem V14. A lista integrada não comprova andamento atual por si só. Parâmetros, proposta ao responsável e evidências sintéticas estão no [contrato](../architecture/active-reports-local-v1.md) e [checkpoint do 25](../history/ticket-25-progress-2026-10-18.md). Fora do modo API, permanece a demonstração.
+A Trilha A de 19/10/2026 substitui a política baseada em mapas por verificações humanas persistidas na V14. Autor da ocorrência e ADMIN com MFA podem confirmar a revisão atual, com evidência e concorrência explícitas. Prazos aprovados, transições e desligamento estão no [contrato](../architecture/active-reports-local-v1.md). A lista integrada não garante andamento atual por si só; expiração indica insuficiência. Fora do modo API, permanece a demonstração.
+
+## Verificar a API neste host sem JDK
+
+`bash scripts/verify.sh api` no host retorna **BLOQUEADO: comando não disponível: javac**. A alternativa verificada usa o mesmo runner em Maven/JDK 21, sem instalar JDK e sem recriar o banco sintético. Requisitos: Podman local funcional, curl, imagem Maven acessível e `$TMPDIR` gravável fora do repositório. O Testcontainers cria bancos descartáveis PostgreSQL **17.5/PostGIS 3.5** reais para as integrações; não usa mocks nem o banco E2E persistente.
+
+O daemon REST do Podman é **separado do CLI**: `podman ps`/`exec` funcionarem não prova que o socket está servido. Em um terminal, mantenha o processo em primeiro plano:
+
+```bash
+podman system service --time=0 "unix://$TMPDIR/vu.sock"
+```
+
+Em outro terminal, na raiz do repositório:
+
+```bash
+curl --fail --silent --show-error --unix-socket "$TMPDIR/vu.sock" http://d/_ping
+# Aguarde responder OK; não prossiga apenas porque o arquivo existe.
+VETOR_API_INTEGRATION_TESTS=ActiveReportHttpIT,ActiveReportQueryIT,AuditHttpIT,ClosureHttpIT \
+  bash scripts/verify-api-container.sh > "$TMPDIR/api-directed.log" 2>&1
+# Confira o status de saída antes de continuar e leia o log inteiro.
+bash scripts/verify-api-container.sh > "$TMPDIR/api-full.log" 2>&1
+```
+
+O [runner containerizado](../../scripts/verify-api-container.sh) verifica `_ping` e executa `scripts/verify.sh api` em `docker.io/library/maven:3.9.11-eclipse-temurin-21`, com `--security-opt label=disable`, `--network=host`, cache `$HOME/.m2:/root/.m2`, socket em `/tmp/podman.sock`, `DOCKER_HOST=unix:///tmp/podman.sock`, `TESTCONTAINERS_HOST_OVERRIDE=127.0.0.1` e `TESTCONTAINERS_RYUK_DISABLED=true`. Um shim efêmero de `docker` aceita **somente** `docker info`, respondendo pelo ping real; criação dos bancos é responsabilidade do Testcontainers via REST. O diretório do shim é removido ao sair. `VU_PODMAN_SOCKET` permite indicar outro socket já servido.
+
+Não usar `--userns=keep-id`: neste host ele quebra `/root`/entrypoint e o acesso a `/w`. SELinux requer `label=disable` para os bind mounts desta receita. O caminho padrão `/run/user/1000/podman/podman.sock` falhou com `bind: no such file or directory`; use o caminho explícito acima. Não faça repair/reset por checksum divergente. Não rode builds `clean` concorrentes no mesmo checkout. O serviço REST e o runner são processos distintos; reinicie/verifique o serviço em uma nova sessão, sem confiar que sobreviveu ao agente. Ao terminar, encerre o processo REST com Ctrl+C.
+
+Relatórios: `apps/api/target/surefire-reports/TEST-*.xml` (unidade) e `apps/api/target/failsafe-reports/TEST-*.xml` (integração). A próxima execução `clean` os apaga: copie-os antes se precisar preservar a seleção dirigida. Uma seleção inexistente pode ser ignorada se outra classe corresponder; confira os nomes efetivamente executados. Filtros estreitos escondem falhas: leia o log completo ou inclua **BLOQUEADO**, **BUILD FAILURE**, **ERROR** e resumos de testes no filtro; somente “BUILD SUCCESS” sem contagens não prova cobertura.
+
+Verificação final em 19/10, depois de toda a implementação da Trilha A: seleção acima **21 unitários + 50 integrações**; suíte completa **21 + 100**, zero falhas/erros/pulados (`final-directed.log`, `final-full.log`, XMLs em `final-directed-*`/`final-full-*`). Evidências no [checkpoint da rodada](../history/closure-round-2026-10-19.md#estado-final-da-trilha-a). Playwright segue separado e exige API real em 8080/caixa 8025 contra `vetor-spec-postgis`/`vetor_spec_test` em 55436; use `VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vetor-spec-postgis` e `--workers=1` para serializar fixtures compartilhadas entre browsers. Seleção autorizada final: **42/42** em Chromium/Firefox com o ciclo de expiração/renovação. A família `VETOR_PERSISTED_E2E` (`persisted-query`, `history-pagination`, `report-*`, `occurrence-heatmap-http`) está **fora da seleção** e depende de contêineres sintéticos históricos ausentes (`vu-ticket30-db`); não a execute como regressão desta árvore.
 
 ## Gerar o artefato
 
@@ -69,6 +98,21 @@ Tudo em `public/` e no bundle é acessível ao navegador. Credenciais de servido
 
 Execute lint, testes unitários, build e a matriz Playwright em Chromium/Firefox. No host escolhido, confira carregamento de mapas, fontes e sprites; alternância de temas; fluxo de consulta/cadastro; teclado e apresentação móvel. Mantenha o aviso de demonstração enquanto houver dados fictícios.
 
-O build atual ultrapassa o aviso de orçamento inicial de 500 kB em 2,64 kB. Há dois problemas de navegador registrados: tema local no mapa vetorial do cadastro e largura do cadastro a 320 px. Eles permanecem no [plano](../../PLAN.md), junto do QA em aparelho físico e leitor de tela.
+O build medido em 19/10/2026, depois da Trilha A e das correções da revisão independente, tem **836,58 kB** iniciais contra o aviso de **500 kB** (excesso de **336,58 kB**); `pako` CommonJS está no chunk PDF lazy, não no inicial. Medição, limites de atribuição e opções ainda **não aprovadas** no [checkpoint da rodada](../history/closure-round-2026-10-19.md#b4--medição-e-proposta-sem-alteração-do-orçamento). Orçamento e código de carregamento não foram alterados. QA em aparelho físico e leitor de tela permanece pendente.
 
 Hospedagem da demonstração e liberação operacional são etapas diferentes. Uma versão operacional depende de API/banco, autorização, moderação, políticas de dados, cobertura e recuperação verificadas. Commit e push não publicam a aplicação.
+
+## Fechamento persistido do 25 — atualização em 19/10/2026
+
+A decisão aprovada na retomada da Trilha A substitui a pendência de mapas vazios registrada acima:
+V14 persiste verificação humana por efeito/versão, e a política produtiva usa esse histórico.
+Prazos e permissões completos estão no [contrato atualizado](../architecture/active-reports-local-v1.md#trilha-a--decisão-aprovada-em-19102026).
+Não configurar mapas legados para simular confirmação humana. Aplicar V14 somente pelo Flyway no
+startup normal; nunca repair/reset nem alteração de V1–V13. O banco sintético existente não foi recriado.
+
+ADMIN com MFA recebe toast persistente para expiradas. Clicar abre Informes e a fila no início;
+Tratar carrega o editor. Renovação exige nova evidência humana e confirmação não futura, pelo mesmo
+prazo do tipo; a próxima expiração avisa novamente. Autor também pode confirmar seu efeito.
+409 exige recarregar e revisar antes de tentar outra decisão; nunca repetir a escrita automaticamente.
+Expiração é UNKNOWN na projeção, sem encerrar o fato. Polling de cinco segundos só em sessão aberta,
+sem serviço de push, coleta ou geofencing. Falha não significa fila vazia.

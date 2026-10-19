@@ -44,3 +44,12 @@ Expurgo transacional automático a cada 60 segundos (`cleanup-delay`, atraso ini
 Na mesma transação da eliminação cadastral: apagar USE do ator (E10); desligar account_id dos eventos SECURITY e atribuir UUID residual novo, distinto de login/autoria, sem mapa de correspondência; desligar ator de ADMIN e versões/configurações, substituindo por outra referência histórica nova e papel, compartilhada apenas entre atos históricos desse autor (E09/E16/ADR 0001). Remover IDs recuperáveis também dos snapshots, tokens, sessões e chaves de limites individuais. Nunca reutilizar esses identificadores no novo cadastro. Não apagar versões, ocorrências ou decisões por cascata. A migração e a prova do encerramento foram entregues na fatia 15C (tíquete 15): V9 cria `historical_actors` e as colunas `historical_actor_id`, e o encerramento aplica o desligamento descrito acima, incluindo o `authorId` embutido nos snapshots JSONB e o balde de limite derivado do endereço. **Duas** referências residuais distintas são usadas (segurança/conta e autoria de domínio), conforme exigido neste contrato e em E16 — nunca o mesmo UUID para as duas. Contrato do percurso em [account-closure-local-v1.md](account-closure-local-v1.md). A leitura administrativa de logs projeta essas referências em campos próprios desde o ticket 19, sem expor o UUID da conta eliminada; evidência HTTP/PostGIS em [ticket-19-progress-2026-10-18.md](../history/ticket-19-progress-2026-10-18.md).
 
 Mecanismos de supressão/reaplicação após restauração e teto de sete dias dos backups (E17), enquadramento legal e canal excepcional continuam complementos operacionais. Não há backup configurado ou restauração comprovada nesta fatia.
+
+## Verificação humana de vigência — ticket 25
+
+V14 acrescenta histórico de domínio `occurrence_verifications`, sem quarta origem de logs ou
+alteração dos prazos de expurgo. Guarda autoria/papel tipados, evidência restrita, versão factual,
+versão da decisão, situações anterior/nova e instantes de confirmação/expiração. Renovação não
+produz evento de uso com evidência. Transição factual registra a revisão de publicação e o evento
+administrativo minimizado já existente, sem copiar evidência ou UUID para snapshots. Encerramento
+usa o residual de domínio; leitura de logs continua separando `actor` e `historicalActor`.

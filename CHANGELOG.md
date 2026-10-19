@@ -1,3 +1,18 @@
+## 2026-10-19 — Fechamento dirigido: autoria histórica, cobertura administrativa e operação
+
+- Logs mostram `historicalActor` quando a conta viva não existe; o fallback de sistema fica reservado à ausência das duas referências. Jornada com encerramento real, teclado/foco e 390 px em Chromium/Firefox; RED observado antes da alteração.
+- Recuperada cobertura própria da importação CSV e triagem na demonstração administrativa existente (sem `?consulta=api`), autenticada com ADMIN/MFA reais. Nenhuma tela recriada e nenhum conteúdo externo buscado. Helper allowlisted também corrige banco fixo legado da regressão de auditoria.
+- Novo `scripts/verify-api-container.sh` usa o runner existente em Maven/JDK 21 com socket REST Podman validado; receita e limites em `docs/operations/web.md`. API dirigida 21 + 15 e completa 21 + 96; web lint/127/build; Playwright 30/30 nas seis suítes dirigidas.
+- Bundle inicial medido 824,93 kB (+324,93 kB); proposta registrada sem alterar orçamento ou carregamento. A permaneceu bloqueada na reconciliação explícita dos papéis com USER/ADMIN até a autorização recebida no mesmo dia: sem V14 ou parâmetros ativos **nesta etapa**. Sem commit/push conforme gate; revisão independente pendente. [Checkpoint](docs/history/closure-round-2026-10-19.md).
+
+## 2026-10-19 (segunda etapa) — Trilha A: verificação humana persistida e tratamento de expiração
+
+- **V14 `occurrence_verifications`**: histórico humano por efeito (`author_id XOR historical_actor_id`, `actor_role`, evidência, situações anterior/nova, `effect_version`, `verification_version`, instantes, expiração) com imutabilidade; V1–V13 preservadas byte a byte. `POST/GET /api/v1/active-reports/{id}/verification` e `GET /api/v1/active-reports/expired`; concorrência otimista recusa (409) sem sobrescrever, evidência vazia/repetida e instante futuro recusam (400), outro autor recebe 403 sem perfis novos.
+- **Vigência lida dos dados persistidos**: prazos aprovados por tipo (30 min, 2 h, 6 h, 24 h; roubo/furto/confronto sem extensão automática) com expiração em limite exclusivo; expiração projeta `UNKNOWN`, nunca `CLOSED`, sem UPDATE factual; filtro estrito, consulta, histórico e detalhe usam a situação efetiva e expõem resumo temporal/versionado (sem evidência nem identidade).
+- **Encerramento de conta** desliga a autoria do novo histórico no mesmo caminho da V9/V13; prova HTTP/PostGIS percorre todas as tabelas públicas e não encontra o UUID eliminado.
+- **Web**: toast ADMIN persistente para expiradas, clique abrindo Informes ativos, container no início com botão `Tratar`, editor sem evidência pré-preenchida e renovação pelo mesmo prazo, repetindo a cada nova expiração; carga/falha/vazio distintos e conflito sem repetir escrita.
+- **Verificações finais reais**: API dirigida 21 + 20 e completa 21 + 101 (zero falhas/erros/pulados, PostgreSQL 17.5/PostGIS 3.5 reais); web lint/127/build com inicial 836,58 kB; Playwright 42/42 Chromium/Firefox em 390 px, teclado/foco, API/PostGIS reais. Sem staging/commit/push; revisão independente do coordenador pendente. [Checkpoint](docs/history/closure-round-2026-10-19.md#estado-final-da-trilha-a).
+
 ## 2026-10-18 — Ticket 25: Informes integrados com negação segura de vigência
 
 - Endpoint autenticado USER `/api/v1/active-reports`: centro WGS84, raio inteiro até 5 km, união de recentes (inclusive encerradas) e antigas com confirmação configurada. Uma leitura do relógio preserva a janela UTC e situação armazenada; insuficiência é explícita na projeção consultiva. Falhas de banco/política respondem 503, nunca vazio.

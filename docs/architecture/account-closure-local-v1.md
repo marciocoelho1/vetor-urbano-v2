@@ -105,3 +105,12 @@ factual com minimização e desligamento do solicitante no encerramento; isso n�
 operacional de dados pessoais. A separação de autoria é irreversível, mas não é
 anonimização garantida: contexto, datas e textos podem permitir identificação e exigem avaliação
 própria em operação real.
+
+## Extensão de vigência — ticket 25 (V14)
+
+`occurrence_verifications` participa do mesmo desligamento transacional: `author_id` é anulado e
+`historical_actor_id` recebe o residual de domínio. Papel, evidência factual por efeito, versões,
+situações e instantes são preservados. A tabela não guarda UUID do autor em JSON/texto gerado pelo
+sistema. O trigger de imutabilidade permite apenas essa troca irreversível de autoria. Não há mapa
+recuperável. A prova HTTP/PostGIS encerra o autor real e procura seu UUID em todas as tabelas
+públicas, incluindo o novo histórico; conferir resultados da [rodada](../history/closure-round-2026-10-19.md).
