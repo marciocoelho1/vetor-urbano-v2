@@ -2,6 +2,16 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Ticket 10: Atualizar consulta sem perder contexto e estados explícitos', () => {
   test.beforeEach(async ({ page }) => {
+    // Regression of the demo boundary; ticket 35 separately proves real server authorization.
+    const session = {
+      code: 'SESSION',
+      message: 'Sessão sintética do 10',
+      authenticated: true,
+      role: 'USER',
+      csrfToken: 'synthetic-10',
+    };
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ json: session }));
+    await page.route('**/api/v1/auth/access/**', (route) => route.fulfill({ json: session }));
     await page.clock.setFixedTime(new Date('2026-10-15T15:00:00Z'));
     await page.addInitScript(() => {
       Object.defineProperty(window, 'WebGL2RenderingContext', { value: undefined });

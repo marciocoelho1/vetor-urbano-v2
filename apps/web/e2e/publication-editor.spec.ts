@@ -64,6 +64,11 @@ async function openQueueItem(
   // A ação pertence ao pedido aberto: com mais de um item na fila a busca global seria ambígua.
   await item.getByRole('button', { name: 'Iniciar análise' }).click();
   await expect(item.getByText(/Em análise/)).toBeVisible();
+  // The completed decision deliberately moves focus to feedback after reloading the queue.
+  // Observe that keyboard stop before moving on, rather than racing its scheduled focus.
+  await expect(
+    queue.getByRole('status').filter({ hasText: 'Solicitação registrada.' }),
+  ).toBeFocused();
   const editorButton = item.getByRole('button', { name: `Abrir edição da publicação ${target}` });
   await editorButton.focus();
   await expect(editorButton).toBeFocused();

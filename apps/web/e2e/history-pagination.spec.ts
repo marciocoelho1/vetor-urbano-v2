@@ -208,10 +208,25 @@ test('histórico completo: snapshot paginado, critérios combinados, estados e t
       url.searchParams.get('municipality') === 'Nova Iguaçu' &&
       url.searchParams.get('type') === 'FURTO' &&
       url.searchParams.get('sourceId') === 'vu-demo-source-001' &&
+      url.searchParams.get('situation') === 'UNKNOWN'
+    );
+  });
+  // FURTO has no approved validity extension (ticket 25): the raw ONGOING
+  // fixture is publicly UNKNOWN, not evidence of a currently ongoing effect.
+  const ongoingResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/v1/history/occurrences' &&
+      url.searchParams.get('type') === 'FURTO' &&
       url.searchParams.get('situation') === 'ONGOING'
     );
   });
   await page.getByTestId('history-situation-filter').selectOption('ONGOING');
+  const ongoing = await ongoingResponse;
+  expect(ongoing.status()).toBe(200);
+  expect((await ongoing.json()).counts.occurrences).toBe(0);
+  await expect(page.getByTestId('history-empty')).toBeVisible();
+  await page.getByTestId('history-situation-filter').selectOption('UNKNOWN');
   const combined = await combinedResponse;
   expect(combined.status()).toBe(200);
   const combinedBody = await combined.json();

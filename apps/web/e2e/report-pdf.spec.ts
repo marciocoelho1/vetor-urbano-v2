@@ -119,7 +119,23 @@ test('PDF A4 do snapshot completo preserva momento após publicação nova, com 
     expect(pageText).toContain('Vetor Urbano');
     expect(pageText).toContain(`Página ${index} de ${pages}`);
   }
-  expect(pdfText(firstPath, pages)).toContain('Limitações');
+  // The limitations section may span pages; its heading must stay with the
+  // first paragraph, and every paragraph must survive in order through the end.
+  const pageTexts = Array.from({ length: pages }, (_, index) => pdfText(firstPath, index + 1));
+  const limitationsPage = pageTexts.findIndex((text) => /\bLimitações\b/u.test(text));
+  expect(limitationsPage).toBeGreaterThanOrEqual(0);
+  const normalize = (text: string) => text.replace(/\s+/g, ' ').trim();
+  const firstLimitation =
+    'Documento do recorte completo disponível no momento original da geração. Não incorpora publicações posteriores sem atualização explícita. Dados e geometrias sintéticos do ambiente local; não usar para decisões operacionais.';
+  const finalLimitation =
+    'Intervalos aproximados preservam incerteza. Registros sem coordenada sustentada permanecem na alternativa em lista. Notas de fontes, fatores internos e dados administrativos não integram este documento.';
+  expect(normalize(pageTexts[limitationsPage])).toContain(`Limitações ${firstLimitation}`);
+  const limitationsText = normalize(pageTexts.slice(limitationsPage).join(' '));
+  expect(limitationsText).toContain(finalLimitation);
+  expect(limitationsText.indexOf(finalLimitation)).toBeGreaterThan(
+    limitationsText.indexOf(firstLimitation),
+  );
+  expect(normalize(pageTexts[pages - 1])).toContain(finalLimitation);
   const rendered = await renderPages(firstPath, testInfo.outputDir, 'pagina');
   expect(rendered).toHaveLength(pages);
   for (const name of rendered)
