@@ -14,7 +14,7 @@ Estado: **núcleo backend local implementado; ticket completo NÃO encerrado**. 
 ## Limites e decisões pendentes
 
 1. Configuração real por tipo e evidência que sustenta última confirmação, validade e insuficiência; nenhuma tabela/prazo foi aprovado aqui.
-2. Persistência de transições e última verificação sem encerrar efeitos relacionados; esquema e atualização concorrente dependem do contrato anterior. **V10 permanece reservada ao 25, não criada**; V11 pertence ao 26.
+2. Persistência de transições e última verificação sem encerrar efeitos relacionados; esquema e atualização concorrente dependem do contrato anterior. **V14 fica disponível para eventual persistência do 25, não criada**; V10 foi entregue pelo 27 e V13 pelo 26. Esta nota corrige a reserva antiga, não altera migrações aplicadas.
 3. Endpoint autenticado, projeção pública de situação efetiva/insuficiência, auditoria e contrato de erro; exigir autorização no servidor e testes HTTP próprios quando o endpoint existir.
 4. Integração de localização consentida/manual, carga/erro/vazio e jornadas Chromium/Firefox/teclado/mobile continuam fora desta fatia. Não executar nem declarar aceite de UI nova inexistente.
 

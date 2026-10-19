@@ -12,6 +12,10 @@ Parâmetros de uso são projetados por lista permitida E08, inclusive na leitura
 
 A exportação em PDF (ticket 34) registra `REPORT_PDF_EXPORT` na mesma classe USE de uso do módulo query. O evento conserva os filtros permitidos e as seis contagens do snapshot (ocorrências, acontecimentos, mapeadas, apenas em lista e certeza/possibilidade temporal), além de `snapshotGeneratedAt` (instante original da geração no cliente), `snapshotOrigin=CLIENT_SNAPSHOT` e `format=PDF`; nenhum conteúdo do documento, texto pesquisado, coordenada ou raio entra no log. A tentativa é registrada com `outcome=FAILED` sempre que o evento de sucesso não for aceito pelo servidor, e o registro só ocorre após autorização de sessão completa com CSRF.
 
+## Consulta de proximidade — ticket 25
+
+`ACTIVE_REPORT_QUERY` utiliza módulo `query` e classe USE existentes, sem migração ou novo módulo. A escrita contém exatamente `hasSpatialFilter=true` e `occurrences`; a allowlist de leitura já permite ambos. Nenhum ponto, coordenada, raio, bounds, referência da evidência ou texto é registrado. A prova HTTP parte de USER real e só troca para ADMIN/MFA ao ler `/api/v1/admin/logs`; conferir logs não substitui a autorização comum da consulta. [Contrato de Informes](active-reports-local-v1.md).
+
 ## Administração territorial — ticket 26
 
 [Versões territoriais](territorial-versions-local-v1.md) acrescentam o módulo `territories` em

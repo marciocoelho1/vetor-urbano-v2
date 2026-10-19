@@ -32,6 +32,12 @@ Duas instâncias não podem compartilhar a caixa local: a segunda falha no start
 
 Para criar ou recuperar uma conta local no banco em uso, use o provisionador documentado (`scripts/local-account-admin.py`, entrada por stdin, sem senha em histórico de shell). Nada disso vale para dados reais: o ambiente é sintético.
 
+## Informes no modo integrado
+
+Em `?consulta=api`, autentique-se como USER e entre em Informes. A função solicita localização pontual; negativa/falha não bloqueia coordenadas WGS84 manuais nem escolha no mapa. A ação **Consultar proximidade** envia somente centro e raio (inteiro 1–5000 m) a `/api/v1/active-reports`; mudar os campos invalida o resultado anterior. Horário da consulta, insuficiência e falhas são explícitos; a distância no cliente é aproximada e não redefine a pertinência validada pelo PostGIS.
+
+A configuração `vetor.active-reports` inicia com mapas de duração/evidência **vazios**. Não adicionar prazos ou confirmações de operação sem aprovação. Evidência de vigência não é data do fato/publicação/coleta. Transições e última verificação persistidas de D06 permanecem pendentes, sem V14. A lista integrada não comprova andamento atual por si só. Parâmetros, proposta ao responsável e evidências sintéticas estão no [contrato](../architecture/active-reports-local-v1.md) e [checkpoint do 25](../history/ticket-25-progress-2026-10-18.md). Fora do modo API, permanece a demonstração.
+
 ## Gerar o artefato
 
 Na raiz do repositório, com o Node.js de `.nvmrc`:

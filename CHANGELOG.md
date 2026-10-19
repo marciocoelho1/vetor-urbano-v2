@@ -1,3 +1,11 @@
+## 2026-10-18 — Ticket 25: Informes integrados com negação segura de vigência
+
+- Endpoint autenticado USER `/api/v1/active-reports`: centro WGS84, raio inteiro até 5 km, união de recentes (inclusive encerradas) e antigas com confirmação configurada. Uma leitura do relógio preserva a janela UTC e situação armazenada; insuficiência é explícita na projeção consultiva. Falhas de banco/política respondem 503, nunca vazio.
+- Política por tipo e evidência explícita, com mapas produtivos vazios; configuração/evidência ausente, futura ou expirada não confirma andamento. Auditoria `query`/USE armazena somente indicador espacial e contagem, sem coordenadas/raio/bounds. Nenhuma migração ou escrita factual.
+- Modo web API opt-in integra localização pontual, negativa/falha/manual, lista e foco, horário, carga/erro/vazio e 390 px. Consulta espacial/temporal não é refeita no cliente. Demonstração preservada; regressão do 08 ganhou sessão sintética completa na fronteira HTTP, sem substituir as sessões USER reais do novo E2E.
+- API completa: **21 unitários + 96 integrações PostGIS**; web lint/**127 testes**/build; Playwright **14/14 Chromium/Firefox** (25 + 08). [Decisões, revisão própria e comandos](docs/history/ticket-25-progress-2026-10-18.md). Drifts do contrato de correções e reserva V14 reconciliados.
+- **25 permanece parcial:** transições/última verificação de D06/CA08 persistidas e prazos operacionais dependem de aprovação; recomendações não são valores ativos. Sem V14, commit, push, deploy ou dados reais. Revisão independente cabe ao parent antes dos commits. Bundle excede orçamento; não há aceite operacional.
+
 ## 2026-10-18 — Ticket 26: revisão e aprovação territorial persistida
 
 - V13 promove o núcleo PostGIS para schema real com snapshots imutáveis, UUID estável, revisão incremental, referência temporal conhecida separada do cadastro, fonte versionada e geometria sem typmod com CHECKs explícitos. SQL sombra de teste removido; migrações V1–V12 e GeoJSON original preservados.

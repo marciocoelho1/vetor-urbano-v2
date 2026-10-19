@@ -13,9 +13,9 @@ Transições: Recebida → Em análise → Concluída ou Não procedente. Todas 
 
 ## Alvos e versões
 
-Ocorrência deve existir e estar publicada. Áreas devem constar de `correction_area_targets`, cadastro somente de leitura com versão positiva, referência, autor validador e instante; não há endpoint para criar áreas. Nenhuma área é semeada pela migração V10. Fixtures explícitas de teste demonstram validação. O protótipo territorial do 26 permanece inativo e seus IDs não são aceitos por inferência. Integração futura de áreas exige autoria/migração próprias.
+Ocorrência deve existir e estar publicada. Desde o ticket 26/V13, áreas são criadas/revisadas por `POST /api/v1/admin/risk-areas/{id}/versions` e publicadas somente por aprovação explícita em `POST /api/v1/admin/risk-areas/{id}/approvals`, com ADMIN/MFA/CSRF. A aprovação projeta atomicamente a versão em `correction_area_targets`, com referência e autoria. O canal exige a identidade e a aprovação correspondente: revisão preparada ou projeção isolada não basta. Nenhuma área é semeada pela V10. O núcleo territorial está ativo no modo integrado; ver [contrato territorial](territorial-versions-local-v1.md).
 
-Uma conclusão sem alteração material pode não ter versão aplicada; se informada, a referência deve ser comprovada pelo servidor. Neste incremento, somente versão de área validada pode ser referenciada; editor de ocorrência e referência à sua versão pertencem ao ticket 18.
+Uma conclusão sem alteração material pode não ter versão aplicada; se informada, a referência deve ser comprovada pelo servidor. Versão territorial exige aprovação do 26; a versão de ocorrência é comprovada pelo editor publicado do ticket 18, cujo [contrato](publication-correction-local-v1.md) distingue preparação, aprovação e retirada.
 
 ## Privacidade e encerramento
 
@@ -25,4 +25,4 @@ No encerramento, elimina-se o vínculo cadastral do solicitante. Os textos são 
 
 ## Interface e limites
 
-O procedimento público de correções oferece o canal no modo integrado `?consulta=api`, após autenticação. Inclui fila própria, fila administrativa, estados de carga/erro/vazio, reenvio e feedback em foco. A alternativa é uma lista, sem dependência do mapa. Sem arquivos/anexos, e-mail/push, editor territorial ou dados reais.
+O procedimento público de correções oferece o canal no modo integrado `?consulta=api`, após autenticação. Inclui fila própria, fila administrativa, estados de carga/erro/vazio, reenvio e feedback em foco. A alternativa é uma lista, sem dependência do mapa. O editor territorial integrado pertence ao ticket 26. Sem arquivos/anexos, e-mail/push ou dados reais.

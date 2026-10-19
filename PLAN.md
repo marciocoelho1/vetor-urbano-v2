@@ -2,6 +2,13 @@
 
 Atualização: 18/10/2026. Único roadmap ativo; entregas anteriores no [diário de outubro](docs/history/work-log-2026-10.md).
 
+## Ticket 25 — consulta integrada entregue; D06 persistido pendente
+
+- Baseline `d60fd7359c6fada91e38b4bcb261644e852a529e`, origin `0 7`; dois untracked preexistentes preservados. [Decisões anteriores ao código e evidências](docs/history/ticket-25-progress-2026-10-18.md).
+- Bean, HTTP USER real, centro WGS84/raio 1–5000 m, janela UTC única e união PostGIS; política declarada por tipo/evidência com mapas produtivos vazios. Projeção preserva situação armazenada e explicita efetiva/insuficiência; falhas 503 distintas de vazio. Auditoria USE minimizada. [Contrato](docs/architecture/active-reports-local-v1.md).
+- Web `?consulta=api`: localização consentida/negada/falha e alternativa manual, lista/detalhes por teclado, carga/erro/vazio, horário e 390 px; demo padrão preservada. API completa 21 unitários + 96 integrações; web lint/127 testes/build; Playwright 14/14 Chromium/Firefox (25 + regressão 08). Detalhes e logs no checkpoint.
+- Ticket **continua parcial**: sem aprovação de semântica/autoria/origem da confirmação e concorrência das transições, não criar V14 nem persistir última verificação/transições. Recomendações concretas de duração estão no checkpoint, não são configuração aprovada. CA08 persistido e aceite operacional abertos. Revisão própria em dois eixos não substitui a independente do parent; nenhum commit/push/deploy autorizado nesta execução. Bundle inicial acima do orçamento; sem QA físico.
+
 ## Ticket 26 — concluído no incremento local sintético
 
 - Baseline: `integration/functional-spec-v1`, HEAD `84fba01`, sem alterações rastreadas; dois arquivos não rastreados preexistentes preservados fora dos commits.
