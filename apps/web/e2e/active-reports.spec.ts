@@ -2,6 +2,16 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
   test.beforeEach(async ({ page }) => {
+    // Demo regression only: complete synthetic USER access boundary. Ticket 25 below uses real sessions.
+    const session = {
+      code: 'SESSION',
+      message: 'Sessão sintética do 08',
+      authenticated: true,
+      role: 'USER',
+      csrfToken: 'synthetic-08',
+    };
+    await page.route('**/api/v1/auth/session', (route) => route.fulfill({ json: session }));
+    await page.route('**/api/v1/auth/access/**', (route) => route.fulfill({ json: session }));
     await page.clock.setSystemTime(new Date('2026-10-15T15:00:00Z'));
     await page.addInitScript(() => {
       Object.defineProperty(window, 'WebGL2RenderingContext', { value: undefined });
