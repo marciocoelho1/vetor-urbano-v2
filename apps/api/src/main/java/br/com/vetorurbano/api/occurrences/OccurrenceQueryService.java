@@ -11,18 +11,27 @@ import org.springframework.transaction.annotation.Isolation;
 public class OccurrenceQueryService {
     private final OccurrenceQueryRepository repository;
 
-    public OccurrenceQueryService(OccurrenceQueryRepository repository) {
-        this.repository = repository;
+    private final java.time.Clock clock;
+    private final ActiveReportQueryService.ValidityPolicy validity;
+    private final OccurrenceVerificationService verifications;
+    public OccurrenceQueryService(OccurrenceQueryRepository repository,java.time.Clock clock,ActiveReportQueryService.ValidityPolicy validity,OccurrenceVerificationService verifications) {
+        this.repository=repository;this.clock=clock;this.validity=validity;this.verifications=verifications;
+    }
+    private OccurrenceSituation effective(OccurrenceRecord record,Instant at) {
+        return record.situation()==OccurrenceSituation.ONGOING && !validity.isCurrentlyValid(record,at)?OccurrenceSituation.UNKNOWN:record.situation();
+    }
+    private OccurrenceView view(OccurrenceRecord record,Instant at) {
+        return OccurrenceView.from(record,effective(record,at),verifications.summary(record.id()));
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public OccurrenceQueryResponse find(OccurrenceQuery query) {
-        return toResponse(query, repository.find(query));
+        return toResponse(query, repository.find(query.withoutSituations()));
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public OccurrenceQueryResponse findHistory(OccurrenceQuery query) {
-        return toResponse(query, repository.findHistory(query));
+        return toResponse(query, repository.findHistory(query.withoutSituations()));
     }
 
     /** Single-record read; a record withdrawn after review answers only with its unavailability. */
@@ -37,9 +46,12 @@ public class OccurrenceQueryService {
         if (row.record() == null) {
             return OccurrenceLookup.unavailable(id, row.withdrawnAt());
         }
-        return OccurrenceLookup.published(row.record());
+        var result=OccurrenceLookup.published(row.record());
+        result.put("occurrence",view(row.record(),clock.instant()));return result;
     }
     private OccurrenceQueryResponse toResponse(OccurrenceQuery query, List<OccurrenceRecord> records) {
+        var at=clock.instant();
+        records=records.stream().filter(record->query.situations().isEmpty()||query.situations().contains(effective(record,at).name())).toList();
         var uniqueHappenings = new HashSet<String>();
         long mapped = 0;
         long certain = 0;
@@ -64,11 +76,11 @@ public class OccurrenceQueryService {
                 records.size() - mapped,
                 certain,
                 possible);
-        var items = records.stream().map(OccurrenceView::from).toList();
+        var items = records.stream().map(record->view(record,at)).toList();
         var matchedIds = new HashSet<>(records.stream().map(OccurrenceRecord::id).toList());
         var related = repository.findPublishedRelated(query, List.copyOf(uniqueHappenings)).stream()
                 .filter(record -> !matchedIds.contains(record.id()))
-                .map(OccurrenceView::from).toList();
-        return new OccurrenceQueryResponse(Instant.now(), counts, items, related);
+                .map(record->view(record,at)).toList();
+        return new OccurrenceQueryResponse(at, counts, items, related);
     }
 }

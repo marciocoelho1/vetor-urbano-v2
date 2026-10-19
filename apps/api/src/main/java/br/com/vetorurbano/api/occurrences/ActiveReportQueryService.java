@@ -8,7 +8,7 @@ import java.util.Objects;
 
 /** Independent read-only query core; never changes a stored situation. */
 @org.springframework.stereotype.Service
-public final class ActiveReportQueryService {
+public class ActiveReportQueryService {
     /**
      * Integration port for an explicitly supplied validity policy and its evidence.
      * Implementations must return false for missing configuration/evidence. This port does not
@@ -23,7 +23,7 @@ public final class ActiveReportQueryService {
         }
     }
 
-    public enum Validity { CONFIRMED, NOT_CONFIRMED, MISSING_CONFIGURATION, MISSING_EVIDENCE, EXPIRED, NOT_APPLICABLE }
+    public enum Validity { CONFIRMED, NOT_CONFIRMED, MISSING_CONFIGURATION, MISSING_EVIDENCE, NO_APPROVED_EXTENSION, EXPIRED, NOT_APPLICABLE }
     public record Entry(OccurrenceRecord occurrence, Validity validity) {}
     public record Snapshot(Instant evaluatedAt, List<Entry> items) {}
 
@@ -42,6 +42,7 @@ public final class ActiveReportQueryService {
         return snapshot(center, radiusMeters).items().stream().map(Entry::occurrence).toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Snapshot snapshot(Coordinates center, int radiusMeters) {
         if (center == null || !Double.isFinite(center.longitude()) || !Double.isFinite(center.latitude())
                 || Math.abs(center.longitude()) > 180 || Math.abs(center.latitude()) > 90

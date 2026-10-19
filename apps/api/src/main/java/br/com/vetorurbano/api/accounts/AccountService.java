@@ -294,6 +294,7 @@ public class AccountService {
         jdbc.update("UPDATE source_audit_events SET actor_id=NULL,historical_actor_id=? WHERE actor_id=?",domainResidual,account);
         jdbc.update("UPDATE source_access_configurations SET created_by=NULL,historical_actor_id=? WHERE created_by=?",domainResidual,account);
         jdbc.update("UPDATE source_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
+        jdbc.update("UPDATE occurrence_verifications SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         jdbc.update("UPDATE territorial_versions SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         jdbc.update("UPDATE territorial_approvals SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);
         jdbc.update("UPDATE territorial_audit_events SET author_id=NULL,historical_actor_id=? WHERE author_id=?",domainResidual,account);

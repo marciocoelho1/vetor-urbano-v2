@@ -33,4 +33,8 @@ public record OccurrenceQuery(
         situations = List.copyOf(situations);
         bounds = List.copyOf(bounds);
     }
+    public OccurrenceQuery withoutSituations() {
+        return new OccurrenceQuery(periodStart,periodEnd,categories,noCategoriesSelected,types,subtypes,municipalities,neighborhoods,sourceIds,text,minReliability,maxReliability,List.of(),center,radiusMeters,timeStart,timeEnd,bounds);
+    }
+
 }

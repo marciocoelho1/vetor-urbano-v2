@@ -24,7 +24,12 @@ public class ActiveReportConfiguration {
     /** Explicit evidence, not occurrence/publication/collection timestamps. No persistence implied. */
     public record Confirmation(String type, Instant confirmedAt, String reference) {}
 
-    @Bean ActiveReportQueryService.ValidityPolicy activeReportValidity(Settings settings) {
-        return new ConfiguredValidityPolicy(settings);
+    /**
+     * The productive policy reads persisted human verifications (V14). The settings-backed
+     * {@link ConfiguredValidityPolicy} stays only as a tested legacy core: it is not wired here, so
+     * stale maps can never extend validity on their own.
+     */
+    @Bean ActiveReportQueryService.ValidityPolicy activeReportValidity(org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        return new PersistedValidityPolicy(jdbc);
     }
 }

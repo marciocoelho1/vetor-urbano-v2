@@ -72,7 +72,7 @@ class OccurrenceQueryHttpIT {
             var textResponse = get(application, allDefaultWindow() + "&text=colisao&minReliability=3");
             assertEquals(1, JSON.readTree(textResponse.body()).path("counts").path("occurrences").asInt());
             var situationResponse = get(application, allDefaultWindow() + "&situation=ONGOING");
-            assertEquals(1, JSON.readTree(situationResponse.body()).path("counts").path("occurrences").asInt());
+            assertEquals(0, JSON.readTree(situationResponse.body()).path("counts").path("occurrences").asInt());
         }
 
         try (var restartedApplication = startApi()) {
@@ -426,7 +426,7 @@ class OccurrenceQueryHttpIT {
             assertEquals(0, JSON.readTree(bounds.body()).path("counts").path("listOnlyOccurrences").asInt());
             var ongoing = get(application, "situation=ONGOING");
             assertEquals(200, ongoing.statusCode());
-            assertEquals(1, JSON.readTree(ongoing.body()).path("items").size());
+            assertEquals(0, JSON.readTree(ongoing.body()).path("items").size());
             for (var invalid : java.util.List.of("timeStart=25:00", "west=-43", "timeEnd=7:00", "subtype=bad%20value")) {
                 var response = get(application, allDefaultWindow() + "&" + invalid);
                 assertEquals(400, response.statusCode(), invalid);

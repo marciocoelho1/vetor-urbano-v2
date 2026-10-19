@@ -31,6 +31,7 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
 
     void fixture(JdbcTemplate jdbc) {
         jdbc.update("DELETE FROM occurrence_clippings");
+        jdbc.execute("TRUNCATE occurrence_verifications");
         jdbc.update("DELETE FROM publication_versions");
         jdbc.update("DELETE FROM occurrences");
         for (var id : List.of("recent-closed", "recent-ongoing", "old-confirmed", "old-unsupported")) {
@@ -55,11 +56,11 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
         }
     }
     @Test void configuredSyntheticEvidenceExpiresWithoutMutatingAnyRelatedEffect() throws Exception {
-        try (var app = start("--vetor.active-reports.validity-by-type[ACIDENTE]=PT60S",
-                "--vetor.active-reports.confirmations[old-confirmed].type=ACIDENTE",
-                "--vetor.active-reports.confirmations[old-confirmed].confirmed-at=2026-10-15T18:00:00Z",
-                "--vetor.active-reports.confirmations[old-confirmed].reference=synthetic-evidence-25")) {
+        try (var app = start()) {
             user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            var admin=bootstrap(app);accept(login(app,"admin14@example.test"));
+            byte[] secret=enrolledSecret(app,admin);accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            assertEquals(200,request(app,"POST","active-reports/old-confirmed/verification",Map.of("effectVersion",1,"verificationVersion",0,"situation","ONGOING","confirmedAt",clock().instant().minusSeconds(7140).toString(),"evidence","synthetic-evidence-25")).statusCode());
             var response=request(app,"GET",QUERY,null);assertEquals(200,response.statusCode(),response.body());
             var items=JSON.readTree(response.body()).path("items");
             assertReportItems(items,Set.of("recent-closed","recent-ongoing","old-confirmed"));
@@ -75,6 +76,157 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
             items=JSON.readTree(response.body()).path("items");
             assertReportItems(items,Set.of("recent-closed","recent-ongoing"));
             assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM occurrences WHERE id IN ('old-confirmed','old-unsupported') AND situation='ONGOING'",Integer.class));
+        }
+    }
+    @Test void persistedConfirmationRequiresEvidenceAndRejectsStaleVersion() throws Exception {
+        try(var app=start()) {
+            user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            var admin=bootstrap(app);accept(login(app,"admin14@example.test"));
+            byte[] secret=enrolledSecret(app,admin);accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            String path="active-reports/recent-ongoing/verification";
+            var command=new HashMap<String,Object>(Map.of("effectVersion",1,"verificationVersion",0,"situation","ONGOING","confirmedAt",clock().instant().toString(),"evidence",""));
+            assertEquals(400,request(app,"POST",path,command).statusCode());
+            command.put("evidence","Registro humano sintético por efeito 25");
+            var response=request(app,"POST",path,command);assertEquals(200,response.statusCode(),response.body());
+            assertEquals(409,request(app,"POST",path,command).statusCode());
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM occurrence_verifications",Integer.class));
+            var reports=JSON.readTree(request(app,"GET",QUERY,null).body()).path("items");
+            for(var item:reports) if(item.path("occurrence").path("id").asString().equals("recent-ongoing")) {
+                assertEquals("CONFIRMED",item.path("validity").asString());
+                assertEquals(clock().instant().toString(),item.path("verification").path("confirmedAt").asString());
+                assertTrue(item.path("verification").path("appliesToCurrentVersion").asBoolean());
+            }
+            clock().advance(7200);
+            accept(login(app,"admin14@example.test"));accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            reports=JSON.readTree(request(app,"GET",QUERY,null).body()).path("items");
+            for(var item:reports) if(item.path("occurrence").path("id").asString().equals("recent-ongoing")) {
+                assertEquals("EXPIRED",item.path("validity").asString());
+                assertEquals("UNKNOWN",item.path("effectiveSituation").asString());
+                assertEquals("ONGOING",item.path("occurrence").path("situation").asString());
+            }
+            assertEquals(1,JSON.readTree(request(app,"GET","active-reports/expired",null).body()).size());
+            var strict=request(app,"GET","occurrences?situation=ONGOING",null);assertEquals(200,strict.statusCode());
+            assertEquals(0,JSON.readTree(strict.body()).path("items").size());
+            var unknown=request(app,"GET","history/occurrences?situation=UNKNOWN",null);assertEquals(200,unknown.statusCode());
+            assertEquals(3,JSON.readTree(unknown.body()).path("items").size());
+
+
+            command.put("verificationVersion",1);
+            command.put("confirmedAt",clock().instant().toString());
+            assertEquals(400,request(app,"POST",path,command).statusCode());
+            command.put("evidence","Nova revisão humana sintética por efeito");
+            jdbc.update("UPDATE occurrences SET revision=revision+1 WHERE id='recent-ongoing'");
+            assertEquals(409,request(app,"POST",path,command).statusCode());
+            var edited=request(app,"GET","occurrences/recent-ongoing",null);assertEquals(200,edited.statusCode());
+            var editedView=JSON.readTree(edited.body()).path("occurrence");
+            assertEquals("ONGOING",editedView.path("situation").asString());assertEquals("UNKNOWN",editedView.path("effectiveSituation").asString());
+            assertFalse(editedView.path("verification").path("appliesToCurrentVersion").asBoolean());
+        }
+    }
+    @Test void authorConfirmationDetachesIrreversiblyOnClosure() throws Exception {
+        try(var app=start()) {
+            user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            var actor=jdbc.queryForObject("SELECT id FROM local_accounts WHERE email='active25@example.test'",UUID.class);
+            jdbc.update("INSERT INTO publication_versions(occurrence_id,version,action,reason,after_snapshot,author_id,occurred_at) VALUES('recent-ongoing',1,'PUBLISHED','Fixture de autoria','{}',?,?)",actor,java.sql.Timestamp.from(clock().instant()));
+            var command=new HashMap<String,Object>(Map.of("effectVersion",1,"verificationVersion",0,"situation","ONGOING","confirmedAt",clock().instant().plusSeconds(1).toString(),"evidence","Evidência humana específica da ocorrência"));
+            String path="active-reports/recent-ongoing/verification";
+            assertEquals(400,request(app,"POST",path,command).statusCode());
+            command.put("confirmedAt",clock().instant().toString());
+            assertEquals(403,request(app,"POST",path,command,null,false).statusCode());
+            var response=request(app,"POST",path,command);assertEquals(200,response.statusCode(),response.body());
+            var history=JSON.readTree(response.body()).path("history");assertEquals(1,history.size());
+            assertEquals("USER",history.get(0).path("actor_role").asString());
+            var closed=request(app,"POST","account/closure",Map.of("currentPassword","Frase sintética para sessão 14"));
+            assertEquals(200,closed.statusCode(),closed.body());
+            assertNull(jdbc.queryForObject("SELECT author_id FROM occurrence_verifications",UUID.class));
+            var residual=jdbc.queryForObject("SELECT historical_actor_id FROM occurrence_verifications",UUID.class);
+            assertNotNull(residual);assertNotEquals(actor,residual);
+            assertFalse(jdbc.queryForObject("SELECT to_jsonb(v)::text FROM occurrence_verifications v",String.class).contains(actor.toString()));
+            for(var table:jdbc.queryForList("SELECT tablename FROM pg_tables WHERE schemaname='public'",String.class)) {
+                assertFalse(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM public.\""+table+"\" t WHERE to_jsonb(t)::text LIKE ?)",Boolean.class,"%"+actor+"%")),table);
+            }
+        }
+    }
+    @Test void concurrentHumanDecisionsKeepOneWinnerAndRelatedEffectIndependent() throws Exception {
+        try(var app=start()) {
+            user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            assertEquals(403,request(app,"GET","active-reports/recent-ongoing/verification",null).statusCode());
+            var admin=bootstrap(app);accept(login(app,"admin14@example.test"));
+            assertEquals(403,request(app,"GET","active-reports/expired",null).statusCode());
+            byte[] secret=enrolledSecret(app,admin);accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            var command=Map.<String,Object>of("effectVersion",1,"verificationVersion",0,"situation","CLOSED","confirmedAt",clock().instant().toString(),"evidence","Resolução humana sintética específica deste efeito");
+            try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+                var first=pool.submit(()->request(app,"POST","active-reports/recent-ongoing/verification",command));
+                var second=pool.submit(()->request(app,"POST","active-reports/recent-ongoing/verification",command));
+                assertEquals(Set.of(200,409),Set.of(first.get().statusCode(),second.get().statusCode()));
+            }
+            var result=request(app,"GET","active-reports/recent-ongoing/verification",null);assertEquals(200,result.statusCode());
+            var decision=JSON.readTree(result.body());assertEquals("CLOSED",decision.path("situation").asString());
+            assertEquals(2,decision.path("revision").asInt());assertEquals(1,decision.path("history").size());
+            assertEquals(2,decision.path("history").get(0).path("effect_version").asInt());
+            assertEquals("ONGOING",jdbc.queryForObject("SELECT situation FROM occurrences WHERE id='old-unsupported'",String.class));
+        }
+    }
+    @Test void everyApprovedDurationExpiresInclusivelyWithoutExtendingUnsupportedTypes() throws Exception {
+        try(var app=start()) {
+            user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            var admin=bootstrap(app);accept(login(app,"admin14@example.test"));
+            byte[] secret=enrolledSecret(app,admin);accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            var durations=Map.ofEntries(Map.entry("CONGESTIONAMENTO",1800),Map.entry("DISPAROS",1800),
+                Map.entry("ACIDENTE",7200),Map.entry("OPERACAO_POLICIAL",7200),Map.entry("INTERDICAO",7200),Map.entry("SEMAFOROS",7200),Map.entry("ALAGAMENTO",7200),Map.entry("INCENDIO",7200),
+                Map.entry("DESLIZAMENTO",21600),Map.entry("ARVORE",21600),Map.entry("ENERGIA",21600),Map.entry("AGUA",21600),Map.entry("OBRAS",86400),
+                Map.entry("ROUBO",0),Map.entry("FURTO",0),Map.entry("CONFRONTO",0));
+            var expected=new HashSet<>(Set.of("recent-closed","recent-ongoing"));
+            for(var entry:durations.entrySet()) {
+                String id="duration-"+entry.getKey();
+                jdbc.update("""
+                    INSERT INTO occurrences(id,happening_id,title,description,category,occurrence_type,subtype,situation,reliability_score,municipality,neighborhood,location_precision,location,occurred_at,publication_status)
+                    SELECT ?,happening_id,?,description,category,?,subtype,situation,reliability_score,municipality,neighborhood,location_precision,location,occurred_at,publication_status FROM occurrences WHERE id='old-unsupported'
+                    """,id,id,entry.getKey());
+                var at=clock().instant().minusSeconds(Math.max(0,entry.getValue()-1));
+                var response=request(app,"POST","active-reports/"+id+"/verification",Map.of("effectVersion",1,"verificationVersion",0,"situation","ONGOING","confirmedAt",at.toString(),"evidence","Revisão humana sintética de "+id));
+                assertEquals(200,response.statusCode(),response.body());
+                if(entry.getValue()>0) expected.add(id);
+            }
+            var response=request(app,"GET",QUERY,null);assertEquals(200,response.statusCode());
+            assertReportItems(JSON.readTree(response.body()).path("items"),expected);
+            clock().advance(1);
+            response=request(app,"GET",QUERY,null);assertEquals(200,response.statusCode());
+            assertReportItems(JSON.readTree(response.body()).path("items"),Set.of("recent-closed","recent-ongoing"));
+            assertEquals(13,JSON.readTree(request(app,"GET","active-reports/expired",null).body()).size());
+            assertEquals(16,jdbc.queryForObject("SELECT count(*) FROM occurrences WHERE id LIKE 'duration-%' AND situation='ONGOING'",Integer.class));
+        }
+    }
+    @Test void approvedNonExtendedTypeIsLabelledAsDecisionNotAsMissingConfiguration() throws Exception {
+        try(var app=start()) {
+            user(app);var jdbc=app.getBean(JdbcTemplate.class);fixture(jdbc);
+            var admin=bootstrap(app);accept(login(app,"admin14@example.test"));
+            byte[] secret=enrolledSecret(app,admin);accept(request(app,"POST","auth/mfa/verification",Map.of("code",code(secret))));
+            for(var type:List.of("ROUBO","TIPO_NAO_CATALOGADO")) {
+                String id="not-window-"+type;
+                jdbc.update("""
+                    INSERT INTO occurrences(id,happening_id,title,description,category,occurrence_type,subtype,situation,reliability_score,municipality,neighborhood,location_precision,location,occurred_at,publication_status)
+                    SELECT ?,happening_id,?,description,category,?,subtype,'ONGOING',reliability_score,municipality,neighborhood,location_precision,location,?::timestamptz,publication_status FROM occurrences WHERE id='old-unsupported'
+                    """,id,id,type,clock().instant().minusSeconds(3600).toString());
+                assertEquals(200,request(app,"POST","active-reports/"+id+"/verification",Map.of("effectVersion",1,"verificationVersion",0,"situation","ONGOING","confirmedAt",clock().instant().toString(),"evidence","Revisão humana sintética de "+id)).statusCode());
+            }
+            var items=JSON.readTree(request(app,"GET",QUERY,null).body()).path("items");
+            var seen=new HashMap<String,String>();
+            var effective=new HashMap<String,String>();
+            for(var item:items) {
+                var id=item.path("occurrence").path("id").asString();
+                if(id.startsWith("not-window-")) {
+                    seen.put(id,item.path("validity").asString());
+                    effective.put(id,item.path("effectiveSituation").asString());
+                }
+            }
+            // Approved decision: roubo has no automatic window, which is not a missing configuration.
+            assertEquals("NO_APPROVED_EXTENSION",seen.get("not-window-ROUBO"));
+            assertEquals("UNKNOWN",effective.get("not-window-ROUBO"));
+            assertEquals("MISSING_CONFIGURATION",seen.get("not-window-TIPO_NAO_CATALOGADO"));
+            for(var item:JSON.readTree(request(app,"GET","active-reports/expired",null).body()))
+                assertFalse(item.path("id").asString().startsWith("not-window-"),"tipo sem janela não aparece como expirado");
+            assertNull(jdbc.queryForObject("SELECT expires_at FROM occurrence_verifications WHERE occurrence_id='not-window-ROUBO'",java.sql.Timestamp.class));
         }
     }
     void assertReportItems(tools.jackson.databind.JsonNode items, Set<String> expectedIds) {
@@ -109,7 +261,7 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
                 if (item.path("occurrence").path("id").asString().equals("recent-ongoing")) {
                     assertEquals("ONGOING",item.path("occurrence").path("situation").asString());
                     assertEquals("UNKNOWN",item.path("effectiveSituation").asString());
-                    assertEquals("MISSING_CONFIGURATION",item.path("validity").asString());
+                    assertEquals("MISSING_EVIDENCE",item.path("validity").asString());
                 }
             }
             for (String bad : List.of("active-reports",QUERY.replace("5000","5001"), QUERY.replace("5000","0"), QUERY.replace("5000","1.5"), QUERY.replace("-22.9033","91"),QUERY.replace("-43.1915","NaN"),QUERY+"&longitude=0"))

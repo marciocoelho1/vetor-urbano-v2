@@ -18,7 +18,9 @@ public record OccurrenceView(
         List<Double> coordinates,
         TemporalMatch temporalMatch,
         TemporalFactView temporal,
-        List<OccurrenceClippingView> clippings
+        List<OccurrenceClippingView> clippings,
+        OccurrenceSituation effectiveSituation,
+        OccurrenceVerificationService.VerificationSummary verification
 ) {
     public OccurrenceView {
         coordinates = coordinates == null ? null : List.copyOf(coordinates);
@@ -26,6 +28,9 @@ public record OccurrenceView(
     }
 
     public static OccurrenceView from(OccurrenceRecord record) {
+        return from(record,record.situation(),null);
+    }
+    public static OccurrenceView from(OccurrenceRecord record,OccurrenceSituation effectiveSituation,OccurrenceVerificationService.VerificationSummary verification) {
         var temporal = new TemporalFactView(
                 record.occurredAt(),
                 record.occurredFrom(),
@@ -58,6 +63,6 @@ public record OccurrenceView(
                 coordinates,
                 record.temporalMatch(),
                 temporal,
-                clippings);
+                clippings,effectiveSituation,verification);
     }
 }
