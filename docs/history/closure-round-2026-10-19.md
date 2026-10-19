@@ -287,3 +287,15 @@ eixos depois delas.
   limpos; V1–V13 conferidas byte a byte (13/13) antes e depois das correções.
 - Nada disto é aceite operacional: sem QA físico, leitor de tela, deploy, coleta ou dados reais, e as
   demais specs de navegador não foram reexecutadas.
+
+## Envio — 19/10/2026
+
+Revisão independente concluída e correções aplicadas; o gate de não commitar foi substituído pela
+autorização de envio do responsável nesta sessão. Quatro commits por escopo, em caminhos exatos:
+`e37f659` (api), `0baefde` (web), `762a8ba` (e2e) e `4a2a7cb` (docs). `git push origin
+integration/functional-spec-v1` respondeu `84013ad..4a2a7cb` e `git ls-remote` devolve o mesmo
+`4a2a7cbe907ac05e713a724444e51842e4dec8f8` de `git rev-parse HEAD`; `git status -sb` não mostra
+«à frente». Os dois arquivos não rastreados preexistentes (`docs/product/tickets-checklist.html` e
+`scripts/generate-tickets-checklist.py`) permanecem fora dos commits e do push, por decisão do
+responsável. Nenhum `--force`, tag ou envio para `main`. Sem deploy, coleta, dados reais ou
+recreação do contêiner sintético.
