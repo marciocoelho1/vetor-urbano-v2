@@ -1,3 +1,8 @@
+import {
+  activeReportRecords,
+  fetchActiveReports,
+  type ActiveReportResponse,
+} from './data/active-report-query';
 import { recordPersistedPdfExport } from './data/persisted-query';
 import {
   compareReports,
@@ -565,6 +570,14 @@ export class App implements AfterViewInit, OnDestroy {
   });
   protected readonly mapPickPurpose = signal<'report' | 'radius' | 'active' | null>(null);
   protected readonly formatDistance = formatDistance;
+  protected readonly informesLoading = signal(false);
+  protected readonly informesError = signal('');
+  protected readonly informesLocationStatus = signal(
+    'Escolha um ponto manual ou permita localização pontual.',
+  );
+  protected readonly informesResponse = signal<ActiveReportResponse | null>(null);
+  private readonly informesRequest = signal<{ center: Coordinates; radius: number } | null>(null);
+  private informesLocationAttempt = 0;
   protected readonly informesRadiusMeters = signal(INFORMES_INITIAL_RADIUS_METERS);
   protected readonly informesCenter = signal({
     longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),
@@ -1373,9 +1386,16 @@ export class App implements AfterViewInit, OnDestroy {
       referenceTime: this.queryReferenceDate(),
     });
   });
-  protected readonly activeRecords = computed(() =>
-    this.activeReportItems().map((item) => ({
+  protected readonly activeRecords = computed(() => {
+    if (this.persistedQueryEnabled) {
+      const response = this.informesResponse();
+      const request = this.informesRequest();
+      return response && request ? activeReportRecords(response, request.center) : [];
+    }
+    return this.activeReportItems().map((item) => ({
       ...item.record,
+      storedSituation: item.record.situation,
+      validityLabel: '',
       distanceMeters: item.distanceMeters,
       distanceLabel: item.distanceLabel,
       isOngoing: item.isOngoing,
@@ -1384,8 +1404,8 @@ export class App implements AfterViewInit, OnDestroy {
       isUncertainTime: item.isUncertainTime,
       isUncertainSituation: item.isUncertainSituation,
       temporalStatus: item.temporalStatus,
-    })),
-  );
+    }));
+  });
   private readonly relatedDetailIds = signal<Record<string, string>>({});
   protected readonly happeningCount = computed(
     () =>
@@ -1402,7 +1422,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
   private readonly detailPoints = computed(() => [
     ...new Map(
-      [...this.allPoints(), ...this.historyContextPoints()].map((point) => [point.id, point]),
+      [
+        ...this.allPoints(),
+        ...this.historyContextPoints(),
+        ...(this.persistedQueryEnabled && this.activeView() === 'active'
+          ? this.activeRecords()
+          : []),
+      ].map((point) => [point.id, point]),
     ).values(),
   ]);
   protected relatedOccurrences(point: DemoPoint): DemoPoint[] {
@@ -1417,7 +1443,11 @@ export class App implements AfterViewInit, OnDestroy {
   }
   protected isInQuery(point: DemoPoint): boolean {
     const records =
-      this.activeView() === 'history' ? this.filteredHistoryRecords() : this.visiblePoints();
+      this.activeView() === 'active'
+        ? this.activeRecords()
+        : this.activeView() === 'history'
+          ? this.filteredHistoryRecords()
+          : this.visiblePoints();
     return records.some((item) => item.id === point.id);
   }
   protected happeningSummary(point: DemoPoint): string {
@@ -1728,6 +1758,39 @@ export class App implements AfterViewInit, OnDestroy {
           });
       });
     });
+    effect((onCleanup) => {
+      const active = this.activeView() === 'active';
+      const authenticated = this.session.state()?.authenticated;
+      const query = this.informesRequest();
+      if (!this.persistedQueryEnabled) return;
+      if (!active || !authenticated || !query) {
+        untracked(() => {
+          this.informesResponse.set(null);
+          this.informesLoading.set(false);
+        });
+        return;
+      }
+      const abort = new AbortController();
+      onCleanup(() => abort.abort());
+      untracked(() => {
+        this.informesResponse.set(null);
+        this.informesError.set('');
+        this.informesLoading.set(true);
+        void fetchActiveReports(query.center, query.radius, abort.signal)
+          .then((response) => {
+            if (!abort.signal.aborted) this.informesResponse.set(response);
+          })
+          .catch((error: unknown) => {
+            if (!abort.signal.aborted)
+              this.informesError.set(
+                error instanceof Error ? error.message : 'Consulta indisponível.',
+              );
+          })
+          .finally(() => {
+            if (!abort.signal.aborted) this.informesLoading.set(false);
+          });
+      });
+    });
     effect(() => {
       const dark = this.theme.dark();
       this.mapDark.set(dark);
@@ -1770,6 +1833,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.informesLocationAttempt++;
     this.reportQueryAbort?.abort();
     if (this.mapRefreshFrame !== undefined) cancelAnimationFrame(this.mapRefreshFrame);
     this.mapResizeObserver?.disconnect();
@@ -1819,6 +1883,8 @@ export class App implements AfterViewInit, OnDestroy {
     this.publicPageOrigins = [];
     this.suppressViewTitleFocusFor = null;
     this.activeView.set(view);
+    this.informesLocationAttempt++;
+    if (view === 'active' && this.persistedQueryEnabled) this.requestInformesLocation();
     this.mapExpanded.set(false);
     this.reportStatus.set('');
     // The public map's section stays mounted: preserve its camera and downloaded tiles.
@@ -2235,6 +2301,8 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected showDetails(point: DemoPoint): void {
     this.selectedPointId.set(point.id);
+    if (this.activeView() === 'active')
+      requestAnimationFrame(() => document.getElementById('active-detail-heading')?.focus());
   }
 
   protected isResultDetailOpen(pointId: string): boolean {
@@ -2262,7 +2330,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected closeDetails(): void {
+    const id = this.selectedPointId();
     this.selectedPointId.set(null);
+    if (this.activeView() === 'active' && id)
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>(`[data-active-details="${CSS.escape(id)}"]`)?.focus(),
+      );
     this.refreshMapData();
   }
 
@@ -2603,16 +2676,94 @@ export class App implements AfterViewInit, OnDestroy {
     this.refreshMapData();
   }
 
+  protected requestInformesLocation(): void {
+    if (!this.persistedQueryEnabled) return;
+    const attempt = ++this.informesLocationAttempt;
+    this.clearInformesQuery();
+    this.informesLocationStatus.set(
+      'Aguardando permissão de localização pontual; a escolha manual continua disponível.',
+    );
+    const current = () =>
+      attempt === this.informesLocationAttempt &&
+      this.activeView() === 'active' &&
+      this.session.state()?.authenticated;
+    if (!navigator.geolocation) {
+      this.informesLocationStatus.set('Localização indisponível. Escolha um ponto manual.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (!current()) return;
+        this.informesCenter.set({
+          longitude: String(position.coords.longitude),
+          latitude: String(position.coords.latitude),
+        });
+        this.informesLocationStatus.set(
+          'Localização permitida para esta consulta pontual. Nenhum rastreamento contínuo.',
+        );
+        this.consultInformes();
+      },
+      (error) => {
+        if (!current()) return;
+        this.informesLocationStatus.set(
+          error.code === 1
+            ? 'Localização negada. Escolha um ponto manual.'
+            : 'Não foi possível obter localização. Escolha um ponto manual.',
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
+  private clearInformesQuery(): void {
+    this.informesRequest.set(null);
+    this.informesResponse.set(null);
+    this.informesError.set('');
+    this.selectedPointId.set(null);
+  }
+
+  protected consultInformes(): void {
+    this.informesLocationAttempt++;
+    const center = this.informesCenter();
+    const longitude = Number(center.longitude),
+      latitude = Number(center.latitude),
+      radius = this.informesRadiusMeters();
+    this.clearInformesQuery();
+    if (
+      !center.longitude.trim() ||
+      !center.latitude.trim() ||
+      !Number.isFinite(longitude) ||
+      !Number.isFinite(latitude) ||
+      Math.abs(longitude) > 180 ||
+      Math.abs(latitude) > 90 ||
+      !Number.isInteger(radius) ||
+      radius < 1 ||
+      radius > 5000
+    ) {
+      this.informesError.set('Revise o centro WGS84 e o raio inteiro entre 1 e 5000 metros.');
+      return;
+    }
+    this.informesRequest.set({ center: [longitude, latitude], radius });
+  }
+
   protected setInformesCoordinate(axis: 'longitude' | 'latitude', value: string): void {
+    if (this.persistedQueryEnabled) {
+      this.informesLocationAttempt++;
+      this.clearInformesQuery();
+    }
     this.informesCenter.update((center) => ({ ...center, [axis]: value }));
   }
 
   protected setInformesRadius(value: string | number, target?: HTMLInputElement): void {
+    if (this.persistedQueryEnabled) {
+      this.informesLocationAttempt++;
+      this.clearInformesQuery();
+    }
     const radius = Number(value);
     if (Number.isFinite(radius)) {
       const clamped = Math.min(
         INFORMES_MAXIMUM_RADIUS_METERS,
-        Math.max(INFORMES_MINIMUM_RADIUS_METERS, radius),
+        Math.max(this.persistedQueryEnabled ? 1 : INFORMES_MINIMUM_RADIUS_METERS, radius),
       );
       this.informesRadiusMeters.set(clamped);
       if (target && target.value !== String(clamped)) {
@@ -2627,9 +2778,14 @@ export class App implements AfterViewInit, OnDestroy {
       latitude: String(CENTRAL_DO_BRASIL_CENTER[1]),
     });
     this.informesRadiusMeters.set(INFORMES_INITIAL_RADIUS_METERS);
+    if (this.persistedQueryEnabled) this.consultInformes();
   }
 
   protected beginMapPick(purpose: 'report' | 'radius' | 'active'): void {
+    if (purpose === 'active' && this.persistedQueryEnabled) {
+      this.informesLocationAttempt++;
+      this.clearInformesQuery();
+    }
     this.mapPickPurpose.set(purpose);
     this.consultationView.set('map');
     if (purpose === 'report' || purpose === 'active') this.activeView.set('map');
@@ -2650,6 +2806,8 @@ export class App implements AfterViewInit, OnDestroy {
     } else if (purpose === 'active') {
       this.informesCenter.set({ longitude: String(longitude), latitude: String(latitude) });
       this.activeView.set('active');
+      if (this.persistedQueryEnabled) this.consultInformes();
+      requestAnimationFrame(() => document.getElementById('active-heading')?.focus());
     } else {
       this.searchCenter.set({ longitude: String(longitude), latitude: String(latitude) });
       this.useRadius.set(true);

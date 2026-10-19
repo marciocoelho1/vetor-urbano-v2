@@ -1,0 +1,77 @@
+import { persistedRecord, type PersistedOccurrence } from './persisted-query';
+import { distanceMeters, type Coordinates } from '../domain/occurrences';
+import { formatDistance } from '../domain/active-reports';
+import type { Situation } from '../domain/temporal';
+
+export type Validity =
+  | 'CONFIRMED'
+  | 'NOT_CONFIRMED'
+  | 'MISSING_CONFIGURATION'
+  | 'MISSING_EVIDENCE'
+  | 'EXPIRED'
+  | 'NOT_APPLICABLE';
+export interface ActiveReportResponse {
+  evaluatedAt: string;
+  limitation: string;
+  items: { occurrence: PersistedOccurrence; effectiveSituation: Situation; validity: Validity }[];
+}
+export function activeReportRecords(response: ActiveReportResponse, center: Coordinates) {
+  // Server membership/precision/temporalMatch are authoritative. Distance here is display only.
+  return response.items.map((item) => {
+    const record = persistedRecord(item.occurrence);
+    const distance = record.coordinates ? distanceMeters(center, record.coordinates) : null;
+    const situation = item.effectiveSituation;
+    return {
+      ...record,
+      situation,
+      storedSituation: item.occurrence.situation,
+      validityLabel: {
+        CONFIRMED: 'Vigência validada pelo servidor',
+        NOT_CONFIRMED: 'Vigência não confirmada',
+        MISSING_CONFIGURATION: 'Sem configuração de vigência',
+        MISSING_EVIDENCE: 'Sem evidência de confirmação',
+        EXPIRED: 'Confirmação expirada; não significa encerramento',
+        NOT_APPLICABLE: 'Vigência não se aplica à situação armazenada',
+      }[item.validity],
+      distanceMeters: distance ?? 0,
+      distanceLabel:
+        distance === null ? 'Distância indisponível' : `${formatDistance(distance)} (aproximada)`,
+      isOngoing: situation === 'ONGOING' && item.validity === 'CONFIRMED',
+      isClosed: situation === 'CLOSED',
+      isUnknown: situation === 'UNKNOWN',
+      isUncertainTime: item.occurrence.temporalMatch === 'POSSIBLE',
+      isUncertainSituation: situation === 'UNKNOWN',
+      temporalStatus:
+        item.occurrence.temporalMatch === 'OUTSIDE'
+          ? ('VIGENTE_ANTIGA' as const)
+          : ('RECENT' as const),
+    };
+  });
+}
+export async function fetchActiveReports(
+  center: Coordinates,
+  radiusMeters: number,
+  signal: AbortSignal,
+): Promise<ActiveReportResponse> {
+  const params = new URLSearchParams({
+    longitude: String(center[0]),
+    latitude: String(center[1]),
+    radiusMeters: String(radiusMeters),
+  });
+  const response = await fetch(`http://127.0.0.1:8080/api/v1/active-reports?${params}`, {
+    signal,
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+  if (response.status === 401 || response.status === 403) {
+    window.dispatchEvent(new Event('vu-session-invalid'));
+    throw new Error('Sessão ausente ou expirada. Entre novamente.');
+  }
+  if (!response.ok)
+    throw new Error(
+      response.status === 400
+        ? 'Revise o centro WGS84 e o raio de 1 a 5000 metros.'
+        : 'Consulta indisponível. Esta falha não significa ausência de ocorrências.',
+    );
+  return response.json() as Promise<ActiveReportResponse>;
+}

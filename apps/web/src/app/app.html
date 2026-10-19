@@ -1726,8 +1726,15 @@
               </p>
             </div>
             <span class="account-badge" data-testid="informes-badge">
-              {{ activeRecords().length }}
-              {{ activeRecords().length === 1 ? 'informe próximo' : 'informes próximos' }}
+              @if (
+                persistedQueryEnabled &&
+                (informesLoading() || informesError() || !informesResponse())
+              ) {
+                {{ informesLoading() ? 'Consultando…' : 'Consulta pendente' }}
+              } @else {
+                {{ activeRecords().length }}
+                {{ activeRecords().length === 1 ? 'informe próximo' : 'informes próximos' }}
+              }
             </span>
           </header>
 
@@ -1737,6 +1744,21 @@
             entram na proximidade sem coordenadas precisas.
           </aside>
 
+          @if (persistedQueryEnabled) {
+            <aside class="workspace-notice" role="note">
+              Consulta no servidor · dados sintéticos. Não confirma andamento por si só. Situação
+              armazenada e situação efetiva consultiva são distintas. Sem evidência/configuração, a
+              vigência não é confirmada. Transições e última verificação persistidas estão
+              pendentes. Informes tem recorte independente: posicionar a câmera preserva os filtros
+              e os resultados do mapa; a lista abaixo é o resultado desta consulta.
+            </aside>
+            <p role="status" data-testid="informes-location-status">
+              {{ informesLocationStatus() }}
+            </p>
+            <button type="button" class="map-tool-button" (click)="requestInformesLocation()">
+              Usar minha localização pontual
+            </button>
+          }
           <div
             class="informes-controls-card"
             role="region"
@@ -1753,9 +1775,9 @@
                     data-testid="informes-radius-input"
                     type="number"
                     class="informes-input radius-input"
-                    min="100"
+                    [min]="persistedQueryEnabled ? 1 : 100"
                     max="5000"
-                    step="100"
+                    [step]="persistedQueryEnabled ? 1 : 100"
                     [value]="informesRadiusMeters()"
                     (input)="setInformesRadius($any($event.target).value, $any($event.target))"
                     aria-describedby="informes-radius-hint"
@@ -1812,7 +1834,33 @@
             </div>
           </div>
 
-          @if (activeRecords().length) {
+          @if (persistedQueryEnabled) {
+            <button type="button" class="map-tool-button" (click)="consultInformes()">
+              Consultar proximidade
+            </button>
+            @if (informesResponse(); as response) {
+              <p data-testid="informes-consulted-at">
+                Consulta em {{ formatDateTime(response.evaluatedAt) }} (America/Sao_Paulo).
+                {{ response.limitation }}
+              </p>
+            }
+          }
+          @if (persistedQueryEnabled && informesError()) {
+            <div class="workspace-notice" role="alert" data-testid="informes-query-error">
+              {{ informesError() }} A falha não comprova ausência de ocorrências nem segurança.
+              <button type="button" class="map-tool-button" (click)="consultInformes()">
+                Tentar consultar novamente
+              </button>
+            </div>
+          } @else if (persistedQueryEnabled && informesLoading()) {
+            <p role="status" data-testid="informes-query-loading">
+              Consultando proximidade no servidor…
+            </p>
+          } @else if (persistedQueryEnabled && !informesResponse()) {
+            <p role="status">
+              Escolha o centro e consulte a proximidade. Nenhum resultado foi calculado.
+            </p>
+          } @else if (activeRecords().length) {
             <div class="workspace-list" data-testid="informes-list">
               @for (record of activeRecords(); track record.id) {
                 <article
@@ -1856,6 +1904,12 @@
                     </span>
                   </div>
                   <h2>{{ record.name }}</h2>
+                  @if (persistedQueryEnabled) {
+                    <p>
+                      Situação armazenada: {{ situationLabel(record.storedSituation) }} ·
+                      {{ record.validityLabel }}.
+                    </p>
+                  }
                   <p>{{ record.description }}</p>
                   <div class="record-meta">
                     <span>{{ record.location }}</span>
@@ -1864,7 +1918,12 @@
                     <span>Gravidade informada: {{ record.severity || 'não informada' }}</span>
                   </div>
                   <div class="record-actions">
-                    <button type="button" class="map-tool-button" (click)="showDetails(record)">
+                    <button
+                      type="button"
+                      class="map-tool-button"
+                      [attr.data-active-details]="record.id"
+                      (click)="showDetails(record)"
+                    >
                       Ver detalhes
                     </button>
                     <button
@@ -1872,7 +1931,7 @@
                       class="map-tool-button"
                       (click)="focusPoint(record); openView('map')"
                     >
-                      Ver no mapa
+                      {{ persistedQueryEnabled ? 'Posicionar câmera no local' : 'Ver no mapa' }}
                     </button>
                   </div>
                 </article>
@@ -1881,8 +1940,12 @@
           } @else {
             <div class="workspace-empty" data-testid="informes-empty">
               <strong>
-                Nenhum informe ativo encontrado neste raio de
-                {{ formatDistance(informesRadiusMeters()) }}.
+                @if (persistedQueryEnabled) {
+                  Não encontramos ocorrências publicadas para estes filtros.
+                } @else {
+                  Nenhum informe ativo encontrado neste raio de
+                  {{ formatDistance(informesRadiusMeters()) }}.
+                }
               </strong>
               <span>
                 Altere o ponto de referência manual ou aumente o raio até o teto de 5 km.
