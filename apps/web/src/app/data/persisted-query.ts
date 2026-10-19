@@ -11,6 +11,14 @@ export interface PersistedOccurrence {
   type: string;
   subtype: string;
   situation: Situation;
+  effectiveSituation?: Situation;
+  verification?: {
+    confirmedAt: string;
+    expiresAt: string | null;
+    effectVersion: number;
+    verificationVersion: number;
+    appliesToCurrentVersion: boolean;
+  } | null;
   reliability: number;
   municipality: string;
   neighborhood: string;
@@ -117,7 +125,10 @@ export function persistedRecord(item: PersistedOccurrence): DemoRecord & {
     occurrenceType: item.type,
     typeLabel: type?.label ?? item.type,
     subtype: item.subtype === 'NAO_INFORMADO' ? undefined : (subtype ?? item.subtype),
-    situation: item.situation,
+    situation: item.effectiveSituation ?? item.situation,
+    lastCheckedAt: item.verification?.appliesToCurrentVersion
+      ? item.verification.confirmedAt
+      : undefined,
     reliabilityScore: item.reliability,
     municipality: item.municipality,
     neighborhood: item.neighborhood,

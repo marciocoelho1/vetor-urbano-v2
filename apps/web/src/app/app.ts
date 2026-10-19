@@ -1,3 +1,5 @@
+import { VerificationPanel } from './active-reports/verification-panel';
+import { VerificationSelection } from './active-reports/verification-selection';
 import {
   activeReportRecords,
   fetchActiveReports,
@@ -466,6 +468,7 @@ interface SuspendedAdvancedFilters {
 
 @Component({
   imports: [
+    VerificationPanel,
     SessionPanel,
     SelfAccount,
     SourceManagement,
@@ -503,6 +506,7 @@ export class App implements AfterViewInit, OnDestroy {
   });
   protected readonly periodExplicitlyChosenInSimple = signal(false);
   protected readonly session = inject(Session);
+  protected readonly verifications = inject(VerificationSelection);
   protected readonly publicView = computed(() => PUBLIC_VIEWS.includes(this.activeView()));
   protected readonly moduleAllowed = computed(
     () =>

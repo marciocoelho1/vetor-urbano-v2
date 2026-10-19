@@ -132,6 +132,12 @@
   </header>
 
   <main id="main-content" class="main-content" tabindex="-1" [appViewMotion]="activeView()">
+    <app-verification-panel
+      [enabled]="persistedQueryEnabled"
+      [active]="activeView() === 'active'"
+      (openActive)="openView('active')"
+      (changed)="informesResponse() && consultInformes()"
+    />
     @if (session.failed() && session.state()?.authenticated) {
       <p role="alert">{{ session.message() }}</p>
     }
@@ -1748,9 +1754,9 @@
             <aside class="workspace-notice" role="note">
               Consulta no servidor · dados sintéticos. Não confirma andamento por si só. Situação
               armazenada e situação efetiva consultiva são distintas. Sem evidência/configuração, a
-              vigência não é confirmada. Transições e última verificação persistidas estão
-              pendentes. Informes tem recorte independente: posicionar a câmera preserva os filtros
-              e os resultados do mapa; a lista abaixo é o resultado desta consulta.
+              vigência não é confirmada. Verificações humanas são registradas por versão do efeito.
+              Informes tem recorte independente: posicionar a câmera preserva os filtros e os
+              resultados do mapa; a lista abaixo é o resultado desta consulta.
             </aside>
             <p role="status" data-testid="informes-location-status">
               {{ informesLocationStatus() }}
@@ -1918,6 +1924,15 @@
                     <span>Gravidade informada: {{ record.severity || 'não informada' }}</span>
                   </div>
                   <div class="record-actions">
+                    @if (persistedQueryEnabled) {
+                      <button
+                        type="button"
+                        class="map-tool-button"
+                        (click)="verifications.open(record.id)"
+                      >
+                        Verificar situação de {{ record.name }}
+                      </button>
+                    }
                     <button
                       type="button"
                       class="map-tool-button"

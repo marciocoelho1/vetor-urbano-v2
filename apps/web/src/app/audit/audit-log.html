@@ -58,7 +58,15 @@
               <dt>Instante (America/Sao_Paulo)</dt>
               <dd>{{ event.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' : '-0300' }}</dd>
               <dt>Ator interno</dt>
-              <dd>{{ event.actor || 'Sistema ou tentativa não atribuída' }}</dd>
+              <dd>
+                @if (event.actor) {
+                  {{ event.actor }}
+                } @else if (event.historicalActor) {
+                  Autor histórico: {{ event.historicalActor }}
+                } @else {
+                  Sistema ou tentativa não atribuída
+                }
+              </dd>
               <dt>Módulo</dt>
               <dd>{{ event.module }}</dd>
               <dt>Classe</dt>

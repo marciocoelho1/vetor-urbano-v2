@@ -8,12 +8,24 @@ export type Validity =
   | 'NOT_CONFIRMED'
   | 'MISSING_CONFIGURATION'
   | 'MISSING_EVIDENCE'
+  | 'NO_APPROVED_EXTENSION'
   | 'EXPIRED'
   | 'NOT_APPLICABLE';
 export interface ActiveReportResponse {
   evaluatedAt: string;
   limitation: string;
-  items: { occurrence: PersistedOccurrence; effectiveSituation: Situation; validity: Validity }[];
+  items: {
+    occurrence: PersistedOccurrence;
+    effectiveSituation: Situation;
+    validity: Validity;
+    verification?: {
+      confirmedAt: string;
+      expiresAt: string | null;
+      effectVersion: number;
+      verificationVersion: number;
+      appliesToCurrentVersion: boolean;
+    } | null;
+  }[];
 }
 export function activeReportRecords(response: ActiveReportResponse, center: Coordinates) {
   // Server membership/precision/temporalMatch are authoritative. Distance here is display only.
@@ -23,6 +35,9 @@ export function activeReportRecords(response: ActiveReportResponse, center: Coor
     const situation = item.effectiveSituation;
     return {
       ...record,
+      lastCheckedAt: item.verification?.appliesToCurrentVersion
+        ? item.verification.confirmedAt
+        : undefined,
       situation,
       storedSituation: item.occurrence.situation,
       validityLabel: {
@@ -30,6 +45,7 @@ export function activeReportRecords(response: ActiveReportResponse, center: Coor
         NOT_CONFIRMED: 'Vigência não confirmada',
         MISSING_CONFIGURATION: 'Sem configuração de vigência',
         MISSING_EVIDENCE: 'Sem evidência de confirmação',
+        NO_APPROVED_EXTENSION: 'Sem extensão automática aprovada para este tipo',
         EXPIRED: 'Confirmação expirada; não significa encerramento',
         NOT_APPLICABLE: 'Vigência não se aplica à situação armazenada',
       }[item.validity],

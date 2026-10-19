@@ -5,6 +5,7 @@ import { Session } from '../auth/session';
 type AuditEvent = {
   id: string;
   actor: string | null;
+  historicalActor: string | null;
   occurredAt: string;
   eventClass: string;
   module: string;

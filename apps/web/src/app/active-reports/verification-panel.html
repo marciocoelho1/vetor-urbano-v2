@@ -1,0 +1,128 @@
+@if (enabled() && session.state()?.authenticated) {
+  @if (expired().length && session.state()?.role === 'ADMIN') {
+    <aside class="notice" role="status">
+      <button type="button" (click)="openActive.emit()">
+        {{ expired().length }} ocorrência{{ expired().length === 1 ? '' : 's' }} com confirmação
+        expirada. Tratar ocorrências ativas
+      </button>
+    </aside>
+  }
+  @if (active()) {
+    <section data-testid="expired-occurrences" aria-labelledby="expired-heading">
+      <h2 id="expired-heading">Confirmações expiradas — tratar ocorrências</h2>
+      <p>
+        A expiração indica insuficiência, nunca encerramento. Renovar exige uma nova verificação
+        humana com evidência específica por efeito.
+      </p>
+      @if (listError()) {
+        <p role="alert">{{ listError() }} A lista anterior pode estar desatualizada.</p>
+      }
+      @if (listing() && !loaded()) {
+        <p role="status">Consultando confirmações expiradas…</p>
+      }
+      @if (loaded() && !expired().length && !listError()) {
+        <p>Nenhuma confirmação expirada para tratar nesta consulta.</p>
+      }
+      <button type="button" (click)="refresh()" [attr.aria-disabled]="listing()">
+        Atualizar confirmações expiradas
+      </button>
+      <ul>
+        @for (item of expired(); track item.id) {
+          <li>
+            {{ item.title }}
+            <button type="button" [attr.data-verification-id]="item.id" (click)="open(item.id)">
+              Tratar {{ item.title }}
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+  @if (loading()) {
+    <p role="status">Carregando situação e versões da ocorrência…</p>
+  }
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+    @if (editor(); as item) {
+      <button type="button" (click)="open(item.id)">Recarregar versão da ocorrência</button>
+    }
+  }
+  @if (editor(); as item) {
+    <section data-testid="verification-editor" aria-labelledby="verification-heading">
+      <h2 id="verification-heading" tabindex="-1">Verificar situação da ocorrência</h2>
+      <p>
+        {{ item.title }} · Versão do efeito {{ item.revision }} · Verificação
+        {{ item.verificationVersion }}
+      </p>
+      <p>
+        Registre a revisão humana desta versão. Encerramento exige evidência de término/resolução. A
+        confirmação anterior não é reutilizada.
+      </p>
+      <p>
+        Prazo padrão aprovado:
+        {{
+          item.validityDurationSeconds
+            ? item.validityDurationSeconds / 60 + ' minutos após a confirmação humana'
+            : 'sem extensão automática para este tipo'
+        }}. Uma edição factual invalida a confirmação anterior.
+      </p>
+      <form (ngSubmit)="save()">
+        <label
+          >Situação verificada<select
+            name="situation"
+            [(ngModel)]="situation"
+            [disabled]="saving()"
+          >
+            <option value="ONGOING">Em andamento</option>
+            <option value="CLOSED">Encerrada</option>
+            <option value="UNKNOWN">Desconhecida</option>
+          </select></label
+        >
+        <label
+          >Nova evidência humana rastreável<textarea
+            name="evidence"
+            [(ngModel)]="evidence"
+            required
+            maxlength="4000"
+            [disabled]="saving()"
+          ></textarea>
+        </label>
+        <label
+          >Instante da confirmação (UTC)<input
+            name="confirmedAt"
+            [(ngModel)]="confirmedAt"
+            required
+            [disabled]="saving()"
+            aria-describedby="verification-time-hint"
+        /></label>
+        <p id="verification-time-hint">
+          Formato ISO 8601, por exemplo 2026-10-19T01:00:00Z. Não use um instante futuro nem o
+          horário do fato como confirmação.
+        </p>
+        <button type="submit" [disabled]="saving() || !evidence.trim() || !confirmedAt">
+          {{ saving() ? 'Salvando…' : 'Salvar nova confirmação' }}
+        </button>
+        <button type="button" (click)="cancel()" [disabled]="saving()">Cancelar verificação</button>
+      </form>
+      <h3>Histórico de verificações deste efeito</h3>
+      @if (!item.history.length) {
+        <p>Nenhuma verificação humana registrada.</p>
+      }
+      <ul>
+        @for (entry of item.history; track entry.verification_version) {
+          <li>
+            Verificação {{ entry.verification_version }} · versão factual
+            {{ entry.effect_version }} · {{ entry.situation }} · confirmação
+            {{ entry.confirmed_at | date: 'dd/MM/yyyy HH:mm:ss' : '-0300' }} · expiração
+            {{
+              entry.expires_at
+                ? (entry.expires_at | date: 'dd/MM/yyyy HH:mm:ss' : '-0300')
+                : 'sem extensão automática'
+            }}
+          </li>
+        }
+      </ul>
+    </section>
+  }
+  <p id="verification-status" role="status" tabindex="-1">{{ message() }}</p>
+}
