@@ -1,5 +1,16 @@
 # Vetor Urbano — situação dos tickets
 
+## Decisões do responsável — rodada do ticket 20 (coleta autorizada), 19/10/2026
+
+- **Fonte autorizada: API Fogo Cruzado v2**, com a conta do próprio responsável («eu já realizei a autenticação da minha conta que me concede autorização para usar a API deles»).
+- **Recorte geográfico:** municípios da **Região Metropolitana do Estado do Rio de Janeiro** e a **cidade do Rio de Janeiro**.
+- **Recorte temporal:** ocorrências **desde 01/06/2026**, mantido como limite único «até que as configurações de banco de dados estejam consolidadas».
+- **21 e 22:** «Segue como dito em 20» — mesma fonte e mesmo recorte, sem parâmetro novo.
+- **23 e 24:** «A regra de confiabilidade ainda será definida» — seguem bloqueados; nenhuma fórmula, limiar ou rubrica foi aprovada.
+- **Orçamento do bundle:** elevar `initial.maximumWarning` de 850 kB para **900 kB** e tratar o lazy loading da área administrativa como fatia medida da próxima rodada (não executada agora).
+- **Termo de consentimento da fonte:** texto integral fornecido pelo responsável; acesso gratuito, dados de cadastro usados apenas para login e não repassados a terceiros, contrapartida = **citar a fonte**. [Registro](../history/ticket-20-decisions-2026-10-19.md).
+- **Ticket 20 implementado e verificado localmente em 19/10/2026, com execução real delimitada autorizada** contra o banco dedicado; **aceite reservado ao responsável**. [Checkpoint](../history/ticket-20-collection-2026-10-19.md).
+
 ## Decisões do responsável — rodada do ticket 35, 19/10/2026
 
 - **D1 / 25: «Aceito».** Aceite do incremento local pelo responsável. Números do fechamento abaixo são históricos, não reexecução desta rodada.
@@ -22,19 +33,19 @@ Atualizado em **18/10/2026** após a implementação local do ticket 26, sobre b
 
 ## Visão geral
 
-- **31 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **Nenhum parcial nesta rodada:** o ticket 25 saiu de «parcial» com V14, verificações humanas por versão do efeito, filtro estrito de vigência e ciclo administrativo de expiração/renovação verificados; o 35 foi implementado e verificado localmente em 19/10. O aceite operacional permanece aberto como nos demais tickets.
-- **5 ainda não iniciados:** 20, 21, 22, 23 e 24.
+- **32 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **Nenhum parcial nesta rodada:** o ticket 25 saiu de «parcial» com V14, verificações humanas por versão do efeito, filtro estrito de vigência e ciclo administrativo de expiração/renovação verificados; o 35 e o 20 foram implementados e verificados localmente em 19/10. O aceite operacional permanece aberto como nos demais tickets.
+- **4 ainda não iniciados:** 21, 22, 23 e 24.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
 
 ## Implementados localmente
 
-**01–19, 25, 26–34, 35 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35 e 36 têm checkpoints ou validações posteriores documentados.
+**01–20, 25, 26–34, 35 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 20, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Ainda não iniciados
 
-**20, 21, 22, 23 e 24** — ainda não há implementação local do fluxo correspondente. Dependências e decisões em aberto aparecem na descrição individual.
+**21, 22, 23 e 24** — ainda não há implementação local do fluxo correspondente. O 21 e o 22 já têm fonte, recorte e parâmetros definidos pelo responsável na rodada do 20 («segue como dito em 20») e dependem apenas da execução da fatia; o 23 e o 24 continuam bloqueados pela definição da regra de confiabilidade.
 
 ## Parciais ou com pendência
 
@@ -63,9 +74,9 @@ Atualizado em **18/10/2026** após a implementação local do ticket 26, sobre b
 | 17 | [Revisar e publicar ocorrências sem duplicar clippings](../../.scratch/consulta-coerente/issues/17-revisar-publicar.md) | Revisa clippings, associa acontecimentos e decide publicação sem duplicar ocorrências. | Implementado localmente; fila ADMIN/MFA, núcleo validado no servidor, replay/concorrência e histórico registrados no checkpoint. |
 | 18 | [Corrigir ou retirar uma ocorrência publicada](../../.scratch/consulta-coerente/issues/18-corrigir-retirar.md) | Corrige ou retira publicação com revisão e histórico auditável. | Concluído localmente em 18/10: E2E editor e canal 4/4 cada em Chromium/Firefox, incluindo erro/retry por teclado e fila vazia; API 18 + 86 prova remoção de query/export, contagens e trilha de snapshots; web 124, `planning` 433 links e `git diff --check` passaram. [Checkpoint](../history/ticket-18-progress-2026-10-18.md). Aceite sintético; sem prontidão operacional. |
 | 19 | [Consultar logs administrativos com retenção configurada](../../.scratch/consulta-coerente/issues/19-consultar-logs.md) | Permite consulta administrativa de logs com retenção definida para o ambiente. | Concluído localmente em 18/10: `/api/v1/admin/logs` devolve `actor` e `historicalActor` para conta viva e autoria residual; `AuditHttpIT` prova o encerramento, a ausência do UUID eliminado e as duas referências distintas. [Checkpoint](../history/ticket-19-progress-2026-10-18.md). |
-| 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | Ainda não iniciado; a fonte e os parâmetros operacionais continuam sem autorização/definição final. |
-| 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Ainda não iniciado; depende da trilha de coleta recente do ticket 20. |
-| 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | Ainda não iniciado; depende de eventos e estados produzidos pela coleta (ticket 20). |
+| 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | **Implementado localmente em 19/10/2026** com a fonte autorizada (API Fogo Cruzado v2), recorte RM-RJ + cidade do Rio desde 01/06/2026: V15, cliente, máquina de estados, pausa/retomada, idempotência e endpoints administrativos, mais a seção «Coleta» na web com o crédito exigido pela fonte. **Execução real delimitada** no banco dedicado: 807 vistas/807 criadas e, na repetição, 807 duplicadas e 0 criadas; 807 revisões `PENDING` e **0 publicações automáticas**. [Checkpoint](../history/ticket-20-collection-2026-10-19.md). Pendências nomeadas: Petrópolis ausente na fonte; crédito ainda não exibido em exportações/relatórios; aceite é decisão do responsável. |
+| 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Ainda não iniciado; fonte e recorte já definidos pelo responsável («segue como dito em 20»). Depende da trilha de coleta recente do ticket 20, agora implementada. |
+| 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | Ainda não iniciado; estados e eventos da coleta já existem (ticket 20). Falta a leitura de espera da fila e as confirmações com prazo explicitamente configurado. |
 | 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Ainda não iniciado; calibração e fórmula de confiabilidade precisam ser definidas. |
 | 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Ainda não iniciado; depende das definições e do mecanismo de avaliação do ticket 23. |
 | 25 | [Consultar proximidade e vigência no fluxo integrado](../../.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md) | Integra localização consentida ou ponto manual às regras de vigência dos Informes. | Concluído localmente em 19/10: HTTP/USER/PostGIS, política declarada com negação segura, insuficiência pública, auditoria, web de localização/manual e persistência D06/CA08 — V14 com verificação humana por versão do efeito, evidência obrigatória, conflito sem sobrescrita, desligamento de autoria no encerramento, filtro estrito de vigência e ciclo administrativo de expiração (toast persistente, container de expiradas, botão tratar, editor sem evidência pré-preenchida, repetição a cada expiração). API 21 + 101, web 127 e Playwright 42/42 Chromium/Firefox; V1–V13 intactas. [Checkpoint](../history/closure-round-2026-10-19.md#estado-final-da-trilha-a). Prazos aprovados ativos no código; aceite operacional aberto e demais specs de navegador não reexecutadas. |

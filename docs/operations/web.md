@@ -100,6 +100,8 @@ Execute lint, testes unitários, build e a matriz Playwright em Chromium/Firefox
 
 O baseline do fechamento de 19/10/2026 foi **836,58 kB** iniciais, acima do alerta então vigente de 500 kB; os números são históricos. Na rodada do ticket 35, o responsável aprovou explicitamente **850 kB** para `initial.maximumWarning`, preservando o limite de erro de 1 MB e os orçamentos de estilos. Isso reconhece o tamanho atual, não reduz download/parse. A medição final desta rodada ficará no [checkpoint do 35](../history/ticket-35-progress-2026-10-19.md); `pako` CommonJS permanece no chunk PDF lazy. Nenhuma alteração de dependência/carregamento foi autorizada ou realizada. QA em aparelho físico e leitor de tela permanece pendente.
 
+Na rodada do ticket 20 (coleta autorizada), a seção administrativa «Coleta» levou o `initial` de 841,23 kB para **864,12 kB** e o responsável aprovou explicitamente **900 kB** (margem de 35,88 kB), mantidos o erro de 1 MB e os orçamentos de estilos. O `@defer` foi tentado e **piorou** o inicial para 873,38 kB, sendo revertido — ou seja, adiar a área administrativa por `@defer` sobre import estático não funciona: exige `import()` dinâmico, que é uma fatia própria, com medição comparativa, registrada como próxima ação e ainda **não** executada. `pako`/`fontkit` seguem no chunk lazy do PDF, sem alteração de dependência.
+
 Hospedagem da demonstração e liberação operacional são etapas diferentes. Uma versão operacional depende de API/banco, autorização, moderação, políticas de dados, cobertura e recuperação verificadas. Commit e push não publicam a aplicação.
 
 ## Fechamento persistido do 25 — atualização em 19/10/2026
