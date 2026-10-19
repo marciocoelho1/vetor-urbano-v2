@@ -22,6 +22,7 @@ import { AuditLog } from './audit/audit-log';
 import { ReviewQueue } from './moderation/review-queue';
 import { CorrectionChannel } from './corrections/correction-channel';
 import { SourceManagement } from './sources/source-management';
+import { CollectionPanel } from './collection/collection-panel';
 import { RiskAreaManagement } from './risk-areas/risk-area-management';
 import { fetchRiskAreas } from './data/risk-area-api';
 import { persistedRiskAreaFeature } from './domain/persisted-risk-areas';
@@ -474,6 +475,7 @@ interface SuspendedAdvancedFilters {
     SessionPanel,
     SelfAccount,
     SourceManagement,
+    CollectionPanel,
     RiskAreaManagement,
     CorrectionChannel,
     ReviewQueue,

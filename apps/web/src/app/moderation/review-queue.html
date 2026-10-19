@@ -26,13 +26,16 @@
   }
   <ul>
     @for (item of items(); track item.clipping_id) {
-      <li>
+      <li data-testid="review-item">
         <h3>{{ item.clipping_title }}</h3>
         <p>
           {{ item.priority }} · espera {{ item.waiting_seconds / 60 | number: '1.0-0' }} min ·
           versão {{ item.revision }}
         </p>
         <p>Referência: {{ item.reference || 'Não informada — publicação bloqueada' }}</p>
+        @if (originLabel(item); as provenance) {
+          <p data-testid="review-origin">{{ provenance }}</p>
+        }
         @if (item.reason) {
           <p>Pendente: {{ item.reason }}</p>
         }
@@ -46,6 +49,13 @@
       <h3>Original e extração</h3>
       <p>{{ item.original_text }}</p>
       <p>Referência rastreável: {{ item.reference }}</p>
+      @if (originLabel(item); as provenance) {
+        <p data-testid="review-origin-editor">{{ provenance }}</p>
+        <p>
+          Item entregue pela coleta autorizada; a publicação continua decisão humana desta fila e
+          nada é publicado automaticamente.
+        </p>
+      }
       <details>
         <summary>Extração original sintética</summary>
         <pre>{{ item.extracted | json }}</pre>

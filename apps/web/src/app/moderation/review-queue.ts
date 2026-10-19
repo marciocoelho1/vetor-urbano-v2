@@ -21,18 +21,85 @@ type Fact = {
   occurredFrom?: string;
   occurredUntil?: string;
 };
+/** Metadados da coleta autorizada que acompanham a extração sem virar núcleo factual. */
+export interface CollectionExtracted {
+  sourceCredit?: string | null;
+  sourceReference?: string | null;
+  sourceId?: string | null;
+  sourceDocumentationUrl?: string | null;
+  coordinates?: unknown;
+  [field: string]: unknown;
+}
+const FACT_KEYS = [
+  'title',
+  'description',
+  'category',
+  'type',
+  'subtype',
+  'situation',
+  'reliability',
+  'municipality',
+  'neighborhood',
+  'locationPrecision',
+  'occurredAt',
+  'occurredFrom',
+  'occurredUntil',
+] as const;
 type Review = {
   clipping_id: string;
   clipping_title: string;
   original_text: string;
   reference: string;
-  extracted: Partial<Fact>;
+  extracted: Partial<Fact> & CollectionExtracted;
   priority: string;
   waiting_seconds: number;
   revision: number;
   essential_conflict: boolean;
   reason: string;
 };
+export type CollectionProvenance = { credit: string | null; reference: string | null };
+function provenanceText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+/**
+ * Crédito e referência da fonte quando o item veio da coleta autorizada
+ * (`extracted.sourceCredit` e `extracted.sourceReference`). Sem sinal de procedência o resultado é
+ * nulo — clippings sintéticos do ticket 17 não recebem rótulo de fonte nem crédito inventado.
+ */
+export function collectionOrigin(item: { extracted?: unknown }): CollectionProvenance | null {
+  const source = item.extracted;
+  const extracted =
+    typeof source === 'object' && source !== null ? (source as CollectionExtracted) : {};
+  const credit = provenanceText(extracted.sourceCredit);
+  const reference = provenanceText(extracted.sourceReference);
+  return credit || reference ? { credit, reference } : null;
+}
+/**
+ * Semeia o editor apenas com o núcleo factual sustentado. Os metadados da coleta (crédito,
+ * documento, contagens por vítima) ficam fora do `draft`: o servidor recusa campo não declarado e
+ * nada disso é núcleo factual. As coordenadas `[longitude, latitude]` da fonte entram quando a
+ * precisão é `POINT`, para o revisor confirmar o ponto sustentado.
+ */
+export function factualSeed(extracted: Partial<Fact> & CollectionExtracted): Partial<Fact> {
+  const source = extracted as Record<string, unknown>;
+  const seed: Record<string, unknown> = {};
+  for (const key of FACT_KEYS) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) seed[key] = value;
+    else if (typeof value === 'number' && Number.isFinite(value)) seed[key] = value;
+  }
+  const coordinates = source['coordinates'];
+  if (
+    source['locationPrecision'] === 'POINT' &&
+    Array.isArray(coordinates) &&
+    coordinates.length === 2 &&
+    coordinates.every((value) => typeof value === 'number' && Number.isFinite(value))
+  ) {
+    seed['longitude'] = coordinates[0];
+    seed['latitude'] = coordinates[1];
+  }
+  return seed as Partial<Fact>;
+}
 type Options = {
   occurrences: { id: string; title: string; revision: number }[];
   happenings: { id: string; title: string }[];
@@ -121,7 +188,7 @@ export class ReviewQueue {
   }
   protected edit(item: Review): void {
     this.selected.set(item);
-    this.fact = { ...this.empty(), ...item.extracted };
+    this.fact = { ...this.empty(), ...factualSeed(item.extracted) };
     this.temporal = this.fact.occurredFrom ? 'interval' : 'instant';
     this.reason = '';
     this.resolution = '';
@@ -146,6 +213,15 @@ export class ReviewQueue {
       .replace(/[\u0300-\u036f]/g, '')
       .toUpperCase()
       .replace(/[^A-Z0-9]+/g, '_');
+  }
+  /** Linha de procedência exibida na fila e no editor; vazia para clippings sintéticos. */
+  protected originLabel(item: Review): string {
+    const provenance = collectionOrigin(item);
+    if (!provenance) return '';
+    const parts: string[] = [];
+    if (provenance.credit) parts.push(`Fonte: ${provenance.credit}`);
+    if (provenance.reference) parts.push(`referência da fonte: ${provenance.reference}`);
+    return parts.join(' · ');
   }
   protected removeEffect(index: number): void {
     this.effects.update((items) => items.filter((_, position) => position !== index));

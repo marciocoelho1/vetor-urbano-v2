@@ -1,0 +1,249 @@
+<section class="workspace-card collection-panel" aria-labelledby="collection-heading">
+  <div class="collection-heading">
+    <div>
+      <p class="eyebrow">Administração · coleta autorizada</p>
+      <h2 id="collection-heading" #sectionHeading tabindex="-1" data-testid="collection-heading">
+        Coleta
+      </h2>
+    </div>
+    <button type="button" class="map-tool-button" (click)="reload()" [disabled]="loading()">
+      Atualizar estado da coleta
+    </button>
+  </div>
+  <p>
+    Acompanhamento periódico da fonte autorizada. Nada é publicado automaticamente: cada item novo
+    entra na fila de revisão humana. Sem promessa de instantaneidade, cobertura ou SLA da fonte de
+    terceiros.
+  </p>
+
+  @if (loading()) {
+    <p role="status" data-testid="collection-loading">Carregando estado da coleta…</p>
+  }
+
+  @if (error()) {
+    <div role="alert" data-testid="collection-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="inline-retry" (click)="reload()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (status(); as view) {
+    <article class="collection-source" data-testid="collection-state">
+      <div class="collection-heading">
+        <h3>{{ view.ficha.publicName || view.sourceId || 'Fonte autorizada' }}</h3>
+        <span
+          class="status-pill collection-pill"
+          [attr.data-tone]="stateTone(view.state)"
+          data-testid="collection-pill"
+          >{{ stateLabel(view.state) }}</span
+        >
+      </div>
+      <p class="collection-credit" data-testid="collection-credit">{{ creditLabel() }}</p>
+      @if (view.ficha.channel) {
+        <p class="collection-meta-line">Canal autorizado: {{ view.ficha.channel }}</p>
+      }
+
+      @if (notConfigured()) {
+        <p data-testid="collection-not-configured">{{ notConfiguredHint }}</p>
+        <p>{{ notConfiguredReason() }}</p>
+      } @else if (awaitingRun()) {
+        <p role="status" data-testid="collection-empty">{{ awaitingRunHint }}</p>
+      } @else {
+        <dl class="collection-meta">
+          <dt>Última tentativa</dt>
+          <dd>{{ instant(view.source?.lastAttemptAt ?? null) }}</dd>
+          <dt>Último sucesso</dt>
+          <dd>{{ instant(view.source?.lastSuccessAt ?? null) }}</dd>
+          @if (view.source?.lastErrorClass) {
+            <dt>Última classe de erro</dt>
+            <dd>{{ errorLabel(view.source!.lastErrorClass!) }}</dd>
+          }
+          <dt>Janela aprovada</dt>
+          <dd>
+            {{ view.source?.windowStart || view.lastRun?.windowStart || 'Não definida' }} até
+            {{ view.lastRun?.windowEnd || instant(view.source?.upstreamLastUpdate ?? null) }}
+          </dd>
+          <dt>Origem do estado</dt>
+          <dd>
+            {{ view.lastRun?.kind === 'BACKFILL' ? 'Carga retroativa' : 'Coleta recente' }} ·
+            {{ view.configured ? 'coleta configurada' : 'coleta desligada' }}
+          </dd>
+        </dl>
+        <dl class="collection-counters" aria-label="Contadores da última execução">
+          <div>
+            <dt>Itens vistos</dt>
+            <dd>{{ view.counters.itemsSeen }}</dd>
+          </div>
+          <div>
+            <dt>Itens novos na revisão</dt>
+            <dd>{{ view.counters.itemsCreated }}</dd>
+          </div>
+          <div>
+            <dt>Duplicados ignorados</dt>
+            <dd>{{ view.counters.itemsDuplicated }}</dd>
+          </div>
+          <div>
+            <dt>Páginas concluídas</dt>
+            <dd>{{ view.counters.pagesDone }}</dd>
+          </div>
+        </dl>
+        @if (view.lastRun?.municipalitiesMissing?.length) {
+          <p role="status" data-testid="collection-missing">
+            {{ missingLabel(view.lastRun!.municipalitiesMissing) }}
+          </p>
+        } @else {
+          <p>{{ coverageCompleteHint }}</p>
+        }
+      }
+
+      @if (view.ficha.license) {
+        <p class="collection-meta-line">Licença: {{ view.ficha.license }}</p>
+      }
+      @if (view.ficha.limitations) {
+        <p class="collection-meta-line">Limites declarados: {{ view.ficha.limitations }}</p>
+      }
+      @if (view.ficha.documentationUrl) {
+        <p class="collection-meta-line">
+          <a [href]="view.ficha.documentationUrl" target="_blank" rel="noopener noreferrer"
+            >Documentação da fonte</a
+          >
+        </p>
+      }
+    </article>
+
+    <div class="collection-actions">
+      <h3>Comandos da fonte autorizada</h3>
+      <p>
+        Disparo manual executa uma coleta recente (não retroativa). Pausa e retomada continuam do
+        cursor preservado; pausar não apaga itens já encaminhados à revisão.
+      </p>
+      <div class="collection-buttons">
+        <button
+          #triggerControl
+          type="button"
+          class="map-tool-button"
+          data-testid="collection-trigger"
+          (click)="startRecent()"
+          [disabled]="busy() || notConfigured()"
+          [attr.aria-describedby]="notConfigured() ? 'collection-trigger-note' : null"
+        >
+          {{ busy() ? 'Enviando comando…' : 'Executar coleta recente agora' }}
+        </button>
+        <button
+          #pauseControl
+          type="button"
+          class="map-tool-button"
+          data-testid="collection-pause"
+          (click)="ask('pause')"
+          [disabled]="busy() || !pauseRun()"
+        >
+          Pausar coleta
+        </button>
+        <button
+          #resumeControl
+          type="button"
+          class="map-tool-button"
+          data-testid="collection-resume"
+          (click)="ask('resume')"
+          [disabled]="busy() || !resumeRun()"
+        >
+          Retomar coleta
+        </button>
+      </div>
+      @if (notConfigured()) {
+        <p id="collection-trigger-note">{{ credentialHint }}</p>
+      }
+      @if (!pauseRun() && !resumeRun()) {
+        <p role="status">{{ noRunHint }}</p>
+      }
+      @if (confirming() === 'pause') {
+        <div
+          class="collection-confirm"
+          role="group"
+          aria-label="Confirmação de pausa"
+          data-testid="collection-confirm-pause"
+        >
+          <p>
+            Confirmar pausa interrompe novas páginas até a retomada explícita. O cursor e a última
+            tentativa permanecem registrados.
+          </p>
+          <button
+            #confirmControl
+            type="button"
+            class="map-tool-button"
+            data-testid="collection-confirm-pause-button"
+            (click)="confirm()"
+            [disabled]="busy()"
+          >
+            Confirmar pausa
+          </button>
+          <button type="button" class="inline-retry" (click)="cancel()" [disabled]="busy()">
+            Cancelar
+          </button>
+        </div>
+      }
+      @if (confirming() === 'resume') {
+        <div
+          class="collection-confirm"
+          role="group"
+          aria-label="Confirmação de retomada"
+          data-testid="collection-confirm-resume"
+        >
+          <p>
+            Confirmar retomada continua do cursor preservado. Nenhum item já encaminhado à revisão é
+            republicado nem descartado.
+          </p>
+          <button
+            #confirmControl
+            type="button"
+            class="map-tool-button"
+            data-testid="collection-confirm-resume-button"
+            (click)="confirm()"
+            [disabled]="busy()"
+          >
+            Confirmar retomada
+          </button>
+          <button type="button" class="inline-retry" (click)="cancel()" [disabled]="busy()">
+            Cancelar
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="collection-history">
+    <h3>Histórico de execuções</h3>
+    @if (!runs().length) {
+      <p>Nenhuma execução registrada.</p>
+    } @else {
+      <ul data-testid="collection-history">
+        @for (entry of runs(); track entry.id) {
+          <li>
+            <p>
+              <strong>{{ entry.id }}</strong> ·
+              {{ entry.kind === 'BACKFILL' ? 'Carga retroativa' : 'Coleta recente' }} ·
+              {{ stateLabel(entry.state) }}
+            </p>
+            <p>{{ instant(entry.startedAt) }} → {{ instant(entry.finishedAt) }}</p>
+            <p>
+              {{ entry.counters.itemsSeen }} visto(s) · {{ entry.counters.itemsCreated }} novo(s) ·
+              {{ entry.counters.itemsDuplicated }} duplicado(s) ·
+              {{ entry.counters.pagesDone }} página(s)
+            </p>
+            @if (entry.errorClass) {
+              <p role="status">Classe de erro: {{ errorLabel(entry.errorClass) }}</p>
+            }
+            @if (entry.errorDetail) {
+              <p>Detalhe relatado: {{ entry.errorDetail }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <p role="status" data-testid="collection-status" aria-live="polite">{{ notice() }}</p>
+  @if (actionError()) {
+    <p role="alert" data-testid="collection-action-error">{{ actionError() }}</p>
+  }
+</section>
