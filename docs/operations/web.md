@@ -2,6 +2,52 @@
 
 Este guia descreve o artefato frontend atual. O Vetor Urbano ainda é uma demonstração; não há ambiente de produção ou deploy automatizado configurado.
 
+## Abrir o Vetor Urbano nesta branch (USER e ADMIN) — 19/10/2026
+
+O caminho que funciona nesta branch são **dois processos**: a API em `127.0.0.1:8080` e o frontend em `127.0.0.1:4201`. Sem a API de pé, o formulário de acesso responde apenas `NetworkError when attempting to fetch resource.` — é queda de conexão, não senha errada.
+
+```bash
+# terminal 1 — API (constrói o jar se faltar, valida migrações e sobe contra o banco das contas)
+bash scripts/run-local-stack.sh
+
+# terminal 2 — frontend
+npm start --prefix apps/web -- --host 127.0.0.1
+```
+
+Depois abra **`http://127.0.0.1:4201/?consulta=api`** (não `localhost`, que é outro domínio de cookies):
+
+| Perfil | Login | Senha | O que acontece |
+|---|---|---|---|
+| Usuário | `usuario@vetorurbano.test` | `123456` | entra direto; sessão autenticada |
+| Administrador | `admin@vetorurbano.test` | `123456` | entra e pede **cadastrar o autenticador** no primeiro acesso (TOTP, SHA-1, 6 dígitos, 30 s) |
+
+Conferir sem abrir o navegador — o próprio script prova os dois logins por HTTP:
+
+```bash
+bash scripts/run-local-stack.sh --check
+# API de pé em http://127.0.0.1:8080.
+#   ✓ USER (usuario@vetorurbano.test): sessão autenticada
+#   ✓ ADMIN (admin@vetorurbano.test): entra e pede cadastro do autenticador (primeiro acesso)
+```
+
+### Por que `java -jar` sem o ajuste não sobe
+
+O endereço padrão do código-fonte é `jdbc:postgresql://127.0.0.1:55432/vetor_urbano`. Esse banco **não existe mais**: o contêiner `vu-selected-db` (55432) foi recriado vazio na rodada de contenção sintética de 19/10/2026, então o padrão falha com `FATAL: database "vetor_urbano" does not exist`. As contas de teste vivem em **`vetor-spec-postgis`/`vetor_spec_test` (55436)**, e é isso que `scripts/run-local-stack.sh` exporta. Mudar o padrão do repositório continua pendente de decisão do responsável; o script não altera configuração versionada.
+
+O host tem JRE (`java` 25) mas **não tem `javac`**: o jar é construído pelo runner Maven em contêiner (`scripts/run-local-stack.sh` faz isso quando o artefato não existe) e apenas executado no host.
+
+### Segundo fator do Administrador
+
+Administração exige MFA verificado no servidor. Se a conta `admin@vetorurbano.test` já vier com autenticador cadastrado que você não tem, o script avisa (`!` no `--check`) e a saída é limpar o fator para cadastrar o seu:
+
+```bash
+bash scripts/run-local-stack.sh --reset-admin-mfa   # limpa e revoga sessões do ADMIN sintético
+# ou, com JSON explícito por stdin:
+printf '{"action":"reset-mfa","email":"admin@vetorurbano.test"}\n' | scripts/local-account-admin.py --synthetic-local-only
+```
+
+Nenhuma chave de autenticador entra em documentação, log ou repositório: a chave do cofre fica em `~/.local/share/vetor-urbano/mfa.key` (32 bytes, `0600`).
+
 ## Acesso local com sessão
 
 Após `npm start` em `apps/web/`, use `http://127.0.0.1:4201/?consulta=api` para a consulta integrada à API. A entrada em `http://localhost:4201` é encaminhada automaticamente para `127.0.0.1`, preservando caminho, parâmetros e fragmento antes de iniciar a aplicação. Isso mantém o frontend no mesmo host da API local e permite o cookie de sessão `SameSite=Strict`; sem essa normalização, o login pode responder com sucesso e a configuração do autenticador perder a sessão na requisição seguinte. O cadastro local (`?conta=local`) segue o mesmo encaminhamento.

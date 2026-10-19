@@ -1,5 +1,13 @@
 # Plano de trabalho
 
+## Correção de acesso local — 19/10/2026 (abrir como USER e ADMIN)
+
+- **Diagnóstico:** `NetworkError when attempting to fetch resource.` no formulário era a **API fora do ar** (nada escutando em 8080), não senha errada; e só o ADMIN tinha um segundo bloqueio real — a fixture `admin@vetorurbano.test` estava com autenticador cadastrado (`mfa_enabled=true`) sem que o responsável tivesse a chave.
+- **Causa de processo:** o endereço padrão do código aponta para `55432/vetor_urbano`, banco que deixou de existir quando `vu-selected-db` foi recriado vazio na contenção sintética do mesmo dia; subir o jar “do jeito óbvio” falha com `FATAL: database "vetor_urbano" does not exist`. As contas de teste estão em `vetor-spec-postgis`/`vetor_spec_test` (55436).
+- **Entregue:** `scripts/run-local-stack.sh` (sobe a API no banco certo, constrói o jar pelo runner em contêiner quando falta, garante a chave do cofre com 32 bytes/`0600`, e traz `--check` e `--reset-admin-mfa`), `scripts/local-account-admin.py` sem contêiner/porta/JDK obsoletos, e o passo a passo de abertura em `docs/operations/web.md`. O padrão de datasource do repositório **não** foi alterado: isso é decisão do responsável.
+- **Verificado por HTTP real:** `--check` devolve sessão autenticada para `usuario@vetorurbano.test` e «entra e pede cadastro do autenticador» para `admin@vetorurbano.test`; o ciclo completo do ADMIN (login parcial → cadastro → código TOTP válido → sessão autenticada) foi exercitado e o fator foi limpo ao final para o responsável cadastrar o dele.
+- **Pendência nomeada:** o ADMIN sintético continua exigindo MFA (por desenho do produto); quem tiver a conta precisa cadastrar o autenticador no primeiro acesso ou limpar o fator com o script.
+
 ## Rodada do ticket 20 — coleta autorizada (Fogo Cruzado v2) — 19/10/2026, implementada localmente
 
 - Baseline `2f58fcb`; decisões do responsável registradas antes do código: fonte **API Fogo Cruzado v2** com a conta dele, recorte **RM-RJ + cidade do Rio desde 01/06/2026**, 21/22 seguindo o 20, 23/24 ainda bloqueados pela regra de confiabilidade, orçamento do bundle elevado para **900 kB** e lazy loading da área administrativa como fatia medida da próxima rodada. [Decisões, termo de consentimento, contrato da fonte e verificação real](docs/history/ticket-20-decisions-2026-10-19.md); [contrato da fatia](docs/architecture/collection-local-v1.md).

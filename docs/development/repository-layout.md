@@ -10,7 +10,7 @@ O monorepo separa aplicações, ferramentas, materiais de marca e documentação
 | `apps/web/public/` | Recursos que a aplicação serve ao navegador |
 | `apps/web/prototypes/` | Experimentos isolados da entrada de produção |
 | `apps/api/` | Espaço reservado à futura aplicação Java |
-| `scripts/` | Verificações reutilizáveis do repositório |
+| `scripts/` | Verificações reutilizáveis do repositório; `verify*.sh` conferem, `run-local-stack.sh` abre a aplicação local (API + conferência de login) |
 | `tools/` | Extração cartográfica e captura visual |
 | `assets/brand/` | Materiais e projetos dos vídeos de marca |
 | `docs/product/` | Escopo e comportamento atuais |
