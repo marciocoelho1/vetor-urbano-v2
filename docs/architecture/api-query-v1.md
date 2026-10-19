@@ -107,6 +107,20 @@ O cliente conserva opções territoriais e fontes já observadas na sessão; nã
 
 Indisponibilidade de conexão, consulta ou transação retorna 503; o servidor limita espera de conexão/socket/consulta. O navegador apresenta erro com retry e não chama esse estado de vazio. Durante carregamento/falha, o mapa anterior é identificado como último resultado, os totais atuais ficam suspensos. Uma resposta vazia válida continua distinta de erro.
 
+## Avisos de atualização — ticket 35 (19/10/2026)
+
+`GET /api/v1/occurrences` e `GET /api/v1/history/occurrences` acrescentam `revision` à resposta completa. Com `checkUpdates=true`, os mesmos endpoints/filtros retornam somente `{"checkedAt":"<UTC>","revision":"<token opaco>"}`. `checkUpdates` admite `true`/`false` uma única vez; outros valores/repetição retornam 400 `INVALID_QUERY`. Respostas completas e sondagens usam `Cache-Control: no-store`.
+
+A revisão é SHA-256 da projeção pública completa do recorte, incluindo contagens, relacionados, clippings e vigência efetiva, ordenada por ID e calculada na mesma leitura repetível. Não inclui o instante da consulta nem conteúdo administrativo privado. Ausência de mudança é HTTP 200 com token igual; recorte vazio válido também tem revisão. Falha continua HTTP 503 `QUERY_UNAVAILABLE`, sem revisão válida — nunca ausência de novidade ou vazio. Mesma autenticação e auditoria `CONSULTATION`/USE do módulo `query` da consulta, com contagens/indicadores allowlisted, sem token, texto, coordenadas, raio ou bounds.
+
+**Limite de desempenho:** sondagem reduz payload HTTP, não custo SQL/projeção; executa a mesma consulta. Não há SLA, instantaneidade, push/geofencing, serviço externo ou custo contratado. O cliente sonda a cada cinco segundos somente no Mapa/Histórico autenticado com snapshot válido, usando os filtros efetivamente aplicados. Aviso é deduplicado por revisão, não por tentativa; atualizar é explícito e preserva período/filtros/centro/câmera. Falha preserva conteúdo e horário anteriores. Horários são apresentados em `America/Sao_Paulo`. Relatórios permanecem no momento da geração e não são reescritos pela sondagem.
+
+### PDF após retirada essencial
+
+`POST /api/v1/reports/exports/pdf` exige também `snapshotOccurrenceIds` em `outcome=SUCCEEDED`: IDs únicos dos itens e relacionados do snapshot, pelo menos a quantidade `counts.occurrences`; lista vazia somente quando não há ocorrências. Omitidos/inválidos retornam 400. IDs inexistentes ou não publicados retornam 409 `{"code":"SNAPSHOT_UNAVAILABLE","message":"..."}`, sem download. `FAILED` continua registrável sem IDs.
+
+O servidor verifica os IDs com locks `FOR SHARE` ordenados, transação `READ COMMITTED`, até commit da auditoria, serializando a autorização com o UPDATE de retirada do editor. Nenhum ID entra nos parâmetros de auditoria. **Não é snapshot assinado:** IDs são entrada cliente; o servidor verifica os fornecidos, não certifica bytes arbitrários do navegador ou completude honesta dos relacionados. Retirada posterior não revoga bytes já entregues. O cliente normal envia a união completa, recusa a nova exportação e exige atualizar explicitamente; preserva snapshot/instante anterior e arquivos já baixados. XLSX continua reconsultando somente conteúdo publicado.
+
 ## Vigência humana (Trilha A do 25, 19/10/2026)
 
 `OccurrenceView.situation` continua factual/armazenada; `effectiveSituation` e `verification`

@@ -1,5 +1,14 @@
 # Plano de trabalho
 
+## Rodada do ticket 35 — 19/10/2026, concluída localmente
+
+- Baseline `6c46132`, fetch/divergência `0 0`. Correção isolada do registro do 25 enviada em `9bd9f54`; HEAD/remoto iguais, sem divergência.
+- Responsável respondeu D1/D2 «Aceito» no recorte local, adiou publicação/revisão do 36 até o fim das implementações, aprovou alerta inicial de 850 kB, B5 e recriação sintética vazia; confirmou o mecanismo de sondagem por versão do recorte com atualização explícita, sem serviço/custo novo ou SLA.
+- **Somente 35 selecionado e implementado localmente:** `revision` na consulta e no histórico, sondagem `checkUpdates=true` só com `{checkedAt, revision}` e `no-store`, 503 distinto de ausência/vazio, auditoria USE sem geografia, aviso deduplicado por revisão com atualização explícita que preserva filtros/centro/câmera, horários em `America/Sao_Paulo`, relatórios/snapshots preservados e PDF de snapshot comprometido recusado com 409 `SNAPSHOT_UNAVAILABLE`. [Contrato, decisões e evidências](docs/history/ticket-35-progress-2026-10-19.md).
+- Verificação final desta árvore: API completa **22 unitários + 104 integrações** pelo runner containerizado com PostgreSQL/PostGIS reais; web lint/**136 testes**/build **841,23 kB** iniciais (alerta aprovado 850 kB); Playwright **78 casos** Chromium/Firefox (6 do 35, 26 de contas/regressões diretas e 46 persistidos, `--workers=1`); `planning` 469 links; `git diff --check` limpo; 14/14 migrações idênticas ao baseline. Revisão independente Standards + Spec sobre o diff final sem achados pendentes; os P2 de monitor/dispensa e de exportação atrasada foram corrigidos com RED/GREEN.
+- B5: inventário reconciliado (30 entregas históricas) e `migrate` executado, mas o controlador mantém fases/registros antigos bloqueados; `select()`=None e `run 20` recusado por dependências/fases. D6: `vu-selected-db` (55432) e `vu-ticket30-db` (55437) recriados vazios e verificados; `vu-ticket29-e2e-db` não criado por porta histórica não comprovada. D3 (36) segue aguardando o responsável.
+- Limitações declaradas: sondagem reduz transporte, não custo SQL; IDs de PDF são entrada do cliente, não snapshot assinado; sem QA físico, leitor de tela, deploy, coleta ou dados reais; aceite do 35 é decisão do responsável. Os dois arquivos não rastreados preexistentes seguem excluídos.
+
 ## Rodada de fechamento — 19/10/2026
 
 - Baseline `84013ad`, fetch e divergência `0 0`; a rodada correu primeiro sob o gate de não commitar; o envio foi autorizado depois e está no fechamento abaixo. [Decisões e evidências desta rodada](docs/history/closure-round-2026-10-19.md).

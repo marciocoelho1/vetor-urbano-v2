@@ -1,6 +1,18 @@
 # Vetor Urbano — situação dos tickets
 
-## Complemento de 19/10/2026 — árvore em revisão
+## Decisões do responsável — rodada do ticket 35, 19/10/2026
+
+- **D1 / 25: «Aceito».** Aceite do incremento local pelo responsável. Números do fechamento abaixo são históricos, não reexecução desta rodada.
+- **D2 / 26: «Aceito».** Demonstração local sintética suficiente para este ciclo; não significa prontidão operacional nem autorização/material ou validação cartográfica reais.
+- **D3 / 36: «Deixe pendente para ser tratado após o fim das implementações».** Publicação jurídica, conteúdo final e designação de responsáveis pelas peças continuam pendentes; nenhuma publicação autorizada.
+- **D4: «Eleve para 850kB, a sua primeira sugestão».** Alerta inicial autorizado em 850 kB, sem mudança de dependências/carregamento nem alegação de redução do bundle.
+- **D5: «Autorizado».** Reconciliação B5 pelo mecanismo do controlador; aceites técnicos representam verificação local demonstrada, não decisão de produto inferida.
+- **D6: «Autorizado».** Recriação vazia individual dos três sintéticos, após confirmar configurações históricas; sem recuperação de conteúdo perdido, limpeza em massa ou repair.
+- **Mecanismo do 35: «confirmo».** Sondagem de versão/carimbo do recorte, atualização explícita do usuário e preservação de contexto, sem serviço/custo novo ou SLA. Único ticket selecionado: **35**, implementado e verificado localmente em 19/10/2026; aceite reservado ao responsável.
+
+[Contrato anterior ao código e evidências da rodada](../history/ticket-35-progress-2026-10-19.md).
+
+## Complemento histórico de 19/10/2026 — fechamento anterior
 
 B1/B2 implementados e verificados: autoria histórica visível no navegador (19) e dois testes próprios para importação/triagem administrativas locais (lacuna associada ao 11). B3/B4: runner API containerizado exercitado/documentado e bundle medido/proposta sem alteração do orçamento. API 21 + 96 completa na etapa B; web 127; Playwright dirigido 30/30 Chromium/Firefox. [Checkpoint e limites](../history/closure-round-2026-10-19.md).
 
@@ -10,23 +22,23 @@ Atualizado em **18/10/2026** após a implementação local do ticket 26, sobre b
 
 ## Visão geral
 
-- **30 implementados localmente**, com verificações registradas para o incremento correspondente.
-- **Nenhum parcial nesta rodada:** o ticket 25 saiu de «parcial» com V14, verificações humanas por versão do efeito, filtro estrito de vigência e ciclo administrativo de expiração/renovação verificados; o aceite operacional permanece aberto como nos demais tickets.
-- **6 ainda não iniciados:** 20, 21, 22, 23, 24 e 35.
+- **31 implementados localmente**, com verificações registradas para o incremento correspondente.
+- **Nenhum parcial nesta rodada:** o ticket 25 saiu de «parcial» com V14, verificações humanas por versão do efeito, filtro estrito de vigência e ciclo administrativo de expiração/renovação verificados; o 35 foi implementado e verificado localmente em 19/10. O aceite operacional permanece aberto como nos demais tickets.
+- **5 ainda não iniciados:** 20, 21, 22, 23 e 24.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas não foram reexecutadas para produzir este inventário. Os checkpoints individuais estão ligados na tabela quando disponíveis.
 
 ## Implementados localmente
 
-**01–19, 25, 26–34 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 27, 28, 29, 30, 31, 32, 33, 34 e 36 têm checkpoints ou validações posteriores documentados.
-
-## Parciais ou com pendência
-
-**25** — implementação concluída em 19/10, incluindo a persistência D06/CA08 que antes impedia fechar o ticket; a revisão independente Standards + Spec do fechamento foi concluída com correções aplicadas. **Pendência restante: apenas o aceite do responsável** (aberto por definição, como nos demais tickets). O 26 tem implementação e verificações locais; seu aceite operacional permanece aberto. O 36 permanece implementado com publicação jurídica e revisão final de conteúdo pendentes do responsável.
+**01–19, 25, 26–34, 35 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Ainda não iniciados
 
-**20, 21, 22, 23, 24 e 35** — ainda não há implementação local do fluxo correspondente. Dependências e decisões em aberto aparecem na descrição individual.
+**20, 21, 22, 23 e 24** — ainda não há implementação local do fluxo correspondente. Dependências e decisões em aberto aparecem na descrição individual.
+
+## Parciais ou com pendência
+
+**25** — implementação concluída e revisão independente Standards + Spec do fechamento concluída com correções; em **19/10/2026**, o responsável respondeu **«Aceito»** ao incremento local (D1). **26** — em **19/10/2026**, respondeu **«Aceito»** à suficiência da demonstração sintética para este ciclo (D2), sem declarar prontidão operacional; autorização/material e validação cartográfica reais permanecem fora desse aceite. **36** — publicação jurídica e revisão final de conteúdo adiadas pelo responsável: **«Deixe pendente para ser tratado após o fim das implementações»** (D3). Nenhum ticket foi declarado parcial nesta rodada; o 35 foi implementado e verificado localmente, com aceite reservado ao responsável.
 
 ## Inventário dos 36 tickets
 
@@ -66,7 +78,7 @@ Atualizado em **18/10/2026** após a implementação local do ticket 26, sobre b
 | 32 | [Ler concentração de ocorrências no modo avançado](../../.scratch/consulta-coerente/issues/32-mancha-termica.md) | Exibe concentração de ocorrências únicas geograficamente compatíveis no modo avançado. | Implementado e integrado localmente; aceite verificado com dados sintéticos. |
 | 33 | [Baixar XLSX de todo o recorte avançado](../../.scratch/consulta-coerente/issues/33-exportar-xlsx.md) | Exporta o recorte completo para XLSX com abas, filtros, metadados e limitações. | Implementado localmente; exportação, jornadas, abertura no LibreOffice e revisão estão registradas no checkpoint. |
 | 34 | [Baixar PDF do relatório gerado](../../.scratch/consulta-coerente/issues/34-exportar-pdf.md) | Exporta relatório diagramado em PDF com mapa, síntese e indicadores. | Implementado localmente e verificado com dados sintéticos; checkpoint e revisão registrados. |
-| 35 | [Avisar atualizações publicadas na consulta aberta](../../.scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md) | Informa sobre publicações/correções e permite atualizar a consulta explicitamente. | Ainda não iniciado; depende dos eventos de publicação/correção do ticket 18. |
+| 35 | [Avisar atualizações publicadas na consulta aberta](../../.scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md) | Informa sobre publicações/correções e permite atualizar a consulta explicitamente. | Concluído localmente em 19/10: `revision` na consulta/histórico, sondagem `checkUpdates=true` com `no-store`, 503 distinto de vazio/ausência, aviso deduplicado por revisão com atualização explícita preservando filtros/centro/câmera e PDF de snapshot retirado recusado com 409 `SNAPSHOT_UNAVAILABLE`. API 22 + 104, web 136/841,23 kB, Playwright 78 casos Chromium/Firefox; revisão Standards + Spec sem pendências. [Checkpoint](../history/ticket-35-progress-2026-10-19.md). Aceite é decisão do responsável; sem operação real. |
 | 36 | [Consultar documentos de uso, privacidade e metodologia](../../.scratch/consulta-coerente/issues/36-documentos-institucionais.md) | Apresenta termos, privacidade, metodologia e procedimento de correção versionados. | Implementado localmente como rascunho v1.3 com canal de correções disponível; publicação jurídica e revisão final de conteúdo pendentes do responsável. |
 
 ## Evidências recentes

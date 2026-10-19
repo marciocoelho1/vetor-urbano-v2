@@ -1,3 +1,14 @@
+## 2026-10-19 — Ticket 35: avisos de atualização na consulta aberta (rodada concluída localmente)
+
+- Correção de estado enviada primeiro: registro do fechamento do 25 reconciliado em `9bd9f54` (`docs/product/tickets-status.md`), sobre baseline `6c46132` com divergência `0 0`; HEAD e remoto iguais.
+- `GET /api/v1/occurrences` e `/history/occurrences` acrescentam `revision` (SHA-256 da projeção pública do recorte, incluindo relacionados e vigência efetiva, na mesma leitura repetível). `checkUpdates=true` devolve apenas `{checkedAt, revision}` com `Cache-Control: no-store`; ausência de novidade e vazio válido têm token, falha continua 503 `QUERY_UNAVAILABLE`. `checkUpdates` inválido/repetido retorna 400. Auditoria USE sem token, texto ou geografia.
+- Web: sondagem dos filtros efetivamente aplicados a cada cinco segundos no Mapa/Histórico autenticados, aviso deduplicado por revisão e atualização explícita que preserva período, filtros, centro e câmera; falha preserva o último resultado e o horário; dispensa fica vinculada ao snapshot aplicado. Relatórios mantêm o momento da geração e não são reescritos.
+- PDF de relatório: `SUCCEEDED` passa a exigir `snapshotOccurrenceIds` (itens + relacionados). IDs inexistentes/não publicados retornam 409 `SNAPSHOT_UNAVAILABLE` sem download; `FAILED` continua registrável. Verificação com `FOR SHARE` ordenado em `READ COMMITTED` até a auditoria, conflitando com a retirada concorrente.
+- Orçamento: `initial.maximumWarning` passa de 500 kB para os **850 kB** aprovados pelo responsável (D4), preservando o limite de erro de 1 MB; sem mudança de dependências ou carregamento.
+- Verificação desta árvore: API **22 unitários + 104 integrações** reais; web lint/**136 testes**/build **841,23 kB**; Playwright **78 casos** Chromium/Firefox (`--workers=1`), incluindo duas sessões reais de publicação/correção/retirada, teclado/foco e 390 px; `planning` 469 links. Revisão independente Standards + Spec sobre o diff final: sem achados pendentes. [Checkpoint](docs/history/ticket-35-progress-2026-10-19.md).
+- Limites: sondagem reduz transporte, não custo SQL; os IDs do PDF são entrada do cliente, não snapshot assinado, e retirada posterior não revoga bytes já entregues; sem QA físico, leitor de tela, deploy, coleta ou dados reais. B5 permanece parcial (controlador não substitui fases/registros antigos); D6 parcial (terceiro contêiner sem porta histórica comprovada); publicação/revisão do 36 adiada pelo responsável.
+- Decisões registradas em `docs/product/tickets-status.md`: 25 e 26 aceitos no recorte local, orçamento elevado a 850 kB, B5 e recriação sintética autorizados.
+
 ## 2026-10-19 — Fechamento dirigido: autoria histórica, cobertura administrativa e operação
 
 - Logs mostram `historicalActor` quando a conta viva não existe; o fallback de sistema fica reservado à ausência das duas referências. Jornada com encerramento real, teclado/foco e 390 px em Chromium/Firefox; RED observado antes da alteração.
