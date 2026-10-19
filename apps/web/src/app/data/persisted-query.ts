@@ -41,6 +41,7 @@ export interface PersistedOccurrence {
 }
 
 export interface PersistedQueryResponse {
+  revision?: string;
   generatedAt: string;
   counts: {
     occurrences: number;
@@ -186,6 +187,17 @@ export async function fetchPersistedReportExport(
   return fetchQueryResponse('reports/occurrences/export', params, signal);
 }
 
+export async function checkPersistedQueryUpdates(
+  resource: 'occurrences' | 'history/occurrences',
+  appliedParams: URLSearchParams,
+  signal: AbortSignal,
+): Promise<{ checkedAt: string; revision: string }> {
+  const params = new URLSearchParams(appliedParams);
+  params.set('checkUpdates', 'true');
+  const response = await fetchQueryResponse(resource, params, signal);
+  return response as unknown as { checkedAt: string; revision: string };
+}
+
 async function fetchQueryResponse(
   resource: string,
   params: URLSearchParams,
@@ -193,6 +205,7 @@ async function fetchQueryResponse(
 ): Promise<PersistedQueryResponse> {
   const response = await fetch(`http://127.0.0.1:8080/api/v1/${resource}?${params}`, {
     signal,
+    cache: 'no-store',
     credentials: 'include',
     headers: { Accept: 'application/json' },
   });
@@ -216,6 +229,7 @@ export async function recordPersistedPdfExport(
     generatedAt: string;
     counts: PersistedQueryResponse['counts'];
     outcome: 'SUCCEEDED' | 'FAILED';
+    snapshotOccurrenceIds?: string[];
   },
   csrf: string,
 ): Promise<void> {
@@ -232,6 +246,10 @@ export async function recordPersistedPdfExport(
     window.dispatchEvent(new Event('vu-session-invalid'));
     throw new Error('Sessão ausente, expirada ou sem confirmação. Entre novamente.');
   }
+  if (response.status === 409)
+    throw new Error(
+      'Snapshot indisponível após retirada. Nenhum arquivo foi baixado. Atualize explicitamente o relatório antes de exportar novamente. O snapshot anterior não foi alterado.',
+    );
   if (!response.ok)
     throw new Error(
       'Não foi possível registrar a exportação no servidor. Nenhum arquivo foi baixado. Tente novamente.',

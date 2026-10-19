@@ -5,6 +5,7 @@ import {
   fetchActiveReports,
   type ActiveReportResponse,
 } from './data/active-report-query';
+import { QueryUpdateMonitor } from './data/query-update-monitor';
 import { recordPersistedPdfExport } from './data/persisted-query';
 import {
   compareReports,
@@ -176,6 +177,7 @@ type MappedDemoPoint = DemoPoint & {
 
 type ReportSnapshot = {
   generatedAt: string;
+  snapshotOccurrenceIds?: string[];
   filters: LocalFilters;
   items: DemoPoint[];
   counts: {
@@ -530,6 +532,16 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly persistedQueryEnabled = isLocalPersistedQuery();
   private readonly persistedResponse = signal<PersistedQueryResponse | null>(null);
   private readonly persistedRetry = signal(0);
+  private readonly appliedMapParams = signal<URLSearchParams | null>(null);
+  private readonly appliedHistoryParams = signal<URLSearchParams | null>(null);
+  protected readonly queryUpdateRevision = signal('');
+  protected readonly dismissedQueryRevision = signal('');
+  protected readonly queryUpdateError = signal('');
+  protected readonly historyUpdateRevision = signal('');
+  protected readonly historyUpdateError = signal('');
+  protected readonly queryGeneratedAt = computed(
+    () => this.persistedResponse()?.generatedAt ?? null,
+  );
   private readonly persistedOptions = signal<DemoPoint[]>([]);
   private readonly persistedSources = signal<{ id: string; name: string }[]>([]);
   protected readonly availableSources = computed(() => {
@@ -815,6 +827,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly exportLoading = signal(false);
   protected readonly reportExportStatus = signal('');
   private reportQueryAbort: AbortController | undefined;
+  private reportSnapshotGeneration = 0;
   protected readonly categoryChangeNotice = signal('');
   protected readonly pointConfirmed = signal(false);
   protected readonly reportMapStatus = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -1620,6 +1633,35 @@ export class App implements AfterViewInit, OnDestroy {
 
   constructor() {
     void this.session.refresh();
+    effect((onCleanup) => {
+      const view = this.activeView();
+      const authenticated = this.session.state()?.authenticated;
+      const history = view === 'history';
+      const response = history ? this.historyResponse() : this.persistedResponse();
+      const params = history ? this.appliedHistoryParams() : this.appliedMapParams();
+      if (
+        !this.persistedQueryEnabled ||
+        !authenticated ||
+        !['map', 'history'].includes(view) ||
+        !response?.revision ||
+        !params
+      )
+        return;
+      const monitor = new QueryUpdateMonitor(
+        history ? 'history/occurrences' : 'occurrences',
+        params,
+        response.revision,
+        (state) => {
+          (history ? this.historyUpdateRevision : this.queryUpdateRevision).set(state.revision);
+          (history ? this.historyUpdateError : this.queryUpdateError).set(state.error);
+        },
+      );
+      const timer = setInterval(() => void monitor.check(), 5000);
+      onCleanup(() => {
+        clearInterval(timer);
+        monitor.destroy();
+      });
+    });
     effect(() => {
       if (!this.persistedQueryEnabled) return;
       const authenticated = this.session.state()?.authenticated;
@@ -1679,10 +1721,15 @@ export class App implements AfterViewInit, OnDestroy {
           return;
         }
         this.queryLoading.set(true);
-        void fetchPersistedQuery(persistedQueryParameters(filters), abort.signal)
+        const params = persistedQueryParameters(filters);
+        void fetchPersistedQuery(params, abort.signal)
           .then((response) => {
             if (abort.signal.aborted) return;
             this.persistedResponse.set(response);
+            this.appliedMapParams.set(params);
+            this.queryUpdateRevision.set('');
+            this.dismissedQueryRevision.set('');
+            this.queryUpdateError.set('');
             this.persistedSources.update((sources) => [
               ...new Map(
                 [
@@ -1736,10 +1783,10 @@ export class App implements AfterViewInit, OnDestroy {
       const abort = new AbortController();
       onCleanup(() => abort.abort());
       untracked(() => {
-        this.historyResponse.set(null);
         this.historyLoading.set(true);
         this.historyError.set('');
-        void fetchPersistedHistoryQuery(historyQueryParameters(filters), abort.signal)
+        const params = historyQueryParameters(filters);
+        void fetchPersistedHistoryQuery(params, abort.signal)
           .then((response) => {
             if (abort.signal.aborted) return;
             this.historySourceCache.update((sources) =>
@@ -1749,10 +1796,12 @@ export class App implements AfterViewInit, OnDestroy {
               ),
             );
             this.historyResponse.set(response);
+            this.appliedHistoryParams.set(params);
+            this.historyUpdateRevision.set('');
+            this.historyUpdateError.set('');
           })
           .catch((error: unknown) => {
             if (abort.signal.aborted) return;
-            this.historyResponse.set(null);
             this.historyError.set(
               error instanceof Error ? error.message : 'Não foi possível consultar o histórico.',
             );
@@ -2131,8 +2180,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected refreshHistory(): void {
+    if (this.historyLoading()) return;
     this.historyPage.set(1);
     if (this.persistedQueryEnabled) this.historyRetry.update((value) => value + 1);
+    document
+      .querySelector<HTMLElement>('[data-testid="history-refresh"]')
+      ?.focus({ preventScroll: true });
   }
 
   protected setHistoryPage(page: number): void {
@@ -2565,6 +2618,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected dismissPendingUpdate(): void {
+    this.dismissedQueryRevision.set(this.queryUpdateRevision());
     this.pendingUpdateAvailable.set(false);
   }
 
@@ -2633,9 +2687,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.pendingUpdateAvailable.set(false);
     this.queryError.set(false);
     this.queryErrorMessage.set('');
-    this.queryReferenceDate.set(new Date());
+    if (!this.persistedQueryEnabled) this.queryReferenceDate.set(new Date());
     if (this.persistedQueryEnabled) this.persistedRetry.update((value) => value + 1);
     this.refreshMapData();
+    if (this.persistedQueryEnabled)
+      document
+        .querySelector<HTMLElement>('[data-testid="refresh-query-btn"]')
+        ?.focus({ preventScroll: true });
   }
 
   protected setRadiusMeters(value: string): void {
@@ -3551,6 +3609,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private async generateReportSnapshot(filters: LocalFilters): Promise<void> {
+    const generation = ++this.reportSnapshotGeneration;
     this.reportQueryAbort?.abort();
     const controller = new AbortController();
     this.reportQueryAbort = controller;
@@ -3564,10 +3623,13 @@ export class App implements AfterViewInit, OnDestroy {
           persistedQueryParameters(savedFilters),
           controller.signal,
         );
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || generation !== this.reportSnapshotGeneration) return;
         const items = response.items.map(persistedRecord);
         this.reportSnapshot.set({
           generatedAt: response.generatedAt,
+          snapshotOccurrenceIds: [
+            ...new Set([...response.items, ...response.relatedItems].map((item) => item.id)),
+          ],
           filters: savedFilters,
           items,
           counts: {
@@ -3605,7 +3667,7 @@ export class App implements AfterViewInit, OnDestroy {
       }
       this.reportQueryFilters.set(savedFilters);
     } catch (error) {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && generation === this.reportSnapshotGeneration) {
         this.reportQueryError.set(
           error instanceof Error ? error.message : 'Não foi possível gerar o relatório.',
         );
@@ -3657,7 +3719,12 @@ export class App implements AfterViewInit, OnDestroy {
       if (this.persistedQueryEnabled) {
         await recordPersistedPdfExport(
           snapshot.filters,
-          { ...metadata, outcome: 'SUCCEEDED' },
+          {
+            ...metadata,
+            outcome: 'SUCCEEDED',
+            snapshotOccurrenceIds:
+              snapshot.snapshotOccurrenceIds ?? snapshot.items.map((item) => item.id),
+          },
           this.session.state()?.csrfToken ?? '',
         );
         audited = true;
@@ -3696,6 +3763,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected async exportXlsx(): Promise<void> {
+    const generation = ++this.reportSnapshotGeneration;
     this.exportLoading.set(true);
     this.reportExportStatus.set('Preparando a planilha do recorte completo…');
     try {
@@ -3727,9 +3795,14 @@ export class App implements AfterViewInit, OnDestroy {
         `vetor-urbano-relatorio-${generatedAt.slice(0, 10)}.xlsx`,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
-      if (exportedResponse && savedFilters) {
+      if (exportedResponse && savedFilters && generation === this.reportSnapshotGeneration) {
         this.reportSnapshot.set({
           generatedAt: exportedResponse.generatedAt,
+          snapshotOccurrenceIds: [
+            ...new Set(
+              [...exportedResponse.items, ...exportedResponse.relatedItems].map((item) => item.id),
+            ),
+          ],
           filters: savedFilters,
           items: exportedResponse.items.map(persistedRecord),
           counts: {

@@ -273,17 +273,24 @@
               <span class="mode-notice-text">{{ modeNotice() }}</span>
             </div>
           }
-          @if (pendingUpdateAvailable()) {
+          @if (
+            pendingUpdateAvailable() ||
+            (queryUpdateRevision() && queryUpdateRevision() !== dismissedQueryRevision())
+          ) {
             <aside class="query-update-banner" role="status" data-testid="query-update-notice">
               <div class="query-update-content">
                 <span class="query-update-badge" aria-hidden="true">Atualização</span>
                 <div class="query-update-text">
-                  <strong
-                    >Existem novas publicações disponíveis para esta consulta (simulação).</strong
-                  >
-                  <span
-                    >Você pode atualizar os dados mantendo seus filtros e a posição do mapa.</span
-                  >
+                  <strong>{{
+                    persistedQueryEnabled
+                      ? 'Há publicação, correção ou retirada disponível neste recorte.'
+                      : 'Existem novas publicações disponíveis para esta consulta (simulação).'
+                  }}</strong>
+                  <span>{{
+                    persistedQueryEnabled
+                      ? 'Snapshot anterior preservado; não confirma vigência atual. Atualize explicitamente mantendo filtros e posição do mapa.'
+                      : 'Você pode atualizar os dados mantendo seus filtros e a posição do mapa.'
+                  }}</span>
                 </div>
               </div>
               <div class="query-update-actions">
@@ -307,6 +314,15 @@
             </aside>
           }
           @if (persistedQueryEnabled) {
+            @if (queryGeneratedAt(); as generatedAt) {
+              <p data-testid="query-last-updated">
+                Snapshot consultado em {{ formatDateTime(generatedAt) }} (Brasília). Não confirma
+                vigência atual.
+              </p>
+            }
+            @if (queryUpdateError()) {
+              <p role="status" data-testid="query-update-error">{{ queryUpdateError() }}</p>
+            }
             <p class="query-note" role="status" data-testid="persisted-query-notice">
               Consulta persistida local · dados inteiramente sintéticos · acesso local autenticado.
               Nenhum módulo está liberado para operação real.
@@ -369,7 +385,12 @@
                     >
                   }
                   <span class="query-timestamp" data-testid="query-timestamp"
-                    >Consulta às {{ formatQueryTimestamp(queryReferenceDate()) }}</span
+                    >Consulta às
+                    {{
+                      persistedQueryEnabled && queryGeneratedAt()
+                        ? formatDateTime(queryGeneratedAt()!)
+                        : formatQueryTimestamp(queryReferenceDate())
+                    }}</span
                   >
                 </div>
               </div>
@@ -2237,17 +2258,38 @@
                 type="button"
                 data-testid="history-refresh"
                 (click)="refreshHistory()"
-                [disabled]="historyLoading() || historyFilterError().length > 0"
+                [disabled]="historyFilterError().length > 0"
+                [attr.aria-busy]="historyLoading()"
               >
                 Atualizar histórico
               </button>
               @if (historyGeneratedAt(); as generatedAt) {
                 <span data-testid="history-generated-at">
-                  Snapshot consultado em {{ formatDateTime(generatedAt) }}
+                  Snapshot consultado em {{ formatDateTime(generatedAt) }}. Não confirma vigência
+                  atual.
                 </span>
               }
             </div>
           </section>
+          @if (historyUpdateRevision()) {
+            <aside class="query-update-banner" role="status" data-testid="query-update-notice">
+              <p>
+                Há publicação, correção ou retirada disponível. Snapshot anterior preservado; não
+                confirma vigência atual.
+              </p>
+              <button
+                type="button"
+                class="heatmap-button"
+                (click)="refreshHistory()"
+                data-testid="apply-query-update-btn"
+              >
+                Atualizar histórico
+              </button>
+            </aside>
+          }
+          @if (historyUpdateError()) {
+            <p role="status" data-testid="query-update-error">{{ historyUpdateError() }}</p>
+          }
           @if (historyLoading()) {
             <p
               class="workspace-loading"
@@ -2491,6 +2533,9 @@
                   <time data-testid="report-generated-at">{{
                     formatDateTime(snapshot.generatedAt)
                   }}</time>
+                  · Snapshot do momento original; não confirma vigência atual. Publicações,
+                  correções ou retiradas posteriores exigem atualização explícita. Arquivos já
+                  baixados não são alterados.
                 </p>
                 <p class="report-snapshot-counts" data-testid="report-snapshot-counts">
                   {{ snapshot.counts.occurrences }} ocorrências ·

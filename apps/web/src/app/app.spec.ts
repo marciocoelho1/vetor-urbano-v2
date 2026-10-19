@@ -161,6 +161,235 @@ describe('Vetor Urbano', () => {
     fixture.detectChanges();
   });
 
+  it('preserva IDs do recorte e relacionados no snapshot destinado à exportação PDF', async () => {
+    const item = {
+      id: 'matched',
+      happeningId: 'context',
+      title: 'Sintético',
+      description: 'Fictício',
+      category: 'TRANSITO',
+      type: 'ACIDENTE',
+      subtype: 'NAO_INFORMADO',
+      situation: 'UNKNOWN',
+      reliability: 3,
+      municipality: 'Rio de Janeiro',
+      neighborhood: 'Centro',
+      locationPrecision: 'TERRITORY',
+      coordinates: null,
+      temporalMatch: 'CERTAIN',
+      temporal: { occurredAt: '2026-10-15T14:00:00Z' },
+      clippings: [],
+    };
+    const counts = {
+      occurrences: 1,
+      happenings: 1,
+      mappedOccurrences: 0,
+      listOnlyOccurrences: 1,
+      temporallyCertain: 1,
+      temporallyPossible: 0,
+    };
+    const fetcher = vi.fn(async (_url: string, options?: RequestInit) => {
+      if (options?.method === 'POST') {
+        return JSON.parse(String(options.body)).outcome === 'FAILED'
+          ? new Response('{}')
+          : new Response('{"code":"SNAPSHOT_UNAVAILABLE"}', { status: 409 });
+      }
+      return new Response(
+        JSON.stringify({
+          generatedAt: '2026-10-15T15:00:00Z',
+          counts,
+          items: [item],
+          relatedItems: [{ ...item, id: 'related' }],
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const app = fixture.componentInstance as unknown as {
+      persistedQueryEnabled: boolean;
+      generateReportFromMap(): void;
+      reportSnapshot(): unknown;
+    };
+    Object.defineProperty(app, 'persistedQueryEnabled', { value: true });
+    app.generateReportFromMap();
+    await vi.waitFor(() => expect(app.reportSnapshot()).not.toBeNull());
+    expect(app.reportSnapshot()).toMatchObject({
+      generatedAt: '2026-10-15T15:00:00Z',
+      snapshotOccurrenceIds: ['matched', 'related'],
+    });
+  });
+
+  it('não substitui o relatório novo quando uma exportação anterior termina atrasada', async () => {
+    const counts = {
+      occurrences: 0,
+      happenings: 0,
+      mappedOccurrences: 0,
+      listOnlyOccurrences: 0,
+      temporallyCertain: 0,
+      temporallyPossible: 0,
+    };
+    const response = (generatedAt: string) =>
+      new Response(
+        JSON.stringify({
+          generatedAt,
+          counts,
+          items: [],
+          relatedItems: [],
+        }),
+      );
+    let finishExport!: (response: Response) => void;
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response('2026-10-15T13:00:00Z'))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishExport = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(response('2026-10-15T15:00:00Z'));
+    vi.stubGlobal('fetch', fetcher);
+    const app = fixture.componentInstance as unknown as {
+      generateReportFromMap(): void;
+      refreshReportSnapshot(): void;
+      exportXlsx(): Promise<void>;
+      reportSnapshot(): { generatedAt: string } | null;
+      reportExportStatus(): string;
+    };
+    Object.defineProperty(app, 'persistedQueryEnabled', { value: true });
+    app.generateReportFromMap();
+    await vi.waitFor(() => expect(app.reportSnapshot()?.generatedAt).toBe('2026-10-15T13:00:00Z'));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const createUrl = vi.fn(() => 'blob:report');
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static override createObjectURL = createUrl;
+        static override revokeObjectURL = vi.fn();
+      },
+    );
+    try {
+      const exporting = app.exportXlsx();
+      app.refreshReportSnapshot();
+      await vi.waitFor(() =>
+        expect(app.reportSnapshot()?.generatedAt).toBe('2026-10-15T15:00:00Z'),
+      );
+      finishExport(response('2026-10-15T14:00:00Z'));
+      await exporting;
+      expect(app.reportExportStatus()).toContain('registrada no servidor');
+      expect(click).toHaveBeenCalledOnce();
+      expect(app.reportSnapshot()?.generatedAt).toBe('2026-10-15T15:00:00Z');
+    } finally {
+      click.mockRestore();
+    }
+  });
+
+  it('volta a avisar B após dispensá-lo em A, aplicar B e reaplicar A por correção', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    let revision = 'opaque-a';
+    const counts = {
+      occurrences: 0,
+      happenings: 0,
+      mappedOccurrences: 0,
+      listOnlyOccurrences: 0,
+      temporallyCertain: 0,
+      temporallyPossible: 0,
+    };
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            revision,
+            generatedAt: '2026-10-15T15:00:00Z',
+            checkedAt: '2026-10-15T15:00:00Z',
+            counts,
+            items: [],
+            relatedItems: [],
+          }),
+        ),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    fixture.destroy();
+    fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance as unknown as {
+      retryQuery(): void;
+      persistedResponse(): { revision: string } | null;
+    };
+    Object.defineProperty(app, 'persistedQueryEnabled', { value: true });
+    const root = fixture.nativeElement as HTMLElement;
+    const notice = () => root.querySelector('[data-testid="query-update-notice"]');
+    const poll = async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+      fixture.detectChanges();
+    };
+    const apply = async (expectedRevision: string) => {
+      root.querySelector<HTMLButtonElement>('[data-testid="apply-query-update-btn"]')!.click();
+      fixture.detectChanges();
+      await vi.waitFor(() => expect(app.persistedResponse()?.revision).toBe(expectedRevision));
+      fixture.detectChanges();
+      expect(notice()).toBeNull();
+    };
+
+    app.retryQuery();
+    fixture.detectChanges();
+    await vi.waitFor(() => expect(app.persistedResponse()?.revision).toBe('opaque-a'));
+    fixture.detectChanges();
+    revision = 'opaque-b';
+    await poll();
+    expect(notice()).not.toBeNull();
+    root.querySelector<HTMLButtonElement>('.update-dismiss-btn')!.click();
+    fixture.detectChanges();
+    expect(notice()).toBeNull();
+    await poll();
+    expect(notice()).toBeNull();
+
+    // Atualização explícita também deve funcionar com o aviso dispensado.
+    app.retryQuery();
+    fixture.detectChanges();
+    await vi.waitFor(() => expect(app.persistedResponse()?.revision).toBe('opaque-b'));
+    fixture.detectChanges();
+    expect(notice()).toBeNull();
+    revision = 'opaque-a';
+    await poll();
+    expect(notice()).not.toBeNull();
+    await apply('opaque-a');
+    revision = 'opaque-b';
+    await poll();
+    expect(notice()).not.toBeNull();
+    expect(app.persistedResponse()?.revision).toBe('opaque-a');
+  });
+
+  it('mantém aviso integrado e erro separados e rotula o snapshot sem alegar vigência', () => {
+    const app = fixture.componentInstance as unknown as {
+      persistedQueryEnabled: boolean;
+      queryUpdateRevision: { set(value: string): void };
+      queryUpdateError: { set(value: string): void };
+      persistedResponse: { set(value: unknown): void };
+    };
+    Object.defineProperty(app, 'persistedQueryEnabled', { value: true });
+    app.queryUpdateRevision.set('opaque-b');
+    app.queryUpdateError.set('Não foi possível verificar atualizações.');
+    app.persistedResponse.set({
+      generatedAt: '2026-10-15T15:00:00Z',
+      items: [],
+      relatedItems: [],
+      counts: {},
+    });
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="query-update-notice"]')?.textContent).toContain(
+      'Snapshot anterior',
+    );
+    expect(root.querySelector('[data-testid="query-update-error"]')?.textContent).toContain(
+      'Não foi possível',
+    );
+    expect(root.querySelector('[data-testid="query-last-updated"]')?.textContent).toContain(
+      '12:00',
+    );
+    expect(root.querySelector('[data-testid="query-update-notice"]')?.textContent).not.toContain(
+      'simulação',
+    );
+  });
+
   it('explains unique eligible occurrences and a fixed color scale when heat is enabled', () => {
     fixture.nativeElement.querySelector('.heatmap-button').click();
     fixture.detectChanges();
