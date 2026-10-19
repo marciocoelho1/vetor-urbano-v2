@@ -138,6 +138,11 @@ public class AuthService {
         jdbc.update("UPDATE local_sessions SET revoked_at=? WHERE token_hash=?",now(),hash(token));
         audit(s.account(),"MFA","VERIFIED");return issue(s.account(),"ADMIN",true,true);
     }
+    /** Proximity is audited as USE without storing the requested point or radius. */
+    @Transactional public void auditActiveReports(UUID account, int occurrences) {
+        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?,'query','ACTIVE_REPORT_QUERY','SUCCEEDED',jsonb_build_object('hasSpatialFilter',true,'occurrences',?::integer))",
+                account,now(),occurrences);
+    }
     @Transactional public void auditQuery(UUID account, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts) {
         auditUsage(account, "CONSULTATION", query, counts, Map.of(), "SUCCEEDED");

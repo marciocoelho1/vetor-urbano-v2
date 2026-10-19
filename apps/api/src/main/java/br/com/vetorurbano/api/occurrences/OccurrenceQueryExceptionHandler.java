@@ -18,7 +18,7 @@ public class OccurrenceQueryExceptionHandler {
                 .body(new ApiErrorResponse(new ApiErrorDetail("INVALID_QUERY", exception.getMessage())));
     }
 
-    @ExceptionHandler({DataAccessException.class, org.springframework.transaction.TransactionException.class})
+    @ExceptionHandler({DataAccessException.class, org.springframework.transaction.TransactionException.class, ActiveReportQueryService.PolicyUnavailableException.class})
     public ResponseEntity<ApiErrorResponse> queryUnavailable(RuntimeException exception) {
         LOGGER.error("Occurrence query failed; returning unavailable instead of an empty result", exception);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

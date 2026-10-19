@@ -6,7 +6,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-/** Independent read-only query core. Not registered as an HTTP or production Spring service. */
+/** Independent read-only query core; never changes a stored situation. */
+@org.springframework.stereotype.Service
 public final class ActiveReportQueryService {
     /**
      * Integration port for an explicitly supplied validity policy and its evidence.
@@ -16,7 +17,15 @@ public final class ActiveReportQueryService {
     @FunctionalInterface
     public interface ValidityPolicy {
         boolean isCurrentlyValid(OccurrenceRecord effect, Instant evaluatedAt);
+
+        default Validity assess(OccurrenceRecord effect, Instant evaluatedAt) {
+            return isCurrentlyValid(effect, evaluatedAt) ? Validity.CONFIRMED : Validity.NOT_CONFIRMED;
+        }
     }
+
+    public enum Validity { CONFIRMED, NOT_CONFIRMED, MISSING_CONFIGURATION, MISSING_EVIDENCE, EXPIRED, NOT_APPLICABLE }
+    public record Entry(OccurrenceRecord occurrence, Validity validity) {}
+    public record Snapshot(Instant evaluatedAt, List<Entry> items) {}
 
     private final OccurrenceQueryRepository repository;
     private final Clock clock;
@@ -30,6 +39,10 @@ public final class ActiveReportQueryService {
 
     /** Returns original published records, not a recalculated situation or persisted transition. */
     public List<OccurrenceRecord> find(Coordinates center, int radiusMeters) {
+        return snapshot(center, radiusMeters).items().stream().map(Entry::occurrence).toList();
+    }
+
+    public Snapshot snapshot(Coordinates center, int radiusMeters) {
         if (center == null || !Double.isFinite(center.longitude()) || !Double.isFinite(center.latitude())
                 || Math.abs(center.longitude()) > 180 || Math.abs(center.latitude()) > 90
                 || radiusMeters <= 0 || radiusMeters > 5000) {
@@ -41,14 +54,25 @@ public final class ActiveReportQueryService {
         var query = new OccurrenceQuery(null, null, List.of(), false, List.of(), List.of(),
                 List.of(), List.of(), List.of(), null, null, null, List.of(), center, radiusMeters,
                 null, null, List.of());
-        return repository.find(query).stream().filter(effect -> {
+        var entries = repository.find(query).stream().map(effect -> new Entry(effect,
+                effect.situation() == OccurrenceSituation.ONGOING ? assess(effect, now) : Validity.NOT_APPLICABLE))
+                .filter(entry -> {
+            var effect = entry.occurrence();
             boolean recent = effect.occurredAt() != null
                     ? !effect.occurredAt().isBefore(start) && effect.occurredAt().isBefore(now)
                     : effect.occurredFrom().isBefore(now) && effect.occurredUntil().isAfter(start);
             var beganAt = effect.occurredAt() != null ? effect.occurredAt() : effect.occurredFrom();
-            return recent || (beganAt.isBefore(start) && effect.situation() == OccurrenceSituation.ONGOING
-                    && validity.isCurrentlyValid(effect, now));
-        }).map(effect -> withTemporalMatch(effect, start, now)).toList();
+            return recent || (beganAt.isBefore(start) && entry.validity() == Validity.CONFIRMED);
+        }).map(entry -> new Entry(withTemporalMatch(entry.occurrence(), start, now), entry.validity())).toList();
+        return new Snapshot(now, entries);
+    }
+
+    public static final class PolicyUnavailableException extends RuntimeException {
+        PolicyUnavailableException(RuntimeException cause) { super("Validity policy unavailable", cause); }
+    }
+    private Validity assess(OccurrenceRecord effect, Instant at) {
+        try { return Objects.requireNonNull(validity.assess(effect, at)); }
+        catch (RuntimeException failure) { throw new PolicyUnavailableException(failure); }
     }
 
     private static OccurrenceRecord withTemporalMatch(OccurrenceRecord effect, Instant start, Instant end) {
