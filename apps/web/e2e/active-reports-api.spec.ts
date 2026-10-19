@@ -145,7 +145,7 @@ test.describe('Informes integrados — ticket 25', () => {
     await expect(closed).toContainText('Encerrada');
     await expect(ongoing).toContainText('Desconhecida');
     await expect(ongoing).toContainText('Situação armazenada: Em andamento');
-    await expect(ongoing).toContainText('Sem configuração de vigência');
+    await expect(ongoing).toContainText('Sem evidência de confirmação');
     await expect(ongoing.getByTestId('ongoing-badge')).toHaveCount(0);
     await expect(page.getByTestId('informes-consulted-at')).toContainText('Consulta em');
     const details = closed.getByRole('button', { name: 'Ver detalhes' });

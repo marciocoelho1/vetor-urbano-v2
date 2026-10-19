@@ -2,31 +2,16 @@ import { createHmac } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { api, confirmedUser, testPassword } from './helpers/local-account';
+import { fixtureSql } from './helpers/synthetic-admin';
 
-test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige HTTP Java e PostGIS sintético real.');
+test.skip(
+  process.env['VETOR_PERSISTED_E2E'] !== '1' && process.env['VETOR_ACCOUNTS_E2E'] !== '1',
+  'Exige HTTP Java e PostGIS sintético real.',
+);
 test.use({ actionTimeout: 10_000, trace: 'off', screenshot: 'off' });
 
 function sql(command: string): void {
-  const container = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  if (!container) throw new Error('Informe o banco sintético exclusivo.');
-  execFileSync(
-    'podman',
-    [
-      'exec',
-      '-i',
-      container,
-      'psql',
-      '-X',
-      '-q',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-    ],
-    { input: command, stdio: ['pipe', 'pipe', 'pipe'] },
-  );
+  fixtureSql(command);
 }
 function totp(value: string): string {
   let bits = '';

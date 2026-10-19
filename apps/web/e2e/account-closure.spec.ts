@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { fixtureSql } from './helpers/synthetic-admin';
 import { createHmac } from 'node:crypto';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
@@ -48,20 +48,7 @@ async function openAccount(page: Page): Promise<void> {
 }
 /** Contagem real na base sintética, sem passar pela interface. */
 function sqlCount(query: string): number {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(Boolean(database), 'Informe somente o contêiner sintético local').toBe(true);
-  const output = execFileSync('podman', [
-    'exec',
-    database!,
-    'psql',
-    '-U',
-    'postgres',
-    '-d',
-    'vetor_urbano',
-    '-tAc',
-    query,
-  ]).toString();
-  return Number.parseInt(output.trim(), 10);
+  return Number.parseInt(fixtureSql(query), 10);
 }
 
 /** Decodifica a chave restrita (base32) e gera o código TOTP da janela pedida. */
@@ -215,30 +202,32 @@ test('encerramento recusa campo fora do contrato sem alterar a conta', async ({
 test('administrador encerra todas as sessões com código novo do autenticador', async ({
   page,
 }, info) => {
-  const password = process.env['VETOR_LOCAL_TEST_PASSWORD'];
+  const password = secret;
+  const email = await confirmed(page.request, syntheticEmail('admin'));
+  fixtureSql(`UPDATE local_accounts SET role='ADMIN' WHERE email='${email}'`);
   const restricted = page.getByLabel('Chave do autenticador (restrita)');
-  test.skip(!password, 'Informe VETOR_LOCAL_TEST_PASSWORD e a fixture administrativa local');
   await page.goto('/?consulta=api');
-  await page.getByLabel('E-mail', { exact: true }).fill('admin@vetorurbano.test');
-  await page.getByLabel('Senha', { exact: true }).fill(password!);
+  await page.getByLabel('E-mail', { exact: true }).fill(email);
+  await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   const configure = page.getByRole('button', { name: 'Configurar autenticador' });
-  // Sem autenticador novo disponível não há como gerar o código; a limitação fica registrada.
-  test.skip(!(await configure.count()), 'Fixture administrativa já tem autenticador configurado');
+  await expect(configure).toBeVisible();
   await configure.click();
   await expect(restricted).toBeVisible();
-  const secret = await restricted.inputValue();
-  expect(secret.length).toBe(32);
-  await page.getByLabel('Código do autenticador', { exact: true }).fill(totp(secret));
+  const authenticatorSecret = await restricted.inputValue();
+  expect(authenticatorSecret.length).toBe(32);
+  await page.getByLabel('Código do autenticador', { exact: true }).fill(totp(authenticatorSecret));
   const verified = page.waitForResponse((reply) => reply.url().endsWith('/auth/mfa/verification'));
   await page.getByRole('button', { name: 'Confirmar segundo fator', exact: true }).click();
   expect((await verified).status()).toBe(200);
   await expect(page.getByRole('button', { name: 'Minha conta', exact: true })).toBeVisible();
   await openAccount(page);
   const sessionsForm = page.getByRole('form', { name: 'Sessões' });
-  await sessionsForm.getByLabel('Senha atual', { exact: true }).fill(password!);
+  await sessionsForm.getByLabel('Senha atual', { exact: true }).fill(password);
   // O código usado na entrada não se repete: a janela seguinte é aceita.
-  await sessionsForm.getByLabel('Código do autenticador', { exact: true }).fill(totp(secret, 1));
+  await sessionsForm
+    .getByLabel('Código do autenticador', { exact: true })
+    .fill(totp(authenticatorSecret, 1));
   const revoked = page.waitForResponse((reply) =>
     reply.url().endsWith('/account/sessions/revocations'),
   );
