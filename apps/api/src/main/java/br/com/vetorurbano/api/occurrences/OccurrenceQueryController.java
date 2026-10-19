@@ -20,9 +20,11 @@ public class OccurrenceQueryController {
     }
 
     @GetMapping("/occurrences")
-    public OccurrenceQueryResponse find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+    public Object find(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+        var check = checkUpdates(parameters);
         var query = parser.parse(parameters);
-        return auditAndReturn(query, service.find(query), request);
+        var result = auditAndReturn(query, service.find(query), request);
+        return response(result, check);
     }
 
     @GetMapping("/occurrences/{id}")
@@ -33,9 +35,24 @@ public class OccurrenceQueryController {
     }
 
     @GetMapping("/history/occurrences")
-    public OccurrenceQueryResponse findHistory(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+    public Object findHistory(@RequestParam MultiValueMap<String, String> parameters, jakarta.servlet.http.HttpServletRequest request) {
+        var check = checkUpdates(parameters);
         var query = parser.parseHistory(parameters);
-        return auditAndReturn(query, service.findHistory(query), request);
+        var result = auditAndReturn(query, service.findHistory(query), request);
+        return response(result, check);
+    }
+
+    private static boolean checkUpdates(MultiValueMap<String, String> parameters) {
+        var values = parameters.remove("checkUpdates");
+        if (values == null) return false;
+        if (values.size() != 1 || !java.util.Set.of("true", "false").contains(values.getFirst()))
+            throw new InvalidQueryException("checkUpdates aceita true ou false uma única vez.");
+        return "true".equals(values.getFirst());
+    }
+
+    private static Object response(OccurrenceQueryResponse result, boolean check) {
+        Object body = check ? java.util.Map.of("checkedAt", result.generatedAt(), "revision", result.revision()) : result;
+        return org.springframework.http.ResponseEntity.ok().header("Cache-Control", "no-store").body(body);
     }
 
     private OccurrenceQueryResponse auditAndReturn(

@@ -24,11 +24,68 @@ class PdfExportHttpIT extends LocalAuthHttpSupport {
         return Map.of("occurrences", 4, "happenings", 2, "mappedOccurrences", 3, "listOnlyOccurrences", 1, "temporallyCertain", 3, "temporallyPossible", 1);
     }
     static Map<String, Object> completed() {
-        return Map.of("generatedAt", "2026-10-15T17:00:00Z", "outcome", "SUCCEEDED", "counts", counts());
+        return Map.of("generatedAt", "2026-10-15T17:00:00Z", "outcome", "SUCCEEDED", "counts", counts(),
+                "snapshotOccurrenceIds", List.of("vu-demo-occurrence-traffic-001", "vu-demo-occurrence-contingency-001",
+                        "vu-demo-occurrence-contingency-002", "vu-demo-occurrence-territory-001"));
     }
     static Map<String, Object> failed() {
         return Map.of("generatedAt", "2026-10-15T17:00:00Z", "outcome", "FAILED", "counts", counts());
     }
+    @Test void successfulExportRequiresSnapshotIdsAndRejectsWithdrawnRelatedContent() throws Exception {
+        try (var app = start()) {
+            register(app, "pdf35@example.test", true);
+            accept(login(app, "pdf35@example.test"));
+            var missingIds = new HashMap<String, Object>(completed());
+            missingIds.remove("snapshotOccurrenceIds");
+            assertEquals(400, request(app, "POST", EXPORT, missingIds).statusCode());
+            var body = new HashMap<String, Object>(completed());
+            body.put("snapshotOccurrenceIds", List.of());
+            assertEquals(400, request(app, "POST", EXPORT, body).statusCode());
+            body.put("snapshotOccurrenceIds", List.of("vu-demo-occurrence-traffic-001"));
+            assertEquals(400, request(app, "POST", EXPORT, body).statusCode());
+            var ids = List.of("vu-demo-occurrence-traffic-001", "vu-demo-occurrence-contingency-001",
+                    "vu-demo-occurrence-contingency-002", "vu-demo-occurrence-territory-001");
+            body.put("snapshotOccurrenceIds", ids);
+            var missing = new ArrayList<>(ids);
+            missing.set(1, "vu-missing-35");
+            body.put("snapshotOccurrenceIds", missing);
+            assertEquals(409, request(app, "POST", EXPORT, body).statusCode());
+            missing.set(1, "vu-demo-occurrence-pending-control");
+            assertEquals(409, request(app, "POST", EXPORT, body).statusCode());
+            body.put("snapshotOccurrenceIds", ids);
+            body.put("counts", Map.of("occurrences", 1, "happenings", 1, "mappedOccurrences", 1,
+                    "listOnlyOccurrences", 0, "temporallyCertain", 1, "temporallyPossible", 0));
+            var jdbc = app.getBean(JdbcTemplate.class);
+            // An uncommitted withdrawal owns the same row lock needed by the export authorization.
+            try (var connection = app.getBean(javax.sql.DataSource.class).getConnection()) {
+                connection.setAutoCommit(false);
+                try (var statement = connection.prepareStatement("UPDATE occurrences SET publication_status='WITHDRAWN' WHERE id=?")) {
+                    statement.setString(1, ids.get(1));
+                    statement.executeUpdate();
+                }
+                var export = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try { return request(app, "POST", EXPORT, body); }
+                    catch (Exception exception) { throw new RuntimeException(exception); }
+                });
+                boolean waiting = false;
+                long deadline = System.nanoTime() + java.time.Duration.ofSeconds(5).toNanos();
+                while (!waiting && System.nanoTime() < deadline) {
+                    waiting = jdbc.queryForObject("SELECT count(*)>0 FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE 'SELECT publication_status%FOR SHARE'", Boolean.class);
+                    if (!waiting) Thread.sleep(20);
+                }
+                assertTrue(waiting, "HTTP export reached its publication row lock");
+                assertFalse(export.isDone(), "export waits for the competing withdrawal decision");
+                connection.commit();
+                var response = export.get(10, java.util.concurrent.TimeUnit.SECONDS);
+                assertEquals(409, response.statusCode(), response.body());
+                assertEquals("SNAPSHOT_UNAVAILABLE", JSON.readTree(response.body()).path("code").asString());
+            } finally {
+                jdbc.update("UPDATE occurrences SET publication_status='PUBLISHED' WHERE id=?", ids.get(1));
+            }
+            assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM auth_audit_events WHERE action='REPORT_PDF_EXPORT' AND outcome='SUCCEEDED' AND account_id=(SELECT id FROM local_accounts WHERE email='pdf35@example.test')", Integer.class));
+        }
+    }
+
     @Test void pdfSnapshotExportRequiresSessionCsrfAndPersistsMinimizedAuditWithoutRequerying() throws Exception {
         UUID actor;
         try (var app = start()) {

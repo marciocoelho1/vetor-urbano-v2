@@ -20,14 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportQueryController {
     private final OccurrenceQueryParser parser;
     private final OccurrenceQueryService service;
+    private final PdfExportService pdfExports;
     private final ObjectProvider<br.com.vetorurbano.api.auth.AuthService> auth;
 
     public ReportQueryController(
             OccurrenceQueryParser parser,
             OccurrenceQueryService service,
+            PdfExportService pdfExports,
             ObjectProvider<br.com.vetorurbano.api.auth.AuthService> auth) {
         this.parser = parser;
         this.service = service;
+        this.pdfExports = pdfExports;
         this.auth = auth;
     }
 
@@ -52,7 +55,7 @@ public class ReportQueryController {
         auth.getObject().auditReportExport(account, query, result.counts());
         return result;
     }
-    public record PdfExportRequest(Instant generatedAt, OccurrenceQueryCounts counts, String outcome) {}
+    public record PdfExportRequest(Instant generatedAt, OccurrenceQueryCounts counts, String outcome, java.util.List<String> snapshotOccurrenceIds) {}
 
     @PostMapping("/exports/pdf")
     public ResponseEntity<?> recordPdfExport(@RequestParam MultiValueMap<String, String> parameters,
@@ -72,7 +75,7 @@ public class ReportQueryController {
                 || counts.temporallyPossible() < 0 || counts.temporallyPossible() > counts.occurrences()
                 || counts.temporallyCertain() + counts.temporallyPossible() > counts.occurrences())
             throw new InvalidQueryException("Metadados do snapshot PDF inválidos.");
-        auth.getObject().auditPdfExport(UUID.fromString((String) request.getAttribute("vu.account")), query, counts, body.generatedAt(), body.outcome());
+        pdfExports.record(UUID.fromString((String) request.getAttribute("vu.account")), query, body);
         return ResponseEntity.ok(Map.of("code", "PDF_EXPORT_RECORDED"));
     }
 

@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class OccurrenceQueryExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(OccurrenceQueryExceptionHandler.class);
 
+    @ExceptionHandler(PdfExportService.SnapshotUnavailableException.class)
+    public ResponseEntity<?> snapshotUnavailable() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).header("Cache-Control", "no-store")
+                .body(java.util.Map.of("code", "SNAPSHOT_UNAVAILABLE", "message", "Uma ocorrência do snapshot não está mais publicada. Atualize o relatório."));
+    }
+
     @ExceptionHandler(InvalidQueryException.class)
     public ResponseEntity<ApiErrorResponse> invalidQuery(InvalidQueryException exception) {
         return ResponseEntity.badRequest()
@@ -21,7 +27,7 @@ public class OccurrenceQueryExceptionHandler {
     @ExceptionHandler({DataAccessException.class, org.springframework.transaction.TransactionException.class, ActiveReportQueryService.PolicyUnavailableException.class})
     public ResponseEntity<ApiErrorResponse> queryUnavailable(RuntimeException exception) {
         LOGGER.error("Occurrence query failed; returning unavailable instead of an empty result", exception);
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Cache-Control", "no-store")
                 .body(new ApiErrorResponse(new ApiErrorDetail(
                         "QUERY_UNAVAILABLE",
                         "A consulta está indisponível no momento; a falha não significa ausência de ocorrências.")));

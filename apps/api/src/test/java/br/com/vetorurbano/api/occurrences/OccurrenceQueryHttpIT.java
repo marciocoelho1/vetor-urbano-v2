@@ -40,6 +40,89 @@ class OccurrenceQueryHttpIT {
             .build();
 
     @Test
+    void revisionChecksTrackPublicProjectionAndRemainStableAfterRestart() throws Exception {
+        String revision;
+        var query = allDefaultWindow() + "&category=TRANSITO";
+        try (var app = startApi()) {
+            var full = JSON.readTree(get(app, query).body());
+            revision = full.path("revision").asString();
+            assertTrue(revision.matches("[a-f0-9]{64}"), "full snapshot has an opaque revision");
+            for (String path : java.util.List.of("/api/v1/occurrences", "/api/v1/history/occurrences")) {
+                var check = getPath(app, path, query + "&checkUpdates=true", true);
+                assertEquals(200, check.statusCode(), check.body());
+                assertEquals("no-store", check.headers().firstValue("Cache-Control").orElse(""));
+                var body = JSON.readTree(check.body());
+                assertEquals(revision, body.path("revision").asString());
+                assertTrue(body.has("checkedAt"));
+                assertEquals(2, body.size());
+                assertEquals(401, getPath(app, path, query + "&checkUpdates=true", false).statusCode());
+            }
+            var jdbc = app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            var audit = jdbc.queryForObject("SELECT parameters::text FROM auth_audit_events WHERE action='CONSULTATION' ORDER BY id DESC LIMIT 1", String.class);
+            assertFalse(audit.contains(revision));
+            assertFalse(audit.contains("revision"));
+            assertFalse(audit.contains("checkUpdates"));
+            jdbc.update("UPDATE occurrences SET description=description || ' private probe' WHERE id='vu-demo-occurrence-pending-control'");
+            try {
+                assertEquals(revision, JSON.readTree(get(app, query).body()).path("revision").asString());
+            } finally {
+                jdbc.update("UPDATE occurrences SET description=replace(description,' private probe','') WHERE id='vu-demo-occurrence-pending-control'");
+            }
+            var empty = JSON.readTree(get(app, query + "&text=ABSENT_SYNTHETIC_35").body());
+            assertEquals(0, empty.path("items").size());
+            assertEquals(empty.path("revision"), JSON.readTree(getPath(app, "/api/v1/occurrences", query + "&text=ABSENT_SYNTHETIC_35&checkUpdates=true", true).body()).path("revision"));
+            assertEquals(400, getPath(app, "/api/v1/occurrences", query + "&checkUpdates=invalid", true).statusCode());
+            assertEquals(400, getPath(app, "/api/v1/occurrences", query + "&checkUpdates=true&checkUpdates=true", true).statusCode());
+            jdbc.update("UPDATE occurrences SET description=description || ' revision probe' WHERE id='vu-demo-occurrence-contingency-001'");
+            try {
+                var changed = JSON.readTree(getPath(app, "/api/v1/occurrences", query + "&checkUpdates=true", true).body());
+                assertFalse(revision.equals(changed.path("revision").asString()), "related public content changes the revision");
+            } finally {
+                jdbc.update("UPDATE occurrences SET description=replace(description,' revision probe','') WHERE id='vu-demo-occurrence-contingency-001'");
+            }
+        }
+        try (var app = startApi()) {
+            assertEquals(revision, JSON.readTree(get(app, query).body()).path("revision").asString());
+        }
+    }
+
+    @Test
+    void concurrentPublicChangeCannotMixRevisionAndRelatedRowsFromDifferentSnapshots() throws Exception {
+        try (var app = startApi()) {
+            var query = allDefaultWindow() + "&category=TRANSITO";
+            var original = JSON.readTree(get(app, query).body());
+            var jdbc = app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            try (var blocker = app.getBean(javax.sql.DataSource.class).getConnection()) {
+                blocker.setAutoCommit(false);
+                try (var statement = blocker.createStatement()) {
+                    statement.execute("LOCK TABLE clippings IN ACCESS EXCLUSIVE MODE");
+                }
+                var read = java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try { return get(app, query); }
+                    catch (Exception exception) { throw new RuntimeException(exception); }
+                });
+                boolean waiting = false;
+                long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+                while (!waiting && System.nanoTime() < deadline) {
+                    waiting = jdbc.queryForObject("SELECT count(*)>0 FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%JOIN clippings%'", Boolean.class);
+                    if (!waiting) Thread.sleep(20);
+                }
+                assertTrue(waiting, "HTTP query established its snapshot and reached clipping enrichment");
+                jdbc.update("UPDATE occurrences SET description=description || ' concurrent probe' WHERE id='vu-demo-occurrence-contingency-001'");
+                blocker.commit();
+                var response = read.get(10, java.util.concurrent.TimeUnit.SECONDS);
+                assertEquals(200, response.statusCode(), response.body());
+                var snapshot = JSON.readTree(response.body());
+                assertEquals(original.path("revision"), snapshot.path("revision"));
+                assertEquals(original.path("relatedItems"), snapshot.path("relatedItems"));
+                assertFalse(original.path("revision").equals(JSON.readTree(get(app, query).body()).path("revision")));
+            } finally {
+                jdbc.update("UPDATE occurrences SET description=replace(description,' concurrent probe','') WHERE id='vu-demo-occurrence-contingency-001'");
+            }
+        }
+    }
+
+    @Test
     void realHttpReturnsOnlyPublishedOccurrencesAndSurvivesApiRestart() throws Exception {
         JsonNode firstResponse;
         try (var application = startApi()) {

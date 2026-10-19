@@ -18,7 +18,11 @@ public class OccurrenceQueryService {
         this.repository=repository;this.clock=clock;this.validity=validity;this.verifications=verifications;
     }
     private OccurrenceSituation effective(OccurrenceRecord record,Instant at) {
-        return record.situation()==OccurrenceSituation.ONGOING && !validity.isCurrentlyValid(record,at)?OccurrenceSituation.UNKNOWN:record.situation();
+        try {
+            return record.situation()==OccurrenceSituation.ONGOING && !validity.isCurrentlyValid(record,at)?OccurrenceSituation.UNKNOWN:record.situation();
+        } catch (RuntimeException failure) {
+            throw new ActiveReportQueryService.PolicyUnavailableException(failure);
+        }
     }
     private OccurrenceView view(OccurrenceRecord record,Instant at) {
         return OccurrenceView.from(record,effective(record,at),verifications.summary(record.id()));

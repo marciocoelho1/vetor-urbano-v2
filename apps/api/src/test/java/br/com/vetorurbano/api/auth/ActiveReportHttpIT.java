@@ -53,6 +53,12 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
             var response=request(app,"GET",QUERY,null);
             assertEquals(503,response.statusCode(),response.body());
             assertEquals("QUERY_UNAVAILABLE",JSON.readTree(response.body()).path("error").path("code").asString());
+            for (var endpoint : List.of("occurrences", "history/occurrences")) {
+                var check = request(app, "GET", endpoint + "?situation=ONGOING&checkUpdates=true", null);
+                assertEquals(503, check.statusCode(), check.body());
+                assertEquals("QUERY_UNAVAILABLE", JSON.readTree(check.body()).path("error").path("code").asString());
+                assertFalse(JSON.readTree(check.body()).has("revision"));
+            }
         }
     }
     @Test void configuredSyntheticEvidenceExpiresWithoutMutatingAnyRelatedEffect() throws Exception {
@@ -71,7 +77,14 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
                 assertEquals("OUTSIDE",item.path("occurrence").path("temporalMatch").asString());
             }
             assertTrue(found);
+            var beforeExpiry = JSON.readTree(request(app, "GET", "history/occurrences?checkUpdates=true", null).body()).path("revision").asString();
+            var fullBeforeExpiry = JSON.readTree(request(app, "GET", "history/occurrences", null).body());
+            assertEquals(beforeExpiry, fullBeforeExpiry.path("revision").asString());
             clock().advance(60);
+            var afterExpiry = JSON.readTree(request(app, "GET", "history/occurrences?checkUpdates=true", null).body()).path("revision").asString();
+            assertFalse(beforeExpiry.equals(afterExpiry), "expiry changes the public projection without a database write");
+            assertEquals("ONGOING", findOccurrence(fullBeforeExpiry.path("items"), "old-confirmed").path("effectiveSituation").asString());
+            assertEquals("UNKNOWN", findOccurrence(JSON.readTree(request(app, "GET", "history/occurrences", null).body()).path("items"), "old-confirmed").path("effectiveSituation").asString());
             response=request(app,"GET",QUERY,null);assertEquals(200,response.statusCode(),response.body());
             items=JSON.readTree(response.body()).path("items");
             assertReportItems(items,Set.of("recent-closed","recent-ongoing"));
@@ -229,6 +242,11 @@ class ActiveReportHttpIT extends LocalAuthHttpSupport {
             assertNull(jdbc.queryForObject("SELECT expires_at FROM occurrence_verifications WHERE occurrence_id='not-window-ROUBO'",java.sql.Timestamp.class));
         }
     }
+    private static tools.jackson.databind.JsonNode findOccurrence(tools.jackson.databind.JsonNode items, String id) {
+        for (var item : items) if (id.equals(item.path("id").asString())) return item;
+        throw new AssertionError("Missing occurrence " + id);
+    }
+
     void assertReportItems(tools.jackson.databind.JsonNode items, Set<String> expectedIds) {
         var ids=new HashSet<String>();
         for(var item:items) {
