@@ -3,15 +3,27 @@ import { createHmac } from 'node:crypto';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { confirmedUser, testPassword } from './local-account';
 
-/** Only explicitly allowlisted synthetic databases may receive these fixtures. */
-export function fixtureSql(sql: string): string {
+const databaseByContainer: Record<string, string> = {
+  // This fixture round is restricted to the dedicated PostGIS on 127.0.0.1:55440.
+  'vu-ticket29-e2e-db': 'vetor_urbano',
+};
+
+/** Só permite contêineres sintéticos explicitamente aprovados para as fixtures locais. */
+export function syntheticDatabaseContainer(expectedContainer?: string): string {
   const container = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  const databaseByContainer: Record<string, string> = {
-    'vu-batch-27361718-db': 'vetor_batch_review',
-    'vetor-spec-postgis': 'vetor_spec_test',
-  };
-  const database = container ? databaseByContainer[container] : undefined;
-  if (!container || !database) throw new Error('Exige banco sintético isolado permitido.');
+  if (!container || !Object.prototype.hasOwnProperty.call(databaseByContainer, container)) {
+    throw new Error('Exige contêiner PostGIS sintético explicitamente permitido.');
+  }
+  if (expectedContainer !== undefined && container !== expectedContainer) {
+    throw new Error(`Este fluxo exige o contêiner PostGIS sintético ${expectedContainer}.`);
+  }
+  return container;
+}
+
+/** Only explicitly allowlisted synthetic databases may receive these fixtures. */
+export function fixtureSql(sql: string, expectedContainer?: string): string {
+  const container = syntheticDatabaseContainer(expectedContainer);
+  const database = databaseByContainer[container]!;
   const postgresUser = execFileSync('podman', ['exec', container, 'printenv', 'POSTGRES_USER'])
     .toString()
     .trim();
@@ -52,10 +64,15 @@ export async function loginBrowser(page: Page, email: string): Promise<void> {
   await page.getByLabel('Senha', { exact: true }).fill(testPassword);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
 }
-export async function syntheticAdmin(page: Page, request: APIRequestContext): Promise<void> {
+export async function syntheticAdmin(
+  page: Page,
+  request: APIRequestContext,
+  expectedContainer?: string,
+): Promise<void> {
+  syntheticDatabaseContainer(expectedContainer);
   const email = await confirmedUser(request, 'admin-batch');
   if (!/^[a-z0-9@.\-]+$/.test(email)) throw new Error('Identificador de fixture inválido.');
-  fixtureSql(`UPDATE local_accounts SET role='ADMIN' WHERE email='${email}'`);
+  fixtureSql(`UPDATE local_accounts SET role='ADMIN' WHERE email='${email}'`, expectedContainer);
   await loginBrowser(page, email);
   await page.getByRole('button', { name: 'Configurar autenticador' }).click();
   const secret = await page.getByLabel('Chave do autenticador (restrita)').inputValue();

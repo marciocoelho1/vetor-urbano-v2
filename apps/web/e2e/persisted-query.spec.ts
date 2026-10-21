@@ -1,6 +1,7 @@
-import { loginUser } from './helpers/local-account';
+import { api, loginUser, routeApplicationApi } from './helpers/local-account';
 import { execFileSync } from 'node:child_process';
 import { expect, test, type Page } from '@playwright/test';
+import { syntheticDatabaseContainer } from './helpers/synthetic-admin';
 
 // Explicit opt-in: requires the real local API and the named synthetic PostGIS container.
 // Run with --workers=1 because the outage scenario pauses this shared database.
@@ -10,7 +11,7 @@ test.use({ actionTimeout: 15_000, trace: 'off', screenshot: 'off' });
 
 const trafficId = 'vu-demo-occurrence-traffic-001';
 const territoryId = 'vu-demo-occurrence-territory-001';
-const endpoint = 'http://127.0.0.1:8080/api/v1/occurrences';
+const endpoint = `${api}/occurrences`;
 const windowQuery = 'periodStart=2026-10-14T15:00:00Z&periodEnd=2026-10-15T15:00:00Z';
 
 async function count(page: Page, expected: number) {
@@ -37,6 +38,7 @@ async function customWindow(page: Page, start: string, end: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await routeApplicationApi(page);
   await loginUser(page.request);
   const response = await page.request.get(`${endpoint}?${windowQuery}`);
   expect(response.status(), 'API Java com PostGIS real deve estar disponível').toBe(200);
@@ -152,7 +154,7 @@ test('relatório conserva, substitui e atualiza explicitamente seu recorte auten
   const reportRequest = 'http://127.0.0.1:8080/api/v1/reports/occurrences?*';
   const delayLiveReportRequest = async (route: import('@playwright/test').Route) => {
     await page.waitForTimeout(250);
-    await route.continue();
+    await route.fallback();
   };
   await page.route(reportRequest, delayLiveReportRequest);
   await generateFromMap.focus();
@@ -195,7 +197,7 @@ test('relatório conserva, substitui e atualiza explicitamente seu recorte auten
   await expect(counts).toContainText('1 acontecimentos');
 
   const refreshResponse = page.waitForResponse((response) =>
-    response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences?'),
+    response.url().includes('/api/v1/reports/occurrences?'),
   );
   await page.getByTestId('report-refresh').click();
   const refreshed = await refreshResponse;
@@ -303,8 +305,7 @@ test('banco real: fuso, intervalo semiaberto, precisão incerta e raio geodésic
 test('relatório preserva último snapshot durante 503 e recarrega após recuperação', async ({
   page,
 }) => {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
+  const database = syntheticDatabaseContainer();
   await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
   await page.getByTestId('report-generate-from-map').click();
   await expect(page.getByTestId('report-snapshot-counts')).toContainText('4 ocorrências');
@@ -336,8 +337,7 @@ test('relatório preserva último snapshot durante 503 e recarrega após recuper
 test('banco real: carregamento, 503 visível, recuperação e API sem conexão', async ({
   page,
 }, testInfo) => {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
+  const database = syntheticDatabaseContainer();
   execFileSync('podman', ['pause', database!]);
   try {
     await page.getByTestId('refresh-query-btn').focus();

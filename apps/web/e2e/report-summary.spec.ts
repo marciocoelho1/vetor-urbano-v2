@@ -1,9 +1,10 @@
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { loginUser } from './helpers/local-account';
+import { fixtureSql } from './helpers/synthetic-admin';
+import { loginUser, routeApplicationApi } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige Java e PostGIS reais.');
 test.use({ actionTimeout: 15_000, trace: 'off', screenshot: 'off' });
+test.beforeEach(async ({ page }) => routeApplicationApi(page));
 
 test('síntese do snapshot preserva efeitos, certeza, território e filtros em teclado e móvel', async ({
   page,
@@ -73,20 +74,7 @@ test('síntese do snapshot preserva efeitos, certeza, território e filtros em t
 });
 
 test('intervalo entre meses permanece separado sem inventar mês ou dia exato', async ({ page }) => {
-  const sql = (text: string) =>
-    execFileSync('podman', [
-      'exec',
-      'vu-ticket30-db',
-      'psql',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-c',
-      text,
-    ]);
+  const sql = (text: string) => fixtureSql(text);
   sql(
     "UPDATE occurrences SET occurred_from='2026-09-30T15:00:00Z' WHERE id='vu-demo-occurrence-contingency-001'",
   );

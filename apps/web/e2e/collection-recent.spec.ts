@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { fixtureSql, syntheticAdmin } from './helpers/synthetic-admin';
+import { fixtureSql, syntheticAdmin, syntheticDatabaseContainer } from './helpers/synthetic-admin';
 import {
   NOT_PROJECTED_MARKER,
   STUB_ACCESS_TOKEN,
@@ -39,6 +39,7 @@ const PRIVATE_VALUES = (process.env['VETOR_COLLECTION_E2E_SECRETS'] ?? '')
   .filter(Boolean);
 
 const SOURCE_ID = 'fogo-cruzado';
+const COLLECTION_E2E_DATABASE_CONTAINER = 'vu-ticket29-e2e-db';
 
 interface FocusCall {
   testid: string;
@@ -67,7 +68,8 @@ async function focusCalls(page: Page): Promise<FocusCall[]> {
 
 /** Limpa só as linhas da fonte autorizada: nenhuma outra fixture desta árvore é tocada. */
 function resetCollectionFixture(): void {
-  fixtureSql(`
+  fixtureSql(
+    `
     DELETE FROM collection_items WHERE source_id='${SOURCE_ID}';
     DELETE FROM collection_run_events WHERE source_id='${SOURCE_ID}';
     DELETE FROM collection_runs WHERE source_id='${SOURCE_ID}';
@@ -76,7 +78,9 @@ function resetCollectionFixture(): void {
     DELETE FROM clipping_reviews WHERE clipping_id IN (SELECT id FROM clippings WHERE source_id='${SOURCE_ID}');
     DELETE FROM clippings WHERE source_id='${SOURCE_ID}';
     DELETE FROM sources WHERE id='${SOURCE_ID}';
-  `);
+  `,
+    COLLECTION_E2E_DATABASE_CONTAINER,
+  );
 }
 
 const collectionSection = (page: Page) =>
@@ -117,7 +121,7 @@ async function counterValue(page: Page, label: string): Promise<string> {
 }
 
 function scalar(sql: string): string {
-  return fixtureSql(sql);
+  return fixtureSql(sql, COLLECTION_E2E_DATABASE_CONTAINER);
 }
 
 function latestRunState(): string {
@@ -148,6 +152,20 @@ async function waitForDatabaseValue(
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`O banco não chegou a «${expected}».`);
+}
+
+/** Aguarda o stub observar a chamada antes de liberar uma resposta suspensa. */
+async function waitForOccurrenceCalls(minimum: number, timeoutMs = 20_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let observed: readonly number[] = [];
+  while (Date.now() < deadline) {
+    observed = (await stub.state()).occurrenceCalls;
+    if (observed.length >= minimum) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(
+    `O stub recebeu ${observed.length}/${minimum} chamadas de ocorrência (páginas: ${observed.join(', ')}).`,
+  );
 }
 
 /**
@@ -212,6 +230,7 @@ test.afterAll(async () => {
 });
 
 test.beforeEach(async () => {
+  syntheticDatabaseContainer(COLLECTION_E2E_DATABASE_CONTAINER);
   await stub.reset();
   resetCollectionFixture();
 });
@@ -224,7 +243,7 @@ test.beforeEach(async () => {
       request,
     }) => {
       await page.addInitScript(recordFocusCalls);
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
 
       // A leitura real é suspensa para que o estado de carregamento seja observável por inteiro.
       let release!: () => void;
@@ -264,7 +283,7 @@ test.beforeEach(async () => {
       page,
       request,
     }) => {
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await expect(collectionPill(page)).toHaveText('Configurada, sem execução registrada');
@@ -287,7 +306,7 @@ test.beforeEach(async () => {
       page,
       request,
     }) => {
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await triggerRecent(page);
@@ -327,7 +346,7 @@ test.beforeEach(async () => {
       request,
     }) => {
       await stub.setMode('auth401');
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await triggerRecent(page);
@@ -355,7 +374,7 @@ test.beforeEach(async () => {
       request,
     }) => {
       await stub.setMode('blocked');
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await triggerRecent(page);
@@ -378,13 +397,134 @@ test.beforeEach(async () => {
       await expectNoSecretsInDom(page);
     });
 
+    test('carga retroativa delimitada: teclado, pausa, retomada, período e separação da coleta recente em 390 px', async ({
+      page,
+      request,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.addInitScript(recordFocusCalls);
+      await stub.setMode('ok', true);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
+      await openSourcesView(page);
+      await expect(page.getByTestId('collection-backfill-limits')).toContainText('100 páginas');
+      await expect(page.getByTestId('collection-backfill-limits')).toContainText(
+        '1 s entre páginas',
+      );
+
+      const from = page.getByTestId('collection-backfill-from');
+      const to = page.getByTestId('collection-backfill-to');
+      await expect(from).toHaveAttribute('min', '2026-06-01');
+      await expect(page.getByTestId('collection-territory')).toContainText(
+        'RM-RJ e cidade do Rio de Janeiro',
+      );
+      await from.fill('2026-06-04');
+      await to.fill('2026-06-09');
+      await expect(page.getByTestId('collection-backfill-trigger')).toBeEnabled();
+
+      const starts: unknown[] = [];
+      page.on('request', (candidate) => {
+        if (
+          candidate.method() === 'POST' &&
+          candidate.url().endsWith('/api/v1/admin/collections/runs')
+        ) {
+          starts.push(candidate.postDataJSON());
+        }
+      });
+      await tabTo(page, 'collection-backfill-trigger');
+      expect(await activeIsFocusVisible(page)).toBe(true);
+      await page.keyboard.press('Enter');
+      await expect(page.getByTestId('collection-status')).toContainText(
+        'Carga retroativa disparada',
+      );
+      await expect(page.getByTestId('collection-pill')).toHaveText('Em andamento');
+      await waitForOccurrenceCalls(1);
+      expect(starts).toEqual([{ kind: 'BACKFILL', from: '2026-06-04', to: '2026-06-09' }]);
+      await expect(page.getByTestId('collection-heading')).toBeFocused();
+
+      await page.getByTestId('collection-pause').focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByTestId('collection-confirm-pause-button')).toBeFocused();
+      await page.keyboard.press('Enter');
+      await waitForDatabaseValue(
+        `SELECT pause_requested FROM collection_runs WHERE source_id='${SOURCE_ID}' ORDER BY started_at DESC, id DESC LIMIT 1`,
+        't',
+      );
+      await stub.release();
+      await expect(collectionPill(page)).toHaveText('Pausada pelo administrador');
+      await expect(page.getByTestId('collection-progress')).toContainText(
+        '1 página(s) concluída(s)',
+      );
+      await expect(page.getByTestId('collection-progress')).toContainText('limite de 20 por etapa');
+
+      await page.getByTestId('collection-resume').focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByTestId('collection-confirm-resume-button')).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(page.getByTestId('collection-status')).toContainText('Coleta retomada');
+      await expect(collectionPill(page)).toHaveText('Em andamento');
+      await waitForOccurrenceCalls(2);
+      await stub.release();
+      expect(await waitForTerminalRun()).toBe('SUCCEEDED_NEW_ITEMS');
+      await refreshUntilPill(page, 'Concluída com itens novos');
+
+      await expect(page.getByTestId('collection-history')).toContainText('Carga retroativa');
+      await expect(page.getByTestId('collection-history')).toContainText('2026-06-04');
+      await expect(page.getByTestId('collection-history')).toContainText('2026-06-09');
+      expect(scalar(`SELECT count(*) FROM clippings WHERE source_id='${SOURCE_ID}'`)).toBe('3');
+      expect(
+        scalar(
+          `SELECT count(*) FROM clipping_reviews r JOIN clippings c ON c.id=r.clipping_id WHERE c.source_id='${SOURCE_ID}'`,
+        ),
+      ).toBe('3');
+      expect(
+        (await stub.state()).occurrenceQueries.every((query) => !query.includes('typeOccurrence')),
+      ).toBe(true);
+
+      await stub.setMode('ok', false);
+      await triggerRecent(page);
+      expect(await waitForTerminalRun()).toBe('SUCCEEDED_NO_CHANGES');
+      await refreshUntilPill(page, 'Concluída sem novidades');
+      await expect(page.getByTestId('collection-history')).toContainText('Coleta recente');
+      await expect(page.getByTestId('collection-history')).toContainText('Carga retroativa');
+
+      // Reexecutar uma janela parcialmente sobreposta retorna as mesmas referências sem criar cópias.
+      await from.fill('2026-06-08');
+      await to.fill('2026-06-12');
+      starts.length = 0;
+      await page.getByTestId('collection-backfill-trigger').click();
+      await expect(page.getByTestId('collection-status')).toContainText(
+        'Carga retroativa disparada',
+      );
+      await waitForOccurrenceCalls(4);
+      expect(starts).toEqual([{ kind: 'BACKFILL', from: '2026-06-08', to: '2026-06-12' }]);
+      const overlapQuery = (await stub.state()).occurrenceQueries.at(-1) ?? '';
+      expect(overlapQuery).toContain('initialdate=2026-06-08');
+      expect(overlapQuery).toContain('finaldate=2026-06-12');
+      expect(await waitForTerminalRun()).toBe('SUCCEEDED_NO_CHANGES');
+      await refreshUntilPill(page, 'Concluída sem novidades');
+      await expect.poll(() => counterValue(page, 'Duplicados ignorados')).toBe('3');
+      expect(scalar(`SELECT count(*) FROM clippings WHERE source_id='${SOURCE_ID}'`)).toBe('3');
+      expect(scalar(`SELECT count(*) FROM collection_items WHERE source_id='${SOURCE_ID}'`)).toBe(
+        '3',
+      );
+      expect(
+        scalar(
+          `SELECT items_duplicated FROM collection_runs WHERE source_id='${SOURCE_ID}' ORDER BY started_at DESC, id DESC LIMIT 1`,
+        ),
+      ).toBe('3');
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await expectNoSecretsInDom(page);
+    });
+
     test('disparo, pausa e retomada: comando só por ativação explícita, confirmação na pausa/retomada e foco de volta sem rolagem', async ({
       page,
       request,
     }) => {
       await stub.setMode('ok', true);
       await page.addInitScript(recordFocusCalls);
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
 
       const writes: string[] = [];
       page.on('request', (candidate) => {
@@ -404,10 +544,12 @@ test.beforeEach(async () => {
       expect(writes).toHaveLength(1);
       // Execução real em andamento (resposta da fonte suspensa pelo stub).
       await expect(collectionPill(page)).toHaveText('Em andamento');
-      await expect(page.getByTestId('collection-trigger')).toBeFocused();
+      await waitForOccurrenceCalls(1);
+      // A execução desabilita o próprio iniciador; o foco fica no título estável, sem rolagem.
+      await expect(page.getByTestId('collection-heading')).toBeFocused();
       expect(
         (await focusCalls(page)).some(
-          (call) => call.testid === 'collection-trigger' && call.preventScroll,
+          (call) => call.testid === 'collection-heading' && call.preventScroll,
         ),
       ).toBe(true);
 
@@ -464,6 +606,7 @@ test.beforeEach(async () => {
       // `typeOccurrence` — disparo sem vítima é ocorrência do produto. A resposta da página retomada
       // está suspensa pelo stub igual à primeira, então é liberada aqui antes de esperar o desfecho.
       await expect(collectionPill(page)).toHaveText('Em andamento');
+      await waitForOccurrenceCalls(2);
       await stub.release();
       expect(await waitForTerminalRun()).toBe('SUCCEEDED_NEW_ITEMS');
       await refreshUntilPill(page, 'Concluída com itens novos');
@@ -480,7 +623,8 @@ test.beforeEach(async () => {
       request,
     }) => {
       await stub.setMode('ok', true);
-      await syntheticAdmin(page, request);
+      await page.addInitScript(recordFocusCalls);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
 
       const sources = page.getByRole('button', { name: 'Fontes', exact: true });
       await sources.focus();
@@ -493,8 +637,14 @@ test.beforeEach(async () => {
 
       await page.keyboard.press('Enter');
       await expect(page.getByTestId('collection-status')).toContainText('Coleta recente disparada');
-      await expect(page.getByTestId('collection-trigger')).toBeFocused();
+      await expect(page.getByTestId('collection-heading')).toBeFocused();
+      expect(
+        (await focusCalls(page)).some(
+          (call) => call.testid === 'collection-heading' && call.preventScroll,
+        ),
+      ).toBe(true);
       await expect(collectionPill(page)).toHaveText('Em andamento');
+      await waitForOccurrenceCalls(1);
 
       await tabTo(page, 'collection-pause', 20);
       await expect(page.getByTestId('collection-pause')).toBeFocused();
@@ -523,7 +673,7 @@ test.beforeEach(async () => {
       request,
     }) => {
       await page.setViewportSize({ width: 390, height: 844 });
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       const panel = collectionSection(page);
@@ -562,7 +712,7 @@ test.beforeEach(async () => {
       page,
       request,
     }) => {
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await triggerRecent(page);
@@ -647,7 +797,7 @@ test.beforeEach(async () => {
           .catch(() => undefined);
       });
 
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await triggerRecent(page);
@@ -693,7 +843,7 @@ test.beforeEach(async () => {
       page,
       request,
     }) => {
-      await syntheticAdmin(page, request);
+      await syntheticAdmin(page, request, COLLECTION_E2E_DATABASE_CONTAINER);
       await openSourcesView(page);
 
       await expect(collectionPill(page)).toHaveText('Não configurada');

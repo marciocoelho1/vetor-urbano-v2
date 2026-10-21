@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { loginUser } from './helpers/local-account';
+import { api, loginUser, routeApplicationApi } from './helpers/local-account';
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige API/PostGIS sintéticos locais');
 test.use({ trace: 'off', screenshot: 'off', actionTimeout: 15000 });
 
 for (const engine of ['MapLibre', 'Leaflet'] as const) {
   test.describe(`Motor cartográfico: ${engine}`, () => {
     test.beforeEach(async ({ page }) => {
+      await routeApplicationApi(page);
       await page.clock.setFixedTime(new Date('2026-10-15T15:00:00Z'));
       await page.addInitScript(() => {
         try {
@@ -47,9 +48,7 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
           body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#edf0f2"/></svg>',
         }),
       );
-      expect((await page.request.get('http://127.0.0.1:8080/api/v1/occurrences')).status()).toBe(
-        401,
-      );
+      expect((await page.request.get(`${api}/occurrences`)).status()).toBe(401);
       await loginUser(page.request);
       await page.addInitScript(() => localStorage.setItem('vetor-consultation-mode', 'advanced'));
       await page.goto('/?consulta=api');
@@ -82,20 +81,16 @@ for (const engine of ['MapLibre', 'Leaflet'] as const) {
         'Sem ocorrências com precisão suficiente',
       );
       // HTTP logout, followed by a real protected read. No auth route is intercepted.
-      const session = await (
-        await page.request.get('http://127.0.0.1:8080/api/v1/auth/session')
-      ).json();
+      const session = await (await page.request.get(`${api}/auth/session`)).json();
       expect(
         (
-          await page.request.post('http://127.0.0.1:8080/api/v1/auth/logout', {
+          await page.request.post(`${api}/auth/logout`, {
             headers: { 'X-CSRF-Token': session.csrfToken },
             data: {},
           })
         ).status(),
       ).toBe(200);
-      expect((await page.request.get('http://127.0.0.1:8080/api/v1/occurrences')).status()).toBe(
-        401,
-      );
+      expect((await page.request.get(`${api}/occurrences`)).status()).toBe(401);
       await page.reload();
       await expect(page.getByTestId('occurrence-heatmap')).toHaveCount(0);
     });

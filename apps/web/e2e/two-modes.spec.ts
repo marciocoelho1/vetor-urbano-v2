@@ -1,5 +1,32 @@
 import { expect, test } from '@playwright/test';
 
+async function prepareSyntheticUserSession(page: import('@playwright/test').Page): Promise<void> {
+  await page.route('**/api/v1/auth/session', (route) =>
+    route.fulfill({
+      json: {
+        code: 'SESSION',
+        message: 'Sessão sintética para teste dos modos',
+        authenticated: true,
+        role: 'USER',
+        csrfToken: 'synthetic-two-modes',
+      },
+    }),
+  );
+  await page.route('**/api/v1/auth/access/**', (route) =>
+    route.fulfill({
+      json: {
+        code: 'AUTHENTICATED',
+        message: 'Acesso sintético ao módulo USER',
+        accountId: 'synthetic-two-modes-user',
+        role: 'USER',
+        authenticated: true,
+        mfaEnrolled: false,
+        csrfToken: 'synthetic-two-modes',
+      },
+    }),
+  );
+}
+
 test.describe('Dois modos de consulta (simples vs Análise e Inteligência)', () => {
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-10-15T15:00:00Z'));
@@ -7,6 +34,7 @@ test.describe('Dois modos de consulta (simples vs Análise e Inteligência)', ()
       Object.defineProperty(window, 'WebGL2RenderingContext', { value: undefined });
     });
     await page.route('https://tiles.stadiamaps.com/**', (route) => route.abort());
+    await prepareSyntheticUserSession(page);
   });
 
   test('primeira visita inicia simples, oculta subtipos e alterna para Análise e Inteligência', async ({

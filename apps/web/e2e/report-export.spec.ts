@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { fixtureSql, syntheticDatabaseContainer } from './helpers/synthetic-admin';
 import { api, testPassword } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige API Java e PostGIS locais reais.');
@@ -41,26 +42,7 @@ async function loginExportUser(request: APIRequestContext): Promise<void> {
 }
 
 function executeDatabaseSql(sql: string): void {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
-  execFileSync(
-    'podman',
-    [
-      'exec',
-      '-i',
-      database!,
-      'psql',
-      '-X',
-      '-q',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-    ],
-    { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  );
+  fixtureSql(sql);
 }
 
 function clearFixtures(): void {
@@ -273,8 +255,7 @@ test('conteúdo que excede o XLSX falha sem iniciar um download', async ({ page 
 test('falha do PostGIS durante a exportação não baixa arquivo vazio ou parcial', async ({
   page,
 }) => {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
+  const database = syntheticDatabaseContainer();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
   await page.getByTestId('report-generate-from-map').click();

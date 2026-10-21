@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { api, loginUser } from './helpers/local-account';
+import { fixtureSql } from './helpers/synthetic-admin';
+import { api, loginUser, routeApplicationApi } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige Java e PostGIS sintéticos reais.');
 test.use({ actionTimeout: 10_000, trace: 'off', screenshot: 'off' });
@@ -13,28 +14,7 @@ const downloadButton = (page: Page) =>
   page.getByRole('button', { name: 'Baixar PDF', exact: true });
 
 function sql(command: string): string {
-  const container = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  if (!container) throw new Error('Informe o banco sintético exclusivo.');
-  return execFileSync(
-    'podman',
-    [
-      'exec',
-      '-i',
-      container,
-      'psql',
-      '-X',
-      '-q',
-      '-t',
-      '-A',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-    ],
-    { input: command, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  );
+  return fixtureSql(command);
 }
 
 /** Último evento REPORT_PDF_EXPORT gravado, como "classe resultado parâmetros". */
@@ -68,6 +48,7 @@ async function generateReportFromMap(page: Page): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
+  await routeApplicationApi(page);
   await loginUser(page.request);
   await page.clock.setFixedTime(new Date('2026-10-15T15:00:00Z'));
   await page.addInitScript(() => {

@@ -1,34 +1,16 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { loginUser } from './helpers/local-account';
+import { fixtureSql, syntheticDatabaseContainer } from './helpers/synthetic-admin';
+import { api, loginUser, routeApplicationApi } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige API Java e PostGIS locais reais.');
 test.use({ actionTimeout: 15_000, trace: 'off', screenshot: 'off' });
 
-const endpoint = 'http://127.0.0.1:8080/api/v1/history/occurrences';
+const endpoint = `${api}/history/occurrences`;
 const fixturePrefix = 'vu-history-e2e-';
 
 function executeDatabaseSql(sql: string): void {
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database, 'Informe o contêiner PostGIS sintético autorizado').toBeTruthy();
-  execFileSync(
-    'podman',
-    [
-      'exec',
-      '-i',
-      database!,
-      'psql',
-      '-X',
-      '-q',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-    ],
-    { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  );
+  fixtureSql(sql);
 }
 
 function removeHistoryFixtures(): void {
@@ -109,6 +91,7 @@ test.beforeAll(() => updateHistoryFixtures());
 test.afterAll(() => removeHistoryFixtures());
 
 test.beforeEach(async ({ page }) => {
+  await routeApplicationApi(page);
   await loginUser(page.request);
   const response = await page.request.get(`${endpoint}?text=${fixturePrefix}`);
   expect(response.status(), 'A consulta de histórico deve atravessar a API real').toBe(200);
@@ -248,8 +231,7 @@ test('histórico completo: snapshot paginado, critérios combinados, estados e t
 
   await page.getByRole('button', { name: 'Limpar filtros' }).click();
   await expect(pageStatus).toHaveText('Página 1 de 2 · 33 registros');
-  const database = process.env['VETOR_E2E_DATABASE_CONTAINER'];
-  expect(database).toBeTruthy();
+  const database = syntheticDatabaseContainer();
   execFileSync('podman', ['pause', database!]);
   try {
     await page.getByTestId('history-refresh').focus();

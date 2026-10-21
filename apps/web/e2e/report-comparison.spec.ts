@@ -1,9 +1,10 @@
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { loginUser } from './helpers/local-account';
+import { fixtureSql } from './helpers/synthetic-admin';
+import { loginUser, routeApplicationApi } from './helpers/local-account';
 
 test.skip(process.env['VETOR_PERSISTED_E2E'] !== '1', 'Exige API Java e PostGIS reais.');
 test.use({ actionTimeout: 15_000, trace: 'off', screenshot: 'off' });
+test.beforeEach(async ({ page }) => routeApplicationApi(page));
 
 test('comparação A/B usa snapshots explícitos, duração, variação e limitações', async ({
   page,
@@ -56,20 +57,7 @@ test('comparação A/B usa snapshots explícitos, duração, variação e limita
 test('média de registros disponíveis compara 4/2 dias e 6/3 dias sem taxa de risco', async ({
   page,
 }) => {
-  const sql = (text: string) =>
-    execFileSync('podman', [
-      'exec',
-      'vu-ticket30-db',
-      'psql',
-      '-U',
-      'postgres',
-      '-d',
-      'vetor_urbano',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-c',
-      text,
-    ]);
+  const sql = (text: string) => fixtureSql(text);
   sql(`INSERT INTO occurrences (id,happening_id,title,description,category,occurrence_type,subtype,situation,reliability_score,municipality,neighborhood,location_precision,location,occurred_at,publication_status)
     SELECT 'vu-compare-'||n,happening_id,'Comparação sintética '||n,description,category,occurrence_type,subtype,situation,reliability_score,municipality,neighborhood,location_precision,location,
     CASE WHEN n<=4 THEN '2026-10-01T12:00:00Z'::timestamptz ELSE '2026-10-04T12:00:00Z'::timestamptz END,publication_status

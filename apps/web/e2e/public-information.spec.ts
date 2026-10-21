@@ -202,6 +202,11 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(privacySection).toContainText('Rascunho de revisão local');
   await expect(privacySection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
   await expect(privacySection).toContainText('Consulta na demonstração local');
+  await expect(privacySection).toContainText('módulos de consulta exigem sessão autenticada');
+  await expect(privacySection).toContainText(
+    'documentos institucionais continuam acessíveis sem autenticação',
+  );
+  await expect(privacySection).not.toContainText('permite consulta sem login');
   await expect(privacySection).toContainText('endereços residenciais privados');
   await expect(privacySection).toContainText(
     '60 dias para uso, 180 dias para segurança e 365 dias para operação administrativa',
@@ -220,7 +225,12 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(methodSection).toContainText('Clipping');
   await expect(methodSection).toContainText('Ocorrência');
   await expect(methodSection).toContainText('Acontecimento');
-  await expect(methodSection).toContainText('não comprova cobertura operacional');
+  await expect(methodSection).toContainText('não comprovam cobertura operacional');
+  await expect(methodSection).toContainText('Dados de Riscos');
+  await expect(methodSection).toContainText('julho de 2026');
+  await expect(methodSection).toContainText('1.671 polígonos');
+  await expect(methodSection).toContainText('classificação segundo a fonte');
+  await expect(methodSection).not.toContainText('usa polígonos sintéticos de demonstração');
   await expect(methodSection).toContainText('não recebem pinos inventados');
   await expect(methodSection).not.toContainText(/peso|equação|amostra mínima|40\/40\/20/i);
   await methodSection.getByRole('button', { name: 'Voltar à consulta de origem' }).click();
