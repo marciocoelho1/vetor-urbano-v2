@@ -73,7 +73,7 @@ class CollectionHttpIT {
     }
 
     private static final String RESET_SQL = """
-            TRUNCATE collection_run_events,collection_items,collection_runs,collection_sources,
+            TRUNCATE collection_backfill_windows,collection_run_events,collection_items,collection_runs,collection_sources,
                 occurrence_verifications,territorial_audit_events,territorial_approvals,territorial_versions,
                 territorial_identities,correction_editor_audit,occurrence_editor_preparations,
                 clipping_review_decisions,publication_versions,clipping_reviews,correction_decisions,
@@ -98,8 +98,14 @@ class CollectionHttpIT {
             args.add("--vetor.collection.enabled=true");
             args.add("--vetor.collection.credentials-file=" + credentials);
         }
-        // Extras vêm por último para poderem sobrescrever os padrões acima.
-        args.addAll(List.of(extra));
+        // Extras sobrescrevem um único padrão; argumentos duplicados viram valores concatenados no Spring.
+        for (String override : extra) {
+            if (override.startsWith("--") && override.contains("=")) {
+                String key = override.substring(2, override.indexOf('='));
+                args.removeIf(argument -> argument.startsWith("--" + key + "="));
+            }
+            args.add(override);
+        }
         return new SpringApplicationBuilder(br.com.vetorurbano.api.VetorUrbanoApiApplication.class)
                 .profiles("local").run(args.toArray(String[]::new));
     }
@@ -253,6 +259,12 @@ class CollectionHttpIT {
                 assertEquals(2, partial.path("nextPage").asInt());
                 assertEquals(2, partial.path("itemsCreated").asInt());
 
+                // Falha parcial permanece como retomável e impede iniciar uma carga concorrente.
+                var conflicting = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-10-19"), admin, true);
+                assertEquals(409, conflicting.statusCode());
+                assertEquals("COLLECTION_RUN_ACTIVE", JSON.readTree(conflicting.body()).path("code").asString());
+
                 var jdbc = app.getBean(JdbcTemplate.class);
                 assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM clippings WHERE source_id=?", Integer.class, SOURCE_ID));
                 assertEquals("UPSTREAM_UNAVAILABLE", jdbc.queryForObject(
@@ -341,7 +353,603 @@ class CollectionHttpIT {
         }
     }
 
-    // ---------------------------------------------------------------- D: autorização
+    @Test
+    void concurrentResumeRequestsCannotStartTwoWorkers() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            stub.holdPage = 2;
+            stub.holdLatch = new CountDownLatch(1);
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl());
+                    var callers = Executors.newVirtualThreadPerTaskExecutor()) {
+                var admin = adminSession(app);
+                var jdbc = app.getBean(JdbcTemplate.class);
+                var started = request(app, "POST", "admin/collections/runs", Map.of("kind", "RECENT"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+                awaitPageRequest(stub, 2);
+
+                var pauseResponse = new AtomicReference<HttpResponse<String>>();
+                var pausing = Thread.ofVirtual().start(() -> {
+                    try {
+                        pauseResponse.set(request(app, "POST", "admin/collections/runs/" + runId + "/pause",
+                                Map.of(), admin, true));
+                    } catch (Exception failure) {
+                        throw new IllegalStateException(failure);
+                    }
+                });
+                long pauseDeadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+                while (!Boolean.TRUE.equals(jdbc.queryForObject(
+                        "SELECT pause_requested FROM collection_runs WHERE id = ?", Boolean.class, UUID.fromString(runId)))
+                        && System.nanoTime() < pauseDeadline) Thread.sleep(20);
+                assertTrue(Boolean.TRUE.equals(jdbc.queryForObject(
+                        "SELECT pause_requested FROM collection_runs WHERE id = ?", Boolean.class, UUID.fromString(runId))),
+                        "pause request must be persisted before releasing the held page");
+                stub.releasePage();
+                pausing.join(Duration.ofSeconds(30));
+                assertFalse(pausing.isAlive(), "pause request must settle before concurrent resume starts");
+                assertEquals(200, pauseResponse.get().statusCode());
+                assertEquals("PAUSED", JSON.readTree(pauseResponse.get().body()).path("state").asString());
+
+                stub.holdPage = 3;
+                stub.holdLatch = new CountDownLatch(1);
+                CompletableFuture<HttpResponse<String>> first;
+                CompletableFuture<HttpResponse<String>> second;
+                try (var blocker = app.getBean(javax.sql.DataSource.class).getConnection()) {
+                    blocker.setAutoCommit(false);
+                    try (var lock = blocker.createStatement()) {
+                        lock.execute("LOCK TABLE collection_runs IN SHARE MODE");
+                    }
+                    first = CompletableFuture.supplyAsync(() -> {
+                        try { return request(app, "POST", "admin/collections/runs/" + runId + "/resume", Map.of(), admin, true); }
+                        catch (Exception failure) { throw new CompletionException(failure); }
+                    }, callers);
+                    second = CompletableFuture.supplyAsync(() -> {
+                        try { return request(app, "POST", "admin/collections/runs/" + runId + "/resume", Map.of(), admin, true); }
+                        catch (Exception failure) { throw new CompletionException(failure); }
+                    }, callers);
+                    boolean bothAtResume = false;
+                    long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+                    while (!bothAtResume && System.nanoTime() < deadline) {
+                        bothAtResume = jdbc.queryForObject("""
+                                SELECT count(*) >= 2 FROM pg_stat_activity
+                                WHERE wait_event_type = 'Lock' AND (
+                                    query LIKE 'UPDATE collection_runs%' OR
+                                    query LIKE 'SELECT source_id FROM collection_sources%FOR UPDATE'
+                                )
+                                """, Boolean.class);
+                        if (!bothAtResume) Thread.sleep(20);
+                    }
+                    assertTrue(bothAtResume, "both HTTP resumes must reach the serialized transition");
+                    assertFalse(first.isDone());
+                    assertFalse(second.isDone());
+                }
+
+                var responses = List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+                var accepted = responses.stream().filter(response -> response.statusCode() == 200).toList();
+                if (!accepted.isEmpty()) {
+                    awaitOccurrenceCalls(stub, 3);
+                    stub.releasePage();
+                    waitForRun(app, admin, runId, "SUCCEEDED_NEW_ITEMS");
+                    awaitRunFinishedEvents(jdbc, UUID.fromString(runId), accepted.size());
+                }
+                assertEquals(List.of(200, 409), responses.stream().map(HttpResponse::statusCode).sorted().toList());
+                var conflict = responses.stream().filter(response -> response.statusCode() == 409).findFirst().orElseThrow();
+                assertEquals("COLLECTION_RUN_NOT_RESUMABLE", JSON.readTree(conflict.body()).path("code").asString());
+                assertEquals(1, jdbc.queryForObject("""
+                        SELECT count(*) FROM collection_run_events WHERE run_id = ? AND event = 'RESUME_REQUESTED'
+                        """, Integer.class, UUID.fromString(runId)));
+                assertEquals(3, stub.occurrenceCalls.get());
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- D: carga delimitada e limites aprovados
+
+    @Test
+    void rejectsBackfillOutsideTheApprovedDateWindow() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET);
+                var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl())) {
+            var admin = adminSession(app);
+            String tomorrow = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(1).toString();
+
+            var missingFrom = request(app, "POST", "admin/collections/runs",
+                    Map.of("kind", "BACKFILL", "to", "2026-06-03"), admin, true);
+            assertEquals(400, missingFrom.statusCode(), missingFrom.body());
+            var missingTo = request(app, "POST", "admin/collections/runs",
+                    Map.of("kind", "BACKFILL", "from", "2026-06-01"), admin, true);
+            assertEquals(400, missingTo.statusCode());
+
+            var beforeWindow = request(app, "POST", "admin/collections/runs",
+                    Map.of("kind", "BACKFILL", "from", "2026-05-31", "to", "2026-06-01"), admin, true);
+            assertEquals(400, beforeWindow.statusCode());
+            assertEquals("INVALID_COLLECTION_RUN", JSON.readTree(beforeWindow.body()).path("code").asString());
+
+            var futureWindow = request(app, "POST", "admin/collections/runs",
+                    Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", tomorrow), admin, true);
+            assertEquals(400, futureWindow.statusCode());
+            assertEquals("INVALID_COLLECTION_RUN", JSON.readTree(futureWindow.body()).path("code").asString());
+            assertEquals(0, app.getBean(JdbcTemplate.class).queryForObject(
+                    "SELECT count(*) FROM collection_runs", Integer.class));
+        }
+    }
+
+    @Test
+    void partialBackfillFailureKeepsPriorSuccessAndCanResumeWithoutLosingReviewedWork() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl())) {
+                var admin = adminSession(app);
+                var jdbc = app.getBean(JdbcTemplate.class);
+                var recent = request(app, "POST", "admin/collections/runs", Map.of("kind", "RECENT"), admin, true);
+                var recentRun = waitForRun(app, admin, JSON.readTree(recent.body()).path("id").asString(),
+                        "SUCCEEDED_NEW_ITEMS");
+                assertEquals(3, recentRun.path("itemsCreated").asInt());
+                String lastSuccessBefore = jdbc.queryForObject(
+                        "SELECT last_success_at::text FROM collection_sources WHERE source_id=?", String.class, SOURCE_ID);
+
+                stub.pageStatuses.put(2, 500);
+                var backfill = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-04", "to", "2026-06-09"), admin, true);
+                assertEquals(202, backfill.statusCode());
+                String runId = JSON.readTree(backfill.body()).path("id").asString();
+                var partial = waitForRun(app, admin, runId, "PARTIAL");
+                assertEquals("BACKFILL", partial.path("kind").asString());
+                assertEquals("2026-06-04", partial.path("windowStart").asString());
+                assertEquals("2026-06-09", partial.path("windowEnd").asString());
+                assertEquals("UPSTREAM_UNAVAILABLE", partial.path("errorClass").asString());
+                assertEquals(lastSuccessBefore, jdbc.queryForObject(
+                        "SELECT last_success_at::text FROM collection_sources WHERE source_id=?", String.class, SOURCE_ID));
+                assertEquals("UPSTREAM_UNAVAILABLE", jdbc.queryForObject(
+                        "SELECT last_error_class FROM collection_sources WHERE source_id=?", String.class, SOURCE_ID));
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clippings WHERE source_id=?", Integer.class, SOURCE_ID));
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clipping_reviews", Integer.class));
+
+                stub.pageStatuses.clear();
+                assertEquals(200, request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true).statusCode());
+                var resumed = waitForRun(app, admin, runId, "SUCCEEDED_NO_CHANGES");
+                assertEquals(0, resumed.path("itemsCreated").asInt());
+                assertEquals(3, resumed.path("itemsDuplicated").asInt());
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clippings WHERE source_id=?", Integer.class, SOURCE_ID));
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clipping_reviews", Integer.class));
+            }
+        }
+    }
+
+    @Test
+    void backfillUsesTheDocumentedPageSizeAndCapsEachRunAtTwentyPages() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.poll-seconds=60", "--vetor.collection.page-size=500",
+                    "--vetor.collection.max-pages=200")) {
+                var admin = adminSession(app);
+                var status = request(app, "GET", "admin/collections", null, admin, true);
+                assertEquals(60, JSON.readTree(status.body()).path("source").path("pollSeconds").asInt());
+                assertEquals(100, JSON.readTree(status.body()).path("source").path("pageSize").asInt());
+                assertEquals(20, JSON.readTree(status.body()).path("source").path("maxPages").asInt());
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-03"), admin, true);
+                assertEquals(202, started.statusCode());
+                var created = JSON.readTree(started.body());
+                assertEquals(100, created.path("take").asInt());
+                assertEquals(20, created.path("maxPages").asInt());
+                var finished = waitForRun(app, admin, created.path("id").asString(), "SUCCEEDED_NEW_ITEMS");
+                assertEquals("BACKFILL", finished.path("kind").asString());
+                assertEquals("2026-06-01", finished.path("windowStart").asString());
+                assertEquals("2026-06-03", finished.path("windowEnd").asString());
+            }
+        }
+    }
+
+    @Test
+    void concurrentRunStartsCannotCreateTwoOpenRuns() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            stub.holdPage = 1;
+            stub.holdLatch = new CountDownLatch(1);
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl());
+                    var callers = Executors.newVirtualThreadPerTaskExecutor()) {
+                var admin = adminSession(app);
+                assertEquals(200, request(app, "GET", "admin/collections", null, admin, true).statusCode());
+                var jdbc = app.getBean(JdbcTemplate.class);
+                var body = Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-03");
+                CompletableFuture<HttpResponse<String>> first;
+                CompletableFuture<HttpResponse<String>> second;
+                try (var blocker = app.getBean(javax.sql.DataSource.class).getConnection()) {
+                    blocker.setAutoCommit(false);
+                    try (var lock = blocker.createStatement()) {
+                        lock.execute("LOCK TABLE collection_runs IN SHARE MODE");
+                    }
+                    first = CompletableFuture.supplyAsync(() -> {
+                        try { return request(app, "POST", "admin/collections/runs", body, admin, true); }
+                        catch (Exception failure) { throw new CompletionException(failure); }
+                    }, callers);
+                    second = CompletableFuture.supplyAsync(() -> {
+                        try { return request(app, "POST", "admin/collections/runs", body, admin, true); }
+                        catch (Exception failure) { throw new CompletionException(failure); }
+                    }, callers);
+
+                    boolean bothAtCreation = false;
+                    long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+                    while (!bothAtCreation && System.nanoTime() < deadline) {
+                        bothAtCreation = jdbc.queryForObject("""
+                                SELECT count(*) >= 2 FROM pg_stat_activity
+                                WHERE wait_event_type = 'Lock' AND (
+                                    query LIKE 'INSERT INTO collection_runs%' OR
+                                    query LIKE 'INSERT INTO collection_sources%' OR
+                                    query LIKE 'SELECT source_id FROM collection_sources%FOR UPDATE'
+                                )
+                                """, Boolean.class);
+                        if (!bothAtCreation) Thread.sleep(20);
+                    }
+                    assertTrue(bothAtCreation, "both HTTP starts must reach the serialized creation boundary");
+                    assertFalse(first.isDone());
+                    assertFalse(second.isDone());
+                }
+
+                var responses = List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+                var accepted = responses.stream().filter(response -> response.statusCode() == 202).toList();
+                if (!accepted.isEmpty()) {
+                    awaitPageRequest(stub, 1);
+                    stub.releasePage();
+                    for (var response : accepted) {
+                        String runId = JSON.readTree(response.body()).path("id").asString();
+                        waitForRun(app, admin, runId, "SUCCEEDED_NEW_ITEMS");
+                    }
+                }
+                assertEquals(List.of(202, 409), responses.stream().map(HttpResponse::statusCode).sorted().toList());
+                var conflict = responses.stream().filter(response -> response.statusCode() == 409).findFirst().orElseThrow();
+                assertEquals("COLLECTION_RUN_ACTIVE", JSON.readTree(conflict.body()).path("code").asString());
+                assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM collection_runs WHERE source_id=?",
+                        Integer.class, SOURCE_ID));
+            }
+        }
+    }
+
+    @Test
+    void partiallyOverlappingBackfillRunsDeduplicateTheSameSourceItems() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=100")) {
+                var admin = adminSession(app);
+                var jdbc = app.getBean(JdbcTemplate.class);
+                int publishedBefore = jdbc.queryForObject(
+                        "SELECT count(*) FROM occurrences WHERE publication_status='PUBLISHED'", Integer.class);
+                assertEquals(200, request(app, "GET", "admin/collections", null, admin, true).statusCode());
+                var first = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-04"), admin, true);
+                assertEquals(202, first.statusCode());
+                var firstRun = waitForRun(app, admin, JSON.readTree(first.body()).path("id").asString(),
+                        "SUCCEEDED_NEW_ITEMS");
+                assertEquals(3, firstRun.path("itemsCreated").asInt());
+
+                stub.occurrences = threeOccurrences();
+                var overlapping = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-03", "to", "2026-06-06"), admin, true);
+                assertEquals(202, overlapping.statusCode());
+                var overlappingRun = waitForRun(app, admin, JSON.readTree(overlapping.body()).path("id").asString(),
+                        "SUCCEEDED_NO_CHANGES");
+                assertEquals("2026-06-03", overlappingRun.path("windowStart").asString());
+                assertEquals("2026-06-06", overlappingRun.path("windowEnd").asString());
+                assertEquals(3, overlappingRun.path("itemsDuplicated").asInt());
+
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clippings WHERE source_id=?", Integer.class, SOURCE_ID));
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM clipping_reviews", Integer.class));
+                assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM collection_items WHERE source_id=?", Integer.class, SOURCE_ID));
+                assertEquals(1, jdbc.queryForObject("""
+                        SELECT count(*) FROM clippings c
+                        JOIN clipping_reviews r ON r.clipping_id = c.id
+                        WHERE c.source_id = ?
+                          AND c.source_published_at = '2026-06-01T06:30:00Z'::timestamptz
+                          AND c.collected_at > c.source_published_at
+                          AND r.state = 'PENDING'
+                        """, Integer.class, SOURCE_ID),
+                        "a data de publicação da fonte permanece distinta da coleta e aguarda revisão");
+                assertEquals(publishedBefore, jdbc.queryForObject(
+                        "SELECT count(*) FROM occurrences WHERE publication_status='PUBLISHED'", Integer.class),
+                        "a carga retroativa não publica ocorrências nem as torna recentes pela coleta");
+            }
+        }
+    }
+
+    @Test
+    void backfillWindowBudgetIsCumulativeAndAReplacementWindowCanProceed() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=2", "--vetor.collection.max-pages=1")) {
+                var admin = adminSession(app);
+                var status = request(app, "GET", "admin/collections", null, admin, true);
+                var limits = JSON.readTree(status.body()).path("backfillLimits");
+                assertEquals(100, limits.path("maxPagesPerWindow").asInt());
+                assertEquals(20, limits.path("maxPagesPerAttempt").asInt());
+                assertEquals(1, limits.path("minPageIntervalSeconds").asInt());
+
+                var jdbc = app.getBean(JdbcTemplate.class);
+                java.sql.Date from = java.sql.Date.valueOf("2026-06-01");
+                java.sql.Date to = java.sql.Date.valueOf("2026-06-06");
+                jdbc.update("""
+                        INSERT INTO collection_backfill_windows (source_id, window_start, window_end, pages_requested)
+                        VALUES (?, ?, ?, 99)
+                        """, SOURCE_ID, from, to);
+
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-06"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+                var limited = waitForRun(app, admin, runId, "PARTIAL");
+                assertEquals("BACKFILL_LIMIT_REACHED", limited.path("errorClass").asString());
+                assertEquals(1, limited.path("maxPages").asInt());
+                assertEquals(1, limited.path("pagesDone").asInt());
+                assertEquals(2, limited.path("nextPage").asInt());
+                assertEquals(1, stub.occurrenceCalls.get(), "the page budget must block page 2");
+
+                var repeatedWindow = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-06"), admin, true);
+                assertEquals(409, repeatedWindow.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(repeatedWindow.body()).path("code").asString());
+                var resumeLimited = request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true);
+                assertEquals(409, resumeLimited.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(resumeLimited.body()).path("code").asString());
+
+                stub.occurrences = List.of(
+                        StubFogoCruzado.occurrence(71001, "Rio de Janeiro", "CENTRO", "2026-06-07T06:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")),
+                        StubFogoCruzado.occurrence(71002, "Niterói", "CENTRO", "2026-06-07T07:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")),
+                        StubFogoCruzado.occurrence(71003, "Duque de Caxias", "CENTRO", "2026-06-08T06:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")));
+                var replacement = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-07", "to", "2026-06-08"), admin, true);
+                assertEquals(202, replacement.statusCode());
+                String replacementId = JSON.readTree(replacement.body()).path("id").asString();
+                var paused = waitForRun(app, admin, replacementId, "PAUSED");
+                assertEquals(1, paused.path("pagesDone").asInt());
+                assertEquals(200, request(app, "POST", "admin/collections/runs/" + replacementId + "/resume",
+                        Map.of(), admin, true).statusCode());
+                var completed = waitForRun(app, admin, replacementId, "SUCCEEDED_NEW_ITEMS");
+                assertEquals(2, completed.path("pagesDone").asInt());
+                assertEquals(3, completed.path("itemsCreated").asInt());
+            }
+        }
+    }
+
+    @Test
+    void exhaustedBackfillWindowRejectsOverlappingAndNonSmallerReplacement() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = List.of(StubFogoCruzado.occurrence(71101, "Rio de Janeiro", "CENTRO",
+                    "2026-06-07T06:30:00.000Z", false, false, List.of("Wounded"), List.of("Civilian")));
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl())) {
+                var admin = adminSession(app);
+                assertEquals(200, request(app, "GET", "admin/collections", null, admin, true).statusCode());
+                var jdbc = app.getBean(JdbcTemplate.class);
+                jdbc.update("""
+                        INSERT INTO collection_backfill_windows (source_id, window_start, window_end, pages_requested)
+                        VALUES (?, '2026-06-01', '2026-06-06', 100)
+                        """, SOURCE_ID);
+
+                var overlapping = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-05", "to", "2026-06-07"), admin, true);
+                assertEquals(409, overlapping.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(overlapping.body()).path("code").asString());
+
+                var larger = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-07", "to", "2026-06-15"), admin, true);
+                assertEquals(409, larger.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(larger.body()).path("code").asString());
+
+                var smallerDisjoint = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-07", "to", "2026-06-08"), admin, true);
+                assertEquals(202, smallerDisjoint.statusCode());
+                waitForRun(app, admin, JSON.readTree(smallerDisjoint.body()).path("id").asString(), "SUCCEEDED_NEW_ITEMS");
+                assertEquals(1, stub.occurrenceCalls.get());
+            }
+        }
+    }
+
+    @Test
+    void replacementMustBeSmallerThanEveryExhaustedWindow() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl())) {
+                var admin = adminSession(app);
+                assertEquals(200, request(app, "GET", "admin/collections", null, admin, true).statusCode());
+                var jdbc = app.getBean(JdbcTemplate.class);
+                jdbc.update("""
+                        INSERT INTO collection_backfill_windows (source_id, window_start, window_end, pages_requested, updated_at)
+                        VALUES (?, '2026-06-01', '2026-06-02', 100, now() - interval '1 day'),
+                               (?, '2026-06-05', '2026-06-15', 100, now())
+                        """, SOURCE_ID, SOURCE_ID);
+                var replacement = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-20", "to", "2026-06-22"), admin, true);
+                assertEquals(409, replacement.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(replacement.body()).path("code").asString());
+                assertEquals(0, stub.occurrenceCalls.get());
+            }
+        }
+    }
+
+    @Test
+    void backfillCannotResumeWhenAFailedPageExhaustedTheWindowBudget() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            stub.pageStatuses.put(2, 503);
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=1", "--vetor.collection.max-pages=2")) {
+                var admin = adminSession(app);
+                assertEquals(200, request(app, "GET", "admin/collections", null, admin, true).statusCode());
+                var jdbc = app.getBean(JdbcTemplate.class);
+                jdbc.update("""
+                        INSERT INTO collection_backfill_windows (source_id, window_start, window_end, pages_requested)
+                        VALUES (?, '2026-06-01', '2026-06-06', 98)
+                        """, SOURCE_ID);
+
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-06"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+                var partial = waitForRun(app, admin, runId, "PARTIAL");
+                assertEquals("UPSTREAM_UNAVAILABLE", partial.path("errorClass").asString());
+                assertEquals(1, partial.path("pagesDone").asInt());
+                assertEquals(100, jdbc.queryForObject("""
+                        SELECT pages_requested FROM collection_backfill_windows
+                        WHERE source_id=? AND window_start='2026-06-01' AND window_end='2026-06-06'
+                        """, Integer.class, SOURCE_ID));
+                int callsBeforeResume = stub.occurrenceCalls.get();
+                assertEquals(2, callsBeforeResume, "the failed second page consumes the final reservation");
+
+                var resume = request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true);
+                if (resume.statusCode() == 200) waitForRun(app, admin, runId, "PARTIAL");
+                assertEquals(409, resume.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(resume.body()).path("code").asString());
+                assertEquals(callsBeforeResume, stub.occurrenceCalls.get(),
+                        "an exhausted window is rejected before resuming or contacting the source");
+            }
+        }
+    }
+
+    @Test
+    void backfillOccurrenceRequestsRespectOneSecondAcrossSeparateWindows() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=2")) {
+                var admin = adminSession(app);
+                var first = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-03"), admin, true);
+                assertEquals(202, first.statusCode());
+                waitForRun(app, admin, JSON.readTree(first.body()).path("id").asString(), "SUCCEEDED_NEW_ITEMS");
+
+                stub.occurrences = List.of(
+                        StubFogoCruzado.occurrence(72001, "Rio de Janeiro", "CENTRO", "2026-06-04T06:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")),
+                        StubFogoCruzado.occurrence(72002, "Niterói", "CENTRO", "2026-06-05T06:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")),
+                        StubFogoCruzado.occurrence(72003, "Duque de Caxias", "CENTRO", "2026-06-06T06:30:00.000Z",
+                                false, false, List.of("Wounded"), List.of("Civilian")));
+                var second = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-04", "to", "2026-06-06"), admin, true);
+                assertEquals(202, second.statusCode());
+                waitForRun(app, admin, JSON.readTree(second.body()).path("id").asString(), "SUCCEEDED_NEW_ITEMS");
+
+                var requestTimes = List.copyOf(stub.occurrenceRequestNanos);
+                assertEquals(4, requestTimes.size());
+                for (int index = 1; index < requestTimes.size(); index++) {
+                    long intervalNanos = requestTimes.get(index) - requestTimes.get(index - 1);
+                    assertTrue(intervalNanos >= Duration.ofSeconds(1).toNanos(),
+                            "BACKFILL page requests must be at least one second apart; observed "
+                                    + Duration.ofNanos(intervalNanos).toMillis() + " ms");
+                }
+            }
+        }
+    }
+
+    @Test
+    void backfillPageLimitIsPerAttemptSoTheSameRunCanResumePastItsCursor() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = threeOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=2", "--vetor.collection.max-pages=1")) {
+                var admin = adminSession(app);
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-03"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+
+                var paused = waitForRun(app, admin, runId, "PAUSED");
+                assertEquals(1, paused.path("maxPages").asInt());
+                assertEquals(1, paused.path("pagesDone").asInt());
+                assertEquals(2, paused.path("nextPage").asInt());
+                assertEquals(2, paused.path("itemsCreated").asInt());
+
+                assertEquals(200, request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true).statusCode());
+                var completed = waitForRun(app, admin, runId, "SUCCEEDED_NEW_ITEMS");
+                assertEquals(2, completed.path("pagesDone").asInt());
+                assertEquals(3, completed.path("itemsCreated").asInt());
+                assertEquals(3, app.getBean(JdbcTemplate.class).queryForObject(
+                        "SELECT count(*) FROM collection_items WHERE source_id=?", Integer.class, SOURCE_ID));
+                assertEquals(0, app.getBean(JdbcTemplate.class).queryForObject("""
+                        SELECT count(*) FROM clipping_reviews r JOIN clippings c ON c.id=r.clipping_id
+                        WHERE c.source_id=? AND r.occurrence_id IS NOT NULL
+                        """, Integer.class, SOURCE_ID));
+            }
+        }
+    }
+
+    /**
+     * A janela é contada por página realmente pedida à fonte, não por pré-carga: o contador persistido
+     * acompanha as chamadas reais e continua somando depois de uma parada no teto por etapa.
+     */
+    @Test
+    void backfillWindowCounterFollowsRealSourceCallsAcrossResume() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = twelveOccurrences();
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=2", "--vetor.collection.max-pages=3")) {
+                var admin = adminSession(app);
+                var jdbc = app.getBean(JdbcTemplate.class);
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-10"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+
+                var paused = waitForRun(app, admin, runId, "PAUSED");
+                assertEquals(3, paused.path("pagesDone").asInt());
+                assertEquals(4, paused.path("nextPage").asInt());
+                assertEquals(3, stub.occurrenceCalls.get());
+                assertEquals(3, backfillPagesRequested(jdbc), "cada página real reserva um lugar da janela");
+
+                assertEquals(200, request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true).statusCode());
+                var completed = waitForRun(app, admin, runId, "SUCCEEDED_NEW_ITEMS");
+                assertEquals(6, completed.path("pagesDone").asInt());
+                assertEquals(12, completed.path("itemsCreated").asInt());
+                assertEquals(6, stub.occurrenceCalls.get(), "as duas etapas somam seis páginas reais");
+                assertEquals(6, backfillPagesRequested(jdbc), "o contador persiste e acumula entre etapas");
+                assertEquals(stub.occurrenceCalls.get(), backfillPagesRequested(jdbc),
+                        "o contador da janela é o número de chamadas reais à fonte, não uma pré-carga");
+                assertNoSecret(started.body());
+            }
+        }
+    }
+
+    private static int backfillPagesRequested(JdbcTemplate jdbc) {
+        Integer requested = jdbc.queryForObject("""
+                SELECT pages_requested FROM collection_backfill_windows
+                WHERE source_id=? AND window_start='2026-06-01' AND window_end='2026-06-10'
+                """, Integer.class, SOURCE_ID);
+        return requested == null ? 0 : requested;
+    }
+
+    /** Doze ocorrências distintas dentro da janela: seis páginas de dois itens. */
+    private static List<JsonNode> twelveOccurrences() {
+        List<String> cities = List.of("Rio de Janeiro", "Niterói", "Duque de Caxias");
+        List<JsonNode> items = new ArrayList<>();
+        for (int index = 0; index < 12; index++) {
+            items.add(StubFogoCruzado.occurrence(73001 + index, cities.get(index % cities.size()), "CENTRO",
+                    "2026-06-%02dT06:30:00.000Z".formatted(1 + (index % 10)), false, false,
+                    List.of("Wounded"), List.of("Civilian")));
+        }
+        return List.copyOf(items);
+    }
+
+    // ---------------------------------------------------------------- E: autorização
 
     @Test
     void requiresAdminWithMfaAndCsrfAndDeniesUser() throws Exception {
@@ -588,6 +1196,21 @@ class CollectionHttpIT {
         }
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_name='sources' AND column_name='provenance'", Integer.class));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version='15'", Integer.class));
+    }
+
+    private void awaitRunFinishedEvents(JdbcTemplate jdbc, UUID runId, int minimum) throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
+        while (jdbc.queryForObject("SELECT count(*) FROM collection_run_events WHERE run_id = ? AND event LIKE 'RUN_SUCCEEDED%'",
+                Integer.class, runId) < minimum && System.nanoTime() < deadline) Thread.sleep(20);
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM collection_run_events WHERE run_id = ? AND event LIKE 'RUN_SUCCEEDED%'",
+                Integer.class, runId) >= minimum, "all accepted resume workers must reach a terminal success event");
+    }
+
+    private void awaitOccurrenceCalls(StubFogoCruzado stub, int minimum) throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
+        while (stub.occurrenceCalls.get() < minimum && System.nanoTime() < deadline) Thread.sleep(20);
+        assertTrue(stub.occurrenceCalls.get() >= minimum,
+                "esperava ao menos " + minimum + " chamadas de ocorrência, observadas " + stub.occurrenceCalls.get());
     }
 
     private void awaitPageRequest(StubFogoCruzado stub, int page) throws Exception {

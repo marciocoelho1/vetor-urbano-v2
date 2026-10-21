@@ -12,7 +12,8 @@ public enum CollectionErrorClass {
     RATE_LIMITED,
     UPSTREAM_UNAVAILABLE,
     UPSTREAM_BLOCKED,
-    INVALID_RESPONSE;
+    INVALID_RESPONSE,
+    BACKFILL_LIMIT_REACHED;
 
     /** Proteção de borda da fonte quando o cliente não se identifica com User-Agent próprio. */
     public static final String BLOCKED_MARKER = "error code: 1010";

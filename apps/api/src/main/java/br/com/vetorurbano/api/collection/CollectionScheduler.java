@@ -1,5 +1,6 @@
 package br.com.vetorurbano.api.collection;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,12 +16,18 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "vetor.collection.enabled", havingValue = "true")
 public class CollectionScheduler {
     private final CollectionService service;
+    private final boolean schedulerEnabled;
 
-    public CollectionScheduler(CollectionService service) { this.service = service; }
+    public CollectionScheduler(
+            CollectionService service,
+            @Value("${vetor.collection.scheduler.enabled:true}") boolean schedulerEnabled) {
+        this.service = service;
+        this.schedulerEnabled = schedulerEnabled;
+    }
 
-    @Scheduled(initialDelayString = "${vetor.collection.poll-seconds:900}000",
-            fixedDelayString = "${vetor.collection.poll-seconds:900}000")
+    @Scheduled(initialDelayString = "${vetor.collection.poll-seconds:60}000",
+            fixedDelayString = "${vetor.collection.poll-seconds:60}000")
     void poll() {
-        service.poll();
+        if (schedulerEnabled) service.poll();
     }
 }

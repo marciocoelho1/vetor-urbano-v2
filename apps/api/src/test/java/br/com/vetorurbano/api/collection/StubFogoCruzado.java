@@ -37,6 +37,7 @@ final class StubFogoCruzado implements AutoCloseable {
     final List<String> lastQueries = Collections.synchronizedList(new ArrayList<>());
     final List<String> userAgents = Collections.synchronizedList(new ArrayList<>());
     final List<String> authorizationHeaders = Collections.synchronizedList(new ArrayList<>());
+    final List<Long> occurrenceRequestNanos = Collections.synchronizedList(new ArrayList<>());
 
     volatile List<String> cityNames = List.of();
     volatile List<JsonNode> occurrences = List.of();
@@ -225,6 +226,7 @@ final class StubFogoCruzado implements AutoCloseable {
     }
 
     private void occurrences(HttpExchange exchange) throws IOException {
+        occurrenceRequestNanos.add(System.nanoTime());
         occurrenceCalls.incrementAndGet();
         if (!edgeProtectionAllows(exchange)) return;
         String query = exchange.getRequestURI().getQuery();

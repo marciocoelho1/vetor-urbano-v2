@@ -22,6 +22,8 @@ import tools.jackson.databind.JsonNode;
 public class CollectionService {
     /** Recorte aprovado: Região Metropolitana do Rio de Janeiro. */
     static final String STATE_NAME = "Rio de Janeiro";
+    private static final String BACKFILL_LIMIT_DETAIL =
+            "Limite acumulado de páginas da janela atingido; cursor preservado. Inicie uma janela menor e não sobreposta.";
 
     private final CollectionSettings settings;
     private final CollectionCredentials credentials;
@@ -55,6 +57,10 @@ public class CollectionService {
         view.put("ficha", fichaView(CollectionSourceFicha.authorized(settings.sourceId())));
         // Atribuição exigida pelo termo da fonte, também no estado da coleta. Nunca inclui credencial.
         view.put("attribution", CollectionSourceFicha.ATTRIBUTION);
+        view.put("backfillLimits", Map.of(
+                "maxPagesPerWindow", CollectionSettings.BACKFILL_MAX_PAGES_PER_WINDOW,
+                "maxPagesPerAttempt", CollectionSettings.BACKFILL_MAX_PAGES_PER_ATTEMPT,
+                "minPageIntervalSeconds", CollectionSettings.BACKFILL_MIN_REQUEST_INTERVAL.toSeconds()));
         if (!configured()) {
             view.put("reason", settings.enabled() ? "CREDENTIALS_MISSING" : "COLLECTION_DISABLED");
             view.put("state", CollectionRunState.NOT_CONFIGURED.name());
@@ -87,15 +93,39 @@ public class CollectionService {
         requireConfigured();
         bootstrap();
         CollectionRunKind kind = CollectionRunKind.parse(text(body, "kind"));
-        LocalDate from = date(body, "from", settings.windowStart());
-        LocalDate to = date(body, "to", LocalDate.now(clock.withZone(ZoneId.of("America/Sao_Paulo"))));
+        LocalDate today = LocalDate.now(clock.withZone(ZoneId.of("America/Sao_Paulo")));
+        LocalDate from = kind == CollectionRunKind.BACKFILL
+                ? requiredDate(body, "from") : date(body, "from", settings.windowStart());
+        LocalDate to = kind == CollectionRunKind.BACKFILL
+                ? requiredDate(body, "to") : date(body, "to", today);
         if (from.isBefore(settings.windowStart()))
             throw CollectionFailure.invalid("Janela anterior ao recorte aprovado (" + settings.windowStart() + ").");
+        if (to.isAfter(today))
+            throw CollectionFailure.invalid("Fim da janela posterior à data atual.");
         if (to.isBefore(from))
             throw CollectionFailure.invalid("Fim da janela anterior ao início.");
-        if (store.hasOpenRun(settings.sourceId()))
-            throw CollectionFailure.conflict("COLLECTION_RUN_ACTIVE", "Já existe execução em andamento para esta fonte.");
-        UUID runId = store.createRun(settings.sourceId(), kind, from, to, settings.pageSize(), settings.maxPages(), actor, now());
+        int maxPages = kind == CollectionRunKind.BACKFILL
+                ? Math.min(settings.maxPages(), CollectionSettings.BACKFILL_MAX_PAGES_PER_ATTEMPT)
+                : settings.maxPages();
+        UUID runId;
+        if (kind == CollectionRunKind.BACKFILL) {
+            var start = store.createBackfillRunIfAvailable(settings.sourceId(), from, to, settings.pageSize(), maxPages,
+                    CollectionSettings.BACKFILL_MAX_PAGES_PER_WINDOW, actor, now());
+            if (start.runId() == null) {
+                if ("COLLECTION_RUN_ACTIVE".equals(start.conflictCode()))
+                    throw CollectionFailure.conflict("COLLECTION_RUN_ACTIVE",
+                            "Já existe execução aberta ou aguardando retomada para esta fonte.");
+                throw CollectionFailure.conflict("BACKFILL_WINDOW_LIMIT_REACHED",
+                        "A janela esgotada só pode ser seguida por período menor e sem sobreposição.");
+            }
+            runId = start.runId();
+        } else {
+            runId = store.createRunIfAvailable(settings.sourceId(), kind, from, to, settings.pageSize(), maxPages,
+                    actor, now());
+            if (runId == null)
+                throw CollectionFailure.conflict("COLLECTION_RUN_ACTIVE",
+                        "Já existe execução aberta ou aguardando retomada para esta fonte.");
+        }
         executor.execute(() -> execute(runId));
         return store.run(runId);
     }
@@ -112,12 +142,22 @@ public class CollectionService {
     /** Retomada continua do cursor preservado; vale para execução pausada e para falha parcial. */
     public Map<String, Object> resume(UUID runId, UUID actor) {
         var run = requireRun(runId);
+        if (CollectionErrorClass.BACKFILL_LIMIT_REACHED.name().equals(run.get("errorClass")))
+            throw CollectionFailure.conflict("BACKFILL_WINDOW_LIMIT_REACHED",
+                    "O limite acumulado desta janela foi atingido. Inicie uma janela menor e não sobreposta.");
+        if (CollectionRunKind.parse((String) run.get("kind")) == CollectionRunKind.BACKFILL
+                && store.backfillPagesRequested((String) run.get("sourceId"),
+                        LocalDate.parse((String) run.get("windowStart")),
+                        LocalDate.parse((String) run.get("windowEnd"))) >= CollectionSettings.BACKFILL_MAX_PAGES_PER_WINDOW)
+            throw CollectionFailure.conflict("BACKFILL_WINDOW_LIMIT_REACHED",
+                    "O limite acumulado desta janela foi atingido. Inicie uma janela menor e não sobreposta.");
         String state = (String) run.get("state");
         if (!CollectionRunState.PAUSED.name().equals(state) && !CollectionRunState.PARTIAL.name().equals(state))
             throw CollectionFailure.conflict("COLLECTION_RUN_NOT_RESUMABLE",
                     "Retomada exige execução pausada ou falha parcial com cursor preservado.");
-        store.clearPause(runId, (String) run.get("sourceId"), now());
-        store.resumeRun(runId, now());
+        if (!store.resumeRun(runId, (String) run.get("sourceId"), now()))
+            throw CollectionFailure.conflict("COLLECTION_RUN_NOT_RESUMABLE",
+                    "Retomada exige execução pausada ou falha parcial com cursor preservado.");
         executor.execute(() -> execute(runId));
         return store.run(runId);
     }
@@ -129,10 +169,10 @@ public class CollectionService {
         try {
             if (store.hasOpenRun(settings.sourceId())) return;
             bootstrap();
-            UUID runId = store.createRun(settings.sourceId(), CollectionRunKind.RECENT, settings.windowStart(),
+            UUID runId = store.createRunIfAvailable(settings.sourceId(), CollectionRunKind.RECENT, settings.windowStart(),
                     LocalDate.now(clock.withZone(ZoneId.of("America/Sao_Paulo"))), settings.pageSize(),
                     settings.maxPages(), null, now());
-            execute(runId);
+            if (runId != null) execute(runId);
         } catch (RuntimeException failure) {
             // A cadência não derruba o agendador; a tentativa fica registrada na trilha da execução.
         } finally {
@@ -144,6 +184,7 @@ public class CollectionService {
     void execute(UUID runId) {
         Map<String, Object> run = store.run(runId);
         String sourceId = (String) run.get("sourceId");
+        CollectionRunKind kind = CollectionRunKind.parse((String) run.get("kind"));
         int pagesDone = (int) run.get("pagesDone");
         int created = (int) run.get("itemsCreated");
         int take = (int) run.get("take");
@@ -162,8 +203,9 @@ public class CollectionService {
             store.stateResolved(runId, sourceId, stateId, cityIds.size(), now());
 
             int page = (int) run.get("nextPage");
+            int pagesThisAttempt = 0;
             boolean exhausted = false;
-            while (page <= maxPages) {
+            while (pagesThisAttempt < maxPages) {
                 if (pauseRequested(runId)) {
                     // A tentativa é registrada antes do estado terminal: quem observa PAUSED já vê
                     // último erro/sucesso coerentes, sem leitura intermediária ambígua.
@@ -171,13 +213,40 @@ public class CollectionService {
                     store.finishRun(runId, sourceId, CollectionRunState.PAUSED, null, null, now());
                     return;
                 }
-                var result = client.occurrences(from.toString(), to.toString(), stateId, cityIds, page, take);
+                if (kind == CollectionRunKind.BACKFILL) {
+                    var reservation = store.reserveBackfillPageRequest(runId, sourceId, from, to, page,
+                            CollectionSettings.BACKFILL_MAX_PAGES_PER_WINDOW,
+                            CollectionSettings.BACKFILL_MIN_REQUEST_INTERVAL, now());
+                    if (reservation.exhausted()) {
+                        finishBackfillLimit(runId, sourceId, pagesDone, created, headers);
+                        return;
+                    }
+                    if (reservation.waitMillis() > 0) {
+                        try {
+                            Thread.sleep(reservation.waitMillis());
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            store.requestPause(runId, sourceId, now());
+                            store.markAttempt(sourceId, now(), false, null, headers);
+                            store.finishRun(runId, sourceId, CollectionRunState.PAUSED, null, null, now());
+                            return;
+                        }
+                        continue;
+                    }
+                }
+                FogoCruzadoClient.Page result;
+                try {
+                    result = client.occurrences(from.toString(), to.toString(), stateId, cityIds, page, take);
+                } finally {
+                    if (kind == CollectionRunKind.BACKFILL) store.recordBackfillPageCompletion(sourceId, now());
+                }
                 List<CollectionMapper.CollectionItemDraft> drafts = new ArrayList<>();
                 for (JsonNode occurrence : result.data()) drafts.add(CollectionMapper.map(occurrence, sourceId));
                 int[] counters = store.persistPage(runId, sourceId, page, result.hasNextPage(), page + 1, drafts,
                         now(), now());
                 created += counters[0];
                 pagesDone++;
+                pagesThisAttempt++;
                 if (result.headers() != null) headers = merge(headers, result.headers());
                 // Pedido de pausa durante a página: para no limite seguro, sem descartar o que já
                 // foi persistido. O operador pediu para parar; a retomada continua do cursor.
@@ -193,7 +262,12 @@ public class CollectionService {
                 page++;
             }
             if (!exhausted) {
-                // Teto de páginas: o excedente vira retomada, nunca descarte.
+                if (kind == CollectionRunKind.BACKFILL
+                        && store.backfillPagesRequested(sourceId, from, to) >= CollectionSettings.BACKFILL_MAX_PAGES_PER_WINDOW) {
+                    finishBackfillLimit(runId, sourceId, pagesDone, created, headers);
+                    return;
+                }
+                // Teto de páginas por etapa: o excedente vira retomada, nunca descarte.
                 store.requestPause(runId, sourceId, now());
                 store.markAttempt(sourceId, now(), false, null, headers);
                 store.finishRun(runId, sourceId, CollectionRunState.PAUSED, null, null, now());
@@ -212,6 +286,14 @@ public class CollectionService {
             store.finishRun(runId, sourceId, CollectionRunOutcome.decide(pagesDone, created, CollectionErrorClass.INVALID_RESPONSE),
                     CollectionErrorClass.INVALID_RESPONSE, failure.getMessage(), now());
         }
+    }
+
+    private void finishBackfillLimit(UUID runId, String sourceId, int pagesDone, int created,
+            FogoCruzadoClient.UpstreamHeaders headers) {
+        CollectionErrorClass error = CollectionErrorClass.BACKFILL_LIMIT_REACHED;
+        store.markAttempt(sourceId, now(), false, error, headers);
+        store.finishRun(runId, sourceId, CollectionRunOutcome.decide(pagesDone, created, error),
+                error, BACKFILL_LIMIT_DETAIL, now());
     }
 
     /** Mantém o último valor observado de cada cabeçalho entre páginas. */
@@ -315,6 +397,13 @@ public class CollectionService {
         if (body == null) return null;
         Object value = body.get(field);
         return value instanceof String content ? content : null;
+    }
+
+    private static LocalDate requiredDate(Map<String, Object> body, String field) {
+        String value = text(body, field);
+        if (value == null || value.isBlank())
+            throw CollectionFailure.invalid("Carga retroativa exige data explícita em '" + field + "'.");
+        return date(body, field, null);
     }
 
     private static LocalDate date(Map<String, Object> body, String field, LocalDate fallback) {

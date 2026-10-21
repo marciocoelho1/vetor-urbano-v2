@@ -1,8 +1,10 @@
 package br.com.vetorurbano.api.collection;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +23,11 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public class CollectionStore {
     private static final JsonMapper JSON = JsonMapper.builder().build();
+
+    public record BackfillPageReservation(boolean exhausted, long waitMillis, int pagesRequested) {}
+    public record BackfillRunStart(UUID runId, String conflictCode) {}
+    private record BackfillPacing(Timestamp reservedAt, Timestamp completedAt) {}
+    private record ExhaustedBackfillWindow(LocalDate start, LocalDate end) {}
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
@@ -83,9 +90,51 @@ public class CollectionStore {
                 source.lastUpdateStateId(), source.lastUpdateStateTimestamp(), sourceId);
     }
 
-    public UUID createRun(String sourceId, CollectionRunKind kind, LocalDate windowStart, LocalDate windowEnd,
+    /**
+     * Cria execução apenas se a fonte não tiver outra aberta. O lock da linha da fonte serializa
+     * início manual e agendado antes da checagem e do INSERT.
+     */
+    public UUID createRunIfAvailable(String sourceId, CollectionRunKind kind, LocalDate windowStart, LocalDate windowEnd,
             int take, int maxPages, UUID requestedBy, Instant now) {
         UUID id = UUID.randomUUID();
+        return transaction.execute(status -> {
+            lockSource(sourceId);
+            if (hasOpenRun(sourceId)) return null;
+            insertRun(id, sourceId, kind, windowStart, windowEnd, take, maxPages, requestedBy, now);
+            return id;
+        });
+    }
+
+    /**
+     * Valida a política de janela e reserva o início do BACKFILL sob o mesmo lock da fonte que
+     * serializa as páginas. Isso impede que um início concorrente observe um orçamento obsoleto.
+     */
+    public BackfillRunStart createBackfillRunIfAvailable(String sourceId, LocalDate windowStart, LocalDate windowEnd,
+            int take, int requestedMaxPages, int maxPagesPerWindow, UUID requestedBy, Instant now) {
+        UUID id = UUID.randomUUID();
+        BackfillRunStart result = transaction.execute(status -> {
+            lockSource(sourceId);
+            if (hasOpenRun(sourceId)) return new BackfillRunStart(null, "COLLECTION_RUN_ACTIVE");
+            if (violatesExhaustedWindowPolicy(sourceId, windowStart, windowEnd, maxPagesPerWindow))
+                return new BackfillRunStart(null, "BACKFILL_WINDOW_LIMIT_REACHED");
+
+            int requested = backfillPagesRequested(sourceId, windowStart, windowEnd);
+            int remaining = maxPagesPerWindow - requested;
+            if (remaining <= 0) return new BackfillRunStart(null, "BACKFILL_WINDOW_LIMIT_REACHED");
+            int maxPages = Math.min(requestedMaxPages, remaining);
+            insertRun(id, sourceId, CollectionRunKind.BACKFILL, windowStart, windowEnd, take, maxPages, requestedBy, now);
+            return new BackfillRunStart(id, null);
+        });
+        return java.util.Objects.requireNonNull(result, "A criação do BACKFILL precisa de resultado.");
+    }
+
+    private void lockSource(String sourceId) {
+        jdbc.queryForObject("SELECT source_id FROM collection_sources WHERE source_id = ? FOR UPDATE",
+                String.class, sourceId);
+    }
+
+    private void insertRun(UUID id, String sourceId, CollectionRunKind kind, LocalDate windowStart, LocalDate windowEnd,
+            int take, int maxPages, UUID requestedBy, Instant now) {
         jdbc.update("""
                 INSERT INTO collection_runs (id, source_id, kind, window_start, window_end, next_page, take, max_pages,
                     state, started_at, updated_at, requested_by)
@@ -93,7 +142,27 @@ public class CollectionStore {
                 """, id, sourceId, kind.name(), java.sql.Date.valueOf(windowStart), java.sql.Date.valueOf(windowEnd),
                 take, maxPages, ts(now), ts(now), requestedBy);
         appendEvent(id, sourceId, now, "RUN_STARTED", Map.of("kind", kind.name(), "take", take, "maxPages", maxPages));
-        return id;
+    }
+
+    private boolean violatesExhaustedWindowPolicy(String sourceId, LocalDate windowStart, LocalDate windowEnd,
+            int maxPagesPerWindow) {
+        List<ExhaustedBackfillWindow> exhausted = jdbc.query("""
+                SELECT window_start, window_end FROM collection_backfill_windows
+                WHERE source_id = ? AND pages_requested >= ?
+                ORDER BY updated_at DESC, window_start DESC, window_end DESC
+                """, (result, row) -> new ExhaustedBackfillWindow(
+                        result.getDate("window_start").toLocalDate(), result.getDate("window_end").toLocalDate()),
+                sourceId, maxPagesPerWindow);
+        if (exhausted.isEmpty()) return false;
+
+        long requestedSpan = ChronoUnit.DAYS.between(windowStart, windowEnd);
+        for (ExhaustedBackfillWindow previous : exhausted) {
+            long previousSpan = ChronoUnit.DAYS.between(previous.start(), previous.end());
+            if (requestedSpan >= previousSpan) return true;
+            boolean overlaps = !windowEnd.isBefore(previous.start()) && !windowStart.isAfter(previous.end());
+            if (overlaps) return true;
+        }
+        return false;
     }
 
     public void appendEvent(UUID runId, String sourceId, Instant now, String event, Map<String, Object> detail) {
@@ -127,9 +196,76 @@ public class CollectionStore {
         return jdbc.queryForList("SELECT occurred_at, event, detail::text AS detail FROM collection_run_events WHERE run_id = ? ORDER BY id", runId);
     }
 
+    public int backfillPagesRequested(String sourceId, LocalDate windowStart, LocalDate windowEnd) {
+        Integer requested = jdbc.queryForObject("""
+                SELECT COALESCE((SELECT pages_requested FROM collection_backfill_windows
+                    WHERE source_id = ? AND window_start = ? AND window_end = ?), 0)
+                """, Integer.class, sourceId, java.sql.Date.valueOf(windowStart), java.sql.Date.valueOf(windowEnd));
+        return requested == null ? 0 : requested;
+    }
+
+    /** Reserva el siguiente slot de página con presupuesto acumulado y cadencia persistente por fuente. */
+    public BackfillPageReservation reserveBackfillPageRequest(UUID runId, String sourceId, LocalDate windowStart,
+            LocalDate windowEnd, int page, int maxPagesPerWindow, Duration minInterval, Instant now) {
+        BackfillPageReservation reservation = transaction.execute(status -> {
+            BackfillPacing pacing = jdbc.queryForObject("""
+                    SELECT last_backfill_request_at, last_backfill_page_completed_at
+                    FROM collection_sources WHERE source_id = ? FOR UPDATE
+                    """, (result, row) -> new BackfillPacing(result.getTimestamp(1), result.getTimestamp(2)), sourceId);
+            jdbc.update("""
+                    INSERT INTO collection_backfill_windows (source_id, window_start, window_end)
+                    VALUES (?, ?, ?) ON CONFLICT (source_id, window_start, window_end) DO NOTHING
+                    """, sourceId, java.sql.Date.valueOf(windowStart), java.sql.Date.valueOf(windowEnd));
+            Integer current = jdbc.queryForObject("""
+                    SELECT pages_requested FROM collection_backfill_windows
+                    WHERE source_id = ? AND window_start = ? AND window_end = ? FOR UPDATE
+                    """, Integer.class, sourceId, java.sql.Date.valueOf(windowStart), java.sql.Date.valueOf(windowEnd));
+            int requested = current == null ? 0 : current;
+            if (requested >= maxPagesPerWindow) return new BackfillPageReservation(true, 0, requested);
+
+            Instant lastRequest = pacing.reservedAt() == null ? null : pacing.reservedAt().toInstant();
+            if (pacing.completedAt() != null && (lastRequest == null || pacing.completedAt().toInstant().isAfter(lastRequest)))
+                lastRequest = pacing.completedAt().toInstant();
+            if (lastRequest != null) {
+                Instant availableAt = lastRequest.plus(minInterval);
+                if (availableAt.isAfter(now)) {
+                    long waitNanos = Duration.between(now, availableAt).toNanos();
+                    long waitMillis = (waitNanos + 999_999L) / 1_000_000L;
+                    return new BackfillPageReservation(false, Math.max(1L, waitMillis), requested);
+                }
+            }
+
+            int updated = jdbc.update("""
+                    UPDATE collection_backfill_windows SET pages_requested = pages_requested + 1, updated_at = ?
+                    WHERE source_id = ? AND window_start = ? AND window_end = ? AND pages_requested < ?
+                    """, ts(now), sourceId, java.sql.Date.valueOf(windowStart), java.sql.Date.valueOf(windowEnd),
+                    maxPagesPerWindow);
+            if (updated == 0) return new BackfillPageReservation(true, 0, requested);
+            jdbc.update("UPDATE collection_sources SET last_backfill_request_at = ?, updated_at = ? WHERE source_id = ?",
+                    ts(now), ts(now), sourceId);
+            appendEvent(runId, sourceId, now, "BACKFILL_PAGE_RESERVED", Map.of("page", page,
+                    "windowStart", windowStart.toString(), "windowEnd", windowEnd.toString(),
+                    "pagesRequested", requested + 1, "maxPagesPerWindow", maxPagesPerWindow));
+            return new BackfillPageReservation(false, 0, requested + 1);
+        });
+        return java.util.Objects.requireNonNull(reservation, "A reserva de BACKFILL precisa de resultado.");
+    }
+
+    public void recordBackfillPageCompletion(String sourceId, Instant now) {
+        jdbc.update("""
+                UPDATE collection_sources SET last_backfill_page_completed_at = ?, updated_at = ?
+                WHERE source_id = ?
+                """, ts(now), ts(now), sourceId);
+    }
+
     public boolean hasOpenRun(String sourceId) {
         return Boolean.TRUE.equals(jdbc.queryForObject(
-                "SELECT EXISTS (SELECT 1 FROM collection_runs WHERE source_id = ? AND state = 'RUNNING')", Boolean.class, sourceId));
+                """
+                SELECT EXISTS (SELECT 1 FROM collection_runs WHERE source_id = ? AND (
+                    state IN ('RUNNING','PAUSED') OR
+                    (state = 'PARTIAL' AND error_class IS DISTINCT FROM 'BACKFILL_LIMIT_REACHED')
+                ))
+                """, Boolean.class, sourceId));
     }
 
     public boolean itemExists(String sourceId, String reference) {
@@ -144,14 +280,24 @@ public class CollectionStore {
         appendEvent(runId, sourceId, now, "PAUSE_REQUESTED", Map.of());
     }
 
-    public void clearPause(UUID runId, String sourceId, Instant now) {
-        jdbc.update("UPDATE collection_runs SET pause_requested = false, updated_at = ? WHERE id = ?", ts(now), runId);
-        jdbc.update("UPDATE collection_sources SET paused = false, updated_at = ? WHERE source_id = ?", ts(now), sourceId);
-        appendEvent(runId, sourceId, now, "RESUME_REQUESTED", Map.of());
-    }
-
-    public void resumeRun(UUID runId, Instant now) {
-        jdbc.update("UPDATE collection_runs SET state = 'RUNNING', updated_at = ?, finished_at = NULL WHERE id = ?", ts(now), runId);
+    /** Transição compare-and-set para impedir retomadas simultâneas do mesmo cursor. */
+    public boolean resumeRun(UUID runId, String sourceId, Instant now) {
+        Boolean resumed = transaction.execute(status -> {
+            jdbc.queryForObject("SELECT source_id FROM collection_sources WHERE source_id = ? FOR UPDATE",
+                    String.class, sourceId);
+            int updated = jdbc.update("""
+                    UPDATE collection_runs SET state = 'RUNNING', pause_requested = false,
+                        updated_at = ?, finished_at = NULL
+                    WHERE id = ? AND source_id = ? AND state IN ('PAUSED', 'PARTIAL')
+                        AND error_class IS DISTINCT FROM 'BACKFILL_LIMIT_REACHED'
+                    """, ts(now), runId, sourceId);
+            if (updated == 0) return false;
+            jdbc.update("UPDATE collection_sources SET paused = false, updated_at = ? WHERE source_id = ?",
+                    ts(now), sourceId);
+            appendEvent(runId, sourceId, now, "RESUME_REQUESTED", Map.of());
+            return true;
+        });
+        return Boolean.TRUE.equals(resumed);
     }
 
     public void municipalityReport(UUID runId, String sourceId, List<String> missing, Instant now) {

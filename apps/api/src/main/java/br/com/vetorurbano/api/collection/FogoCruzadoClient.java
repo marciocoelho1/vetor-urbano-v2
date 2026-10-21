@@ -14,6 +14,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -199,13 +200,29 @@ public class FogoCruzadoClient {
      */
     private HttpResponse<String> authorisedSend(String method, String path, Map<String, Object> body) {
         String current = currentToken();
+        boolean occurrenceRequest = path.startsWith(OCCURRENCES_PATH);
         HttpResponse<String> response = send(method, path, body, current);
         if (response.statusCode() == 401) {
+            long firstAttemptCompleted = System.nanoTime();
             String renewed = refresh(current);
+            if (occurrenceRequest) waitForOccurrenceRetry(firstAttemptCompleted);
             response = send(method, path, body, renewed);
         }
         requireAccepted(response, "Fonte em " + path);
         return response;
+    }
+
+    private void waitForOccurrenceRetry(long firstAttemptCompleted) {
+        long remaining = CollectionSettings.BACKFILL_MIN_REQUEST_INTERVAL.toNanos()
+                - (System.nanoTime() - firstAttemptCompleted);
+        if (remaining <= 0) return;
+        try {
+            TimeUnit.NANOSECONDS.sleep(remaining);
+        } catch (InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new FogoCruzadoException(CollectionErrorClass.UPSTREAM_UNAVAILABLE,
+                    "Renovação interrompida antes de repetir a consulta de ocorrências.");
+        }
     }
 
     private void requireAccepted(HttpResponse<String> response, String what) {

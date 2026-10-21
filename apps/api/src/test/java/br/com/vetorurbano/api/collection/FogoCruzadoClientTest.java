@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -36,8 +37,8 @@ class FogoCruzadoClientTest {
     void tearDown() { stub.close(); }
 
     private CollectionSettings settings() {
-        return new CollectionSettings(true, stub.baseUrl(), "fogo-cruzado", null, 900,
-                LocalDate.parse("2026-06-01"), 100, 200, CollectionSettings.DEFAULT_USER_AGENT);
+        return new CollectionSettings(true, stub.baseUrl(), "fogo-cruzado", null, 60,
+                LocalDate.parse("2026-06-01"), 100, 20, CollectionSettings.DEFAULT_USER_AGENT);
     }
 
     @Test
@@ -67,8 +68,8 @@ class FogoCruzadoClientTest {
     @Test
     void anonymousProgrammaticClientIsBlockedByEdgeProtectionAsItsOwnClass() {
         var anonymous = new FogoCruzadoClient(HttpClient.newHttpClient(),
-                new CollectionSettings(true, stub.baseUrl(), "fogo-cruzado", null, 900,
-                        LocalDate.parse("2026-06-01"), 100, 200, "Java-http-client/21"),
+                new CollectionSettings(true, stub.baseUrl(), "fogo-cruzado", null, 60,
+                        LocalDate.parse("2026-06-01"), 100, 20, "Java-http-client/21"),
                 CollectionCredentials.of(EMAIL, PASSWORD), CLOCK);
 
         var failure = assertThrows(FogoCruzadoException.class, anonymous::login);
@@ -87,6 +88,20 @@ class FogoCruzadoClientTest {
 
         assertEquals(1, stub.refreshCalls.get());
         assertEquals("Rio de Janeiro", states.getFirst().name());
+    }
+
+    @Test
+    void occurrenceAuthRetryRespectsTheMinimumRequestInterval() {
+        stub.rejectFirstAuthorisedRequest = true;
+
+        client.occurrences("2026-06-01", "2026-10-19", StubFogoCruzado.STATE_ID,
+                List.of("city-001"), 1, 100);
+
+        List<Long> requestTimes = List.copyOf(stub.occurrenceRequestNanos);
+        assertEquals(2, requestTimes.size());
+        long intervalNanos = requestTimes.get(1) - requestTimes.get(0);
+        assertTrue(intervalNanos >= Duration.ofSeconds(1).toNanos(),
+                "intervalo observado: " + Duration.ofNanos(intervalNanos).toMillis() + " ms");
     }
 
     @Test
@@ -166,7 +181,7 @@ class FogoCruzadoClientTest {
     void unreachableSourceIsUpstreamUnavailable() {
         var offline = new FogoCruzadoClient(HttpClient.newHttpClient(),
                 new CollectionSettings(true, "http://127.0.0.1:1/api/v2", "fogo-cruzado", Path.of("/inexistente"),
-                        900, LocalDate.parse("2026-06-01"), 100, 200, CollectionSettings.DEFAULT_USER_AGENT),
+                        60, LocalDate.parse("2026-06-01"), 100, 20, CollectionSettings.DEFAULT_USER_AGENT),
                 CollectionCredentials.of(EMAIL, PASSWORD), Clock.systemUTC());
         var failure = assertThrows(FogoCruzadoException.class, offline::login);
         assertEquals(CollectionErrorClass.UPSTREAM_UNAVAILABLE, failure.errorClass());

@@ -30,9 +30,9 @@ public class CollectionConfiguration {
         String sourceId = environment.getProperty("vetor.collection.source-id", CollectionSettings.DEFAULT_SOURCE_ID);
         String credentialsPath = environment.getProperty("vetor.collection.credentials-file", "");
         Path credentialsFile = credentialsPath == null || credentialsPath.isBlank() ? null : Path.of(credentialsPath.strip());
-        int pollSeconds = environment.getProperty("vetor.collection.poll-seconds", Integer.class, 900);
-        int pageSize = environment.getProperty("vetor.collection.page-size", Integer.class, 100);
-        int maxPages = environment.getProperty("vetor.collection.max-pages", Integer.class, 200);
+        int pollSeconds = environment.getProperty("vetor.collection.poll-seconds", Integer.class, 60);
+        int pageSize = Math.min(environment.getProperty("vetor.collection.page-size", Integer.class, 100), 100);
+        int maxPages = Math.min(environment.getProperty("vetor.collection.max-pages", Integer.class, 20), 20);
         LocalDate windowStart = LocalDate.parse(environment.getProperty("vetor.collection.window-start", "2026-06-01").strip());
         String userAgent = environment.getProperty("vetor.collection.user-agent", CollectionSettings.DEFAULT_USER_AGENT);
         return new CollectionSettings(enabled, baseUrl, sourceId, credentialsFile, pollSeconds, windowStart,
