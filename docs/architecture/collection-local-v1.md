@@ -11,10 +11,24 @@ e a revisão humana do ticket 17 — **nada aqui publica ocorrência**.
 | `vetor.collection.enabled` | `false` | Liga o agendador. Desligado, tudo responde «não configurado» |
 | `vetor.collection.source-base-url` | `https://api-service.fogocruzado.org.br/api/v2` | Base da API da fonte |
 | `vetor.collection.credentials-file` | vazio | Arquivo privado `chave=valor` com `VETOR_FOGO_CRUZADO_EMAIL` e `VETOR_FOGO_CRUZADO_PASSWORD` (0600, fora do repositório) |
-| `vetor.collection.poll-seconds` | `900` | Cadência da coleta recente; sem SLA e sem promessa de instantaneidade |
+| `vetor.collection.poll-seconds` | `60` | Cadência da coleta recente; sem SLA e sem promessa de instantaneidade |
 | `vetor.collection.window-start` | `2026-06-01` | Início único do recorte aprovado |
 | `vetor.collection.page-size` | `100` | `take` por página |
-| `vetor.collection.max-pages` | `200` | Teto de segurança por execução; excedente vira retomada, não descarte |
+| `vetor.collection.max-pages` | `20` | Teto de páginas por etapa; excedente preserva cursor para retomada |
+
+A coleta `RECENT` permanece distinta de `BACKFILL`; o recorte autorizado de 2026-06-01 não
+reclassifica os disparos recentes como histórico. `BACKFILL` exige início e fim explícitos, ambos dentro
+do recorte aprovado e sem data futura (fuso `America/Sao_Paulo`), e só é iniciado manualmente por ADMIN.
+O limite de 20 páginas vale para cada etapa de tentativa; pausa e falha parcial mantêm o cursor e
+bloqueiam novas execuções até a retomada. `max-pages` não pode elevar esse teto. Cada janela exata
+(`source_id`, início e fim) também tem orçamento cumulativo de **100 requisições de página**, compartilhado
+entre pausas e retomadas. A reserva é contabilizada antes de chamar a fonte; falhas externas também
+consomem o orçamento. Ao esgotá-lo, o cursor é preservado, mas a API recusa com 409 `BACKFILL_WINDOW_LIMIT_REACHED`
+a retomada dessa janela mesmo se a execução estiver `PARTIAL` ou `PAUSED`; uma nova etapa exige janela menor e sem sobreposição.
+O BACKFILL mantém no banco intervalo mínimo de **1 s entre
+requisições de ocorrência** da mesma fonte, inclusive entre janelas e após reinício. O cliente também
+espera esse intervalo antes de repetir uma consulta de ocorrência recusada com 401 após renovar o token.
+A cadência de 60 s refere-se ao agendamento de `RECENT`, não à espera entre páginas de uma execução.
 
 Municípios: lista versionada no repositório com a fonte legal registrada, cruzada com `GET /cities` da
 fonte. Município da lista ausente na fonte é **relatado**, nunca silenciado nem substituído.
@@ -43,10 +57,15 @@ a execução termina como `AUTH_FAILED`. As leituras usam `GET /occurrences` com
 Falha nunca aparece como zero ocorrências, nunca apaga itens já encaminhados e nunca é convertida em
 `SUCCEEDED_NO_CHANGES`.
 
-## Persistência (migração V15)
+## Persistência (migrações V15–V18)
 
 - `collection_sources`: liga a fonte do produto (`sources.id`) à configuração de coleta, à janela e ao
-  último estado observado (`last_attempt_at`, `last_success_at`, `last_error_class`, `paused`).
+  último estado observado (`last_attempt_at`, `last_success_at`, `last_error_class`, `paused`); V16 também
+  persiste os instantes de reserva/conclusão de requisição BACKFILL para aplicar o intervalo mínimo.
+- `collection_backfill_windows` (V16): contador de requisições reservadas por fonte e janela exata, com
+  teto cumulativo de 100. V17 reconcilia atividade BACKFILL anterior à V16 e preserva pacing conservador;
+  V18 soma falhas repetidas observadas até a aplicação da V17, sem contar duas vezes reservas posteriores.
+  Orçamento esgotado não pode ser renovado por janela sobreposta ou não menor.
 - `collection_runs`: identidade, tipo (`RECENT`/`BACKFILL`), janela, cursor de página, contadores
   (`items_seen`, `items_created`, `items_duplicated`, `pages_done`), estado, instantes, classe de erro.
 - `collection_run_events`: trilha append-only de transições e falhas (sem credencial, token, endereço
@@ -86,9 +105,11 @@ A fila de revisão existente passa a exibir a origem «Fogo Cruzado» com a refe
 
 - Unidade: cliente HTTP (token, renovação, paginação, cabeçalhos), mapeamento/minimização, máquina de
   estados, pausa/retomada e idempotência.
-- Integração HTTP com PostgreSQL/PostGIS **real**: migração V15 aplicada, execução completa com provedor
-  externo substituído no limite HTTP (documentado), falha por página preservando retomada, deduplicação
-  por referência, autorização ADMIN/MFA/CSRF e ausência de atributo pessoal no JSON.
+- Integração HTTP com PostgreSQL/PostGIS **real**: migrações V15–V18 aplicadas; execução completa com provedor
+  externo substituído no limite HTTP (documentado), falha por página preservando retomada, orçamento cumulativo
+  de BACKFILL e cadência de 1 s em janelas distintas, rejeição de retomada ao esgotar o orçamento, rejeição de
+  janela sobreposta/nova janela não menor, reconciliação de atividade legada, concorrência de início/retomada,
+  deduplicação por referência, autorização ADMIN/MFA/CSRF e ausência de atributo pessoal no JSON.
 - Navegador Chromium/Firefox: disparo manual, pausa/retomada, estados distintos, teclado/foco, 390 px.
 - Execução real autorizada com a conta do responsável contra o banco dedicado, registrada como evidência
   separada, com origem, data e limitações da fonte.
