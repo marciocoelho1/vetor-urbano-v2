@@ -119,9 +119,9 @@
     "07": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/clustering-and-overlap.spec.ts"]}, ["git", "diff", "--check"]],
     "10": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/query-updates-and-states.spec.ts"]}, ["git", "diff", "--check"]],
     "reconciliation": [["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
-    "36": [["bash", "scripts/verify.sh", "planning"], ["git", "diff", "--check"]],
+    "36": [["bash", "scripts/verify.sh", "planning"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox", "e2e/public-information.spec.ts"]}, ["git", "diff", "--check"]],
     "06": [["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox", "e2e/two-modes.spec.ts"]}, ["git", "diff", "--check"]],
-    "integrated-review": [["bash", "scripts/verify.sh", "planning"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/clustering-and-overlap.spec.ts"]}, ["git", "diff", "--check"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--workers=2", "e2e/query-updates-and-states.spec.ts"]}]
+    "integrated-review": [["bash", "scripts/verify.sh", "planning"], ["bash", "scripts/verify.sh", "web"], {"cwd": "apps/web", "argv": ["npm", "run", "test:e2e", "--", "--project=chromium", "--project=firefox", "--workers=1", "e2e/clustering-and-overlap.spec.ts", "e2e/query-updates-and-states.spec.ts", "e2e/two-modes.spec.ts", "e2e/public-information.spec.ts"]}, ["git", "diff", "--check"]]
   },
   "ticket_files": {
     "12": ".scratch/consulta-coerente/issues/12-consulta-persistida.md",

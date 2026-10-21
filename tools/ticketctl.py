@@ -272,22 +272,137 @@ def dependency_map(config):
 
 def sync_historical_state(state):
     historical = load(ROOT / ".scratch/consulta-coerente/implementation-state.json", {}).get("tickets", {})
+    state.setdefault("tickets", {})
+    state.setdefault("phase_completed", {})
     for tid, record in historical.items():
-        if tid in state["tickets"]:
+        proof = historical_local_evidence(record)
+        if proof is None:
+            if tid not in state["tickets"] and tid == "36" and record.get("static_review", {}).get("status") == "partial_pending_ticket_27":
+                state["tickets"][tid] = {"status": "accepted_partial", "acceptance": "documentary_transparency_only",
+                                          "commit": "a836616", "pending": ["effective correction intake/tracking depends on ticket 27"]}
             continue
-        if record.get("acceptance") == "verified_local_demonstration":
-            state["tickets"][tid] = {"status": "accepted", "acceptance": "historical_verified_local_demonstration",
-                                      "commit": record.get("integration_commit") or record.get("commit"),
-                                      "evidence": record.get("verification", {})}
-        elif tid == "36" and record.get("static_review", {}).get("status") == "partial_pending_ticket_27":
-            state["tickets"][tid] = {"status": "accepted_partial", "acceptance": "documentary_transparency_only",
-                                      "commit": "a836616", "pending": ["effective correction intake/tracking depends on ticket 27"]}
+        evidence = {"acceptance": "verified_local_demonstration", **proof}
+        if tid in state["tickets"]:
+            # Reconcile technical evidence without replacing historical status, decision, or blockers.
+            current = state["tickets"][tid]
+            current.setdefault("technical_acceptance", "verified_local_demonstration")
+            current.setdefault("technical_evidence", evidence)
+            continue
+        state["tickets"][tid] = {
+            "status": "accepted",
+            "acceptance": "historical_verified_local_demonstration",
+            "technical_acceptance": "verified_local_demonstration",
+            "owner_acceptance": record.get("owner_acceptance", "not_recorded"),
+            "commit": proof["commit"],
+            "evidence": record.get("verification", {}),
+        }
+
+    # Only the controller can complete a mandatory phase. Remove phase entries that an earlier
+    # reconciliation synthesized from ticket history, but preserve controller-recorded completions.
+    for phase in ("06", "36", "07", "10"):
+        completion = state["phase_completed"].get(phase)
+        if isinstance(completion, dict) and completion.get("evidence_kind") == "historical_local_verification":
+            del state["phase_completed"][phase]
+
+    for tid in ("23", "24"):
+        rec = state["tickets"].setdefault(tid, {})
+        if rec.get("status") in {None, "pending"}:
+            rec.update(
+                status="blocked",
+                acceptance="product_decision_pending",
+                owner_acceptance="pending_with_responsible",
+                pause_reason="Decisão de produto pendente; regra de confiabilidade e parâmetros ainda não aprovados.",
+            )
+    return state
 
 
 def git_result(argv):
     from types import SimpleNamespace
     code, _, output = managed_run(["git", *argv], ROOT)
     return SimpleNamespace(returncode=code, stderr=output)
+
+
+def backup_file(path, purpose):
+    if not path.exists():
+        return None
+    backup = path.with_name(f"{path.name}.{purpose}-{uuid.uuid4().hex[:8]}")
+    shutil.copy2(path, backup)
+    return backup
+
+
+def historical_local_evidence(record):
+    if record.get("acceptance") != "verified_local_demonstration":
+        return None
+    verification = record.get("verification", {})
+    checkpoints = record.get("checkpoints") or verification.get("historical_checkpoints", [])
+    if not isinstance(checkpoints, list) or not checkpoints:
+        return None
+    for checkpoint in checkpoints:
+        relative = Path(checkpoint)
+        if relative.is_absolute() or ".." in relative.parts or not (ROOT / relative).is_file():
+            return None
+    commit = record.get("integration_commit") or record.get("commit")
+    if not commit or git_result(["merge-base", "--is-ancestor", commit, "HEAD"]).returncode:
+        return None
+    confirmed_commits = verification.get("git_confirmed_commits", [])
+    if not isinstance(confirmed_commits, list) or any(
+        not isinstance(item, str) or not item or git_result(["merge-base", "--is-ancestor", item, "HEAD"]).returncode
+        for item in confirmed_commits
+    ):
+        return None
+    committed = any(not git_result(["cat-file", "-e", f"HEAD:{checkpoint}"]).returncode for checkpoint in checkpoints)
+    if not committed:
+        return None
+    full_commit = git(["rev-parse", f"{commit}^{{commit}}" ]).strip()
+    return {"commit": full_commit, "checkpoints": checkpoints, "verification": verification}
+
+
+def record_local_demonstration(ticket, commit, checkpoints, verification, code_commits=None):
+    if ticket not in {"20", "35"}:
+        raise ValueError("Somente os tickets 20 e 35 têm evidência técnica pendente nesta reconciliação.")
+    required = {"web", "api", "browser", "limits"}
+    if not isinstance(verification, dict) or any(not verification.get(key) for key in required):
+        raise ValueError("Registre web, API, browser e limites históricos explicitamente.")
+    if not checkpoints or any(not isinstance(item, str) for item in checkpoints):
+        raise ValueError("Informe ao menos um checkpoint histórico versionado.")
+    confirmed_commits = []
+    for code_commit in code_commits or []:
+        if not isinstance(code_commit, str) or not code_commit or git_result(["merge-base", "--is-ancestor", code_commit, "HEAD"]).returncode:
+            raise ValueError(f"Commit técnico não comprovado como ancestral de HEAD: {code_commit!r}.")
+        confirmed_commits.append(git(["rev-parse", f"{code_commit}^{{commit}}" ]).strip())
+    if confirmed_commits:
+        verification = {**verification, "git_confirmed_commits": confirmed_commits}
+    path = ROOT / ".scratch/consulta-coerente/implementation-state.json"
+    state = load(path, {})
+    record = state.get("tickets", {}).get(ticket)
+    if not record or record.get("state") != "pending" or record.get("acceptance") not in {None, "not verified"}:
+        raise ValueError(f"Ticket {ticket} não está pendente de registro técnico.")
+    combined_verification = {
+        **record.get("verification", {}),
+        **verification,
+        "historical_checkpoints": checkpoints,
+        "evidence_scope": "historical_local_verification_not_reexecuted",
+    }
+    candidate = {
+        "acceptance": "verified_local_demonstration",
+        "integration_commit": commit,
+        "verification": combined_verification,
+    }
+    proof = historical_local_evidence(candidate)
+    if proof is None:
+        raise ValueError("O commit precisa ser ancestral ao HEAD e ao menos um checkpoint precisa existir e estar versionado.")
+    backup_file(path, "pre-local-evidence")
+    record.update(
+        state="done",
+        acceptance="verified_local_demonstration",
+        technical_acceptance="verified_local_demonstration",
+        owner_acceptance="pending_with_responsible",
+        commit=proof["commit"][:7],
+        integration_commit=proof["commit"],
+        verification=combined_verification,
+    )
+    save(path, state)
+    return proof
 
 
 def canonical(name):
@@ -350,9 +465,17 @@ class Controller:
                 rec.get("acceptance") not in {"simulation_only", "simulation_fixture"}) if not self.simulated else rec.get("status") == "simulated_complete"
 
     def gate_done(self, name):
-        return name in self.state.get("phase_completed", {})
+        proof = self.state.get("phase_completed", {}).get(name)
+        if proof is None:
+            return False
+        if proof.get("evidence_kind") == "historical_local_verification":
+            return historical_local_evidence(proof) is not None
+        return True
 
     def ready(self, name):
+        rec = self.state["tickets"].get(name, {})
+        if rec.get("status") in {"blocked", "awaiting_commit", "paused"}:
+            return False
         mandatory = self.config.get("mandatory_phases", [])
         preceding = mandatory[:mandatory.index(name)] if name in mandatory else mandatory
         if not all(self.gate_done(p) for p in preceding):
@@ -660,10 +783,17 @@ class Controller:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "clear-quota"])
+    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "record-local-demo", "clear-quota"])
     parser.add_argument("ticket", nargs="?")
     parser.add_argument("--ticket", dest="resume_ticket")
     parser.add_argument("--scenario", choices=["happy", "two-tasks", "correction", "failure-resume", "dependency-blocked", "quota", "correction-limit", "blocked"], default="happy")
+    parser.add_argument("--commit")
+    parser.add_argument("--code-commit", action="append", default=[])
+    parser.add_argument("--checkpoint", action="append", default=[])
+    parser.add_argument("--web-evidence")
+    parser.add_argument("--api-evidence")
+    parser.add_argument("--browser-evidence")
+    parser.add_argument("--limits-evidence")
     args = parser.parse_args()
     global STATE
     simulated = args.command == "simulate" or os.environ.get("TICKETCTL_SIMULATE") == "1"
@@ -683,6 +813,25 @@ def main():
         if args.command == "models":
             print(json.dumps(check_models(config), indent=2, ensure_ascii=False))
             return 0
+        if args.command == "record-local-demo":
+            if simulated:
+                print("Registro de evidência técnica não pode usar estado simulado.")
+                return 3
+            verification = {
+                "web": args.web_evidence,
+                "api": args.api_evidence,
+                "browser": args.browser_evidence,
+                "limits": args.limits_evidence,
+            }
+            try:
+                proof = record_local_demonstration(
+                    args.ticket, args.commit, args.checkpoint, verification, args.code_commit
+                )
+            except ValueError as error:
+                print(f"Registro técnico recusado: {error}")
+                return 2
+            print(f"Ticket {args.ticket}: verificação local demonstrada; aceite do responsável permanece pendente; commit={proof['commit']}.")
+            return 0
         if simulated:
             config = {**config, "queue": ["12", "13"], "mandatory_phases": [], "dependencies": {"13": ["12"]}, "ticket_stages": {}}
         state = load(STATE, defaults(config))
@@ -693,9 +842,10 @@ def main():
             if args.scenario == "dependency-blocked":
                 config["dependencies"] = {"12": ["missing"], "13": ["12"]}
         else:
-            if state.get("version", 1) < 2 and STATE.exists():
-                backup = STATE.with_name(STATE.name + ".pre-codex-" + uuid.uuid4().hex[:8])
-                shutil.copy2(STATE, backup)
+            if STATE.exists() and state.get("version", 1) < 2:
+                backup_file(STATE, "pre-codex")
+            elif args.command == "migrate" and STATE.exists():
+                backup_file(STATE, "pre-reconcile")
             sync_historical_state(state)
             migrate(config, state)
         ctl = Controller(config, state, STATE, logs, simulated=simulated, scenario=args.scenario)

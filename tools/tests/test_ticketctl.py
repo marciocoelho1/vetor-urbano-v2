@@ -235,6 +235,161 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(state['tickets']['07']['executor_profile'],'sol_medium')
         self.assertIn('integrated-review',state['tickets'])
 
+    def commit_checkpoint(self, *paths):
+        for relative in paths:
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f'evidence for {relative}\\n')
+            self.git('add', '--', relative)
+        self.git('commit', '-qm', 'add historical evidence')
+        return self.git('rev-parse', 'HEAD')
+
+    def test_record_local_demonstration_preserves_owner_acceptance_and_backs_up(self):
+        state_path = self.root / '.scratch/consulta-coerente/implementation-state.json'
+        m.save(state_path, {'tickets': {'20': {'state': 'pending', 'acceptance': 'not verified'}}})
+        commit = self.commit_checkpoint('docs/history/ticket-20.md')
+
+        m.record_local_demonstration(
+            '20', commit, ['docs/history/ticket-20.md'],
+            {'web': 'historical web checks', 'api': 'historical API checks',
+             'browser': 'historical browser checks', 'limits': 'owner acceptance pending'},
+            code_commits=[commit],
+        )
+
+        updated = m.load(state_path, {})['tickets']['20']
+        self.assertEqual(updated['state'], 'done')
+        self.assertEqual(updated['acceptance'], 'verified_local_demonstration')
+        self.assertEqual(updated['technical_acceptance'], 'verified_local_demonstration')
+        self.assertEqual(updated['owner_acceptance'], 'pending_with_responsible')
+        self.assertEqual(updated['integration_commit'], commit)
+        self.assertEqual(updated['verification']['git_confirmed_commits'], [commit])
+        backups = list(state_path.parent.glob('implementation-state.json.pre-local-evidence-*'))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(m.load(backups[0], {})['tickets']['20']['state'], 'pending')
+
+    def test_sync_historical_phases_preserves_blockers_and_owner_decisions(self):
+        checkpoint_paths = [f'docs/history/ticket-{tid}-evidence.md' for tid in ['06','36','07','10','20','35']]
+        commit = self.commit_checkpoint(*checkpoint_paths)
+        records = {}
+        for tid, checkpoint in zip(['06','36','07','10','20','35'], checkpoint_paths):
+            records[tid] = {
+                'state': 'done', 'acceptance': 'verified_local_demonstration',
+                'commit': commit[:7], 'integration_commit': commit,
+                'owner_acceptance': 'pending_with_responsible' if tid in {'20','35','36'} else 'not_applicable',
+                'verification': {'historical_checkpoints': [checkpoint], 'web': 'passed',
+                                 'browser': 'passed', 'diff_check': 'passed'},
+            }
+        m.save(self.root / '.scratch/consulta-coerente/implementation-state.json', {'tickets': records})
+        state = {
+            'version': 2, 'active': None, 'events': [], 'phase_completed': {'reconciliation': {'source': 'legacy'}},
+            'tickets': {
+                '06': {'status': 'blocked', 'acceptance': 'historical_verified_local_demonstration', 'pause_reason': 'old 06 block'},
+                '36': {'status': 'accepted_partial', 'acceptance': 'documentary_transparency_only', 'pending': ['27']},
+                '07': {'status': 'blocked', 'pause_reason': 'old 07 block'},
+                '10': {'status': 'accepted', 'acceptance': 'historical_verified_local_demonstration'},
+            },
+        }
+
+        m.sync_historical_state(state)
+
+        self.assertEqual(state['tickets']['06']['status'], 'blocked')
+        self.assertEqual(state['tickets']['06']['pause_reason'], 'old 06 block')
+        self.assertEqual(state['tickets']['36']['status'], 'accepted_partial')
+        self.assertEqual(state['tickets']['36']['pending'], ['27'])
+        self.assertEqual(state['tickets']['07']['status'], 'blocked')
+        self.assertEqual(state['tickets']['10']['status'], 'accepted')
+        for tid in ['06', '36', '07', '10']:
+            self.assertNotIn(tid, state['phase_completed'])
+        for tid in ['20', '35']:
+            self.assertEqual(state['tickets'][tid]['technical_acceptance'], 'verified_local_demonstration')
+            self.assertEqual(state['tickets'][tid]['owner_acceptance'], 'pending_with_responsible')
+        for tid in ['23', '24']:
+            self.assertEqual(state['tickets'][tid]['status'], 'blocked')
+            self.assertEqual(state['tickets'][tid]['acceptance'], 'product_decision_pending')
+
+    def test_sync_removes_only_synthetic_historical_phase_entries(self):
+        m.save(self.root / '.scratch/consulta-coerente/implementation-state.json', {'tickets': {}})
+        actual_phase = {'evidence_kind': 'controller_phase_completion', 'result': 'verified'}
+        state = {
+            'version': 2, 'active': None, 'events': [],
+            'phase_completed': {
+                '06': {'evidence_kind': 'historical_local_verification', 'acceptance': 'verified_local_demonstration'},
+                '07': actual_phase,
+                'reconciliation': {'source': 'legacy_documentary_pilot'},
+            },
+            'tickets': {},
+        }
+
+        m.sync_historical_state(state)
+
+        self.assertNotIn('06', state['phase_completed'])
+        self.assertEqual(state['phase_completed']['07'], actual_phase)
+        self.assertIn('reconciliation', state['phase_completed'])
+
+    def test_synced_controller_does_not_bypass_uncompleted_b5_phases(self):
+        checkpoint_paths = [f'docs/history/{name}.md' for name in ['phase-06', 'phase-36', 'phase-07', 'phase-10', 'ticket-20', 'ticket-35']]
+        commit = self.commit_checkpoint(*checkpoint_paths)
+        records = {}
+        for tid, checkpoint in zip(['06', '36', '07', '10', '20', '35'], checkpoint_paths):
+            records[tid] = {
+                'state': 'done', 'acceptance': 'verified_local_demonstration',
+                'integration_commit': commit,
+                'owner_acceptance': 'pending_with_responsible' if tid in {'20', '35', '36'} else 'not_applicable',
+                'verification': {'historical_checkpoints': [checkpoint], 'web': 'passed',
+                                 'api': 'passed', 'browser': 'passed', 'limits': 'historical'},
+            }
+        m.save(self.root / '.scratch/consulta-coerente/implementation-state.json', {'tickets': records})
+        self.config.update(
+            queue=['reconciliation', '06', '36', '07', '10', 'integrated-review', '21', '22', '23', '24'],
+            mandatory_phases=['reconciliation', '06', '36', '07', '10', 'integrated-review'],
+            dependencies={'21': ['20'], '22': ['20']},
+        )
+        state = {
+            'version': 2, 'active': None, 'events': [],
+            'phase_completed': {
+                'reconciliation': {'source': 'documented'},
+                'integrated-review': {'review': {'outcome': 'accepted'}, 'verification': {'results': ['passed']}},
+            },
+            'tickets': {
+                '06': {'status': 'blocked', 'pause_reason': 'historical blocker'},
+                '36': {'status': 'accepted_partial', 'pending': ['publication after implementations']},
+                '07': {'status': 'blocked', 'pause_reason': 'historical blocker'},
+                '10': {'status': 'accepted'},
+            },
+        }
+
+        m.sync_historical_state(state)
+        controller = m.Controller(self.config, state, self.path, self.logs)
+
+        self.assertNotIn('06', state['phase_completed'])
+        self.assertNotIn('36', state['phase_completed'])
+        self.assertNotIn('07', state['phase_completed'])
+        self.assertNotIn('10', state['phase_completed'])
+        self.assertFalse(controller.ready('21'))
+        self.assertFalse(controller.ready('23'))
+        self.assertFalse(controller.ready('24'))
+        self.assertEqual(controller.start('21'), 3)
+        self.assertIsNone(state['active'])
+
+    def test_blocked_product_decision_cannot_pass_run_gate(self):
+        self.config.update(queue=['23'], mandatory_phases=[], dependencies={})
+        self.state['tickets']['23'] = {
+            'status': 'blocked', 'acceptance': 'product_decision_pending',
+            'pause_reason': 'the responsible owner has not approved the rule',
+        }
+        self.assertFalse(self.ctl.ready('23'))
+        self.assertEqual(self.ctl.start('23'), 3)
+        self.assertIsNone(self.state['active'])
+
+    def test_historical_phase_gate_rejects_missing_or_uncommitted_evidence(self):
+        self.config.update(queue=['21'], mandatory_phases=['06'], dependencies={})
+        self.state['phase_completed']['06'] = {
+            'evidence_kind': 'historical_local_verification',
+            'acceptance': 'verified_local_demonstration', 'commit': 'missing',
+            'checkpoints': ['docs/history/missing.md'],
+        }
+        self.assertFalse(self.ctl.gate_done('06'))
+
     def test_integrated_review_without_implementation(self):
         self.config.update(queue=['integrated-review'],mandatory_phases=['integrated-review'],dependencies={})
         self.config['phase_checks']['integrated-review']=[[sys.executable,'-c','print("integrated check")']]
