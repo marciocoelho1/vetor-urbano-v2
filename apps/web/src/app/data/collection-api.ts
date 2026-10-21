@@ -27,7 +27,8 @@ export type CollectionErrorClass =
   | 'UPSTREAM_UNAVAILABLE'
   | 'INVALID_RESPONSE'
   /** A fonte bloqueou a assinatura do cliente (HTTP 403 «error code: 1010»), distinto de credencial inválida. */
-  | 'UPSTREAM_BLOCKED';
+  | 'UPSTREAM_BLOCKED'
+  | 'BACKFILL_LIMIT_REACHED';
 
 export type CollectionRunKind = 'RECENT' | 'BACKFILL';
 export type CollectionNotConfiguredReason = 'CREDENTIALS_MISSING' | 'COLLECTION_DISABLED';
@@ -73,6 +74,8 @@ export interface CollectionRun {
   windowStart: string | null;
   windowEnd: string | null;
   nextPage: number | null;
+  take: number | null;
+  maxPages: number | null;
   counters: CollectionCounters;
   municipalitiesMissing: string[];
   state: CollectionState;
@@ -88,6 +91,11 @@ export interface CollectionStatus {
   sourceId: string | null;
   configured: boolean;
   ficha: CollectionFicha;
+  backfillLimits: {
+    maxPagesPerWindow: number | null;
+    maxPagesPerAttempt: number | null;
+    minPageIntervalSeconds: number | null;
+  };
   reason: CollectionNotConfiguredReason | null;
   /** Nulo quando configurada e ainda sem execução — não é falha, vazio nem «não configurada». */
   state: CollectionState | null;
@@ -172,6 +180,8 @@ export function collectionRun(raw: unknown): CollectionRun {
     windowStart: text(value['windowStart']),
     windowEnd: text(value['windowEnd']),
     nextPage: optionalCount(value['nextPage']),
+    take: optionalCount(value['take']),
+    maxPages: optionalCount(value['maxPages']),
     counters: {
       itemsSeen: count(value['itemsSeen']),
       itemsCreated: count(value['itemsCreated']),
@@ -197,6 +207,13 @@ export function collectionStatus(raw: unknown): CollectionStatus {
     sourceId: text(value['sourceId']),
     configured: value['configured'] === true,
     ficha: collectionFicha(value['ficha']),
+    backfillLimits: {
+      maxPagesPerWindow: optionalCount(record(value['backfillLimits'])['maxPagesPerWindow']),
+      maxPagesPerAttempt: optionalCount(record(value['backfillLimits'])['maxPagesPerAttempt']),
+      minPageIntervalSeconds: optionalCount(
+        record(value['backfillLimits'])['minPageIntervalSeconds'],
+      ),
+    },
     reason: (reason === 'CREDENTIALS_MISSING' || reason === 'COLLECTION_DISABLED'
       ? reason
       : null) as CollectionNotConfiguredReason | null,
@@ -376,6 +393,7 @@ const ERROR_LABELS: Record<CollectionErrorClass, string> = {
   UPSTREAM_UNAVAILABLE: 'Fonte indisponível',
   INVALID_RESPONSE: 'Resposta inválida da fonte',
   UPSTREAM_BLOCKED: 'Assinatura do cliente bloqueada pela fonte',
+  BACKFILL_LIMIT_REACHED: 'Limite acumulado da janela de carga retroativa atingido',
 };
 
 export function errorClassLabel(errorClass: CollectionErrorClass | string): string {
@@ -390,12 +408,14 @@ function commandTarget(
   status: CollectionStatus,
   runs: CollectionRun[],
   states: CollectionState[],
+  allowed: (run: CollectionRun) => boolean = () => true,
 ): string | null {
   const last = status.lastRun;
-  if (last && states.includes(last.state)) return last.id;
+  if (last && states.includes(last.state) && allowed(last)) return last.id;
   const candidate = runs.find(
     (run) =>
       states.includes(run.state) &&
+      allowed(run) &&
       (!run.sourceId || !status.sourceId || run.sourceId === status.sourceId),
   );
   return candidate?.id || null;
@@ -408,7 +428,12 @@ export function pauseTarget(status: CollectionStatus, runs: CollectionRun[]): st
 
 /** Retomada vale para execução pausada e para falha parcial com cursor preservado. */
 export function resumeTarget(status: CollectionStatus, runs: CollectionRun[]): string | null {
-  return commandTarget(status, runs, RESUMABLE);
+  return commandTarget(
+    status,
+    runs,
+    RESUMABLE,
+    (run) => run.errorClass !== 'BACKFILL_LIMIT_REACHED',
+  );
 }
 
 export function formatCollectionInstant(instant: string | null): string {

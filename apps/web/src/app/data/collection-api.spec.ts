@@ -33,15 +33,16 @@ const status = (overrides: Record<string, unknown> = {}): Record<string, unknown
     limitations: 'base colaborativa de terceiros, sem SLA, cobertura por região metropolitana',
   },
   reason: null,
+  backfillLimits: { maxPagesPerWindow: 100, maxPagesPerAttempt: 20, minPageIntervalSeconds: 1 },
   state: 'SUCCEEDED_NEW_ITEMS',
   source: {
     sourceId: 'vu-demo-source-001',
     publicName: 'Fogo Cruzado (API v2)',
     windowStart: '2026-06-01',
     windowEnd: null,
-    pollSeconds: 900,
+    pollSeconds: 60,
     pageSize: 100,
-    maxPages: 200,
+    maxPages: 20,
     paused: false,
     lastAttemptAt: '2026-10-19T12:00:00Z',
     lastSuccessAt: '2026-10-19T12:00:00Z',
@@ -56,7 +57,7 @@ const status = (overrides: Record<string, unknown> = {}): Record<string, unknown
     windowEnd: '2026-10-19',
     nextPage: null,
     take: 100,
-    maxPages: 200,
+    maxPages: 20,
     pagesDone: 2,
     itemsSeen: 40,
     itemsCreated: 4,
@@ -112,6 +113,7 @@ describe('transporte da coleta autorizada', () => {
       sourceId: 'vu-demo-source-001',
       configured: true,
       reason: null,
+      backfillLimits: { maxPagesPerWindow: 100, maxPagesPerAttempt: 20, minPageIntervalSeconds: 1 },
       state: 'SUCCEEDED_NEW_ITEMS',
       ficha: { credit: 'Instituto Fogo Cruzado', publicName: 'Fogo Cruzado (API v2)' },
       counters: { itemsSeen: 40, itemsCreated: 4, itemsDuplicated: 36, pagesDone: 2 },
@@ -320,6 +322,9 @@ describe('vocabulário e alvos de comando da coleta', () => {
     expect(errorClassLabel('INVALID_RESPONSE')).toBe('Resposta inválida da fonte');
     // Classe real da fonte (HTTP 403 «error code: 1010»): sem rótulo, o histórico exibiria o token cru.
     expect(errorClassLabel('UPSTREAM_BLOCKED')).toBe('Assinatura do cliente bloqueada pela fonte');
+    expect(errorClassLabel('BACKFILL_LIMIT_REACHED')).toBe(
+      'Limite acumulado da janela de carga retroativa atingido',
+    );
   });
 
   it('escolhe a execução pausável e a retomável sem inventar identificador', () => {
@@ -330,6 +335,15 @@ describe('vocabulário e alvos de comando da coleta', () => {
     const paused = { ...base, lastRun: { ...base.lastRun!, state: 'PAUSED' as const } };
     expect(resumeTarget(paused, [])).toBe('run-1');
     expect(pauseTarget(paused, [])).toBeNull();
+    const capped = {
+      ...base,
+      lastRun: {
+        ...base.lastRun!,
+        state: 'PARTIAL' as const,
+        errorClass: 'BACKFILL_LIMIT_REACHED' as const,
+      },
+    };
+    expect(resumeTarget(capped, [])).toBeNull();
     const withoutRun = { ...base, state: null, lastRun: null };
     expect(
       resumeTarget(withoutRun, [

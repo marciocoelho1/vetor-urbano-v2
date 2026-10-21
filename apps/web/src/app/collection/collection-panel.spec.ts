@@ -22,9 +22,9 @@ const source = {
   publicName: 'Fogo Cruzado (API v2)',
   windowStart: '2026-06-01',
   windowEnd: null,
-  pollSeconds: 900,
+  pollSeconds: 60,
   pageSize: 100,
-  maxPages: 200,
+  maxPages: 20,
   paused: false,
   lastAttemptAt: '2026-10-19T12:00:00Z',
   lastSuccessAt: '2026-10-19T12:00:00Z',
@@ -57,6 +57,7 @@ const status = (overrides: Record<string, unknown> = {}) => ({
   configured: true,
   ficha,
   reason: null,
+  backfillLimits: { maxPagesPerWindow: 100, maxPagesPerAttempt: 20, minPageIntervalSeconds: 1 },
   state: 'SUCCEEDED_NEW_ITEMS',
   source,
   lastRun: run(),
@@ -240,6 +241,143 @@ describe('painel administrativo da Coleta', () => {
     });
     await vi.waitFor(() => expect(focus).toHaveBeenCalledWith({ preventScroll: true }));
     expect(root().textContent).not.toContain(CSRF);
+  });
+
+  it('envia uma carga retroativa com período e território explícitos, distinta da coleta recente', async () => {
+    const fetchMock = await create(
+      {
+        status: () => json(status({ state: null, lastRun: null })),
+        runs: () => json({ items: [] }),
+      },
+      [(_url, options) => json(run({ kind: 'BACKFILL', state: 'RUNNING' }), 202)],
+    );
+    await until(() => expect(testid('collection-backfill-from')).not.toBeNull());
+    expect(root().textContent).toContain('RM-RJ e cidade do Rio de Janeiro');
+    expect(root().textContent).toContain('2026-06-01');
+
+    const from = testid('collection-backfill-from') as HTMLInputElement;
+    const to = testid('collection-backfill-to') as HTMLInputElement;
+    from.value = '2026-06-04';
+    from.dispatchEvent(new Event('input'));
+    to.value = '2026-06-09';
+    to.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    button('Iniciar carga retroativa delimitada')!.click();
+    await until(() => expect(testid('collection-status')!.textContent).toContain('2026-06-04'));
+
+    const started = fetchMock.mock.calls.find(
+      ([url, options]) => String(url).endsWith('/runs') && options?.method === 'POST',
+    )!;
+    expect(started[1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({ 'X-CSRF-Token': CSRF }),
+      body: JSON.stringify({ kind: 'BACKFILL', from: '2026-06-04', to: '2026-06-09' }),
+    });
+    expect(testid('collection-status')!.textContent).toContain('Carga retroativa');
+    expect(root().textContent).toContain('Executar coleta recente agora');
+  });
+
+  it('associa cada data inválida à mensagem correspondente para tecnologia assistiva', async () => {
+    await create({
+      status: () => json(status({ state: null, lastRun: null })),
+      runs: () => json({ items: [] }),
+    });
+    await until(() => expect(testid('collection-backfill-from')).not.toBeNull());
+
+    const from = testid('collection-backfill-from') as HTMLInputElement;
+    const to = testid('collection-backfill-to') as HTMLInputElement;
+    from.value = '2026-05-31';
+    from.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(from.getAttribute('aria-invalid')).toBe('true');
+    expect(from.getAttribute('aria-describedby')).toBe('collection-backfill-from-error');
+    expect(root().querySelector('#collection-backfill-from-error')?.textContent).toContain(
+      '2026-06-01',
+    );
+
+    from.value = '2026-06-03';
+    from.dispatchEvent(new Event('input'));
+    to.value = '2026-06-02';
+    to.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(from.getAttribute('aria-invalid')).toBeNull();
+    expect(to.getAttribute('aria-invalid')).toBe('true');
+    expect(to.getAttribute('aria-describedby')).toBe('collection-backfill-to-error');
+    expect(root().querySelector('#collection-backfill-to-error')?.textContent).toContain(
+      'data inicial',
+    );
+  });
+
+  it('mantém a validação acessível sem alertar durante a edição e foca o primeiro campo inválido ao enviar', async () => {
+    const fetchMock = await create({
+      status: () => json(status({ state: null, lastRun: null })),
+      runs: () => json({ items: [] }),
+    });
+    await until(() => expect(testid('collection-backfill-from')).not.toBeNull());
+
+    const from = testid('collection-backfill-from') as HTMLInputElement;
+    from.value = '2026-05-31';
+    from.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    const trigger = button('Iniciar carga retroativa delimitada')!;
+    expect(trigger.disabled).toBe(false);
+    expect(testid('collection-backfill-validation')).toBeNull();
+
+    trigger.click();
+    await vi.waitFor(() => expect(document.activeElement).toBe(from));
+    expect(testid('collection-action-error')?.textContent).toContain('período válido');
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(false);
+  });
+
+  it('identifica progresso, limite por etapa e retomada sem confundir carga retroativa com recente', async () => {
+    const backfill = run({
+      id: 'backfill-1',
+      kind: 'BACKFILL',
+      state: 'PAUSED',
+      windowStart: '2026-06-01',
+      windowEnd: '2026-06-10',
+      pagesDone: 20,
+      nextPage: 21,
+      maxPages: 20,
+    });
+    const recent = run({ id: 'recent-1', kind: 'RECENT', state: 'SUCCEEDED_NO_CHANGES' });
+    await create({
+      status: () => json(status({ state: 'PAUSED', lastRun: backfill })),
+      runs: () => json({ items: [backfill, recent] }),
+    });
+    await until(() => expect(testid('collection-history')).not.toBeNull());
+    expect(testid('collection-progress')?.textContent).toContain(
+      '20 página(s) concluída(s); limite de 20 por etapa',
+    );
+    const history = testid('collection-history')!.textContent ?? '';
+    expect(history).toContain('Carga retroativa');
+    expect(history).toContain('2026-06-01');
+    expect(history).toContain('2026-06-10');
+    expect(history).toContain('Coleta recente');
+    expect(button('Retomar coleta')).toBeTruthy();
+    expect(root().textContent).toContain('Pausa');
+  });
+
+  it('explica limites acumulados de BACKFILL e permite janela nova sem oferecer retomada após o teto', async () => {
+    const capped = run({
+      id: 'backfill-capped',
+      kind: 'BACKFILL',
+      state: 'PARTIAL',
+      errorClass: 'BACKFILL_LIMIT_REACHED',
+      errorDetail: 'Limite acumulado atingido; cursor preservado.',
+    });
+    await create({
+      status: () => json(status({ state: 'PARTIAL', lastRun: capped })),
+      runs: () => json({ items: [capped] }),
+    });
+    await until(() => expect(testid('collection-backfill-limits')).not.toBeNull());
+
+    expect(testid('collection-backfill-limits')?.textContent).toContain('100 páginas');
+    expect(testid('collection-backfill-limits')?.textContent).toContain('1 s entre páginas');
+    expect(testid('collection-pill')?.textContent).toContain('limite acumulado da janela atingido');
+    expect(button('Retomar coleta')?.disabled).toBe(true);
+    expect(button('Iniciar carga retroativa delimitada')?.disabled).toBe(false);
+    expect(testid('collection-history')?.textContent).toContain('nova janela necessária');
   });
 
   it('exige confirmação explícita antes de pausar e preserva o estado quando o comando falha', async () => {

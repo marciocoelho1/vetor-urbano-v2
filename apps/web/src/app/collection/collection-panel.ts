@@ -17,6 +17,19 @@ import {
   type CollectionStatus,
 } from '../data/collection-api';
 
+const APPROVED_WINDOW_START = '2026-06-01';
+
+function todayInSaoPaulo(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
 /**
  * Seção administrativa «Coleta» (ticket 20) dentro da área de administração existente.
  * Estados distintos: carregando, erro com retry, configurada sem execução, «não configurada» e
@@ -39,6 +52,10 @@ export class CollectionPanel {
   protected readonly busy = signal(false);
   protected readonly notice = signal('');
   protected readonly confirming = signal<'' | 'pause' | 'resume'>('');
+  protected readonly backfillFrom = signal(APPROVED_WINDOW_START);
+  protected readonly today = todayInSaoPaulo();
+  protected readonly backfillTo = signal(this.today);
+  protected readonly windowStart = APPROVED_WINDOW_START;
   protected readonly stateLabel = collectionStatusLabel;
   protected readonly stateTone = collectionStateTone;
   protected readonly errorLabel = errorClassLabel;
@@ -67,7 +84,24 @@ export class CollectionPanel {
     const view = this.status();
     return view ? resumeTarget(view, this.runs()) : null;
   });
+  protected readonly hasOpenRun = computed(() => Boolean(this.pauseRun() || this.resumeRun()));
+  protected readonly backfillFromInvalid = computed(() => {
+    const from = this.backfillFrom();
+    return from < this.windowStart || from > this.today;
+  });
+  protected readonly backfillToInvalid = computed(() => {
+    const to = this.backfillTo();
+    return to < this.windowStart || to > this.today || to < this.backfillFrom();
+  });
+  protected readonly backfillRangeValid = computed(
+    () => !this.backfillFromInvalid() && !this.backfillToInvalid(),
+  );
   @ViewChild('triggerControl') private triggerControl?: ElementRef<HTMLButtonElement>;
+  @ViewChild('backfillTriggerControl')
+  private backfillTriggerControl?: ElementRef<HTMLButtonElement>;
+  @ViewChild('backfillFromControl')
+  private backfillFromControl?: ElementRef<HTMLInputElement>;
+  @ViewChild('backfillToControl') private backfillToControl?: ElementRef<HTMLInputElement>;
   @ViewChild('pauseControl') private pauseControl?: ElementRef<HTMLButtonElement>;
   @ViewChild('resumeControl') private resumeControl?: ElementRef<HTMLButtonElement>;
   @ViewChild('confirmControl') private confirmControl?: ElementRef<HTMLButtonElement>;
@@ -109,6 +143,49 @@ export class CollectionPanel {
       this.busy.set(false);
       this.focus(() => this.triggerControl);
     }
+  }
+
+  protected async startBackfill(): Promise<void> {
+    if (this.busy() || this.notConfigured() || this.hasOpenRun()) return;
+    if (!this.backfillRangeValid()) {
+      this.actionError.set('Informe um período válido dentro do recorte autorizado.');
+      this.focus(() =>
+        this.backfillFromInvalid() ? this.backfillFromControl : this.backfillToControl,
+      );
+      return;
+    }
+    const from = this.backfillFrom();
+    const to = this.backfillTo();
+    this.busy.set(true);
+    this.actionError.set('');
+    this.notice.set('');
+    try {
+      const started = await startCollectionRun('BACKFILL', this.session.csrfToken(), { from, to });
+      this.notice.set(`Carga retroativa disparada: execução ${started.id}, ${from} a ${to}.`);
+      await this.reload();
+    } catch (failure) {
+      this.actionError.set(this.message(failure));
+    } finally {
+      this.busy.set(false);
+      this.focus(() => this.backfillTriggerControl);
+    }
+  }
+
+  protected setBackfillFrom(event: Event): void {
+    this.backfillFrom.set((event.target as HTMLInputElement).value);
+    this.actionError.set('');
+  }
+
+  protected setBackfillTo(event: Event): void {
+    this.backfillTo.set((event.target as HTMLInputElement).value);
+    this.actionError.set('');
+  }
+
+  protected progressLabel(run: CollectionRun): string {
+    const kind = run.kind === 'BACKFILL' ? 'Carga retroativa' : 'Coleta recente';
+    const limit = run.maxPages ?? 20;
+    const cursor = run.nextPage === null ? '' : ` Próxima página: ${run.nextPage}.`;
+    return `${kind}: ${run.counters.pagesDone} página(s) concluída(s); limite de ${limit} por etapa.${cursor}`;
   }
 
   /** Crédito exigido pela fonte: acompanha o estado, nunca uma credencial. */
@@ -185,7 +262,9 @@ export class CollectionPanel {
    * caso o foco vai para o título estável da seção (alcançável por teclado, `tabindex="-1"`), nunca
    * para lugar nenhum.
    */
-  private focus(control: () => ElementRef<HTMLButtonElement> | undefined): void {
+  private focus<T extends HTMLButtonElement | HTMLInputElement>(
+    control: () => ElementRef<T> | undefined,
+  ): void {
     setTimeout(() => {
       const target = control()?.nativeElement;
       if (target && !target.disabled) {

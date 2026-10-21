@@ -15,6 +15,10 @@
     entra na fila de revisão humana. Sem promessa de instantaneidade, cobertura ou SLA da fonte de
     terceiros.
   </p>
+  <p class="collection-meta-line" data-testid="collection-territory">
+    Recorte autorizado: RM-RJ e cidade do Rio de Janeiro, a partir de 2026-06-01. Coleta recente e
+    carga retroativa permanecem identificadas separadamente.
+  </p>
 
   @if (loading()) {
     <p role="status" data-testid="collection-loading">Carregando estado da coleta…</p>
@@ -35,7 +39,11 @@
           class="status-pill collection-pill"
           [attr.data-tone]="stateTone(view.state)"
           data-testid="collection-pill"
-          >{{ stateLabel(view.state) }}</span
+          >{{
+            view.lastRun?.errorClass === 'BACKFILL_LIMIT_REACHED'
+              ? 'Parcial — limite acumulado da janela atingido'
+              : stateLabel(view.state)
+          }}</span
         >
       </div>
       <p class="collection-credit" data-testid="collection-credit">{{ creditLabel() }}</p>
@@ -87,6 +95,9 @@
             <dd>{{ view.counters.pagesDone }}</dd>
           </div>
         </dl>
+        @if (view.lastRun) {
+          <p role="status" data-testid="collection-progress">{{ progressLabel(view.lastRun) }}</p>
+        }
         @if (view.lastRun?.municipalitiesMissing?.length) {
           <p role="status" data-testid="collection-missing">
             {{ missingLabel(view.lastRun!.municipalitiesMissing) }}
@@ -114,7 +125,7 @@
     <div class="collection-actions">
       <h3>Comandos da fonte autorizada</h3>
       <p>
-        Disparo manual executa uma coleta recente (não retroativa). Pausa e retomada continuam do
+        Coleta recente e carga retroativa são comandos distintos. Pausa e retomada continuam do
         cursor preservado; pausar não apaga itens já encaminhados à revisão.
       </p>
       <div class="collection-buttons">
@@ -124,7 +135,7 @@
           class="map-tool-button"
           data-testid="collection-trigger"
           (click)="startRecent()"
-          [disabled]="busy() || notConfigured()"
+          [disabled]="busy() || notConfigured() || hasOpenRun()"
           [attr.aria-describedby]="notConfigured() ? 'collection-trigger-note' : null"
         >
           {{ busy() ? 'Enviando comando…' : 'Executar coleta recente agora' }}
@@ -150,6 +161,77 @@
           Retomar coleta
         </button>
       </div>
+      <fieldset class="collection-backfill" data-testid="collection-backfill">
+        <legend>Carga retroativa delimitada</legend>
+        <p>
+          Território autorizado: RM-RJ e cidade do Rio de Janeiro. Intervalo permitido: 2026-06-01
+          até hoje.
+        </p>
+        <div class="collection-date-range">
+          <label for="collection-backfill-from">Data inicial</label>
+          <input
+            #backfillFromControl
+            id="collection-backfill-from"
+            data-testid="collection-backfill-from"
+            type="date"
+            [min]="windowStart"
+            [max]="today"
+            [value]="backfillFrom()"
+            (input)="setBackfillFrom($event)"
+            [attr.aria-invalid]="backfillFromInvalid() ? 'true' : null"
+            [attr.aria-describedby]="
+              backfillFromInvalid() ? 'collection-backfill-from-error' : null
+            "
+            required
+          />
+          <label for="collection-backfill-to">Data final</label>
+          <input
+            #backfillToControl
+            id="collection-backfill-to"
+            data-testid="collection-backfill-to"
+            type="date"
+            [min]="windowStart"
+            [max]="today"
+            [value]="backfillTo()"
+            (input)="setBackfillTo($event)"
+            [attr.aria-invalid]="backfillToInvalid() ? 'true' : null"
+            [attr.aria-describedby]="backfillToInvalid() ? 'collection-backfill-to-error' : null"
+            required
+          />
+        </div>
+        @if (backfillFromInvalid()) {
+          <p id="collection-backfill-from-error" data-testid="collection-backfill-from-error">
+            A data inicial deve ficar entre {{ windowStart }} e {{ today }}.
+          </p>
+        }
+        @if (backfillToInvalid()) {
+          <p id="collection-backfill-to-error" data-testid="collection-backfill-to-error">
+            A data final deve ficar entre a data inicial e {{ today }}.
+          </p>
+        }
+        <button
+          #backfillTriggerControl
+          type="button"
+          class="map-tool-button"
+          data-testid="collection-backfill-trigger"
+          (click)="startBackfill()"
+          [disabled]="busy() || notConfigured() || hasOpenRun()"
+          aria-describedby="collection-backfill-note collection-backfill-limits"
+        >
+          Iniciar carga retroativa delimitada
+        </button>
+        <p id="collection-backfill-note">
+          O cursor é retomável; até
+          {{ view.backfillLimits.maxPagesPerAttempt ?? 'não informado' }} páginas por etapa. Itens
+          existentes só se associam por moderação.
+        </p>
+        <p id="collection-backfill-limits" data-testid="collection-backfill-limits">
+          Teto acumulado de {{ view.backfillLimits.maxPagesPerWindow ?? 'não informado' }} páginas
+          por combinação exata de datas; intervalo mínimo de
+          {{ view.backfillLimits.minPageIntervalSeconds ?? 'não informado' }} s entre páginas. Ao
+          atingir o teto, continue em períodos menores e não sobrepostos.
+        </p>
+      </fieldset>
       @if (notConfigured()) {
         <p id="collection-trigger-note">{{ credentialHint }}</p>
       }
@@ -222,9 +304,20 @@
             <p>
               <strong>{{ entry.id }}</strong> ·
               {{ entry.kind === 'BACKFILL' ? 'Carga retroativa' : 'Coleta recente' }} ·
-              {{ stateLabel(entry.state) }}
+              {{
+                entry.errorClass === 'BACKFILL_LIMIT_REACHED'
+                  ? 'Parcial — limite acumulado atingido; nova janela necessária'
+                  : stateLabel(entry.state)
+              }}
             </p>
             <p>{{ instant(entry.startedAt) }} → {{ instant(entry.finishedAt) }}</p>
+            @if (entry.kind === 'BACKFILL') {
+              <p data-testid="collection-history-window">
+                Período solicitado: {{ entry.windowStart || 'Não definido' }} até
+                {{ entry.windowEnd || 'Não definido' }}
+              </p>
+            }
+            <p>{{ progressLabel(entry) }}</p>
             <p>
               {{ entry.counters.itemsSeen }} visto(s) · {{ entry.counters.itemsCreated }} novo(s) ·
               {{ entry.counters.itemsDuplicated }} duplicado(s) ·
