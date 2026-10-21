@@ -1972,6 +1972,52 @@ describe('Vetor Urbano', () => {
     expect(app.customRangeEnd()).toBe('2026-06-30T23:59');
   });
 
+  it.each(['history', 'insights', 'heatmap'])(
+    'ticket 06: reconcilia filtros suspensos ao entrar pelo %s',
+    async (entry) => {
+      const app = fixture.componentInstance as unknown as {
+        toggleConsultationMode: () => void;
+        toggleFilter: (filter: string) => void;
+        advancedTextFilter: { (): string; set: (value: string) => void };
+        activeFilters: () => string[];
+        suspendedAdvancedFilters: () => unknown;
+        openView: (view: string) => void;
+        toggleHeatmap: () => void;
+      };
+      app.toggleConsultationMode();
+      app.toggleFilter('source:synthetic');
+      app.advancedTextFilter.set('teste');
+      app.toggleConsultationMode();
+      expect(app.activeFilters()).not.toContain('source:synthetic');
+      if (entry === 'heatmap') app.toggleHeatmap();
+      else {
+        app.openView(entry);
+        await vi.waitFor(() => expect(app.suspendedAdvancedFilters()).toBeNull());
+      }
+      expect(app.activeFilters()).toContain('source:synthetic');
+      expect(app.advancedTextFilter()).toBe('teste');
+      expect(app.suspendedAdvancedFilters()).toBeNull();
+    },
+  );
+
+  it('ticket 10: devolve foco ao controle estável ao atualizar pelo aviso na demonstração', () => {
+    const app = fixture.componentInstance as unknown as {
+      simulatePendingUpdate: () => void;
+    };
+    app.simulatePendingUpdate();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '[data-testid="apply-query-update-btn"]',
+    ) as HTMLButtonElement;
+    button.focus();
+    button.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="query-update-notice"]')).toBeNull();
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('[data-testid="refresh-query-btn"]'),
+    );
+  });
+
   it('ticket 10: exibe aviso de atualizacao disponivel na sessao aberta e atualiza mantendo filtros', () => {
     const app = fixture.componentInstance as unknown as {
       pendingUpdateAvailable: () => boolean;

@@ -1923,14 +1923,7 @@ export class App implements AfterViewInit, OnDestroy {
       }
     }
     if (this.consultationMode() === 'simple' && (view === 'history' || view === 'insights')) {
-      this.consultationMode.set('advanced');
-      if (isPlatformBrowser(this.platformId)) {
-        try {
-          localStorage.setItem('vetor-consultation-mode', 'advanced');
-        } catch {
-          // ignore
-        }
-      }
+      this.toggleConsultationMode();
       this.modeNotice.set(
         `Modo Análise e Inteligência ativado para acessar ${view === 'history' ? 'Histórico' : 'Relatórios'}.`,
       );
@@ -2692,7 +2685,10 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.persistedQueryEnabled) this.queryReferenceDate.set(new Date());
     if (this.persistedQueryEnabled) this.persistedRetry.update((value) => value + 1);
     this.refreshMapData();
-    if (this.persistedQueryEnabled)
+    if (
+      document.activeElement?.matches('[data-testid="apply-query-update-btn"]') ||
+      this.persistedQueryEnabled
+    )
       document
         .querySelector<HTMLElement>('[data-testid="refresh-query-btn"]')
         ?.focus({ preventScroll: true });
@@ -2962,6 +2958,84 @@ export class App implements AfterViewInit, OnDestroy {
     }
   }
 
+  private reconcileAdvancedFilters(): void {
+    const suspended = this.suspendedAdvancedFilters();
+    if (suspended) {
+      let removedIncompatible = false;
+      let reappliedCount = 0;
+      const toReapply: string[] = [];
+
+      for (const subtypeFilter of suspended.subtypes) {
+        const parts = subtypeFilter.split(':');
+        const typeId = parts[1];
+        const activeTypeFilters = this.activeFilters().filter((f) => f.startsWith('type:'));
+        let isTypeActive = false;
+        if (activeTypeFilters.length > 0) {
+          isTypeActive = this.activeFilters().includes(`type:${typeId}`);
+        } else {
+          const item = OCCURRENCE_CATALOGUE.find((t) => t.id === typeId);
+          isTypeActive = item ? this.activeFilters().includes(`category:${item.category}`) : false;
+        }
+
+        if (isTypeActive) {
+          toReapply.push(subtypeFilter);
+          reappliedCount++;
+        } else {
+          removedIncompatible = true;
+        }
+      }
+
+      if (suspended.sources && suspended.sources.length > 0) {
+        toReapply.push(...suspended.sources);
+        reappliedCount++;
+      }
+      if (suspended.situations && suspended.situations.length > 0) {
+        toReapply.push(...suspended.situations);
+        reappliedCount++;
+      }
+
+      if (toReapply.length > 0) {
+        this.activeFilters.update((filters) => [...filters, ...toReapply]);
+      }
+
+      if (suspended.customPeriod) {
+        if (!this.periodExplicitlyChosenInSimple()) {
+          this.period.set('custom');
+          if (suspended.customRangeStart) this.customRangeStart.set(suspended.customRangeStart);
+          if (suspended.customRangeEnd) this.customRangeEnd.set(suspended.customRangeEnd);
+          reappliedCount++;
+        }
+      }
+
+      if (suspended.textFilter) {
+        this.advancedTextFilter.set(suspended.textFilter);
+        reappliedCount++;
+      }
+
+      if (suspended.minScore !== null && suspended.minScore !== undefined) {
+        this.minScore.set(suspended.minScore);
+        reappliedCount++;
+      }
+      if (suspended.maxScore !== null && suspended.maxScore !== undefined) {
+        this.maxScore.set(suspended.maxScore);
+        reappliedCount++;
+      }
+
+      if (removedIncompatible) {
+        this.modeNotice.set('Subtipo incompatível com o tipo selecionado foi removido.');
+      } else if (reappliedCount > 0) {
+        this.modeNotice.set('Filtros avançados reaplicados.');
+      } else {
+        this.modeNotice.set('Modo Análise e Inteligência ativo.');
+      }
+
+      this.suspendedAdvancedFilters.set(null);
+      this.periodExplicitlyChosenInSimple.set(false);
+    } else {
+      this.modeNotice.set('Modo Análise e Inteligência ativo.');
+    }
+  }
+
   protected toggleConsultationMode(): void {
     if (this.consultationMode() === 'simple') {
       this.consultationMode.set('advanced');
@@ -2971,83 +3045,7 @@ export class App implements AfterViewInit, OnDestroy {
         // ignore
       }
 
-      const suspended = this.suspendedAdvancedFilters();
-      if (suspended) {
-        let removedIncompatible = false;
-        let reappliedCount = 0;
-        const toReapply: string[] = [];
-
-        for (const subtypeFilter of suspended.subtypes) {
-          const parts = subtypeFilter.split(':');
-          const typeId = parts[1];
-          const activeTypeFilters = this.activeFilters().filter((f) => f.startsWith('type:'));
-          let isTypeActive = false;
-          if (activeTypeFilters.length > 0) {
-            isTypeActive = this.activeFilters().includes(`type:${typeId}`);
-          } else {
-            const item = OCCURRENCE_CATALOGUE.find((t) => t.id === typeId);
-            isTypeActive = item
-              ? this.activeFilters().includes(`category:${item.category}`)
-              : false;
-          }
-
-          if (isTypeActive) {
-            toReapply.push(subtypeFilter);
-            reappliedCount++;
-          } else {
-            removedIncompatible = true;
-          }
-        }
-
-        if (suspended.sources && suspended.sources.length > 0) {
-          toReapply.push(...suspended.sources);
-          reappliedCount++;
-        }
-        if (suspended.situations && suspended.situations.length > 0) {
-          toReapply.push(...suspended.situations);
-          reappliedCount++;
-        }
-
-        if (toReapply.length > 0) {
-          this.activeFilters.update((filters) => [...filters, ...toReapply]);
-        }
-
-        if (suspended.customPeriod) {
-          if (!this.periodExplicitlyChosenInSimple()) {
-            this.period.set('custom');
-            if (suspended.customRangeStart) this.customRangeStart.set(suspended.customRangeStart);
-            if (suspended.customRangeEnd) this.customRangeEnd.set(suspended.customRangeEnd);
-            reappliedCount++;
-          }
-        }
-
-        if (suspended.textFilter) {
-          this.advancedTextFilter.set(suspended.textFilter);
-          reappliedCount++;
-        }
-
-        if (suspended.minScore !== null && suspended.minScore !== undefined) {
-          this.minScore.set(suspended.minScore);
-          reappliedCount++;
-        }
-        if (suspended.maxScore !== null && suspended.maxScore !== undefined) {
-          this.maxScore.set(suspended.maxScore);
-          reappliedCount++;
-        }
-
-        if (removedIncompatible) {
-          this.modeNotice.set('Subtipo incompatível com o tipo selecionado foi removido.');
-        } else if (reappliedCount > 0) {
-          this.modeNotice.set('Filtros avançados reaplicados.');
-        } else {
-          this.modeNotice.set('Modo Análise e Inteligência ativo.');
-        }
-
-        this.suspendedAdvancedFilters.set(null);
-        this.periodExplicitlyChosenInSimple.set(false);
-      } else {
-        this.modeNotice.set('Modo Análise e Inteligência ativo.');
-      }
+      this.reconcileAdvancedFilters();
     } else {
       this.consultationMode.set('simple');
       try {
@@ -3121,14 +3119,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleHeatmap(): void {
     if (this.consultationMode() === 'simple') {
-      this.consultationMode.set('advanced');
-      if (isPlatformBrowser(this.platformId)) {
-        try {
-          localStorage.setItem('vetor-consultation-mode', 'advanced');
-        } catch {
-          // ignore
-        }
-      }
+      this.toggleConsultationMode();
       this.modeNotice.set(
         'Mancha térmica é um recurso de Análise e Inteligência. Modo avançado ativado.',
       );
