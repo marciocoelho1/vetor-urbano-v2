@@ -16,6 +16,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import br.com.vetorurbano.api.accounts.*;
+import br.com.vetorurbano.api.testing.AccountFixtureReset;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.utility.DockerImageName;
@@ -35,14 +36,9 @@ abstract class LocalAuthHttpSupport {
     final HttpClient http=HttpClient.newHttpClient();
     String cookie,csrf;
     Path key;
-    /**
-     * Reset dos fixtures de conta. Ao criar tabela nova que referencie `local_accounts`, inclua-a
-     * aqui **e** em `AccountRegistrationHttpIT` (as duas classes montam o próprio reset).
-     */
-    static final String RESET_SQL="TRUNCATE collection_run_events,collection_items,collection_runs,collection_sources,occurrence_verifications,territorial_audit_events,territorial_approvals,territorial_versions,territorial_identities,correction_editor_audit,occurrence_editor_preparations,clipping_review_decisions,publication_versions,clipping_reviews,correction_decisions,correction_requests,correction_area_targets,auth_audit_events,local_sessions,auth_request_limits,account_email_change_tokens,account_recovery_tokens,account_audit_events,account_confirmation_tokens,account_request_limits,source_audit_events,source_versions,source_access_configurations,historical_actors,local_accounts RESTART IDENTITY";
     @BeforeEach void reset()throws Exception {
         clock().time=Instant.parse("2026-10-15T18:00:00Z");key=Files.createTempDirectory("vu-auth-key").resolve("mfa.key");
-        try(var app=start()){app.getBean(JdbcTemplate.class).execute(RESET_SQL);}
+        try(var app=start()){app.getBean(JdbcTemplate.class).execute(AccountFixtureReset.SQL);}
         cookie=null;csrf=null;
     }
     ConfigurableApplicationContext start(String... extra) {
