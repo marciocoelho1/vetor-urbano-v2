@@ -1,5 +1,21 @@
 # Plano de trabalho
 
+## Rodada 23 — regra de confiabilidade versionada e decisão de nota de fonte — 22/10/2026
+
+- **Autorização:** o responsável aprovou em bloco a proposta de calibração de 23/24 e autorizou o push
+  da rodada anterior (feito: `origin/integration/functional-spec-v1` = `acb11d8`).
+- **Ticket 23 — backend implementado e verificado:** regra v1 imutável e versionada (V20), avaliação
+  reprodutível por versão, bloqueio de publicação por essencial ausente/conflito essencial, projeção
+  pública restrita à nota 1–5 e guarda no fluxo de revisão. [Contrato](docs/architecture/reliability-rules-v1.md).
+- **Ticket 24 — backend implementado e verificado:** resultados por afirmação append-only, recomendação
+  com janela de 90 dias e amostra mínima de 10, decisão humana que cria nova versão da fonte e sinaliza
+  ocorrências sem trocar notas antigas (V21).
+- **Evidência:** `ReliabilityHttpIT` 4/4 e `SourceRatingHttpIT` 3/3 em PostgreSQL/PostGIS real; suítes de
+  publicação, consulta, relatório ativo, migração e fontes reexecutadas sem regressão.
+- **Próxima ação:** fatia de interface de 23/24 (painel administrativo com estados de carregamento, erro
+  e vazio, teclado/foco e 390 px) e specs Playwright em Chromium/Firefox; até lá ambos seguem **não
+  aceitos**. Depois: `complete-phase` no controlador para 06/07/integrated-review.
+
 ## Rodada 22 — ticket 22, crédito em exportações, rebaseline e carga diferida — 22/10/2026
 
 - **Autorização do responsável nesta data:** implementar os itens restantes e decidir os aceites

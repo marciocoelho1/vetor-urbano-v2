@@ -106,6 +106,44 @@ public class SourceService {
         return after;
     }
 
+    /**
+     * Ticket 24: nova versão da fonte com a nota decidida, preservando o restante do cadastro.
+     * A versão anterior continua legível no histórico; nada é sobrescrito.
+     */
+    @Transactional
+    public SourceDetails reRate(String id, int rating, String justification, UUID actor) {
+        if (rating < 1 || rating > 5 || justification == null || justification.isBlank()) throw invalid();
+        var current = jdbc.query("SELECT current_version FROM sources WHERE id = ? FOR UPDATE",
+                (row, index) -> row.getInt("current_version"), id).stream().findFirst()
+                .orElseThrow(SourceService::notFound);
+        var before = find(id);
+        int version = current + 1;
+        Instant now = Instant.now();
+        UUID configId = UUID.randomUUID();
+        UUID versionId = UUID.randomUUID();
+        // Copia configuração de acesso e campos da versão vigente sem reinterpretar JSON no código.
+        jdbc.update("""
+                INSERT INTO source_access_configurations (id, source_id, version, method, created_by, created_at)
+                SELECT ?::uuid, sv.source_id, ?::integer, a.method, ?::uuid, ?::timestamptz
+                FROM source_versions sv
+                JOIN source_access_configurations a ON a.id = sv.access_configuration_id
+                WHERE sv.source_id = ? AND sv.version = ?
+                """, configId, version, actor, Timestamp.from(now), id, current);
+        jdbc.update("""
+                INSERT INTO source_versions (
+                    id, source_id, version, name, channel, public_url, territories, pillars,
+                    rating, rating_justification, access_configuration_id, author_id, created_at
+                )
+                SELECT ?::uuid, source_id, ?::integer, name, channel, public_url, territories, pillars,
+                       ?::smallint, ?::text, ?::uuid, ?::uuid, ?::timestamptz
+                FROM source_versions WHERE source_id = ? AND version = ?
+                """, versionId, version, rating, justification, configId, actor, Timestamp.from(now), id, current);
+        jdbc.update("UPDATE sources SET current_version = ? WHERE id = ?", version, id);
+        var after = find(id);
+        insertAudit(id, actor, now, "UPDATE", before, after);
+        return after;
+    }
+
     private void insertAccessConfig(UUID id, String sourceId, int version, String method, UUID actor, Instant now) {
         jdbc.update("""
                 INSERT INTO source_access_configurations (id, source_id, version, method, created_by, created_at)
