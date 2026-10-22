@@ -352,6 +352,62 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(state['tickets']['07']['executor_profile'],'sol_medium')
         self.assertIn('integrated-review',state['tickets'])
 
+
+    def test_complete_phase_requires_versioned_evidence_and_ancestor_commit(self):
+        mandatory = {**self.config, 'mandatory_phases': ['06']}
+        with self.assertRaisesRegex(ValueError, 'Fase desconhecida'):
+            m.complete_phase('12', '12', 'nota suficientemente longa para registrar', [], None,
+                             self.state, mandatory)
+        with self.assertRaisesRegex(ValueError, 'próprio nome'):
+            m.complete_phase('12', '06', 'nota suficientemente longa para registrar', [], None,
+                             self.state, mandatory)
+        commit = self.commit_checkpoint('docs/history/phase-06.md')
+        with self.assertRaisesRegex(ValueError, 'mínimo 20'):
+            m.complete_phase('06', '06', 'curta', ['docs/history/phase-06.md'], commit,
+                             self.state, mandatory)
+        with self.assertRaisesRegex(ValueError, 'ao menos uma evidência'):
+            m.complete_phase('06', '06', 'fase concluída com prova verificável e commitada', [], commit,
+                             self.state, mandatory)
+        (self.root / 'docs/history/untracked.md').write_text('solto\\n')
+        with self.assertRaisesRegex(ValueError, 'não está versionada'):
+            m.complete_phase('06', '06', 'fase concluída com prova verificável e commitada',
+                             ['docs/history/untracked.md'], commit, self.state, mandatory)
+        with self.assertRaisesRegex(ValueError, 'ancestral de HEAD'):
+            m.complete_phase('06', '06', 'fase concluída com prova verificável e commitada',
+                             ['docs/history/phase-06.md'], 'deadbeef', self.state, mandatory)
+        self.assertFalse(m.phase_gate_valid(self.state.get('phase_completed', {}).get('06')))
+
+    def test_complete_phase_unblocks_the_gate_and_refuses_duplicate(self):
+        mandatory = {**self.config, 'mandatory_phases': ['06']}
+        commit = self.commit_checkpoint('docs/history/phase-06.md')
+        self.assertEqual(m.complete_phase('06', '06',
+                                          'fase 06 verificada localmente com prova versionada',
+                                          ['docs/history/phase-06.md'], commit, self.state, mandatory), 0)
+        self.ctl.state = self.state
+        self.assertTrue(self.ctl.gate_done('06'))
+        record = self.state['phase_completed']['06']
+        self.assertEqual(record['acceptance'], 'verified_local_demonstration')
+        self.assertEqual(record['verification']['git_confirmed_commits'], [commit])
+        self.assertEqual(record['commit'], commit)
+        self.assertEqual(self.state['events'][-1]['kind'], 'phase_completed')
+        with self.assertRaisesRegex(ValueError, 'já concluída'):
+            m.complete_phase('06', '06', 'tentativa de registrar a mesma fase duas vezes',
+                             ['docs/history/phase-06.md'], commit, self.state, mandatory)
+
+    def test_complete_phase_rejects_evidence_absent_from_head_and_active_run(self):
+        mandatory = {**self.config, 'mandatory_phases': ['06']}
+        self.commit_checkpoint('docs/history/phase-06.md')
+        # Versionada no índice, mas ainda fora de HEAD: o gate não pode contar com ela.
+        (self.root / 'docs/history/phase-06-index.md').write_text('só no índice\\n')
+        self.git('add', 'docs/history/phase-06-index.md')
+        with self.assertRaisesRegex(ValueError, 'não está commitada em HEAD'):
+            m.complete_phase('06', '06', 'evidência apenas no índice do Git, sem commit',
+                             ['docs/history/phase-06-index.md'], None, self.state, mandatory)
+        self.state['active'] = {'ticket': '06'}
+        with self.assertRaisesRegex(ValueError, 'execução ativa'):
+            m.complete_phase('06', '06', 'tentativa enquanto a fase está em execução',
+                             ['docs/history/phase-06.md'], None, self.state, mandatory)
+
     def commit_checkpoint(self, *paths):
         for relative in paths:
             path = self.root / relative

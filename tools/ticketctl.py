@@ -204,6 +204,75 @@ def reconcile_ticket(name, state, status, acceptance, note, evidence, commit, co
     return 0
 
 
+def phase_gate_valid(proof):
+    """Fase obrigatória só conta como concluída com prova que continue verificável agora."""
+    if not proof:
+        return False
+    if proof.get("evidence_kind") == "historical_local_verification":
+        return historical_local_evidence(proof) is not None
+    return True
+
+
+def complete_phase(name, phase, note, evidence, commit, state, config):
+    """Fecha uma fase obrigatória com prova validada, sem aceitar nada por suposição.
+
+    A validação é a mesma que o histórico já aplica: nota justificada, evidência versionada e
+    commitada em HEAD e commit comprovado como ancestral. Isso mantém o gate do controlador de pé —
+    a fase só conta enquanto a prova for verificável — e deixa o caminho auditável no log de eventos.
+    """
+    mandatory = config.get("mandatory_phases", [])
+    if phase not in mandatory:
+        raise ValueError(f"Fase desconhecida: {phase!r}. Fases obrigatórias: {', '.join(mandatory)}.")
+    if canonical(name) != canonical(phase):
+        raise ValueError("Conclua a fase com o próprio nome dela; fases obrigatórias não são transferidas.")
+    if (state.get("active") or {}).get("ticket") == phase:
+        raise ValueError("Há execução ativa desta fase.")
+    if phase_gate_valid(state.get("phase_completed", {}).get(phase)):
+        raise ValueError("Fase já concluída com evidência válida; nada a registrar.")
+    if not isinstance(note, str) or len(note.strip()) < 20:
+        raise ValueError("Registre a justificativa em --note (mínimo 20 caracteres).")
+    paths = []
+    for item in evidence or []:
+        relative = Path(item)
+        if relative.is_absolute() or ".." in relative.parts or not (ROOT / relative).is_file():
+            raise ValueError(f"Evidência precisa ser um arquivo do repositório: {item!r}.")
+        if git_result(["ls-files", "--error-unmatch", relative.as_posix()]).returncode:
+            raise ValueError(f"Evidência não está versionada no Git: {item!r}.")
+        if git_result(["cat-file", "-e", f"HEAD:{relative.as_posix()}"]).returncode:
+            raise ValueError(f"Evidência não está commitada em HEAD: {item!r}.")
+        paths.append(relative.as_posix())
+    if not paths:
+        raise ValueError("Fase obrigatória exige ao menos uma evidência versionada e commitada.")
+    if commit:
+        if git_result(["merge-base", "--is-ancestor", commit, "HEAD"]).returncode:
+            raise ValueError(f"Commit não comprovado como ancestral de HEAD: {commit!r}.")
+        commit_proof = git(["rev-parse", f"{commit}^{{commit}}"]).strip()
+    else:
+        commit_proof = git(["log", "-1", "--format=%H", "--", paths[0]]).strip()
+        if not commit_proof:
+            raise ValueError("Evidência sem commit de origem; informe --commit explicitamente.")
+    recorded_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    state.setdefault("phase_completed", {})[phase] = {
+        "evidence_kind": "historical_local_verification",
+        "acceptance": "verified_local_demonstration",
+        "checkpoints": paths,
+        "commit": commit_proof,
+        "integration_commit": commit_proof,
+        "verification": {
+            "git_confirmed_commits": [commit_proof],
+            "note": note.strip(),
+            "recorded_by": "operator_reconciliation",
+            "recorded_at": recorded_at,
+        },
+        "note": note.strip(),
+        "recorded_at": recorded_at,
+    }
+    event(state, "phase_completed", ticket=phase, commit=commit_proof, evidence=paths, note=note.strip())
+    save(STATE, state)
+    print(f"Fase {phase}: concluída com evidência validada; commit={commit_proof[:7]}.")
+    return 0
+
+
 def file_digest(path):
     if path.is_symlink():
         return "symlink:" + os.readlink(path)
@@ -564,12 +633,7 @@ class Controller:
                 rec.get("acceptance") not in {"simulation_only", "simulation_fixture"}) if not self.simulated else rec.get("status") == "simulated_complete"
 
     def gate_done(self, name):
-        proof = self.state.get("phase_completed", {}).get(name)
-        if proof is None:
-            return False
-        if proof.get("evidence_kind") == "historical_local_verification":
-            return historical_local_evidence(proof) is not None
-        return True
+        return phase_gate_valid(self.state.get("phase_completed", {}).get(name))
 
     def ready(self, name):
         rec = self.state["tickets"].get(name, {})
@@ -882,7 +946,7 @@ class Controller:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "record-local-demo", "clear-quota", "rebaseline", "reconcile"])
+    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "record-local-demo", "clear-quota", "rebaseline", "reconcile", "complete-phase"])
     parser.add_argument("ticket", nargs="?")
     parser.add_argument("--ticket", dest="resume_ticket")
     parser.add_argument("--scenario", choices=["happy", "two-tasks", "correction", "failure-resume", "dependency-blocked", "quota", "correction-limit", "blocked"], default="happy")
@@ -893,6 +957,7 @@ def main():
     parser.add_argument("--note", help="Justificativa obrigatória de rebaseline/reconciliação.")
     parser.add_argument("--status", dest="reconcile_status", help="Status administrativo registrado por reconcile.")
     parser.add_argument("--acceptance", help="Tipo de aceite registrado por reconcile.")
+    parser.add_argument("--phase", help="Fase obrigatória a concluir com evidência validada.")
     parser.add_argument("--evidence", action="append", default=[], help="Arquivo versionado que comprova a reconciliação.")
     parser.add_argument("--web-evidence")
     parser.add_argument("--api-evidence")
@@ -960,6 +1025,20 @@ def main():
         if args.command == "migrate":
             print("Checkpoint migrado; nenhuma chamada ao provedor.")
             return 0
+        if args.command == "complete-phase":
+            if simulated:
+                print("Conclusão de fase obrigatória não pode usar estado simulado.")
+                return 2
+            target = canonical(args.resume_ticket or args.ticket or args.phase or "")
+            if not target or not args.phase:
+                print("Informe a fase obrigatória em --phase.")
+                return 2
+            try:
+                return complete_phase(target, canonical(args.phase), args.note, args.evidence,
+                                      args.commit, state, config)
+            except ValueError as error:
+                print(f"complete-phase recusado: {error}")
+                return 2
         if args.command in {"rebaseline", "reconcile"}:
             if simulated:
                 print("Reconciliação administrativa não pode usar estado simulado.")
