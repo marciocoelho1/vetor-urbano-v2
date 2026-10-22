@@ -1,3 +1,8 @@
+## 2026-10-22 — Visibilidade pública por estado administrativo
+
+- **Inativa e excluída saem da consulta do usuário** (decisão do responsável): a consulta de ocorrências vigentes entrega apenas `ACTIVE`; o **histórico** continua mostrando `ACTIVE` e `CONCLUDED`; `INACTIVE` não aparece em nenhum módulo do usuário, nem por leitura de identificador. A administração continua vendo todos os estados na lista própria.
+- **Verificação:** novo teste em `OccurrenceAdminHttpIT` cobre as três visões (usuário vigente, usuário histórico, administração) com PostgreSQL/PostGIS real; `OccurrenceQueryHttpIT` 13/13 e `ActiveReportQueryIT` 1/1 sem regressão.
+
 ## 2026-10-22 — Administração de ocorrências, edição de áreas e retenção de 15 dias
 
 - **Ocorrências com lista, edição e ações em lote** (pedido do responsável): `GET /api/v1/admin/occurrences` ordena por **última atualização** (alfabética como alternativa) com filtro `ACTIVE`/`INACTIVE`/`CONCLUDED` e contagens; `PUT /api/v1/admin/occurrences/{id}` edita **todos** os campos com `expectedVersion`, incrementa `revision`, registra `updated_at` e grava versão `ADMIN_EDIT`; `POST /api/v1/admin/occurrences/bulk` aplica ativo, inativo, concluído ou exclusão. Migração V22 acrescenta `administrative_status`, `updated_at` e `deleted_at`, espelha `CONCLUDED` para ocorrências já encerradas e **preserva as fictícias existentes**.

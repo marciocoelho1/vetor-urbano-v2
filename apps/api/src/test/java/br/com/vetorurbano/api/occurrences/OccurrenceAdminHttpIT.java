@@ -77,11 +77,12 @@ class OccurrenceAdminHttpIT {
                     Timestamp.from(Instant.parse("2026-10-22T10:00:00Z")));
             String concluded = occurrence(jdbc, "Bravo concluída", "CLOSED", "CONCLUDED", null);
 
-            var byUpdate = JSON.readTree(request(app, "GET", "admin/occurrences?sort=last_update", null, admin)
+            var byUpdateBody = JSON.readTree(request(app, "GET", "admin/occurrences?sort=last_update", null, admin)
                     .body());
-            assertEquals(newer, byUpdate.path("items").get(0).path("id").asString(),
-                    "a mais recentemente atualizada vem primeiro");
-            assertTrue(byUpdate.path("counts").path("ACTIVE").asInt() >= 2);
+            var byUpdate = ids(byUpdateBody.path("items"));
+            assertTrue(byUpdate.indexOf(newer) < byUpdate.indexOf(older),
+                    "a mais recentemente atualizada vem antes da mais antiga");
+            assertTrue(byUpdateBody.path("counts").path("ACTIVE").asInt() >= 2);
 
             var alphabetical = JSON.readTree(request(app, "GET", "admin/occurrences?sort=alphabetical", null, admin)
                     .body());
@@ -179,6 +180,39 @@ class OccurrenceAdminHttpIT {
                     "excluídas saem da lista administrativa");
             assertEquals(400, request(app, "POST", "admin/occurrences/bulk",
                     Map.of("ids", ids, "action", "ARQUIVAR"), admin).statusCode());
+        }
+    }
+
+
+    @Test
+    void usersSeeOnlyActiveOccurrencesWhileAdministrationSeesEveryState() throws Exception {
+        try (var app = startApi()) {
+            var admin = adminSession(app);
+            var user = userSession(app);
+            var jdbc = app.getBean(JdbcTemplate.class);
+            String active = occurrence(jdbc, "Visível ativa", "ONGOING", "ACTIVE", null);
+            String inactive = occurrence(jdbc, "Oculta inativa", "ONGOING", "INACTIVE",
+                    Timestamp.from(Instant.parse("2026-10-22T11:00:00Z")));
+            String concluded = occurrence(jdbc, "Concluída histórica", "CLOSED", "CONCLUDED", null);
+            String window = "periodStart=2026-10-10T00:00:00Z&periodEnd=2026-10-11T00:00:00Z";
+
+            var live = ids(JSON.readTree(request(app, "GET", "occurrences?" + window, null, user).body())
+                    .path("items"));
+            assertTrue(live.contains(active), "ativa aparece para o usuário");
+            assertFalse(live.contains(inactive), "inativa sai da consulta do usuário");
+            assertFalse(live.contains(concluded), "concluída não é ocorrência vigente");
+
+            var history = ids(JSON.readTree(request(app, "GET", "history/occurrences?" + window, null, user)
+                    .body()).path("items"));
+            assertTrue(history.contains(active));
+            assertTrue(history.contains(concluded), "histórico continua mostrando concluídas");
+            assertFalse(history.contains(inactive), "inativa não aparece nem no histórico do usuário");
+
+            var adminList = ids(JSON.readTree(request(app, "GET", "admin/occurrences", null, admin).body())
+                    .path("items"));
+            assertTrue(adminList.contains(active));
+            assertTrue(adminList.contains(inactive), "administração vê as inativas");
+            assertTrue(adminList.contains(concluded), "administração vê as concluídas");
         }
     }
 

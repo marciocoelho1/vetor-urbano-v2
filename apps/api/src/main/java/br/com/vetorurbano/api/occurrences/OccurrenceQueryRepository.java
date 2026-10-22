@@ -68,6 +68,11 @@ public class OccurrenceQueryRepository {
 
     private static final String BASE_SQL = SELECT_SQL + """
             WHERE o.publication_status = 'PUBLISHED'
+              -- Decisão de produto de 22/10/2026: inativo e excluído nunca aparecem para o usuário;
+              -- concluído só entra no histórico, nunca na consulta de ocorrências vigentes.
+              AND o.administrative_status <> 'DELETED'
+              AND o.administrative_status <> 'INACTIVE'
+              AND (:includeConcluded OR o.administrative_status = 'ACTIVE')
               AND (:withoutPeriod OR (
                   (o.occurred_at IS NOT NULL
                       AND o.occurred_at >= :periodStart
@@ -126,6 +131,7 @@ public class OccurrenceQueryRepository {
 
     private List<OccurrenceRecord> find(OccurrenceQuery query, ResultOrder resultOrder) {
         var parameters = new MapSqlParameterSource()
+                .addValue("includeConcluded", resultOrder == ResultOrder.HISTORY)
                 .addValue("withoutPeriod", query.periodStart() == null)
                 .addValue("periodStart", query.periodStart() == null ? null : Timestamp.from(query.periodStart()), java.sql.Types.TIMESTAMP)
                 .addValue("periodEnd", query.periodEnd() == null ? null : Timestamp.from(query.periodEnd()), java.sql.Types.TIMESTAMP);
@@ -247,7 +253,10 @@ public class OccurrenceQueryRepository {
                 .addValue("periodStart", null, java.sql.Types.TIMESTAMP)
                 .addValue("periodEnd", null, java.sql.Types.TIMESTAMP)
                 .addValue("id", id);
-        var rows = jdbc.query(SELECT_LOOKUP_SQL + " WHERE o.id = :id",
+        // Registro inativo ou excluído não é entregue pela rota de leitura: o administrador usa a
+        // lista administrativa, que tem filtro próprio.
+        var rows = jdbc.query(SELECT_LOOKUP_SQL
+                + " WHERE o.id = :id AND o.administrative_status NOT IN ('INACTIVE','DELETED')",
                 parameters,
                 (result, rowNumber) -> new LookupRow(
                         result.getString("publication_status"),
@@ -274,7 +283,12 @@ public class OccurrenceQueryRepository {
                 .addValue("periodStart", query.periodStart() == null ? null : Timestamp.from(query.periodStart()), java.sql.Types.TIMESTAMP)
                 .addValue("periodEnd", query.periodEnd() == null ? null : Timestamp.from(query.periodEnd()), java.sql.Types.TIMESTAMP)
                 .addValue("happeningIds", happeningIds);
-        var rows = jdbc.query(SELECT_SQL + " WHERE o.publication_status = 'PUBLISHED' AND o.happening_id IN (:happeningIds) ORDER BY o.id", parameters, OCCURRENCE_MAPPER);
+        var rows = jdbc.query(SELECT_SQL + """
+                WHERE o.publication_status = 'PUBLISHED'
+                  AND o.administrative_status NOT IN ('INACTIVE','DELETED')
+                  AND o.happening_id IN (:happeningIds)
+                ORDER BY o.id
+                """, parameters, OCCURRENCE_MAPPER);
         var clippings = findClippings(rows.stream().map(OccurrenceRow::id).toList());
         return rows.stream().map(row -> row.toRecord(clippings.getOrDefault(row.id(), List.of()))).toList();
     }

@@ -24,10 +24,13 @@ Regras de comportamento:
 - **Ordem padrão por última atualização** (`COALESCE(updated_at, occurred_at) DESC NULLS LAST`).
   Registro sem atualização registrada vai ao fim e a interface diz «Atualização não registrada» —
   nunca inventa data. A ordenação alfabética é a segunda opção.
-- **Estados administrativos** são `ACTIVE`, `INACTIVE`, `CONCLUDED` (e `DELETED`, interno). São
-  independentes de `publication_status`: mudar o estado administrativo não publica nem retira a
-  ocorrência da consulta pública. Ligar «inativo» a visibilidade pública é decisão de produto ainda
-  aberta — registrada aqui como pendência explícita, não como comportamento escondido.
+- **Estados administrativos** são `ACTIVE`, `INACTIVE`, `CONCLUDED` (e `DELETED`, interno), e
+  **governam a visibilidade pública** por decisão do responsável em 22/10/2026:
+  - **usuário** vê apenas `ACTIVE` na consulta de ocorrências vigentes;
+  - **histórico** do usuário mostra `ACTIVE` e `CONCLUDED`, nunca `INACTIVE`;
+  - **inativo e excluído** não são entregues por nenhuma rota pública, inclusive leitura por
+    identificador;
+  - **administração** vê todos os estados na lista administrativa, com filtro próprio.
 - **Concluído espelha o domínio**: ocorrências já com `situation='CLOSED'` foram marcadas uma única
   vez pela migração; `updated_at` permaneceu nulo.
 - **Edição** reusa `PublicationDraft.parse` (o mesmo núcleo obrigatório da publicação), incrementa
@@ -70,6 +73,7 @@ vazia.
 
 ## Limites e pendências
 
-- «Inativo» ainda não altera a visibilidade na consulta pública (decisão de produto pendente).
+- A consulta pública de ocorrências vigentes passou a excluir concluídas; o histórico continua
+  mostrando concluídas. Inativas não aparecem em nenhum módulo do usuário.
 - Exclusão física não é oferecida: contraria a imutabilidade do histórico de publicação.
 - Sem dados reais, contratação ou publicação externa.
