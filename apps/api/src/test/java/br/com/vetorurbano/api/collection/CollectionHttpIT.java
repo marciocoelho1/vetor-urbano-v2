@@ -899,7 +899,7 @@ class CollectionHttpIT {
     void backfillWindowCounterFollowsRealSourceCallsAcrossResume() throws Exception {
         try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
             stub.cityNames = metropolitanCityNames();
-            stub.occurrences = twelveOccurrences();
+            stub.occurrences = occurrences(73001, 12);
             try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
                     "--vetor.collection.page-size=2", "--vetor.collection.max-pages=3")) {
                 var admin = adminSession(app);
@@ -937,12 +937,57 @@ class CollectionHttpIT {
         return requested == null ? 0 : requested;
     }
 
-    /** Doze ocorrências distintas dentro da janela: seis páginas de dois itens. */
-    private static List<JsonNode> twelveOccurrences() {
+    /**
+     * Percurso completo do teto da janela: cem páginas reais pedidas à fonte em cinco etapas de
+     * vinte, atravessando paradas no teto por etapa e retomadas. Marcado como lento porque a
+     * cadência mínima de um segundo por página impõe mais de cem segundos reais de espera.
+     */
+    @Test
+    @Tag("slow")
+    void backfillExhaustsTheWindowWithOneHundredRealPageRequests() throws Exception {
+        try (var stub = new StubFogoCruzado(ADMIN_EMAIL, SYNTHETIC_SECRET)) {
+            stub.cityNames = metropolitanCityNames();
+            stub.occurrences = occurrences(74001, 120);
+            try (var app = startApi(true, "--vetor.collection.source-base-url=" + stub.baseUrl(),
+                    "--vetor.collection.page-size=1", "--vetor.collection.max-pages=20")) {
+                var admin = adminSession(app);
+                var jdbc = app.getBean(JdbcTemplate.class);
+                var started = request(app, "POST", "admin/collections/runs",
+                        Map.of("kind", "BACKFILL", "from", "2026-06-01", "to", "2026-06-10"), admin, true);
+                assertEquals(202, started.statusCode());
+                String runId = JSON.readTree(started.body()).path("id").asString();
+
+                for (int attempt = 1; attempt <= 4; attempt++) {
+                    var paused = waitForRun(app, admin, runId, "PAUSED");
+                    assertEquals(attempt * 20, paused.path("pagesDone").asInt());
+                    assertEquals(attempt * 20 + 1, paused.path("nextPage").asInt());
+                    assertEquals(attempt * 20, stub.occurrenceCalls.get(), "cada página pedida é uma chamada real");
+                    assertEquals(attempt * 20, backfillPagesRequested(jdbc), "o orçamento acumula entre etapas");
+                    assertEquals(200, request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                            Map.of(), admin, true).statusCode());
+                }
+
+                var exhausted = waitForRun(app, admin, runId, "PARTIAL");
+                assertEquals("BACKFILL_LIMIT_REACHED", exhausted.path("errorClass").asString());
+                assertEquals(100, exhausted.path("pagesDone").asInt());
+                assertEquals(100, stub.occurrenceCalls.get(), "o teto bloqueia a página seguinte à centésima");
+                assertEquals(100, backfillPagesRequested(jdbc));
+
+                var refused = request(app, "POST", "admin/collections/runs/" + runId + "/resume",
+                        Map.of(), admin, true);
+                assertEquals(409, refused.statusCode());
+                assertEquals("BACKFILL_WINDOW_LIMIT_REACHED", JSON.readTree(refused.body()).path("code").asString());
+                assertEquals(100, stub.occurrenceCalls.get(), "janela esgotada é recusada antes de tocar a fonte");
+            }
+        }
+    }
+
+    /** Ocorrências sintéticas distintas dentro da janela, em rodízio de municípios do recorte. */
+    private static List<JsonNode> occurrences(int firstDocumentNumber, int count) {
         List<String> cities = List.of("Rio de Janeiro", "Niterói", "Duque de Caxias");
         List<JsonNode> items = new ArrayList<>();
-        for (int index = 0; index < 12; index++) {
-            items.add(StubFogoCruzado.occurrence(73001 + index, cities.get(index % cities.size()), "CENTRO",
+        for (int index = 0; index < count; index++) {
+            items.add(StubFogoCruzado.occurrence(firstDocumentNumber + index, cities.get(index % cities.size()), "CENTRO",
                     "2026-06-%02dT06:30:00.000Z".formatted(1 + (index % 10)), false, false,
                     List.of("Wounded"), List.of("Civilian")));
         }
