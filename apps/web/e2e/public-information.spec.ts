@@ -183,7 +183,7 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(termsHeading).toBeFocused();
   const termsSection = page.getByRole('region', { name: 'Termos de uso', exact: true });
   await expect(termsSection).toContainText('Rascunho de revisão local');
-  await expect(termsSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
+  await expect(termsSection).toContainText('Versão demonstrativa v1.4 · 22/10/2026');
   await expect(termsSection).toContainText('não constitui canal de emergência');
   await expect(termsSection).toContainText('registros sintéticos e fictícios');
   await expect(termsSection).toContainText('190');
@@ -200,7 +200,7 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(privacyHeading).toBeFocused();
   const privacySection = page.getByRole('region', { name: 'Política de privacidade', exact: true });
   await expect(privacySection).toContainText('Rascunho de revisão local');
-  await expect(privacySection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
+  await expect(privacySection).toContainText('Versão demonstrativa v1.4 · 22/10/2026');
   await expect(privacySection).toContainText('Consulta na demonstração local');
   await expect(privacySection).toContainText('módulos de consulta exigem sessão autenticada');
   await expect(privacySection).toContainText(
@@ -221,10 +221,13 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
   await expect(methodHeading).toBeFocused();
   const methodSection = page.getByRole('region', { name: 'Metodologia dos dados', exact: true });
   await expect(methodSection).toContainText('Rascunho de revisão local');
-  await expect(methodSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
+  await expect(methodSection).toContainText('Versão demonstrativa v1.4 · 22/10/2026');
   await expect(methodSection).toContainText('Clipping');
   await expect(methodSection).toContainText('Ocorrência');
   await expect(methodSection).toContainText('Acontecimento');
+  await expect(methodSection).toContainText('regra versionada');
+  await expect(methodSection).toContainText('revisão humana');
+  await expect(methodSection).not.toContainText('cálculo operacional permanece desativado');
   await expect(methodSection).toContainText('não comprovam cobertura operacional');
   await expect(methodSection).toContainText('Dados de Riscos');
   await expect(methodSection).toContainText('julho de 2026');
@@ -252,7 +255,7 @@ test('rodapé permite consultar termos, privacidade, metodologia e correções s
     exact: true,
   });
   await expect(correctionsSection).toContainText('Rascunho de revisão local');
-  await expect(correctionsSection).toContainText('Versão demonstrativa v1.3 · 17/10/2026');
+  await expect(correctionsSection).toContainText('Versão demonstrativa v1.4 · 22/10/2026');
   await expect(correctionsSection).toContainText('Distinção entre correção e novo registro');
   await expect(correctionsSection).toContainText('não deve ser usada para relatar um novo fato');
   await expect(correctionsSection).toContainText('canal privado local exige autenticação');
