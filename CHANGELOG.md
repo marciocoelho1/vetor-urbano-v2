@@ -1,3 +1,13 @@
+## 2026-10-22 — Aceite e fechamento das pendências de B5 e do ticket 21
+
+- Aceite do responsável concedido para as pendências da rodada, incluindo o ticket 21.
+- Percurso completo do teto da janela executado: cem páginas reais ao stub em cinco etapas de vinte, com pausas no teto por etapa e retomadas — orçamento persistido 20/40/60/80/100, página seguinte à centésima bloqueada (`PARTIAL`/`BACKFILL_LIMIT_REACHED`, `pagesDone=100`) e retomada recusada em 409 sem tocar a fonte. Marcado `@Tag("slow")` (classe em 148,5 s); a lacuna de cobertura que a revisão de Spec apontou deixa de existir.
+- Incidente de proveniência encerrado com ressalva registrada e salvaguarda implementada em `scripts/run-local-stack.sh`: manifesto sanitizado `0600` com instante, pid, portas e a URL JDBC **efetiva** lida de `/proc/<pid>/environ`, inclusive quando a API já estava de pé. Verificado por execução direta das funções, sem credenciais no arquivo.
+- B5 no controlador: mantido em `correction` como **limitação de ferramenta** — base (`baseline_worktree`) anterior às correções, fase de commit bloqueando em arquivo da base alterado e ausência de rebaseline; uma rodada do provedor hoje produziria verificação verde por skips. Aceite técnico do escopo 06/10/36 registrado na documentação com evidência; comando de rebaseline proposto como fatia própria.
+- `.gitignore` passa a ignorar `docs/product/tickets-checklist.html` e `scripts/generate-tickets-checklist.py`, sem removê-los. O registro de transferência `docs/history/transfer-backup-2026-10-20.md` continua fora dos commits.
+- Verificação na árvore final: API **59 unitários + 127 integrações** com PostGIS descartável, zero falhas/erros/pulados; guard 3/3 sem HTTP/SQL; persistentes 46/46; coleta configurada 22/22 (2 pulados esperados) e desligada 2/2 (22 pulados esperados); jornadas 06/07/10/36 46/46; web 170/170 com bundle inicial 872,28 kB (< 900 kB); planning 486 links; controlador 33/33; `git diff --check` e `git diff --cached --check` limpos.
+- Envio autorizado e executado para `integration/functional-spec-v1` (fast-forward `eb1e65c..02444dc`, dez commits por escopo, sem force nem reescrita), com hash remoto conferido. Ticket 22 não iniciado.
+
 ## 2026-10-21 — Fechamento seguro de B5/21 (parcial)
 
 - Corrigidos localmente os achados de filtros avançados (06), foco na atualização demonstrativa (10) e coerência de procedência/acesso dos textos institucionais (36). Harness `two-modes` prepara sessão sintética; configuração de `integrated-review` inclui 06/36. A matriz 06/07/10/36 passou, mas o controlador ainda não reavaliou formalmente os cinco findings.

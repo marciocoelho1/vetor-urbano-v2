@@ -48,6 +48,17 @@ printf '{"action":"reset-mfa","email":"admin@vetorurbano.test"}\n' | scripts/loc
 
 Nenhuma chave de autenticador entra em documentação, log ou repositório: a chave do cofre fica em `~/.local/share/vetor-urbano/mfa.key` (32 bytes, `0600`).
 
+### Proveniência do arranque local
+
+Um `GET` respondido por Java em `127.0.0.1:8080` em 20/10/2026 não pôde ser atribuído a nenhum banco porque a configuração efetiva daquele processo não foi preservada — o registro ficou como **«datasource histórico não determinado»**, sem inferir ausência de acesso nem corrupção. Para que o mesmo evento não se repita, `scripts/run-local-stack.sh` grava um manifesto sanitizado em `$HOME/.local/state/vetor-urbano/api-startup.log` (`0600`, sobrescrevível por `VETOR_STARTUP_MANIFEST_DIR`), com instante, pid, porta HTTP, caixa, contêiner e a URL JDBC **efetiva** lida de `/proc/<pid>/environ`. Quando já existe API de pé em 8080, o script identifica o listener e registra o destino que ele realmente usa (`origem=reaproveitada`), em vez de assumir o pretendido. O manifesto não contém usuário, senha nem token; a URL JDBC não carrega credenciais — usuário e senha vivem em variáveis de ambiente separadas.
+
+Para conferir a proveniência de um processo em execução:
+
+```bash
+grep . "$HOME/.local/state/vetor-urbano/api-startup.log" | tail -3
+tr '\0' '\n' < /proc/<pid>/environ | grep -E '^VETOR_DATABASE_URL='   # destino efetivo, sem senha
+```
+
 ## Acesso local com sessão
 
 Após `npm start` em `apps/web/`, use `http://127.0.0.1:4201/?consulta=api` para a consulta integrada à API. A entrada em `http://localhost:4201` é encaminhada automaticamente para `127.0.0.1`, preservando caminho, parâmetros e fragmento antes de iniciar a aplicação. Isso mantém o frontend no mesmo host da API local e permite o cookie de sessão `SameSite=Strict`; sem essa normalização, o login pode responder com sucesso e a configuração do autenticador perder a sessão na requisição seguinte. O cadastro local (`?conta=local`) segue o mesmo encaminhamento.
@@ -117,7 +128,9 @@ Verificação final em 19/10, depois de toda a implementação da Trilha A: sele
 
 O `vu-ticket30-db` mencionado acima era a dependência histórica indisponível em 19/10; não o use. A família persistida agora roda contra **`vu-ticket29-e2e-db`**, PostGIS local em `127.0.0.1:55440` (porta escolhida nesta rodada, sem evidência histórica), com a API apontada exclusivamente a esse banco e `CONTAINER_HOST="unix://$TMPDIR/vu-ticket29-podman.sock"`. Para as sete specs persistidas, use `VETOR_ACCOUNTS_E2E=1 VETOR_PERSISTED_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db`, os projetos Chromium/Firefox e `--workers=1`; a última execução passou **46/46**. A coleta recente configurada usa stub HTTP local, banco sintético e passou **22 testes (2 pulados)** em Chromium/Firefox.
 
-O frontend E2E padrão deve escutar em `127.0.0.1:4201`: `LocalWebConfiguration` só autoriza CORS para `127.0.0.1:4201` e `localhost:4201`. Uma porta web ad hoc `4211` recebe 403 em OPTIONS e invalida o fluxo de login; se a API for servida fora de 8080, `VETOR_E2E_API_BASE` sozinho altera apenas os helpers `APIRequestContext` — chame `routeApplicationApi(page)` antes de navegar para redirecionar o navegador. Não aponte essas fixtures aos bancos protegidos nem use a fonte real. A seleção desligada da coleta não foi revalidada após esta correção de origem; a evidência anterior de 2 testes aprovados/22 pulados deve ser tratada como não confirmada.
+Na árvore final de 22/10/2026 a suíte foi repetida com os mesmos resultados — persistentes **46/46**, coleta configurada **22 (2 pulados)**, coleta desligada **2 (22 pulados)** e jornadas 06/07/10/36 **46/46** — e cada pulado corresponde à configuração do arranque. **A API de E2E precisa subir com `--vetor.collection.poll-seconds=86400`**: com o padrão de 60 s o agendador cria execuções `RECENT` no banco sintético durante a jornada e o estado «nenhuma execução registrada» fica intermitente (uma falha em Firefox foi observada antes do ajuste do arranque, sem alteração de produção).
+
+O frontend E2E padrão deve escutar em `127.0.0.1:4201`: `LocalWebConfiguration` só autoriza CORS para `127.0.0.1:4201` e `localhost:4201`. Uma porta web ad hoc `4211` recebe 403 em OPTIONS e invalida o fluxo de login; se a API for servida fora de 8080, `VETOR_E2E_API_BASE` sozinho altera apenas os helpers `APIRequestContext` — chame `routeApplicationApi(page)` antes de navegar para redirecionar o navegador. Não aponte essas fixtures aos bancos protegidos nem use a fonte real. A seleção desligada da coleta foi revalidada em 22/10/2026 contra a API sem `vetor.collection.enabled`: **2 aprovados e 22 pulados**, todos esperados.
 
 ## Gerar o artefato
 
@@ -154,7 +167,7 @@ O baseline do fechamento de 19/10/2026 foi **836,58 kB** iniciais, acima do aler
 
 Na rodada do ticket 20 (coleta autorizada), a seção administrativa «Coleta» levou o `initial` de 841,23 kB para **864,12 kB** e o responsável aprovou explicitamente **900 kB** (margem de 35,88 kB), mantidos o erro de 1 MB e os orçamentos de estilos. O `@defer` foi tentado e **piorou** o inicial para 873,38 kB, sendo revertido — ou seja, adiar a área administrativa por `@defer` sobre import estático não funciona: exige `import()` dinâmico, que é uma fatia própria, com medição comparativa, registrada como próxima ação e ainda **não** executada. `pako`/`fontkit` seguem no chunk lazy do PDF, sem alteração de dependência.
 
-A medição mais recente da implementação do ticket 21, em 21/10/2026, foi de **871,81 kB** iniciais: permanece abaixo do orçamento confirmado de 900 kB por **28,19 kB**. `angular.json` e manifests de dependências não mudaram; não houve alteração de carregamento nem alegação de redução. O lazy loading administrativo continua como fatia própria pendente.
+A medição mais recente da implementação do ticket 21, em 21/10/2026, foi de **871,81 kB** iniciais, e a da árvore final de 22/10/2026 ficou em **872,28 kB**: permanece abaixo do orçamento confirmado de 900 kB por **27,72 kB**. `angular.json` e manifests de dependências não mudaram; não houve alteração de carregamento nem alegação de redução. O lazy loading administrativo continua como fatia própria pendente.
 
 Hospedagem da demonstração e liberação operacional são etapas diferentes. Uma versão operacional depende de API/banco, autorização, moderação, políticas de dados, cobertura e recuperação verificadas. Commit e push não publicam a aplicação.
 
