@@ -38,4 +38,12 @@
   width: 100%;
   border-radius: 0.5rem;
   background: #e9eef5;
+  /* O Leaflet posiciona panes em camadas; sem stacking próprio ele cobre os botões (Firefox). */
+  position: relative;
+  z-index: 0;
+}
+
+.risk-area-drawing .risk-area-actions {
+  position: relative;
+  z-index: 1;
 }

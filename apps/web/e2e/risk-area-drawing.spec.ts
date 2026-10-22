@@ -67,8 +67,6 @@ async function openAdmin(page: Page): Promise<void> {
 // `.leaflet-container`) e o CSS já vem do angular.json, mas cliques por coordenada no contêiner não
 // chegam ao handler 'click' do mapa — o contador fica em 0. A conversão de pontos em GeoJSON tem 4
 // testes unitários; falta a captura de clique, que exige investigação no próprio navegador.
-test.fixme(true, 'Cliques no mapa do painel não viram pontos; investigar handler do Leaflet.');
-
 test('ADMIN desenha o polígono no mapa e salva a área com as coordenadas marcadas', async ({
   page,
   request,
@@ -84,10 +82,16 @@ test('ADMIN desenha o polígono no mapa e salva a área com as coordenadas marca
   const canvas = panel(page).getByTestId('risk-area-canvas');
   await expect(canvas).toBeVisible();
   // O mapa só vale se o Leaflet registrou o contêiner; panes têm tamanho zero por desenho.
-  await expect(canvas).toHaveClass(/leaflet-container/);
+  // Só clica quando o Leaflet já escuta: o chunk é assíncrono e cliques antes disso são perdidos.
+  await expect(canvas).toHaveAttribute('data-map-ready', 'true');
 
   // Três cliques crus no mapa: o Leaflet trata o evento no contêiner, não no elemento interno.
+  // `mouse.click` usa coordenadas do viewport: sem rolar até o canvas o clique cai fora da tela.
+  await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
   for (const [dx, dy] of [
     [0.2, 0.2],
     [0.75, 0.25],

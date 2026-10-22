@@ -88,6 +88,14 @@ vazia.
   enviado (`polygon-drawing.ts`: mínimo de 3 pontos distintos, anel fechado, [longitude, latitude]).
   A geometria e o envio estão cobertos por unidade (4 casos).
 
-**Pendência verificada:** a jornada de navegador do desenho **não** passa — as panes do Leaflet ficam
-com tamanho zero dentro do painel e os cliques não viram pontos. A spec está marcada como `fixme` com
-esse motivo; corrigir o dimensionamento antes de considerar o desenho aceito.
+**Verificado em navegador (22/10/2026).** A causa das falhas não era o Leaflet: (1) o `await
+import('leaflet')` resolvia depois dos cliques — o painel só aceita clique quando o contêiner expõe
+`data-map-ready="true"`; (2) `page.mouse.click` usa coordenadas do viewport e o canvas estava fora da
+tela — a jornada rola até ele antes de clicar; (3) o CSS do Leaflet já vem do `angular.json`
+(`bundleName: "leaflet"`), então `loadLeafletStyles()` era um 404 silencioso e foi removido; (4) o
+Leaflet cobria a linha de botões no Firefox — o canvas recebeu `z-index: 0` e a barra de ações `1`.
+A jornada desenha três pontos, fecha o anel, salva e confere no PostGIS que a geometria gravada tem
+quatro pontos: **4/4 em Chromium e Firefox**.
+
+**Pendente:** «Criar polígono» para áreas fora do risco exige endpoint de criação de território
+(hoje só existe nova versão de território existente), adiado com o backend real.

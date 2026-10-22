@@ -657,3 +657,13 @@ Revisado em 05/10/2026 para refletir os testes e a configuração final do worke
 
 - Reconciliados os 36 tickets com o plano, checkpoints e estado local: 22 implementados, 5 parciais/com pendências e 9 ainda não iniciados.
 - Atualizado [inventário dos tickets](docs/product/tickets-status.md) com descrição breve e estado individual; sem confirmação do estado remoto do GitHub.
+
+## 2026-10-22 — desenho de área verificado e módulo «Ocorrências»
+
+- Desenho de polígono nas Áreas de Risco passa a funcionar de fato: mapa só aceita clique depois de
+  pronto (`data-map-ready`), remove o carregamento duplicado do CSS do Leaflet, corrige o empilhamento
+  que fazia o mapa cobrir os botões no Firefox e rola até o canvas na jornada.
+- Verificação: `risk-area-drawing.spec.ts` 4/4 (Chromium e Firefox), com conferência no PostGIS de que
+  a geometria gravada tem quatro pontos; 205 testes web; lint limpo; build 852,03 kB.
+- Renomeado «Mapa público» para «Mapa de ocorrências» e painel de ocorrências do módulo movido para
+  `@defer` (878,12 → 852,03 kB).

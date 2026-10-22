@@ -134,7 +134,12 @@
           Clique no mapa para marcar os pontos do polígono. São necessários ao menos
           {{ minimumPoints }} pontos; a linha fecha no primeiro ponto.
         </p>
-        <div #drawSurface class="risk-area-canvas" data-testid="risk-area-canvas"></div>
+        <div
+          #drawSurface
+          class="risk-area-canvas"
+          data-testid="risk-area-canvas"
+          [attr.data-map-ready]="mapReady() ? 'true' : null"
+        ></div>
         <p data-testid="risk-area-points">{{ points().length }} ponto(s) marcado(s)</p>
         @if (drawingError()) {
           <p role="alert" data-testid="risk-area-drawing-error">{{ drawingError() }}</p>

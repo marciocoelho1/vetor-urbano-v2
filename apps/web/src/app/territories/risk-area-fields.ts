@@ -42,6 +42,7 @@ export class RiskAreaFields implements OnDestroy {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly drawing = signal(false);
+  protected readonly mapReady = signal(false);
   protected readonly points = signal<MapPoint[]>([]);
   protected readonly drawingError = signal('');
   protected readonly polygonReady = signal<Array<Array<[number, number]>> | null>(null);
@@ -117,25 +118,31 @@ export class RiskAreaFields implements OnDestroy {
     this.draft.set({ ...this.draft(), [field]: (event.target as HTMLInputElement).value });
   }
 
-  /** Abre a superfície de desenho: os cliques marcam os pontos que definirão o polígono. */
+  /**
+   * Abre a superfície de desenho. O mapa é criado de forma assíncrona (o chunk do Leaflet é grande),
+   * então a tela só aceita cliques quando `mapReady` fica verdadeiro — antes disso o contêiner existe,
+   * mas o Leaflet ainda não escuta eventos.
+   */
   protected async startDrawing(): Promise<void> {
     this.drawing.set(true);
     this.points.set([]);
     this.polygonReady.set(null);
     this.drawingError.set('');
-    // O contêiner já existe, mas só ganha tamanho quando o modo de desenho fica visível:
-    // o mapa precisa ser criado (ou remedido) depois dessa troca de layout.
-    setTimeout(() => {
-      const element = this.drawSurfaceRef?.nativeElement;
-      if (!element) return;
-      if (!this.map) void this.buildMap([-22.9, -43.2], element);
-      else this.map.invalidateSize();
-    }, 40);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const element = this.drawSurfaceRef?.nativeElement;
+    if (!element) {
+      this.drawingError.set('Área de desenho indisponível; feche e abra novamente.');
+      return;
+    }
+    if (!this.map) await this.buildMap([-22.9, -43.2], element);
+    else {
+      this.map.invalidateSize();
+      this.mapReady.set(true);
+    }
   }
 
   private async buildMap(center: [number, number], element: HTMLElement): Promise<void> {
     try {
-      // O CSS do Leaflet já entra pelo angular.json (bundleName "leaflet"); carregar de novo dá 404.
       const leaflet = this.leaflet ?? (await import('leaflet'));
       this.leaflet = leaflet;
       this.map?.remove();
@@ -154,8 +161,9 @@ export class RiskAreaFields implements OnDestroy {
         this.addPoint([Number(event.latlng.lng.toFixed(6)), Number(event.latlng.lat.toFixed(6))]);
       });
       this.map.invalidateSize();
-      setTimeout(() => this.map?.invalidateSize(), 60);
+      this.mapReady.set(true);
     } catch {
+      this.mapReady.set(false);
       this.drawingError.set('Não foi possível carregar o mapa de desenho; tente novamente.');
     }
   }
@@ -230,6 +238,7 @@ export class RiskAreaFields implements OnDestroy {
 
   protected stopDrawing(): void {
     this.drawing.set(false);
+    this.mapReady.set(false);
     this.map?.remove();
     this.map = undefined;
     this.shapes = [];
