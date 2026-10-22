@@ -204,11 +204,17 @@ def reconcile_ticket(name, state, status, acceptance, note, evidence, commit, co
     return 0
 
 
+# Conclusão sintetizada por sincronização de histórico e conclusão registrada por operador têm
+# marcadores distintos: só a segunda sobrevive ao sync, e ambas continuam validadas a cada leitura.
+SYNTHESIZED_PHASE = "historical_local_verification"
+OPERATOR_PHASE = "operator_validated_evidence"
+
+
 def phase_gate_valid(proof):
     """Fase obrigatória só conta como concluída com prova que continue verificável agora."""
     if not proof:
         return False
-    if proof.get("evidence_kind") == "historical_local_verification":
+    if proof.get("evidence_kind") in {SYNTHESIZED_PHASE, OPERATOR_PHASE}:
         return historical_local_evidence(proof) is not None
     return True
 
@@ -253,7 +259,7 @@ def complete_phase(name, phase, note, evidence, commit, state, config):
             raise ValueError("Evidência sem commit de origem; informe --commit explicitamente.")
     recorded_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     state.setdefault("phase_completed", {})[phase] = {
-        "evidence_kind": "historical_local_verification",
+        "evidence_kind": OPERATOR_PHASE,
         "acceptance": "verified_local_demonstration",
         "checkpoints": paths,
         "commit": commit_proof,
@@ -469,7 +475,7 @@ def sync_historical_state(state):
     # reconciliation synthesized from ticket history, but preserve controller-recorded completions.
     for phase in ("06", "36", "07", "10"):
         completion = state["phase_completed"].get(phase)
-        if isinstance(completion, dict) and completion.get("evidence_kind") == "historical_local_verification":
+        if isinstance(completion, dict) and completion.get("evidence_kind") == SYNTHESIZED_PHASE:
             del state["phase_completed"][phase]
 
     for tid in ("23", "24"):

@@ -408,6 +408,27 @@ class ControllerTests(unittest.TestCase):
             m.complete_phase('06', '06', 'tentativa enquanto a fase está em execução',
                              ['docs/history/phase-06.md'], None, self.state, mandatory)
 
+
+    def test_operator_phase_survives_sync_while_synthesized_entry_does_not(self):
+        mandatory = {**self.config, 'mandatory_phases': ['06']}
+        commit = self.commit_checkpoint('docs/history/phase-06.md')
+        self.assertEqual(m.complete_phase('06', '06',
+                                          'fase 06 verificada localmente com prova versionada',
+                                          ['docs/history/phase-06.md'], commit, self.state, mandatory), 0)
+        self.state['phase_completed']['10'] = {
+            'evidence_kind': 'historical_local_verification',
+            'acceptance': 'verified_local_demonstration',
+            'checkpoints': ['docs/history/phase-06.md'],
+            'commit': commit,
+            'verification': {'git_confirmed_commits': [commit]},
+        }
+        m.sync_historical_state(self.state)
+        self.assertIn('06', self.state['phase_completed'])
+        self.assertEqual(self.state['phase_completed']['06']['evidence_kind'],
+                         m.OPERATOR_PHASE)
+        self.assertNotIn('10', self.state['phase_completed'],
+                         'entrada sintetizada por reconciliação não conta como fase concluída')
+
     def commit_checkpoint(self, *paths):
         for relative in paths:
             path = self.root / relative
