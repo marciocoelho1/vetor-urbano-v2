@@ -89,6 +89,8 @@ describe('OccurrencesAdminPanel', () => {
     (extra: Record<string, () => Response> = {}) =>
     (url: string) => {
       for (const [fragment, handler] of Object.entries(extra)) {
+        // Endpoint sem query é o POST de cadastro; com query é a lista.
+        if (fragment === '/admin/occurrences' && url.includes('?')) continue;
         if (url.includes(fragment)) return handler();
       }
       return json(LIST);
@@ -250,5 +252,50 @@ describe('OccurrencesAdminPanel', () => {
     expect(body.title).toBe('Alfa revisada');
     expect(body.reliability).toBe(3);
     expect(body.description).toBe('Descrição revisada e sustentada');
+  });
+
+  it('cadastra ocorrência em tempo real sem clipping', async () => {
+    create(
+      base({
+        '/admin/occurrences': () =>
+          json({ id: 'occ-new', title: 'Fato presenciado', revision: 1 }, 201),
+      }),
+    );
+    await until(() =>
+      expect(query('occurrences-table'), root().innerHTML.slice(0, 600)).not.toBeNull(),
+    );
+    button('occurrences-new')?.click();
+    await until(() => expect(query('occurrences-create')).not.toBeNull());
+
+    const fields: Array<[string, string]> = [
+      ['new-field-title', 'Fato presenciado no centro'],
+      ['new-field-description', 'Descrição sustentada do fato presenciado'],
+      ['new-field-happening', 'Acontecimento do fato presenciado'],
+      ['new-field-type', 'ACIDENTE'],
+      ['new-field-subtype', 'COLISAO'],
+      ['new-field-municipality', 'Rio de Janeiro'],
+      ['new-field-neighborhood', 'Centro'],
+      ['new-field-occurred-at', '2026-10-10T12:00:00Z'],
+    ];
+    for (const [testId, value] of fields) {
+      const input = query(testId) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    }
+    fixture.detectChanges();
+    button('occurrences-create-save')?.click();
+
+    await until(() =>
+      expect(query('occurrences-notice')?.textContent).toContain(
+        'cadastrada como ocorrência ativa',
+      ),
+    );
+    const post = calls.find(
+      (call) => call.url.endsWith('/admin/occurrences') && call.method === 'POST',
+    );
+    const body = JSON.parse(post!.body!);
+    expect(body.reliability).toBe(3);
+    expect(body.happeningTitle).toBe('Acontecimento do fato presenciado');
+    expect(body.clippingId).toBeUndefined();
   });
 });

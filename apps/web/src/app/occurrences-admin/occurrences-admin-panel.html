@@ -11,14 +11,24 @@
         Ocorrências
       </h2>
     </div>
-    <button
-      type="button"
-      class="map-tool-button"
-      (click)="load()"
-      data-testid="occurrences-refresh"
-    >
-      Atualizar lista
-    </button>
+    <div class="occurrences-bulk">
+      <button
+        type="button"
+        class="map-tool-button"
+        (click)="openCreate()"
+        data-testid="occurrences-new"
+      >
+        Nova ocorrência
+      </button>
+      <button
+        type="button"
+        class="map-tool-button"
+        (click)="load()"
+        data-testid="occurrences-refresh"
+      >
+        Atualizar lista
+      </button>
+    </div>
   </div>
 
   <p>
@@ -181,6 +191,142 @@
         </tbody>
       </table>
     }
+  }
+
+  @if (newDraft(); as form) {
+    <form
+      class="occurrences-editor"
+      (submit)="$event.preventDefault(); saveNew()"
+      aria-labelledby="occurrences-new-heading"
+      data-testid="occurrences-create"
+    >
+      <h3 id="occurrences-new-heading">Cadastrar ocorrência em tempo real</h3>
+      <p>
+        Registro direto do administrador, sem clipping. O clipping continua sendo a fonte para
+        visualização retroativa.
+      </p>
+      <label for="new-title">Título</label>
+      <input
+        id="new-title"
+        [value]="form['title']"
+        (input)="onNewField('title', $event)"
+        data-testid="new-field-title"
+      />
+      <label for="new-description">Descrição</label>
+      <textarea
+        id="new-description"
+        rows="3"
+        [value]="form['description']"
+        (input)="onNewField('description', $event)"
+        data-testid="new-field-description"
+      ></textarea>
+      <label for="new-happening">Acontecimento (título)</label>
+      <input
+        id="new-happening"
+        [value]="form['happeningTitle']"
+        (input)="onNewField('happeningTitle', $event)"
+        data-testid="new-field-happening"
+      />
+      <label for="new-category">Categoria</label>
+      <select
+        id="new-category"
+        (change)="onNewField('category', $event)"
+        data-testid="new-field-category"
+      >
+        @for (category of ['TRANSITO', 'SEGURANCA', 'CONTINGENCIA']; track category) {
+          <option [value]="category" [selected]="form['category'] === category">
+            {{ category }}
+          </option>
+        }
+      </select>
+      <label for="new-type">Tipo</label>
+      <input
+        id="new-type"
+        [value]="form['type']"
+        (input)="onNewField('type', $event)"
+        data-testid="new-field-type"
+      />
+      <label for="new-subtype">Subtipo</label>
+      <input
+        id="new-subtype"
+        [value]="form['subtype']"
+        (input)="onNewField('subtype', $event)"
+        data-testid="new-field-subtype"
+      />
+      <label for="new-situation">Situação</label>
+      <select
+        id="new-situation"
+        (change)="onNewField('situation', $event)"
+        data-testid="new-field-situation"
+      >
+        @for (situation of ['ONGOING', 'CLOSED', 'UNKNOWN']; track situation) {
+          <option [value]="situation" [selected]="form['situation'] === situation">
+            {{ situation }}
+          </option>
+        }
+      </select>
+      <label for="new-reliability">Nota (1 a 5)</label>
+      <input
+        id="new-reliability"
+        type="number"
+        min="1"
+        max="5"
+        [value]="form['reliability']"
+        (input)="onNewField('reliability', $event)"
+        data-testid="new-field-reliability"
+      />
+      <label for="new-municipality">Município</label>
+      <input
+        id="new-municipality"
+        [value]="form['municipality']"
+        (input)="onNewField('municipality', $event)"
+        data-testid="new-field-municipality"
+      />
+      <label for="new-neighborhood">Bairro</label>
+      <input
+        id="new-neighborhood"
+        [value]="form['neighborhood']"
+        (input)="onNewField('neighborhood', $event)"
+        data-testid="new-field-neighborhood"
+      />
+      <label for="new-precision">Precisão</label>
+      <select
+        id="new-precision"
+        (change)="onNewField('locationPrecision', $event)"
+        data-testid="new-field-precision"
+      >
+        @for (precision of ['TERRITORY', 'POINT']; track precision) {
+          <option [value]="precision" [selected]="form['locationPrecision'] === precision">
+            {{ precision }}
+          </option>
+        }
+      </select>
+      <label for="new-occurred-at">Data e hora (UTC)</label>
+      <input
+        id="new-occurred-at"
+        [value]="form['occurredAt']"
+        (input)="onNewField('occurredAt', $event)"
+        data-testid="new-field-occurred-at"
+      />
+      <div class="occurrences-bulk">
+        <button
+          type="submit"
+          class="map-tool-button"
+          [disabled]="busy()"
+          data-testid="occurrences-create-save"
+        >
+          Cadastrar ocorrência
+        </button>
+        <button
+          type="button"
+          class="inline-retry"
+          (click)="closeCreate()"
+          data-testid="occurrences-create-cancel"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   }
 
   @if (draft(); as form) {

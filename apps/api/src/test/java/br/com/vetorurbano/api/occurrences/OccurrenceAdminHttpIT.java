@@ -216,6 +216,39 @@ class OccurrenceAdminHttpIT {
         }
     }
 
+
+    @Test
+    void createsOccurrenceWithoutClippingAndPublishesItAsActive() throws Exception {
+        try (var app = startApi()) {
+            var admin = adminSession(app);
+            var user = userSession(app);
+            var jdbc = app.getBean(JdbcTemplate.class);
+            var body = draft("vu25-manual", "Relato direto do administrador",
+                    "Fato presenciado e registrado sem clipping");
+            body.put("happeningTitle", "Acontecimento criado no cadastro manual");
+
+            var response = request(app, "POST", "admin/occurrences", body, admin);
+            assertEquals(201, response.statusCode(), response.body());
+            var created = JSON.readTree(response.body());
+            String id = created.path("id").asString();
+            assertEquals("ACTIVE", created.path("administrative_status").asString());
+            assertEquals(0, jdbc.queryForObject("""
+                    SELECT count(*)::int FROM occurrence_clippings WHERE occurrence_id=?
+                    """, Integer.class, id), "cadastro manual não exige clipping");
+
+            assertEquals("ADMIN_CREATE", jdbc.queryForObject("""
+                    SELECT action FROM publication_versions WHERE occurrence_id=? ORDER BY version DESC LIMIT 1
+                    """, String.class, id));
+            var live = ids(JSON.readTree(request(app, "GET",
+                    "occurrences?periodStart=2026-10-10T00:00:00Z&periodEnd=2026-10-11T00:00:00Z", null, user)
+                    .body()).path("items"));
+            assertTrue(live.contains(id), "a ocorrência cadastrada aparece para o usuário");
+
+            var missing = draft("vu25-manual", "Sem acontecimento", "Fato sem acontecimento informado");
+            assertEquals(400, request(app, "POST", "admin/occurrences", missing, admin).statusCode());
+        }
+    }
+
     // --- fixtures ---
 
     private String occurrence(JdbcTemplate jdbc, String title, String situation, String status,

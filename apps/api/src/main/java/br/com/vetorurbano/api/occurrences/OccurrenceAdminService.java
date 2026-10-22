@@ -86,6 +86,48 @@ public class OccurrenceAdminService {
                 "rule", "Ordem padrão por última atualização; sem atualização registrada vale a data da ocorrência.");
     }
 
+    /**
+     * Cadastro manual de ocorrência (tempo real), sem exigir clipping.
+     *
+     * <p>O clipping continua sendo a fonte para visualização retroativa; aqui o administrador registra
+     * um fato que presencia. O núcleo obrigatório é o mesmo da publicação e o acontecimento é escolhido
+     * explicitamente (existente ou criado com título próprio).
+     */
+    @Transactional
+    public Map<String, Object> create(Map<String, Object> body, UUID actor) {
+        if (!body.keySet().containsAll(Set.of("title", "description", "category", "type", "situation",
+                "reliability", "municipality", "locationPrecision", "occurredAt", "happeningId"))
+                && !body.keySet().containsAll(Set.of("title", "description", "category", "type", "situation",
+                "reliability", "municipality", "locationPrecision", "occurredAt", "happeningTitle"))) {
+            throw CorrectionService.invalid("Informe o núcleo factual e o acontecimento da ocorrência.");
+        }
+        var draftBody = new LinkedHashMap<String, Object>(body);
+        String happeningId = text(body, "happeningId");
+        String happeningTitle = text(body, "happeningTitle");
+        draftBody.remove("happeningId");
+        draftBody.remove("happeningTitle");
+        var draft = PublicationDraft.parse(draftBody);
+        String happening;
+        if (happeningId != null) {
+            happening = happeningId;
+            if (!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM happenings WHERE id=?)",
+                    Boolean.class, happening))) {
+                throw CorrectionService.invalid("Acontecimento escolhido não existe.");
+            }
+        } else {
+            happening = UUID.randomUUID().toString();
+            jdbc.update("INSERT INTO happenings (id, title, description) VALUES (?, ?, ?)", happening,
+                    happeningTitle, "Contexto criado no cadastro manual de ocorrência");
+        }
+        String id = UUID.randomUUID().toString();
+        publications.create(id, happening, draft);
+        jdbc.update("UPDATE occurrences SET administrative_status='ACTIVE', updated_at=? WHERE id=?",
+                Timestamp.from(clock.instant()), id);
+        publications.record(id, null, "ADMIN_CREATE", "Cadastro manual de ocorrência sem clipping", actor);
+        audit(actor, "OCCURRENCE_CREATED", id);
+        return detail(id);
+    }
+
     /** Edição de todos os campos do núcleo factual, com a mesma validação da publicação. */
     @Transactional
     public Map<String, Object> edit(String id, Map<String, Object> body, UUID actor) {
@@ -169,6 +211,10 @@ public class OccurrenceAdminService {
                 "message", "DELETE".equals(action)
                         ? "Exclusão lógica registrada; histórico de publicação preservado."
                         : "Estado administrativo atualizado em lote.");
+    }
+
+    private static String text(Map<String, Object> body, String key) {
+        return body.get(key) instanceof String value && !value.isBlank() ? value.strip() : null;
     }
 
     private void requirePassword(Map<String, Object> body, UUID actor) {

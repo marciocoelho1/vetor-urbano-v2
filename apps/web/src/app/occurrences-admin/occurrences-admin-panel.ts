@@ -16,6 +16,7 @@ import {
   STATUS_LABELS,
   OccurrenceAdminError,
   bulkOccurrences,
+  createOccurrence,
   fetchAdminOccurrences,
   saveOccurrence,
   updateLabel,
@@ -80,6 +81,8 @@ export class OccurrencesAdminPanel implements OnDestroy {
   protected readonly password = signal('');
   protected readonly flashing = signal<AdminOccurrence | null>(null);
   protected readonly draft = signal<Record<string, string> | null>(null);
+  protected readonly creating = signal(false);
+  protected readonly newDraft = signal<Record<string, string> | null>(null);
 
   protected readonly labels = STATUS_LABELS;
   protected readonly actionLabels = ACTION_LABELS;
@@ -197,6 +200,74 @@ export class OccurrencesAdminPanel implements OnDestroy {
         this.error.set(this.message(error));
       }
       return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** Formulário vazio para registrar um fato em tempo real, sem clipping. */
+  protected openCreate(): void {
+    this.creating.set(true);
+    this.flashing.set(null);
+    this.draft.set(null);
+    this.notice.set('');
+    this.newDraft.set({
+      title: '',
+      description: '',
+      category: 'TRANSITO',
+      type: '',
+      subtype: 'NAO_INFORMADO',
+      situation: 'ONGOING',
+      reliability: '3',
+      municipality: 'Rio de Janeiro',
+      neighborhood: '',
+      locationPrecision: 'TERRITORY',
+      occurredAt: '',
+      happeningTitle: '',
+    });
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+    this.newDraft.set(null);
+  }
+
+  protected onNewField(field: string, event: Event): void {
+    this.newDraft.set({
+      ...(this.newDraft() ?? {}),
+      [field]: (event.target as HTMLInputElement | HTMLSelectElement).value,
+    });
+  }
+
+  protected async saveNew(): Promise<void> {
+    const form = this.newDraft();
+    if (!form) return;
+    const csrf = this.session.state()?.csrfToken;
+    if (!csrf) {
+      this.error.set('Sessão sem token de segurança; entre novamente para cadastrar.');
+      return;
+    }
+    const reliability = Number(form['reliability']);
+    if (!Number.isInteger(reliability) || reliability < 1 || reliability > 5) {
+      this.error.set('Nota deve ser um número inteiro de 1 a 5.');
+      return;
+    }
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await createOccurrence(csrf, {
+        ...form,
+        subtype: form['subtype'] || 'NAO_INFORMADO',
+        neighborhood: form['neighborhood'] || undefined,
+        reliability,
+        happeningTitle: form['happeningTitle']?.trim() || undefined,
+      });
+      this.notice.set(`«${form['title']}» cadastrada como ocorrência ativa.`);
+      this.closeCreate();
+      await this.load();
+      this.focus(this.listHeading);
+    } catch (error) {
+      this.error.set(this.message(error));
     } finally {
       this.busy.set(false);
     }

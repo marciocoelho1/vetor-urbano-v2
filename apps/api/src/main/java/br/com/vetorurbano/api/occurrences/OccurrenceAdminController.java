@@ -44,6 +44,14 @@ public class OccurrenceAdminController {
                 .body(service.list(sort, status, CorrectionController.actor(request)));
     }
 
+    /** Cadastro manual de ocorrência em tempo real, sem clipping. */
+    @PostMapping
+    public ResponseEntity<Object> create(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        CorrectionController.csrf(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).cacheControl(CacheControl.noStore())
+                .body(service.create(body, CorrectionController.actor(request)));
+    }
+
     @PutMapping("/{id}")
     public Object edit(@PathVariable String id, @RequestBody Map<String, Object> body, HttpServletRequest request) {
         CorrectionController.csrf(request);

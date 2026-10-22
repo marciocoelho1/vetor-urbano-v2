@@ -106,6 +106,18 @@ export function fetchAdminOccurrences(
   return read<AdminOccurrenceList>(`admin/occurrences?${query.toString()}`, { signal });
 }
 
+/** Cadastro manual em tempo real: sem clipping, com acontecimento escolhido ou criado. */
+export function createOccurrence(
+  csrf: string,
+  fields: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  return read<Record<string, unknown>>('admin/occurrences', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    body: JSON.stringify(fields),
+  });
+}
+
 export function saveOccurrence(
   id: string,
   csrf: string,
