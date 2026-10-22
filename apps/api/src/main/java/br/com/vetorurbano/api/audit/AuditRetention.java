@@ -11,8 +11,13 @@ import org.springframework.core.env.Environment;
 @ConditionalOnProperty(name = "vetor.accounts.enabled", havingValue = "true")
 public class AuditRetention {
     public record Policy(Duration use, Duration security, Duration admin) {}
+    /** Decisão do responsável em 22/10/2026: retenção de 15 dias para uso, segurança e administração. */
+    static final int APPROVED_DAYS = 15;
+
     @Bean Policy auditPolicy(Environment environment) {
-        return new Policy(duration(environment, "use", 60), duration(environment, "security", 180), duration(environment, "admin", 365));
+        return new Policy(duration(environment, "use", APPROVED_DAYS),
+                duration(environment, "security", APPROVED_DAYS),
+                duration(environment, "admin", APPROVED_DAYS));
     }
     private static Duration duration(Environment environment, String purpose, int days) {
         var maximum = Duration.ofDays(days);

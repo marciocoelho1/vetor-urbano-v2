@@ -35,7 +35,7 @@ seus JSONs factuais não contêm UUID de login duplicado.
 
 ## Expiração e execução
 
-Tempo do evento (`occurred_at`) determina o vencimento inclusivo; execução tardia não renova retenção. Leitura exclui vencidos mesmo antes da eliminação física. `vetor.audit.use-retention`, `security-retention` e `admin-retention` têm padrões de 60/180/365 dias e aceitam reduções até um segundo para testes. Valores acima dos tetos ou não positivos impedem inicialização, sem ampliação silenciosa.
+Tempo do evento (`occurred_at`) determina o vencimento inclusivo; execução tardia não renova retenção. Leitura exclui vencidos mesmo antes da eliminação física. `vetor.audit.use-retention`, `security-retention` e `admin-retention` têm padrão de **15 dias**, decidido pelo responsável em 22/10/2026, e aceitam reduções até um segundo para testes; o teto de cada classe é a própria política aprovada (15 dias). Valores acima dos tetos ou não positivos impedem inicialização, sem ampliação silenciosa.
 
 Expurgo transacional automático a cada 60 segundos (`cleanup-delay`, atraso inicial `cleanup-initial-delay`, ambos em milissegundos). `POST /api/v1/admin/logs/cleanup` também exige ADMIN+MFA e CSRF. Resposta/evento registram instante da execução e quantidade eliminada, sem conteúdo dos eventos. Falha HTTP retorna 503, nunca contagem zero; falha agendada gera mensagem genérica no servidor, sinal visível na leitura e nova tentativa. Não se oferece preservação ilimitada ou override de prazo por Administrador. E18 depende de autorização expressa e mecanismo segregado, fora desta execução ordinária; nenhum conjunto preservado foi autorizado ou aplicado.
 

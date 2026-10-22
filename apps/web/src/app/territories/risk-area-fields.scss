@@ -1,0 +1,26 @@
+.risk-area-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.risk-area-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.risk-area-fields form {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid rgba(127, 127, 127, 0.4);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.risk-area-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

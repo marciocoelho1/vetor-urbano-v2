@@ -33,8 +33,15 @@
 - **Fases obrigatórias destravadas:** novo `complete-phase` no controlador fechou `06`, `07`, `10` e
   `integrated-review` com evidência validada e contínua (arquivo versionado e commitado em HEAD +
   commit ancestral). `ticketctl next` passou a apontar **36** em vez de «Fila sem tarefa pronta».
-- **Próxima ação:** decisão de publicação jurídica do **36** (D3 do responsável) — é o que resta para a
-  fila andar —, depois cartografia real do 26 e restauração de backup no segundo PC.
+- **Pedido direto do responsável em 22/10/2026 atendido nesta rodada:** administração de ocorrências
+  (lista por última atualização com filtros, edição de todos os campos, lote ativo/inativo/concluído e
+  exclusão lógica com senha pedida **uma vez** por lote), edição de campos de **todas** as Áreas de
+  Risco sem reenviar polígono, retenção de logs reduzida para **15 dias** e manutenção das ocorrências
+  fictícias. [Contrato](docs/architecture/occurrence-administration-local-v1.md).
+- **Pendência explícita:** ligar «inativo» à visibilidade na consulta pública é decisão de produto
+  ainda aberta; hoje o estado administrativo não altera a consulta.
+- **Próxima ação:** decisão de publicação jurídica do **36** (D3), depois cartografia real do 26 e
+  restauração de backup no segundo PC.
 
 ## Rodada 22 — ticket 22, crédito em exportações, rebaseline e carga diferida — 22/10/2026
 

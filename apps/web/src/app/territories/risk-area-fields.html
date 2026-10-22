@@ -1,0 +1,125 @@
+<section class="workspace-card risk-area-fields" aria-labelledby="risk-area-fields-heading">
+  <div class="risk-area-heading">
+    <div>
+      <p class="eyebrow">Administração · áreas de risco</p>
+      <h2 id="risk-area-fields-heading" tabindex="-1" data-testid="risk-area-heading">
+        Áreas de Risco
+      </h2>
+    </div>
+    <button type="button" class="map-tool-button" (click)="load()" data-testid="risk-area-refresh">
+      Atualizar áreas
+    </button>
+  </div>
+
+  <p>
+    Edição dos campos das áreas. O polígono permanece como está: o formulário envia só os campos e o
+    servidor herda a geometria da versão vigente. Grupo informado pode mudar sem aviso prévio, por
+    isso a edição é rápida — mas cada salvamento cria versão e a consulta continua na versão
+    aprovada até a aprovação explícita.
+  </p>
+
+  <p role="status" aria-live="polite" data-testid="risk-area-notice">{{ notice() }}</p>
+
+  @if (loading()) {
+    <p role="status" data-testid="risk-area-loading">Carregando áreas…</p>
+  }
+
+  @if (error()) {
+    <div role="alert" data-testid="risk-area-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="inline-retry" (click)="load()" data-testid="risk-area-retry">
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (!loading()) {
+    @if (areas().length === 0 && !error()) {
+      <p data-testid="risk-area-empty">
+        Nenhuma área persistida. A camada demonstrativa atual continua apenas como dado de leitura.
+      </p>
+    } @else if (areas().length > 0) {
+      <label for="risk-area-select">Área</label>
+      <select id="risk-area-select" (change)="choose($event)" data-testid="risk-area-select">
+        <option value="">Selecione uma área</option>
+        @for (area of areas(); track area.territoryId) {
+          <option [value]="area.territoryId" [selected]="area.territoryId === selected()">
+            {{ area.name }} · v{{ area.version
+            }}{{ area.approvedVersion ? ' (aprovada)' : ' (pendente)' }}
+          </option>
+        }
+      </select>
+
+      @if (current(); as area) {
+        <p data-testid="risk-area-summary">
+          v{{ area.version }} · aprovada: {{ area.approvedVersion ?? 'não' }} · fonte:
+          {{ area.sourceId ?? 'não informada' }}
+        </p>
+
+        <form (submit)="$event.preventDefault(); save()" data-testid="risk-area-form">
+          <label for="area-name">Nome</label>
+          <input
+            id="area-name"
+            [value]="draft()['name']"
+            (input)="onField('name', $event)"
+            data-testid="risk-area-name"
+          />
+          <label for="area-group">Grupo informado</label>
+          <input
+            id="area-group"
+            [value]="draft()['indicatedGroup']"
+            (input)="onField('indicatedGroup', $event)"
+            data-testid="risk-area-group"
+          />
+          <label for="area-reference">Referência temporal (AAAA-MM-DD)</label>
+          <input
+            id="area-reference"
+            [value]="draft()['referenceDate']"
+            (input)="onField('referenceDate', $event)"
+            data-testid="risk-area-reference"
+          />
+          <label for="area-evidence">Referência de evidência</label>
+          <input
+            id="area-evidence"
+            [value]="draft()['evidenceReference']"
+            (input)="onField('evidenceReference', $event)"
+            data-testid="risk-area-evidence"
+          />
+          <label for="area-limitations">Limitações</label>
+          <input
+            id="area-limitations"
+            [value]="draft()['limitations']"
+            (input)="onField('limitations', $event)"
+            data-testid="risk-area-limitations"
+          />
+          <label for="area-justification">Justificativa (mínimo 20 caracteres)</label>
+          <input
+            id="area-justification"
+            [value]="draft()['justification']"
+            (input)="onField('justification', $event)"
+            data-testid="risk-area-justification"
+          />
+          <div class="risk-area-actions">
+            <button
+              type="submit"
+              class="map-tool-button"
+              [disabled]="busy()"
+              data-testid="risk-area-save"
+            >
+              Salvar nova versão
+            </button>
+            <button
+              type="button"
+              class="map-tool-button"
+              (click)="approve()"
+              [disabled]="busy()"
+              data-testid="risk-area-approve"
+            >
+              Aprovar versão {{ area.version }}
+            </button>
+          </div>
+        </form>
+      }
+    }
+  }
+</section>

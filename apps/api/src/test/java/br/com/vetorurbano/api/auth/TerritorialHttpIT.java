@@ -203,4 +203,31 @@ class TerritorialHttpIT extends LocalAuthHttpSupport {
             assertTrue(found,"Logs devem projetar a decisão territorial com autoria histórica");
         }
     }
+
+    @Test void editsFieldsWithoutResendingGeometryAndInheritsTheBoundary()throws Exception {
+        try(var app=start()) {
+            administrator(app);
+            String id=UUID.randomUUID().toString(),path="admin/risk-areas/"+id;
+            assertEquals(200,request(app,"POST",path+"/versions",draft(0,"Área original")).statusCode());
+            var fields=new LinkedHashMap<String,Object>();
+            fields.put("expectedVersion",1);fields.put("name","Área renomeada");
+            fields.put("indicatedGroup","CV");fields.put("sourceId",null);
+            fields.put("evidenceReference","Ofício sintético 12");fields.put("referenceDate","2026-09-30");
+            fields.put("limitations","Grupo indicado pode mudar sem aviso prévio");
+            fields.put("justification","Edição de campos da área sem alterar a geometria vigente");
+            var response=request(app,"POST",path+"/versions",fields);
+            assertEquals(200,response.statusCode(),response.body());
+            var version=JSON.readTree(response.body());
+            assertEquals("Área renomeada",version.path("name").asString());
+            assertEquals("CV",version.path("indicatedGroup").asString());
+            assertEquals("Polygon",version.path("geometry").path("type").asString(),
+                    "geometria ausente é herdada da versão vigente, sem reenvio");
+            // Aprovação continua sendo decisão explícita: editar campo não publica sozinho.
+            assertEquals(200,request(app,"POST",path+"/approvals",
+                    Map.of("expectedVersion",2,"justification","Aprovada após edição de campos")).statusCode());
+            var publicItems=JSON.readTree(request(app,"GET","risk-areas",null).body()).path("items");
+            assertEquals("Área renomeada",publicItems.get(0).path("name").asString());
+            assertEquals("2026-09-30",publicItems.get(0).path("referenceDate").asString());
+        }
+    }
 }

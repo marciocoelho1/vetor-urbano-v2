@@ -1,0 +1,356 @@
+<section class="workspace-card occurrences-admin" aria-labelledby="occurrences-admin-heading">
+  <div class="occurrences-heading">
+    <div>
+      <p class="eyebrow">Administração · ocorrências</p>
+      <h2
+        id="occurrences-admin-heading"
+        #listHeading
+        tabindex="-1"
+        data-testid="occurrences-heading"
+      >
+        Ocorrências
+      </h2>
+    </div>
+    <button
+      type="button"
+      class="map-tool-button"
+      (click)="load()"
+      data-testid="occurrences-refresh"
+    >
+      Atualizar lista
+    </button>
+  </div>
+
+  <p>
+    Lista administrativa com todos os campos editáveis. A ordem padrão é a última atualização; a
+    exclusão é lógica (preserva o histórico de publicação) e pede a senha do administrador uma única
+    vez para o lote selecionado.
+  </p>
+
+  <p role="status" aria-live="polite" data-testid="occurrences-notice">{{ notice() }}</p>
+
+  <div class="occurrences-controls">
+    <label for="occurrences-sort">Ordenar por</label>
+    <select id="occurrences-sort" (change)="changeSort($event)" data-testid="occurrences-sort">
+      <option value="last_update" [selected]="sort() === 'last_update'">Última atualização</option>
+      <option value="alphabetical" [selected]="sort() === 'alphabetical'">Ordem alfabética</option>
+    </select>
+
+    <label for="occurrences-filter">Filtrar</label>
+    <select
+      id="occurrences-filter"
+      (change)="changeFilter($event)"
+      data-testid="occurrences-filter"
+    >
+      <option value="ALL" [selected]="filter() === 'ALL'">
+        Todos ({{ counts().ACTIVE + counts().INACTIVE + counts().CONCLUDED }})
+      </option>
+      <option value="ACTIVE" [selected]="filter() === 'ACTIVE'">
+        Ativo ({{ counts().ACTIVE }})
+      </option>
+      <option value="INACTIVE" [selected]="filter() === 'INACTIVE'">
+        Inativo ({{ counts().INACTIVE }})
+      </option>
+      <option value="CONCLUDED" [selected]="filter() === 'CONCLUDED'">
+        Concluído ({{ counts().CONCLUDED }})
+      </option>
+    </select>
+  </div>
+
+  @if (loading()) {
+    <p role="status" data-testid="occurrences-loading">Carregando ocorrências…</p>
+  }
+
+  @if (error()) {
+    <div role="alert" data-testid="occurrences-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="inline-retry" (click)="load()" data-testid="occurrences-retry">
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    @if (items().length === 0) {
+      <p data-testid="occurrences-empty">
+        Nenhuma ocorrência neste filtro. As fictícias continuam disponíveis em «Todos».
+      </p>
+    } @else {
+      <div class="occurrences-bulk" role="group" aria-label="Ações em lote">
+        <span data-testid="occurrences-selected-count">{{ selectedCount() }} selecionada(s)</span>
+        <button
+          type="button"
+          class="map-tool-button"
+          (click)="applyAction('ACTIVE')"
+          [disabled]="busy() || selectedCount() === 0"
+          data-testid="occurrences-mark-active"
+        >
+          {{ actionLabels.ACTIVE }}
+        </button>
+        <button
+          type="button"
+          class="map-tool-button"
+          (click)="applyAction('INACTIVE')"
+          [disabled]="busy() || selectedCount() === 0"
+          data-testid="occurrences-mark-inactive"
+        >
+          {{ actionLabels.INACTIVE }}
+        </button>
+        <button
+          type="button"
+          class="map-tool-button"
+          (click)="applyAction('CONCLUDED')"
+          [disabled]="busy() || selectedCount() === 0"
+          data-testid="occurrences-mark-concluded"
+        >
+          {{ actionLabels.CONCLUDED }}
+        </button>
+        <button
+          #deleteButton
+          type="button"
+          class="map-tool-button occurrences-danger"
+          (click)="applyAction('DELETE')"
+          [disabled]="busy() || selectedCount() === 0"
+          data-testid="occurrences-delete"
+        >
+          {{ actionLabels.DELETE }}
+        </button>
+      </div>
+
+      <table data-testid="occurrences-table">
+        <caption class="visually-hidden">
+          Ocorrências administrativas
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="allSelected()"
+                  (change)="toggleAll()"
+                  data-testid="occurrences-select-all"
+                />
+                Selecionar todas
+              </label>
+            </th>
+            <th scope="col">Título</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Última atualização</th>
+            <th scope="col">Município</th>
+            <th scope="col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr [attr.data-testid]="'occurrences-row-' + item.id">
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(item.id)"
+                  (change)="toggle(item.id)"
+                  [attr.aria-label]="'Selecionar ' + item.title"
+                  [attr.data-testid]="'occurrences-select-' + item.id"
+                />
+              </td>
+              <td>
+                <strong>{{ item.title }}</strong>
+                <span class="occurrences-meta"
+                  >{{ item.category }} · {{ item.occurrence_type }}</span
+                >
+              </td>
+              <td>
+                <span class="occurrences-pill" [attr.data-testid]="'occurrences-status-' + item.id">
+                  {{ labels[item.administrative_status] }}
+                </span>
+              </td>
+              <td [attr.data-testid]="'occurrences-updated-' + item.id">{{ updated(item) }}</td>
+              <td>{{ item.municipality }} · {{ item.neighborhood }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="inline-retry"
+                  (click)="openEditor(item)"
+                  [attr.data-testid]="'occurrences-edit-' + item.id"
+                >
+                  Editar campos
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+
+  @if (draft(); as form) {
+    <form
+      class="occurrences-editor"
+      (submit)="$event.preventDefault(); saveEditor()"
+      aria-labelledby="occurrences-editor-heading"
+      data-testid="occurrences-editor"
+    >
+      <h3 id="occurrences-editor-heading">Editar todos os campos</h3>
+      <label for="occurrence-title">Título</label>
+      <input
+        id="occurrence-title"
+        [value]="form['title']"
+        (input)="onDraft('title', $event)"
+        data-testid="occurrence-field-title"
+      />
+      <label for="occurrence-description">Descrição</label>
+      <textarea
+        id="occurrence-description"
+        rows="3"
+        [value]="form['description']"
+        (input)="onDraft('description', $event)"
+        data-testid="occurrence-field-description"
+      ></textarea>
+      <label for="occurrence-category">Categoria</label>
+      <select
+        id="occurrence-category"
+        (change)="onDraft('category', $event)"
+        data-testid="occurrence-field-category"
+      >
+        @for (category of ['TRANSITO', 'SEGURANCA', 'CONTINGENCIA']; track category) {
+          <option [value]="category" [selected]="form['category'] === category">
+            {{ category }}
+          </option>
+        }
+      </select>
+      <label for="occurrence-type">Tipo</label>
+      <input
+        id="occurrence-type"
+        [value]="form['type']"
+        (input)="onDraft('type', $event)"
+        data-testid="occurrence-field-type"
+      />
+      <label for="occurrence-subtype">Subtipo</label>
+      <input
+        id="occurrence-subtype"
+        [value]="form['subtype']"
+        (input)="onDraft('subtype', $event)"
+        data-testid="occurrence-field-subtype"
+      />
+      <label for="occurrence-situation">Situação</label>
+      <select
+        id="occurrence-situation"
+        (change)="onDraft('situation', $event)"
+        data-testid="occurrence-field-situation"
+      >
+        @for (situation of ['ONGOING', 'CLOSED', 'UNKNOWN']; track situation) {
+          <option [value]="situation" [selected]="form['situation'] === situation">
+            {{ situation }}
+          </option>
+        }
+      </select>
+      <label for="occurrence-reliability">Nota (1 a 5)</label>
+      <input
+        id="occurrence-reliability"
+        type="number"
+        min="1"
+        max="5"
+        [value]="form['reliability']"
+        (input)="onDraft('reliability', $event)"
+        data-testid="occurrence-field-reliability"
+      />
+      <label for="occurrence-municipality">Município</label>
+      <input
+        id="occurrence-municipality"
+        [value]="form['municipality']"
+        (input)="onDraft('municipality', $event)"
+        data-testid="occurrence-field-municipality"
+      />
+      <label for="occurrence-neighborhood">Bairro</label>
+      <input
+        id="occurrence-neighborhood"
+        [value]="form['neighborhood']"
+        (input)="onDraft('neighborhood', $event)"
+        data-testid="occurrence-field-neighborhood"
+      />
+      <label for="occurrence-precision">Precisão</label>
+      <select
+        id="occurrence-precision"
+        (change)="onDraft('locationPrecision', $event)"
+        data-testid="occurrence-field-precision"
+      >
+        @for (precision of ['TERRITORY', 'POINT']; track precision) {
+          <option [value]="precision" [selected]="form['locationPrecision'] === precision">
+            {{ precision }}
+          </option>
+        }
+      </select>
+      <label for="occurrence-occurred-at">Data e hora (UTC)</label>
+      <input
+        id="occurrence-occurred-at"
+        [value]="form['occurredAt']"
+        (input)="onDraft('occurredAt', $event)"
+        data-testid="occurrence-field-occurred-at"
+      />
+      <div class="occurrences-bulk">
+        <button
+          type="submit"
+          class="map-tool-button"
+          [disabled]="busy()"
+          data-testid="occurrences-save"
+        >
+          Salvar nova versão
+        </button>
+        <button
+          type="button"
+          class="inline-retry"
+          (click)="closeEditor()"
+          data-testid="occurrences-cancel-edit"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (confirmingDelete()) {
+    <div
+      class="occurrences-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="occurrences-delete-heading"
+      data-testid="occurrences-delete-dialog"
+    >
+      <h3 id="occurrences-delete-heading">Confirmar exclusão</h3>
+      <p data-testid="occurrences-delete-summary">
+        Excluir {{ selectedCount() }} ocorrência(s)? A exclusão é lógica: o histórico de publicação
+        continua preservado.
+      </p>
+      <label for="occurrences-password">Senha do administrador</label>
+      <input
+        #passwordInput
+        id="occurrences-password"
+        type="password"
+        autocomplete="current-password"
+        [value]="password()"
+        (input)="onPassword($event)"
+        data-testid="occurrences-password"
+      />
+      <p>Uma única confirmação de senha vale para todas as ocorrências selecionadas.</p>
+      <div class="occurrences-bulk">
+        <button
+          type="button"
+          class="map-tool-button occurrences-danger"
+          (click)="confirmDelete()"
+          [disabled]="busy() || password().length === 0"
+          data-testid="occurrences-confirm-delete"
+        >
+          Excluir {{ selectedCount() }}
+        </button>
+        <button
+          type="button"
+          class="inline-retry"
+          (click)="cancelDelete()"
+          data-testid="occurrences-cancel-delete"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  }
+</section>

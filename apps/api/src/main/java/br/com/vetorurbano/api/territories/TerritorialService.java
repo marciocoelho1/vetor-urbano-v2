@@ -21,6 +21,8 @@ import br.com.vetorurbano.api.corrections.CorrectionService;
 public class TerritorialService {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private static final Set<String> VERSION_FIELDS=Set.of("expectedVersion","name","indicatedGroup","sourceId","evidenceReference","referenceDate","limitations","geometry","justification");
+    /** Edição de campos sem tocar o polígono: geometria é opcional e, ausente, herda a versão vigente. */
+    private static final Set<String> FIELD_ONLY_FIELDS=Set.of("expectedVersion","name","indicatedGroup","sourceId","evidenceReference","referenceDate","limitations","justification");
     private final JdbcTemplate jdbc;
     private final TerritorialVersionRepository repository;
     private final Clock clock;
@@ -38,7 +40,8 @@ public class TerritorialService {
     }
     @Transactional
     public Map<String,Object> revise(UUID id,Map<String,Object> body,UUID actor) {
-        if(!body.keySet().equals(VERSION_FIELDS))throw CorrectionService.invalid("Campos da revisão territorial inválidos.");
+        if(!body.keySet().equals(VERSION_FIELDS)&&!body.keySet().equals(FIELD_ONLY_FIELDS))
+            throw CorrectionService.invalid("Campos da revisão territorial inválidos.");
         int expected=version(body);String reason=text(body,"justification",2000,false);
         String name=text(body,"name",200,false),group=text(body,"indicatedGroup",200,true);
         String evidence=text(body,"evidenceReference",4000,true),source=text(body,"sourceId",200,true);
@@ -49,9 +52,19 @@ public class TerritorialService {
             if(!(body.get("referenceDate") instanceof String date)||!date.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}"))throw CorrectionService.invalid("Referência temporal deve ser dia conhecido ou null.");
             try {reference=LocalDate.parse(date);}catch(DateTimeException invalid){throw CorrectionService.invalid("Data de referência inválida.");}
         }
-        if(!(body.get("geometry") instanceof Map<?,?> geometry)||!Set.of("type","coordinates").equals(geometry.keySet())||!Set.of("Polygon","MultiPolygon").contains(geometry.get("type")))throw CorrectionService.invalid("Geometria deve ser GeoJSON Polygon/MultiPolygon 2D WGS 84.");
-        // GeoJSON has WGS84 semantics; reject a CRS override, never reproject/repair coordinates.
-        String ewkt=jdbc.queryForObject("SELECT ST_AsEWKT(ST_GeomFromGeoJSON(?))",String.class,JSON.writeValueAsString(geometry));
+        String ewkt;
+        if(body.containsKey("geometry")){
+            if(!(body.get("geometry") instanceof Map<?,?> geometry)||!Set.of("type","coordinates").equals(geometry.keySet())||!Set.of("Polygon","MultiPolygon").contains(geometry.get("type")))throw CorrectionService.invalid("Geometria deve ser GeoJSON Polygon/MultiPolygon 2D WGS 84.");
+            // GeoJSON has WGS84 semantics; reject a CRS override, never reproject/repair coordinates.
+            ewkt=jdbc.queryForObject("SELECT ST_AsEWKT(ST_GeomFromGeoJSON(?))",String.class,JSON.writeValueAsString(geometry));
+        }else{
+            // Sem geometria no corpo: herda o polígono da versão vigente, sem reinterpretar coordenadas.
+            ewkt=jdbc.queryForObject("""
+                    SELECT ST_AsEWKT(v.boundary) FROM territorial_versions v
+                    WHERE v.territory_id=? ORDER BY v.version DESC LIMIT 1
+                    """,String.class,id);
+            if(ewkt==null)throw CorrectionService.invalid("Área sem geometria registrada exige o polígono na revisão.");
+        }
         jdbc.update("INSERT INTO territorial_identities(id) VALUES(?) ON CONFLICT DO NOTHING",id);
         var identity=lock(id);if((Integer)identity.get("revision")!=expected)throw conflict();
         Map<String,Object> before=expected==0?null:one(id,expected);
