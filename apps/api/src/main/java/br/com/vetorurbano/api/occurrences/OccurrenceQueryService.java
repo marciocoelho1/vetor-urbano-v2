@@ -85,6 +85,10 @@ public class OccurrenceQueryService {
         var related = repository.findPublishedRelated(query, List.copyOf(uniqueHappenings)).stream()
                 .filter(record -> !matchedIds.contains(record.id()))
                 .map(record->view(record,at)).toList();
-        return new OccurrenceQueryResponse(at, counts, items, related);
+        var sourceIds = new java.util.LinkedHashSet<String>();
+        for (var item : items) item.clippings().forEach(clipping -> sourceIds.add(clipping.source().id()));
+        for (var item : related) item.clippings().forEach(clipping -> sourceIds.add(clipping.source().id()));
+        var attribution = repository.attributions(List.copyOf(sourceIds));
+        return new OccurrenceQueryResponse(at, counts, items, related, attribution);
     }
 }

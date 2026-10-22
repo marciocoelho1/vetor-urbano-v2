@@ -123,6 +123,34 @@ class OccurrenceQueryHttpIT {
     }
 
     @Test
+    void projectionCarriesAuthorizedSourceAttributionWithoutChangingTheRevision() throws Exception {
+        try (var app = startApi()) {
+            var query = allDefaultWindow();
+            var before = JSON.readTree(get(app, query).body());
+            assertTrue(before.path("attribution").isArray(), "attribution is always a list");
+            assertEquals(0, before.path("attribution").size(),
+                    "synthetic demo sources carry no collection ficha");
+            var jdbc = app.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            jdbc.update("UPDATE sources SET provenance = ?::jsonb WHERE id='vu-demo-source-001'",
+                    "{\"credit\":\"Instituto Fogo Cruzado\",\"attribution\":\"Fonte: Instituto Fogo Cruzado\"}");
+            try {
+                var credited = JSON.readTree(get(app, query).body());
+                assertEquals(1, credited.path("attribution").size(),
+                        "the credit of a referenced authorized source reaches the public projection");
+                assertEquals("Fonte: Instituto Fogo Cruzado", credited.path("attribution").get(0).asString());
+                assertEquals(before.path("revision"), credited.path("revision"),
+                        "credit text is provenance, not a new or corrected publication");
+                var check = JSON.readTree(getPath(app, "/api/v1/occurrences",
+                        query + "&checkUpdates=true", true).body());
+                assertEquals(2, check.size(), "the revision probe stays {checkedAt, revision}");
+            } finally {
+                jdbc.update("UPDATE sources SET provenance = NULL WHERE id='vu-demo-source-001'");
+            }
+            assertEquals(0, JSON.readTree(get(app, query).body()).path("attribution").size());
+        }
+    }
+
+    @Test
     void realHttpReturnsOnlyPublishedOccurrencesAndSurvivesApiRestart() throws Exception {
         JsonNode firstResponse;
         try (var application = startApi()) {

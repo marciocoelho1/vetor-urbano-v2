@@ -273,6 +273,24 @@ public class OccurrenceQueryRepository {
         return rows.stream().map(row -> row.toRecord(clippings.getOrDefault(row.id(), List.of()))).toList();
     }
 
+    /**
+     * Attribution texts of the authorized collection sources referenced by a projection.
+     * One extra read per export-sized projection; empty for slices without a collection ficha.
+     */
+    public List<String> attributions(List<String> sourceIds) {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return List.of();
+        }
+        var sql = """
+                SELECT DISTINCT s.provenance ->> 'attribution' AS attribution
+                FROM sources s
+                WHERE s.id IN (:sourceIds)
+                  AND s.provenance ->> 'attribution' IS NOT NULL
+                ORDER BY attribution
+                """;
+        return jdbc.queryForList(sql, new MapSqlParameterSource("sourceIds", sourceIds), String.class);
+    }
+
     private Map<String, List<ClippingReference>> findClippings(List<String> occurrenceIds) {
         var sql = """
                 SELECT

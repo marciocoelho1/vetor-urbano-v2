@@ -8,11 +8,25 @@ public record OccurrenceQueryResponse(
         OccurrenceQueryCounts counts,
         List<OccurrenceView> items,
         List<OccurrenceView> relatedItems,
+        List<String> attribution,
         String revision
 ) {
+    /**
+     * Attribution of every authorized collection source referenced by this projection. It is
+     * derived from {@code sources.provenance} and kept outside the revision hash: the public
+     * projection already hashes the referenced source names, and rewriting a credit text is a
+     * provenance correction, not a new or corrected publication.
+     */
     public OccurrenceQueryResponse(Instant generatedAt, OccurrenceQueryCounts counts,
             List<OccurrenceView> items, List<OccurrenceView> relatedItems) {
-        this(generatedAt, counts, items, relatedItems, revisionOf(counts, items, relatedItems));
+        this(generatedAt, counts, items, relatedItems, List.of(),
+                revisionOf(counts, items, relatedItems));
+    }
+
+    public OccurrenceQueryResponse(Instant generatedAt, OccurrenceQueryCounts counts,
+            List<OccurrenceView> items, List<OccurrenceView> relatedItems, List<String> attribution) {
+        this(generatedAt, counts, items, relatedItems, attribution,
+                revisionOf(counts, items, relatedItems));
     }
 
     // Hash the complete public projection, never the query instant or internal publication metadata.
@@ -33,5 +47,6 @@ public record OccurrenceQueryResponse(
     public OccurrenceQueryResponse {
         items = List.copyOf(items);
         relatedItems = List.copyOf(relatedItems);
+        attribution = List.copyOf(attribution);
     }
 }
