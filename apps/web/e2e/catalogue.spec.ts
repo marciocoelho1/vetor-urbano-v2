@@ -61,6 +61,6 @@ test('consulta legada incompatível avisa e preserva o recorte e a versão salva
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('vu2.savedSearches')!))).toEqual(
     saved,
   );
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await expect(page.getByLabel('Período da consulta')).toHaveValue('24h');
 });

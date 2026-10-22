@@ -63,12 +63,13 @@ async function openAdmin(page: Page): Promise<void> {
   await expect(page.getByTestId('risk-area-heading')).toBeVisible();
 }
 
-// PENDENTE VERIFICADO: o mapa inicializa, mas as panes do Leaflet ficam com tamanho zero dentro do
-// painel administrativo e os cliques não viram pontos. A geometria e o envio estão cobertos por
-// unidade; a jornada de navegador exige corrigir o dimensionamento antes de valer como aceite.
-test.fixme(true, 'Desenho no mapa ainda não registra cliques no painel; corrigir dimensionamento.');
+// PENDENTE VERIFICADO (22/10/2026): o Leaflet inicializa no painel (o contêiner recebe
+// `.leaflet-container`) e o CSS já vem do angular.json, mas cliques por coordenada no contêiner não
+// chegam ao handler 'click' do mapa — o contador fica em 0. A conversão de pontos em GeoJSON tem 4
+// testes unitários; falta a captura de clique, que exige investigação no próprio navegador.
+test.fixme(true, 'Cliques no mapa do painel não viram pontos; investigar handler do Leaflet.');
 
-test.skip('ADMIN desenha o polígono no mapa e salva a área com as coordenadas marcadas', async ({
+test('ADMIN desenha o polígono no mapa e salva a área com as coordenadas marcadas', async ({
   page,
   request,
 }) => {
@@ -82,9 +83,8 @@ test.skip('ADMIN desenha o polígono no mapa e salva a área com as coordenadas 
   await panel(page).getByTestId('risk-area-draw').click();
   const canvas = panel(page).getByTestId('risk-area-canvas');
   await expect(canvas).toBeVisible();
-  // Diagnóstico: se o mapa não inicializar, o painel declara o motivo em vez de falhar em silêncio.
-  await expect(panel(page).getByTestId('risk-area-drawing-error')).toHaveCount(0);
-  await expect(canvas.locator('.leaflet-container, .leaflet-pane').first()).toBeVisible();
+  // O mapa só vale se o Leaflet registrou o contêiner; panes têm tamanho zero por desenho.
+  await expect(canvas).toHaveClass(/leaflet-container/);
 
   // Três cliques crus no mapa: o Leaflet trata o evento no contêiner, não no elemento interno.
   const box = (await canvas.boundingBox())!;

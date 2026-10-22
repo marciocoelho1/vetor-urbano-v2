@@ -144,7 +144,7 @@ test('keeps all dark views readable on desktop/mobile without recreating the map
   expect(await input.evaluate((node) => getComputedStyle(node).backgroundColor)).toBe(
     'rgb(24, 31, 40)',
   );
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   expect(
     await page.evaluate(
       () =>

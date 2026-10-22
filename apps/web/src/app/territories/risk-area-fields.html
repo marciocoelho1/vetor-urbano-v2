@@ -129,46 +129,44 @@
         </form>
       }
 
-      @if (drawing()) {
-        <div class="risk-area-drawing" data-testid="risk-area-drawing">
-          <p>
-            Clique no mapa para marcar os pontos do polígono. São necessários ao menos
-            {{ minimumPoints }} pontos; a linha fecha no primeiro ponto.
-          </p>
-          <div #drawSurface class="risk-area-canvas" data-testid="risk-area-canvas"></div>
-          <p data-testid="risk-area-points">{{ points().length }} ponto(s) marcado(s)</p>
-          @if (drawingError()) {
-            <p role="alert" data-testid="risk-area-drawing-error">{{ drawingError() }}</p>
-          }
-          <div class="risk-area-actions">
-            <button
-              type="button"
-              class="inline-retry"
-              (click)="undoPoint()"
-              data-testid="risk-area-undo"
-            >
-              Desfazer último ponto
-            </button>
-            <button
-              type="button"
-              class="map-tool-button"
-              (click)="closeDrawing()"
-              [disabled]="points().length < minimumPoints"
-              data-testid="risk-area-close-polygon"
-            >
-              Fechar polígono
-            </button>
-            <button
-              type="button"
-              class="inline-retry"
-              (click)="stopDrawing()"
-              data-testid="risk-area-cancel-draw"
-            >
-              Cancelar desenho
-            </button>
-          </div>
+      <div class="risk-area-drawing" [hidden]="!drawing()" data-testid="risk-area-drawing">
+        <p>
+          Clique no mapa para marcar os pontos do polígono. São necessários ao menos
+          {{ minimumPoints }} pontos; a linha fecha no primeiro ponto.
+        </p>
+        <div #drawSurface class="risk-area-canvas" data-testid="risk-area-canvas"></div>
+        <p data-testid="risk-area-points">{{ points().length }} ponto(s) marcado(s)</p>
+        @if (drawingError()) {
+          <p role="alert" data-testid="risk-area-drawing-error">{{ drawingError() }}</p>
+        }
+        <div class="risk-area-actions">
+          <button
+            type="button"
+            class="inline-retry"
+            (click)="undoPoint()"
+            data-testid="risk-area-undo"
+          >
+            Desfazer último ponto
+          </button>
+          <button
+            type="button"
+            class="map-tool-button"
+            (click)="closeDrawing()"
+            [disabled]="points().length < minimumPoints"
+            data-testid="risk-area-close-polygon"
+          >
+            Fechar polígono
+          </button>
+          <button
+            type="button"
+            class="inline-retry"
+            (click)="stopDrawing()"
+            data-testid="risk-area-cancel-draw"
+          >
+            Cancelar desenho
+          </button>
         </div>
-      }
+      </div>
     }
   }
 </section>

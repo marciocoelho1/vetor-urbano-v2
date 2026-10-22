@@ -64,7 +64,7 @@ test('expiração e renovação humanas repetem aviso persistente com teclado em
   const history = await page.request.get(`${api}/active-reports/vu25-renewal/verification`);
   expect(history.status()).toBe(200);
   expect((await history.json()).history).toHaveLength(current.verificationVersion + 3);
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page.getByRole('button', { name: /^Lista/ }).click();
   await expect(page.locator('[data-result-point="vu25-renewal"]')).toContainText('Em andamento');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

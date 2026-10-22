@@ -225,7 +225,7 @@ test('HTTP real: indisponibilidade aparece como erro e a conta volta a carregar 
   execFileSync('podman', ['pause', database!]);
   try {
     // Reabrir a view refaz a leitura; com o banco pausado a sessão global falha antes do painel.
-    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await page.getByRole('button', { name: 'Minha conta', exact: true }).click();
     await expect(
       page.locator('main [role="alert"], [data-testid="self-account-service-error"]'),
@@ -239,7 +239,7 @@ test('HTTP real: indisponibilidade aparece como erro e a conta volta a carregar 
     execFileSync('podman', ['unpause', database!]);
   }
   // A falha de infraestrutura não deixa estado intermediário: reabrir a view recarrega a conta.
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page.getByRole('button', { name: 'Minha conta', exact: true }).click();
   await expect(page.getByTestId('self-account-profile')).toBeVisible();
   await expect(page.getByTestId('self-account-email')).toHaveText(email);

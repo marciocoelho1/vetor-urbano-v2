@@ -1028,7 +1028,7 @@ for (const engine of ['vector', 'raster'] as const) {
     const beforeNavigation = await readCamera();
     await page.getByRole('button', { name: 'Histórico', exact: true }).click();
     const returning = Date.now();
-    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await expect(surface).toBeVisible();
     await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
     const returnMs = Date.now() - returning;

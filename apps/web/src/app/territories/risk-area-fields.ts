@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
-import { loadLeafletStyles } from '../maps/leaflet-style-loader';
 import { MINIMUM_POINTS, polygonFrom, polygonProblem, type MapPoint } from './polygon-drawing';
 import { Session } from '../auth/session';
 import { RiskAreaApiError, riskAreaRequest } from '../data/risk-area-api';
@@ -55,12 +54,9 @@ export class RiskAreaFields implements OnDestroy {
    */
   @ViewChild('drawSurface')
   set drawSurface(ref: ElementRef<HTMLElement> | undefined) {
-    if (!ref) return;
-    setTimeout(() => {
-      const element = ref.nativeElement;
-      if (element && !this.map) void this.buildMap([-22.9, -43.2], element);
-    }, 0);
+    this.drawSurfaceRef = ref;
   }
+  private drawSurfaceRef?: ElementRef<HTMLElement>;
   protected readonly minimumPoints = MINIMUM_POINTS;
 
   constructor() {
@@ -127,12 +123,19 @@ export class RiskAreaFields implements OnDestroy {
     this.points.set([]);
     this.polygonReady.set(null);
     this.drawingError.set('');
-    // O mapa é criado pelo setter do ViewChild quando o canvas entra no DOM.
+    // O contêiner já existe, mas só ganha tamanho quando o modo de desenho fica visível:
+    // o mapa precisa ser criado (ou remedido) depois dessa troca de layout.
+    setTimeout(() => {
+      const element = this.drawSurfaceRef?.nativeElement;
+      if (!element) return;
+      if (!this.map) void this.buildMap([-22.9, -43.2], element);
+      else this.map.invalidateSize();
+    }, 40);
   }
 
   private async buildMap(center: [number, number], element: HTMLElement): Promise<void> {
     try {
-      await loadLeafletStyles();
+      // O CSS do Leaflet já entra pelo angular.json (bundleName "leaflet"); carregar de novo dá 404.
       const leaflet = this.leaflet ?? (await import('leaflet'));
       this.leaflet = leaflet;
       this.map?.remove();

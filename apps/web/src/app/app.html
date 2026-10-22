@@ -21,7 +21,7 @@
           (click)="openView('map')"
           [attr.aria-current]="activeView() === 'map' ? 'page' : null"
         >
-          Mapa público
+          Mapa de ocorrências
         </button>
         <button
           class="nav-link"
@@ -164,7 +164,7 @@
         [class.consultation-list]="consultationView() === 'list'"
         [class.consultation-map-error]="mapError()"
         [hidden]="activeView() !== 'map'"
-        aria-label="Mapa público"
+        aria-label="Mapa de ocorrências"
       >
         <div class="map-first-screen">
           <header class="page-header map-page-header">
@@ -1752,7 +1752,11 @@
                   Administração: use os filtros abaixo para consultar ocorrências ativas, inativas e
                   concluídas neste mesmo módulo. O usuário comum vê apenas as ativas.
                 </p>
-                <app-occurrences-admin-panel />
+                @defer (on viewport) {
+                  <app-occurrences-admin-panel />
+                } @placeholder {
+                  <p>Carregando painel administrativo de ocorrências…</p>
+                }
               }
               <p class="page-intro">
                 Ocorrências das últimas 24 horas (inclusive encerradas) e vigentes antigas em um

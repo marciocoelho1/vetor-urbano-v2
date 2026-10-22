@@ -168,7 +168,7 @@ test('relatório conserva, substitui e atualiza explicitamente seu recorte auten
   const originalGeneration = await generatedAt.textContent();
   await page.unroute(reportRequest, delayLiveReportRequest);
 
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page.locator('[data-quick-category="CONTINGENCIA"]').click();
   await page.locator('[data-quick-category="SEGURANCA"]').click();
   await count(page, 1);

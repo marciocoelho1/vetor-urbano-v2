@@ -189,7 +189,7 @@ test('duas sessões: ADMIN corrige/retira; aviso deduplicado, contexto e PDF ant
   expect(originalBytes.subarray(0, 5).toString()).toBe('%PDF-');
   const originalPdfText = execFileSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' });
   expect(originalPdfText).toContain(title);
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
 
   const context = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   try {
@@ -243,7 +243,7 @@ test('duas sessões: ADMIN corrige/retira; aviso deduplicado, contexto e PDF ant
 
     const retraction = `Retirar ${target}`;
     await requestCorrection(page, target, retraction);
-    await admin.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await admin.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await applyPublication(admin, await correctionItem(admin, retraction, target), true, title);
     expect((await probe(page)).status()).toBe(200);
     await expect(page.getByTestId('query-update-notice')).toBeVisible();
@@ -282,7 +282,7 @@ test('duas sessões: ADMIN corrige/retira; aviso deduplicado, contexto e PDF ant
     expect(await page.getByTestId('report-generated-at').textContent()).toBe(generatedAt);
     expect(await page.locator('.report-snapshot-list').innerText()).toBe(snapshotText);
     expect(await readFile(pdfPath)).toEqual(originalBytes);
-    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await page.getByTestId('refresh-query-btn').click();
     await expect(
       page

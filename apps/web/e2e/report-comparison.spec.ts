@@ -26,7 +26,7 @@ test('comparação A/B usa snapshots explícitos, duração, variação e limita
   await expect(page.getByTestId('report-comparison-pending')).toContainText(
     'Selecione o recorte B',
   );
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page.getByRole('combobox', { name: 'Período da consulta', exact: true }).selectOption('1w');
   await expect(page.getByTestId('event-count')).toHaveText('4');
   await page.getByRole('button', { name: 'Relatórios', exact: true }).click();
@@ -73,7 +73,7 @@ test('média de registros disponíveis compara 4/2 dias e 6/3 dias sem taxa de r
     await page.goto('/?consulta=api');
     let generated = false;
     const generateWindow = async (start: string, end: string, count: string) => {
-      await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+      await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
       await page
         .getByRole('combobox', { name: 'Período da consulta', exact: true })
         .selectOption('custom');
@@ -107,7 +107,7 @@ test('média de registros disponíveis compara 4/2 dias e 6/3 dias sem taxa de r
     await expect(
       comparison.getByText('Média de registros disponíveis por dia: 2.', { exact: true }),
     ).toHaveCount(2);
-    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await page
       .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
       .selectOption('Setor demonstrativo');
@@ -133,7 +133,7 @@ test('média de registros disponíveis compara 4/2 dias e 6/3 dias sem taxa de r
     );
     await comparison.screenshot({ path: '/tmp/vu31-comparison-mobile.png' });
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+    await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
     await page
       .getByRole('combobox', { name: 'Bairro (demonstração)', exact: true })
       .selectOption('Centro');

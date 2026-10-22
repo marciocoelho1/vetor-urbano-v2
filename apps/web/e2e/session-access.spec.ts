@@ -36,7 +36,7 @@ test('visitante, erros, teclado, consulta nos dois modos, recarga e logout móve
   expect((await page.request.get(`${api}/occurrences`)).status()).toBe(401);
   await page.getByRole('link', { name: 'Conheça nossas fontes' }).click();
   await expect(page.getByRole('heading', { name: 'Conheça nossas fontes' })).toBeVisible();
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   const email = await confirmedUser(page.request);
   await page.getByLabel('E-mail', { exact: true }).fill(email);
   await page.getByLabel('Senha', { exact: true }).fill('inválida');

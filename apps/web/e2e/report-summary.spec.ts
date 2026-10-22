@@ -38,7 +38,7 @@ test('síntese do snapshot preserva efeitos, certeza, território e filtros em t
   await expect(page.getByTestId('report-snapshot-counts')).toHaveText(
     '4 ocorrências · 2 acontecimentos',
   );
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page
     .getByRole('combobox', { name: 'Município (demonstração)', exact: true })
     .selectOption('Rio de Janeiro');
@@ -52,7 +52,7 @@ test('síntese do snapshot preserva efeitos, certeza, território e filtros em t
   await expect(page.getByTestId('report-snapshot-counts')).toHaveText(
     '3 ocorrências · 1 acontecimentos',
   );
-  await page.getByRole('button', { name: 'Mapa público', exact: true }).click();
+  await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   await page.locator('[data-quick-category="CONTINGENCIA"]').click();
   await page.locator('[data-quick-category="SEGURANCA"]').click();
   await expect(page.getByTestId('event-count')).toHaveText('1');

@@ -2296,7 +2296,7 @@ describe('Vetor Urbano', () => {
     expect(counts).not.toBeNull();
     const generatedCounts = counts?.textContent;
 
-    navButton('Mapa público').click();
+    navButton('Mapa de ocorrências').click();
     await Promise.resolve();
     fixture.detectChanges();
     fixture.nativeElement.querySelector('[data-quick-category="CONTINGENCIA"]')?.click();
