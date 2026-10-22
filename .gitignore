@@ -76,3 +76,7 @@ __pycache__/
 # Travas e exportações locais de escritório
 docs/.~lock.*#
 *.~lock.*#
+
+# Artefatos locais de conferência de tickets (gerados fora do fluxo versionado)
+/docs/product/tickets-checklist.html
+/scripts/generate-tickets-checklist.py

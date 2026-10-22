@@ -55,6 +55,30 @@ probe() { # probe <email> <senha> <rótulo>
   fi
 }
 
+# 0) proveniência do arranque: manifesto sanitizado (pid, porta e destino JDBC), sem credenciais.
+# Um GET de origem incerta no passado não pôde ser atribuído a nenhum banco; registrando pid e URL
+# efetiva, o mesmo evento deixa de ser indeterminado. O banco de dados reais
+# (vu-fogo-cruzado-db, 55438) nunca é alvo deste script.
+MANIFEST_DIR="${VETOR_STARTUP_MANIFEST_DIR:-$HOME/.local/state/vetor-urbano}"
+MANIFEST="$MANIFEST_DIR/api-startup.log"
+
+listener_pid() {
+  ss -ltnp 2>/dev/null | grep ':8080 ' | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2
+}
+
+record_provenance() { # record_provenance <origem> [pid]
+  local origem="$1" pid="${2:-}" url
+  if [[ -n "$pid" && -r "/proc/$pid/environ" ]]; then
+    url="$(tr '\0' '\n' < "/proc/$pid/environ" | sed -n 's/^VETOR_DATABASE_URL=//p' | head -1)"
+    [[ -n "$url" ]] || url="ausente-no-ambiente"
+  else
+    url="nao-observavel"
+  fi
+  mkdir -p "$MANIFEST_DIR"
+  (umask 077; printf '%s pid=%s origem=%s http=%s caixa=8025 jdbc=%s container=%s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${pid:-?}" "$origem" "$API_URL" "$url" "$DB_CONTAINER" >> "$MANIFEST")
+}
+
 # 1) banco sintético com as contas de teste
 if ! podman container exists "$DB_CONTAINER"; then
   die "contêiner $DB_CONTAINER ausente. Ele é o banco sintético com as contas de teste (127.0.0.1:55436)."
@@ -101,6 +125,8 @@ fi
 
 if health; then
   say "A API já está de pé em $API_URL (não subi outra)."
+  record_provenance "reaproveitada" "$(listener_pid)"
+  say "Proveniência registrada em $MANIFEST (pid, porta e destino efetivo)."
   "${BASH_SOURCE[0]}" --check
   exit 0
 fi
@@ -114,5 +140,8 @@ say "Subindo a API em $API_URL contra $DB_CONTAINER/$DB_NAME — Ctrl+C encerra.
 export VETOR_DATABASE_URL="jdbc:postgresql://127.0.0.1:55436/$DB_NAME"
 export VETOR_DATABASE_USERNAME="$DB_USER"
 export VETOR_DATABASE_PASSWORD="$DB_PASSWORD"
+# O pid registrado é o do próprio processo: o exec o transforma no processo Java da API.
+record_provenance "iniciada" "$$"
+say "Proveniência: $MANIFEST (o pid registrado passa a ser o da API)."
 exec java -jar "$JAR" --spring.profiles.active=local \
   --vetor.accounts.enabled=true --vetor.accounts.mailbox-port=8025
