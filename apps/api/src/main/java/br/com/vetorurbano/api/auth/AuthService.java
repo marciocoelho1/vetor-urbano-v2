@@ -168,6 +168,11 @@ public class AuthService {
         jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?, 'query','RECORD_LOOKUP','SUCCEEDED',jsonb_build_object('recordId',?::text))",
                 account,now(),recordId);
     }
+    /** Ticket 22: the operations panel is an administrative read; only aggregate numbers are audited. */
+    @Transactional public void auditOperationsView(UUID account,int sources,int pendingReviews,int expiringConfirmations) {
+        jdbc.update("INSERT INTO auth_audit_events(account_id,occurred_at,module,action,outcome,parameters) VALUES(?,?,'operations','OPERATIONS_VIEW','SUCCEEDED',jsonb_build_object('sources',?::integer,'pendingReviews',?::integer,'expiringConfirmations',?::integer))",
+                account,now(),sources,pendingReviews,expiringConfirmations);
+    }
     private void auditUsage(UUID account, String action, br.com.vetorurbano.api.occurrences.OccurrenceQuery query,
             br.com.vetorurbano.api.occurrences.OccurrenceQueryCounts counts, Map<String,Object> additional, String outcome) {
         var parameters=new LinkedHashMap<String,Object>();
