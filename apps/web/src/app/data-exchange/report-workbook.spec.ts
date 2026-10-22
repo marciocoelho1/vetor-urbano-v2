@@ -143,6 +143,25 @@ describe('workbook da consulta avançada', () => {
     expect(JSON.stringify(sheets)).not.toMatch(/nota interna|fator de avaliação/i);
   });
 
+  it('registra o crédito da fonte autorizada apenas quando o recorte a referencia', () => {
+    const withoutCredit = buildAdvancedReportSheets(response, { filterSummary: 'Sem coleta' });
+    expect(JSON.stringify(withoutCredit)).not.toContain('Crédito de fonte autorizada');
+
+    const withCredit = buildAdvancedReportSheets(
+      { ...response, attribution: [' Fonte: Instituto Fogo Cruzado ', ''] },
+      { filterSummary: 'Com coleta' },
+    );
+    expect(withCredit[0]?.rows).toContainEqual([
+      'Crédito de fonte autorizada',
+      'Fonte: Instituto Fogo Cruzado',
+    ]);
+    expect(withCredit.map((sheet) => sheet.name)).toEqual([
+      'Recorte',
+      'Ocorrências',
+      'Referências',
+    ]);
+  });
+
   it('divide abas acima do limite mantendo cabeçalho e todos os registros/referências', () => {
     const sheets = buildAdvancedReportSheets(response, { filterSummary: 'Pilar: Trânsito' }, 1);
 

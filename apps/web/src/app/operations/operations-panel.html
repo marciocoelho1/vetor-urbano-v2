@@ -1,0 +1,212 @@
+<section class="workspace-card operations-panel" aria-labelledby="operations-heading">
+  <div class="operations-heading">
+    <div>
+      <p class="eyebrow">Administração · operação</p>
+      <h2 id="operations-heading" tabindex="-1" data-testid="operations-heading">Operação</h2>
+    </div>
+    <button
+      type="button"
+      class="map-tool-button"
+      (click)="reload()"
+      data-testid="operations-refresh"
+    >
+      Atualizar painel
+    </button>
+  </div>
+
+  <p>
+    Leitura do estado real da coleta e da fila de revisão: última tentativa, último sucesso, falhas
+    e espera. Este painel não dispara coleta, não altera revisão e não publica nada.
+  </p>
+
+  <p role="status" aria-live="polite" data-testid="operations-notice">{{ notice() }}</p>
+
+  @if (loading()) {
+    <p role="status" data-testid="operations-loading">Carregando estado de operação…</p>
+  }
+
+  @if (error()) {
+    <div role="alert" data-testid="operations-error">
+      <p>{{ error() }}</p>
+      <button type="button" class="inline-retry" (click)="reload()" data-testid="operations-retry">
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (view(); as panel) {
+    <section aria-labelledby="operations-sources-heading" data-testid="operations-sources">
+      <h3 id="operations-sources-heading">Fontes de coleta</h3>
+      @if (sourcesNotConfigured()) {
+        <p role="status" data-testid="operations-sources-not-configured">
+          {{ panel.sources.label || 'Nenhuma fonte de coleta configurada' }}.
+          {{ panel.sources.detail }}
+        </p>
+      } @else {
+        <ul class="operations-source-list">
+          @for (source of panel.sources.items; track source.id) {
+            <li class="operations-source" data-testid="operations-source">
+              <div class="operations-source-head">
+                <strong data-testid="operations-source-name">{{ sourceTitle(source) }}</strong>
+                <span
+                  class="status-pill operations-pill"
+                  [attr.data-tone]="tone(source.assessment)"
+                  data-testid="operations-source-pill"
+                  >{{ source.assessmentLabel }}</span
+                >
+              </div>
+              <p class="operations-credit" data-testid="operations-source-credit">
+                {{ sourceCredit(source) }}
+              </p>
+              <dl class="operations-meta">
+                <div>
+                  <dt>Última tentativa</dt>
+                  <dd data-testid="operations-source-attempt">
+                    {{
+                      source.lastAttemptAt
+                        ? instant(source.lastAttemptAt) + ' (Brasília)'
+                        : 'Nenhuma'
+                    }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Último sucesso</dt>
+                  <dd data-testid="operations-source-success">
+                    {{
+                      source.lastSuccessAt
+                        ? instant(source.lastSuccessAt) + ' (Brasília)'
+                        : 'Nenhum'
+                    }}
+                  </dd>
+                </div>
+                @if (source.lastErrorClass) {
+                  <div>
+                    <dt>Classe da falha</dt>
+                    <dd data-testid="operations-source-error-class">{{ source.lastErrorClass }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>Pausada</dt>
+                  <dd>{{ source.paused ? 'Sim' : 'Não' }}</dd>
+                </div>
+                @if (source.lastRun; as run) {
+                  <div>
+                    <dt>Última execução</dt>
+                    <dd data-testid="operations-source-run">
+                      {{ run.kind || 'execução' }} · {{ run.state }} · {{ run.pagesDone }} página(s)
+                      · {{ run.itemsSeen }} vista(s) · {{ run.itemsCreated }} criada(s) ·
+                      {{ run.itemsDuplicated }} duplicada(s)
+                    </dd>
+                  </div>
+                }
+              </dl>
+              <p data-testid="operations-source-detail">{{ source.detail }}</p>
+              <button
+                type="button"
+                class="inline-retry"
+                (click)="goTo('collection-heading', 'a seção Coleta')"
+                data-testid="operations-nav-collection"
+              >
+                Ver coleta desta fonte
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section aria-labelledby="operations-queue-heading" data-testid="operations-queue">
+      <h3 id="operations-queue-heading">Fila de revisão</h3>
+      <p data-testid="operations-queue-label">{{ panel.queue.label }}</p>
+      @if (!queueEmpty()) {
+        <dl class="operations-meta">
+          <div>
+            <dt>Aguardando revisão</dt>
+            <dd data-testid="operations-queue-pending">{{ panel.queue.pending }}</dd>
+          </div>
+          <div>
+            <dt>Prioridade alta</dt>
+            <dd data-testid="operations-queue-high">{{ panel.queue.highPriority }}</dd>
+          </div>
+          <div>
+            <dt>Maior espera</dt>
+            <dd data-testid="operations-queue-wait">{{ wait(panel.queue.longestWaitSeconds) }}</dd>
+          </div>
+          <div>
+            <dt>Item mais antigo</dt>
+            <dd data-testid="operations-queue-oldest">
+              {{
+                panel.queue.oldestQueuedAt
+                  ? instant(panel.queue.oldestQueuedAt) + ' (Brasília)'
+                  : 'Não se aplica'
+              }}
+            </dd>
+          </div>
+        </dl>
+        <button
+          type="button"
+          class="inline-retry"
+          (click)="goTo('review-heading', 'a fila de revisão')"
+          data-testid="operations-nav-queue"
+        >
+          Abrir fila de revisão
+        </button>
+      }
+    </section>
+
+    <section
+      aria-labelledby="operations-confirmations-heading"
+      data-testid="operations-confirmations"
+    >
+      <h3 id="operations-confirmations-heading">Confirmações de andamento</h3>
+      @if (confirmationsNotConfigured()) {
+        <p role="status" data-testid="operations-confirmations-not-configured">
+          {{ panel.confirmations.label }}. {{ panel.confirmations.detail }}
+        </p>
+      } @else {
+        <p data-testid="operations-confirmations-label">{{ panel.confirmations.label }}</p>
+        <p data-testid="operations-confirmations-detail">{{ panel.confirmations.detail }}</p>
+        @if (panel.confirmations.expiring.length) {
+          <ul class="operations-expiring">
+            @for (item of panel.confirmations.expiring; track item.occurrenceId) {
+              <li data-testid="operations-expiring-item">
+                <strong>{{ item.occurrenceId }}</strong>
+                <span>{{ item.type || 'tipo não informado' }}</span>
+                <span>{{ item.municipality || 'município não informado' }}</span>
+                <span
+                  >expira em
+                  {{
+                    item.expiresAt
+                      ? instant(item.expiresAt) + ' (Brasília)'
+                      : 'instante não informado'
+                  }}</span
+                >
+              </li>
+            }
+          </ul>
+        } @else {
+          <p role="status" data-testid="operations-expiring-empty">
+            Nenhuma confirmação vence na antecedência configurada.
+          </p>
+        }
+        <p data-testid="operations-expired">Já vencidas: {{ panel.confirmations.expired }}</p>
+        @if (panel.confirmations.typesWithoutDeadline.length) {
+          <p role="alert" data-testid="operations-types-without-deadline">
+            Tipos sem prazo aprovado, que não aparecem como expirando:
+            {{ panel.confirmations.typesWithoutDeadline.join(', ') }}.
+          </p>
+        }
+        @if (panel.confirmations.typesWithoutAutomaticExtension.length) {
+          <p data-testid="operations-types-without-extension">
+            Tipos com decisão aprovada de não prorrogar automaticamente:
+            {{ panel.confirmations.typesWithoutAutomaticExtension.join(', ') }}.
+          </p>
+        }
+      }
+    </section>
+
+    <p class="operations-limitations" data-testid="operations-limitations">
+      {{ panelLimitations() }}
+    </p>
+  }
+</section>

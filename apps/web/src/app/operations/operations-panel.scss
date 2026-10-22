@@ -1,0 +1,127 @@
+:host {
+  display: block;
+  min-width: 0;
+  margin-block: 1rem;
+}
+
+.operations-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.operations-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.operations-panel h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.operations-source-list,
+.operations-expiring {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operations-source {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 11px;
+  background: var(--color-bg-muted);
+}
+
+.operations-source-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.operations-credit {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted, currentColor);
+}
+
+.operations-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.operations-meta div {
+  min-width: 0;
+}
+
+.operations-meta dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, currentColor);
+}
+
+.operations-meta dd {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+}
+
+.operations-expiring li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 9px;
+  font-size: 0.85rem;
+}
+
+.operations-limitations {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted, currentColor);
+}
+
+.operations-pill[data-tone='ok'] {
+  border-color: rgb(16 185 129 / 45%);
+  background: rgb(16 185 129 / 9%);
+  color: var(--accent-strong, currentColor);
+}
+
+.operations-pill[data-tone='warn'] {
+  border-color: rgb(245 158 11 / 45%);
+  background: rgb(245 158 11 / 10%);
+}
+
+.operations-pill[data-tone='alert'] {
+  border-color: rgb(239 68 68 / 45%);
+  background: rgb(239 68 68 / 10%);
+}
+
+.operations-pill[data-tone='muted'] {
+  border-color: var(--color-border-subtle);
+  background: transparent;
+}
+
+@media (max-width: 480px) {
+  .operations-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -124,6 +124,11 @@ export function buildAdvancedReportSheets(
   const referencedSources = new Set(
     response.items.flatMap((item) => item.clippings.map((clipping) => clipping.source.id)),
   );
+  // Atribuição exigida pela fonte autorizada (termo de consentimento do ticket 20). O texto vem
+  // do servidor, nunca de uma constante local, e só aparece quando o recorte a referencia.
+  const attribution = [...new Set(response.attribution ?? [])]
+    .map((credit) => credit.trim())
+    .filter(Boolean);
 
   const recut: SpreadsheetSheet = {
     name: 'Recorte',
@@ -141,6 +146,9 @@ export function buildAdvancedReportSheets(
       ['Datas temporalmente certas', response.counts.temporallyCertain],
       ['Datas temporalmente possíveis', response.counts.temporallyPossible],
       ['Fontes referenciadas', referencedSources.size],
+      ...(attribution.length
+        ? ([['Crédito de fonte autorizada', attribution.join('; ')]] as SpreadsheetCell[][])
+        : []),
       ['Limitações', LIMITATIONS],
     ],
     columnWidths: [34, 100],

@@ -19,10 +19,8 @@ import { mountOccurrenceHeatmap } from './maps/occurrence-heatmap-overlay';
 import { createHeatmapSnapshot, HEAT_LEGEND } from './maps/occurrence-heatmap';
 import { SessionPanel } from './auth/session-panel';
 import { AuditLog } from './audit/audit-log';
-import { ReviewQueue } from './moderation/review-queue';
+import { AdminSourcesPanels } from './admin/admin-sources-panels';
 import { CorrectionChannel } from './corrections/correction-channel';
-import { SourceManagement } from './sources/source-management';
-import { CollectionPanel } from './collection/collection-panel';
 import { RiskAreaManagement } from './risk-areas/risk-area-management';
 import { fetchRiskAreas } from './data/risk-area-api';
 import { persistedRiskAreaFeature } from './domain/persisted-risk-areas';
@@ -179,6 +177,8 @@ type MappedDemoPoint = DemoPoint & {
 type ReportSnapshot = {
   generatedAt: string;
   snapshotOccurrenceIds?: string[];
+  /** Atribuições exigidas pelas fontes autorizadas presentes no recorte gerado. */
+  attribution?: string[];
   filters: LocalFilters;
   items: DemoPoint[];
   counts: {
@@ -474,11 +474,9 @@ interface SuspendedAdvancedFilters {
     VerificationPanel,
     SessionPanel,
     SelfAccount,
-    SourceManagement,
-    CollectionPanel,
+    AdminSourcesPanels,
     RiskAreaManagement,
     CorrectionChannel,
-    ReviewQueue,
     AuditLog,
     PublicSourceList,
     CommonModule,
@@ -3623,6 +3621,7 @@ export class App implements AfterViewInit, OnDestroy {
           snapshotOccurrenceIds: [
             ...new Set([...response.items, ...response.relatedItems].map((item) => item.id)),
           ],
+          attribution: response.attribution,
           filters: savedFilters,
           items,
           counts: {

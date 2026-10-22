@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DemoRecord } from '../domain/occurrences';
-import { createReportPdf, type PdfReportSnapshot } from './report-pdf';
+import { createReportPdf, reportCredits, type PdfReportSnapshot } from './report-pdf';
 
 /**
  * Unidade limitada às falhas de leitura da fonte: o ambiente de testes web não expõe
@@ -63,5 +63,18 @@ describe('PDF do relatório gerado', () => {
     await expect(createReportPdf(snapshot, 'Pilar: Trânsito')).rejects.toThrow(
       'A fonte local do PDF está indisponível. Tente novamente.',
     );
+  });
+
+  it('lista o crédito da fonte autorizada uma única vez e sem entradas vazias', () => {
+    expect(reportCredits()).toEqual([]);
+    expect(reportCredits([])).toEqual([]);
+    expect(reportCredits(['', '   '])).toEqual([]);
+    expect(
+      reportCredits([
+        'Fonte: Instituto Fogo Cruzado',
+        ' Fonte: Instituto Fogo Cruzado ',
+        'Fonte: outra fonte autorizada',
+      ]),
+    ).toEqual(['Fonte: Instituto Fogo Cruzado', 'Fonte: outra fonte autorizada']);
   });
 });

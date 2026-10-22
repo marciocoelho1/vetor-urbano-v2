@@ -7,6 +7,8 @@ export interface PdfReportSnapshot {
   generatedAt: string;
   filters: LocalFilters;
   items: DemoRecord[];
+  /** Atribuições exigidas pelas fontes autorizadas presentes neste recorte. */
+  attribution?: string[];
   counts: {
     occurrences: number;
     happenings: number;
@@ -17,6 +19,14 @@ export interface PdfReportSnapshot {
 
 function utcInstant(value?: Date): string {
   return value ? value.toISOString() : 'não definido';
+}
+
+/**
+ * Créditos de fonte autorizada que o documento deve exibir, sem duplicatas nem entradas vazias.
+ * Separado da composição para permitir conferência unitária sem renderizar a fonte do PDF.
+ */
+export function reportCredits(attribution?: string[]): string[] {
+  return [...new Set((attribution ?? []).map((credit) => credit.trim()).filter(Boolean))];
 }
 
 export async function createReportPdf(
@@ -183,6 +193,11 @@ export async function createReportPdf(
   ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   if (!sources.length) paragraph('Sem fontes identificadas nas referências deste recorte.');
   for (const source of sources) paragraph(source);
+  const attribution = reportCredits(snapshot.attribution);
+  if (attribution.length) {
+    heading('Crédito de fonte autorizada');
+    for (const credit of attribution) paragraph(credit);
+  }
   heading('Limitações');
   paragraph(
     'Documento do recorte completo disponível no momento original da geração. Não incorpora publicações posteriores sem atualização explícita. Dados e geometrias sintéticos do ambiente local; não usar para decisões operacionais.',

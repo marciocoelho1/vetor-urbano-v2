@@ -2967,9 +2967,13 @@
       }
       @if (activeView() === 'sources') {
         @if (persistedQueryEnabled) {
-          <app-source-management />
-          <app-collection-panel />
-          <app-review-queue />
+          @defer (when persistedQueryEnabled) {
+            <app-admin-sources-panels />
+          } @placeholder {
+            <p role="status" data-testid="admin-sources-loading">
+              Carregando painéis administrativos de fontes, coleta, operação e revisão…
+            </p>
+          }
         }
         <section
           class="workspace-view"

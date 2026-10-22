@@ -43,6 +43,8 @@ export interface PersistedOccurrence {
 export interface PersistedQueryResponse {
   revision?: string;
   generatedAt: string;
+  /** Créditos das fontes de coleta autorizadas referenciadas pelo recorte; vazio quando não há. */
+  attribution?: string[];
   counts: {
     occurrences: number;
     happenings: number;
