@@ -18,8 +18,8 @@ import br.com.vetorurbano.api.corrections.CorrectionService;
 @ConditionalOnProperty(name="vetor.accounts.enabled",havingValue="true")
 public class ReviewService {
     private static final JsonMapper JSON=JsonMapper.builder().build();
-    private final JdbcTemplate jdbc;private final Clock clock;private final PublicationStore publications;
-    public ReviewService(JdbcTemplate jdbc,Clock clock,PublicationStore publications){this.jdbc=jdbc;this.clock=clock;this.publications=publications;}
+    private final JdbcTemplate jdbc;private final Clock clock;private final PublicationStore publications;private final br.com.vetorurbano.api.reliability.ReliabilityService reliability;
+    public ReviewService(JdbcTemplate jdbc,Clock clock,PublicationStore publications,br.com.vetorurbano.api.reliability.ReliabilityService reliability){this.jdbc=jdbc;this.clock=clock;this.publications=publications;this.reliability=reliability;}
     public Object queue(String priority,String order,UUID actor){
         if(priority!=null&&!Set.of("HIGH","NORMAL","PLANNED").contains(priority)||order!=null&&!Set.of("priority","wait").contains(order))throw CorrectionService.invalid("Filtro de fila inválido.");
         publications.audit(actor,"REVIEW_QUEUE_READ","queue");
@@ -55,11 +55,11 @@ public class ReviewService {
             if(reference==null||reference.isBlank())throw CorrectionService.invalid("Referência rastreável obrigatória.");
             if(Boolean.TRUE.equals(review.get("essential_conflict")))PublicationDraft.text(body,"conflictResolution",2000);
             if(action.equals("CREATE")){
-                var drafts=new ArrayList<PublicationDraft>();drafts.add(PublicationDraft.parse(draft(body)));
+                var drafts=new ArrayList<PublicationDraft>();var core=draft(body);guard(core);drafts.add(PublicationDraft.parse(core));
                 if(body.containsKey("additionalEffects")){
                     if(!(body.get("additionalEffects") instanceof List<?> effects))throw CorrectionService.invalid("Lista de efeitos inválida.");
                     for(var effect:effects){if(!(effect instanceof Map<?,?>))throw CorrectionService.invalid("Efeito sem núcleo factual.");
-                        @SuppressWarnings("unchecked") var factual=(Map<String,Object>)effect;drafts.add(PublicationDraft.parse(factual));}
+                        @SuppressWarnings("unchecked") var factual=(Map<String,Object>)effect;guard(factual);drafts.add(PublicationDraft.parse(factual));}
                 }
                 String happening;
                 if(body.containsKey("happeningId")&&!body.containsKey("happeningTitle")){
@@ -79,6 +79,7 @@ public class ReviewService {
                 occurrence=PublicationDraft.text(body,"occurrenceId",200);
                 var current=jdbc.queryForList("SELECT revision,publication_status FROM occurrences WHERE id=? FOR UPDATE",occurrence);
                 if(current.isEmpty()||!current.getFirst().get("publication_status").equals("PUBLISHED"))throw CorrectionService.invalid("Associação exige ocorrência publicada.");
+                guardOccurrence(occurrence);
                 if(PublicationDraft.integer(body,"expectedOccurrenceVersion")!=(Integer)current.getFirst().get("revision"))throw conflict("Ocorrência mudou; revise a associação.");
                 String old=publications.snapshot(occurrence);
                 jdbc.update("INSERT INTO occurrence_clippings(occurrence_id,clipping_id) VALUES(?,?) ON CONFLICT DO NOTHING",occurrence,id);
@@ -93,6 +94,15 @@ public class ReviewService {
         publications.audit(actor,"CLIPPING_"+action,id);return JSON.readTree(after);
     }
     @SuppressWarnings("unchecked") static Map<String,Object> draft(Map<String,Object> body){if(!(body.get("draft") instanceof Map<?,?> map))throw CorrectionService.invalid("Núcleo factual obrigatório.");return (Map<String,Object>)map;}
+    /** Ticket 23: a regra vigente bloqueia publicação com essencial ausente, mesmo com nota alta. */
+    private void guard(Map<String,Object> core){
+        var blocking=reliability.blockingForDraft(core,false);
+        if(!blocking.isEmpty())throw CorrectionService.invalid("Publicação bloqueada pela regra de confiabilidade: "+String.join(", ",blocking)+".");
+    }
+    private void guardOccurrence(String occurrence){
+        var blocking=reliability.blockingForOccurrence(occurrence);
+        if(!blocking.isEmpty())throw CorrectionService.invalid("Associação bloqueada pela regra de confiabilidade: "+String.join(", ",blocking)+".");
+    }
     private String reviewSnapshot(String id){return jdbc.queryForObject("SELECT to_jsonb(r)::text FROM clipping_reviews r WHERE clipping_id=?",String.class,id);}
     static ResponseStatusException conflict(String message){return new ResponseStatusException(HttpStatus.CONFLICT,message);}
 }

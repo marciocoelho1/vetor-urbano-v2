@@ -30,7 +30,13 @@ public class OccurrenceQueryRepository {
                 o.occurrence_type,
                 o.subtype,
                 o.situation,
-                o.reliability_score,
+                -- Ticket 23: quando existe avaliação publicada, a nota 1–5 vem dela; os fatores e a nota
+                -- interna da fonte nunca entram nesta projeção pública.
+                COALESCE((
+                    SELECT e.note FROM occurrence_reliability_evaluations e
+                    WHERE e.occurrence_id = o.id AND e.state = 'PUBLISHED'
+                    ORDER BY e.evaluation_version DESC LIMIT 1
+                ), o.reliability_score) AS reliability_score,
                 o.municipality,
                 o.neighborhood,
                 o.location_precision,
