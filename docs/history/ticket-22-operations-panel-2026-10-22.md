@@ -59,6 +59,18 @@ migração de dados de domínio foi criada além da V19, que apenas autoriza o m
 - **Petrópolis** permanece limitação de cobertura da fonte, não de código: já registrada em
   `MUNICIPALITIES_MISSING` e no checkpoint do ticket 20; o painel não inventa município ausente.
 
+## Controlador — estado registrado nesta data
+
+- `reconcile` registrou **20, 21, 22 e 35** como `accepted` / `verified_local_demonstration`, com
+  checkpoint versionado e commit ancestral como evidência. O 21 preserva o aceite concedido pelo
+  responsável em 22/10/2026; 20 e 35 foram registrados por delegação explícita desta rodada.
+- `rebaseline` refez a base do `integrated-review` (base anterior às correções de B5) e o ticket foi
+  reconciliado como `blocked` / `tool_limitation_recorded`: a fase obrigatória continua pertencendo ao
+  controlador, e o aceite técnico de 06/10/36 segue documentado.
+- `ticketctl.py next` continua devolvendo **exit 3** («Fila sem tarefa pronta») porque as fases
+  obrigatórias 06, 36, 07, 10 e `integrated-review` e os tickets 23/24 não estão concluídos. Nenhum
+  gate foi contornado nesta rodada.
+
 ## Limitações
 
 - Ambiente sintético: não comprova coleta real, cobertura, SLA ou prontidão operacional.
