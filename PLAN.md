@@ -12,9 +12,14 @@
   ocorrências sem trocar notas antigas (V21).
 - **Evidência:** `ReliabilityHttpIT` 4/4 e `SourceRatingHttpIT` 3/3 em PostgreSQL/PostGIS real; suítes de
   publicação, consulta, relatório ativo, migração e fontes reexecutadas sem regressão.
-- **Próxima ação:** fatia de interface de 23/24 (painel administrativo com estados de carregamento, erro
-  e vazio, teclado/foco e 390 px) e specs Playwright em Chromium/Firefox; até lá ambos seguem **não
-  aceitos**. Depois: `complete-phase` no controlador para 06/07/integrated-review.
+- **Interface de 23/24 concluída na mesma rodada:** painel de confiabilidade no bloco diferido, com
+  avaliação, reprodução, publicação condicionada, recomendação e decisão justificada. `ng test` 188/188,
+  lint limpo, build 847,61 kB (chunk diferido 102,06 kB, margem 52,39 kB) e Playwright 14/14 em
+  Chromium/Firefox cobrindo teclado/foco, erro, vazio e 390 px.
+- **Estado dos tickets:** 23 e 24 com critérios de implementação cobertos e aceite de incremento local
+  registrado; nenhum representa prontidão operacional.
+- **Próxima ação:** `complete-phase` no controlador para 06/07/integrated-review (única barreira que
+  mantém `next` em exit 3), depois cartografia real do 26 e revisão jurídica/publicação do 36.
 
 ## Rodada 22 — ticket 22, crédito em exportações, rebaseline e carga diferida — 22/10/2026
 

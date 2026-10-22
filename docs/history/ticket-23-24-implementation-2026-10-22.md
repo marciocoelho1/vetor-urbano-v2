@@ -60,8 +60,24 @@ Testcontainers no socket Podman).
 - `UNKNOWN` entrou em `notInformedValues` da regra v1, porque é o marcador de situação desconhecida no
   catálogo — sem isso, «situação desconhecida» seria lida como informação presente.
 
-## Pendências reais (critério 5 de cada ticket)
+## Interface e jornada de navegador (mesma data)
 
-- Painel administrativo de 23/24 com estados de carregamento, erro e vazio, teclado/foco e 390 px.
-- Specs Playwright em Chromium/Firefox das jornadas acima.
-- Aceite do responsável depois disso; nada aqui representa prontidão operacional.
+- `apps/web/src/app/data/reliability-api.ts`: transporte tipado das seis rotas administrativas, com
+  erro de sessão (401/403) e bloqueio (409) distintos de falha genérica.
+- `apps/web/src/app/reliability/reliability-panel.{ts,html,scss}` dentro do bloco diferido
+  `AdminSourcesPanels`: avaliação com fatores internos, reprodução da versão, publicação condicionada,
+  recomendação com amostra e decisão justificada; foco no cabeçalho do resultado e leitura em 390 px.
+- `reliability-panel.spec.ts` (unitário, 8 casos): nota registrada, bloqueio por essencial ausente,
+  erro de leitura que não vira vazio, vazio explícito, reprodução com diferenças, decisão aprovada com
+  justificativa, amostra insuficiente e ocorrências sinalizadas.
+- `e2e/reliability-panel.spec.ts` (Playwright): duas jornadas em Chromium e Firefox com fixtures
+  exclusivas no contêiner sintético `vu-ticket29-e2e-db`.
+
+| Verificação | Resultado |
+|---|---|
+| `ng test` | **188 testes em 25 arquivos**, zero falhas |
+| `npm run lint` | limpo |
+| `npm run build` | inicial **847,61 kB** (chunk diferido `admin-sources-panels` **102,06 kB**); margem **52,39 kB** até 900 kB |
+| Playwright `reliability-panel` + `operations-panel` + `admin-local-sources` + `audit-log` | **14/14** Chromium/Firefox |
+
+Limite mantido: incremento local verificado; sem dados reais, contratação ou publicação externa.

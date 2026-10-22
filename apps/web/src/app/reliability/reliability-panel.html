@@ -1,0 +1,340 @@
+<section class="workspace-card reliability-panel" aria-labelledby="reliability-heading">
+  <div class="reliability-heading">
+    <div>
+      <p class="eyebrow">Administração · confiabilidade</p>
+      <h2 id="reliability-heading" tabindex="-1" data-testid="reliability-heading">
+        Confiabilidade
+      </h2>
+    </div>
+    <button
+      type="button"
+      class="map-tool-button"
+      (click)="loadContext()"
+      data-testid="reliability-refresh"
+    >
+      Atualizar painel
+    </button>
+  </div>
+
+  <p>
+    Avaliação versionada da ocorrência e decisão mensal da nota da fonte. O público recebe apenas a
+    nota de 1 a 5; fórmula, rubrica e nota interna da fonte ficam restritas ao servidor e a esta
+    conferência.
+  </p>
+  <p data-testid="reliability-rule">
+    Regra vigente: v{{ ruleSummary() || '—' }} — parâmetros imutáveis por versão; trocar de versão
+    não reescreve nota histórica.
+  </p>
+
+  <p role="status" aria-live="polite" data-testid="reliability-notice">{{ notice() }}</p>
+
+  <h3
+    id="reliability-evaluation-heading"
+    #evaluationHeading
+    tabindex="-1"
+    data-testid="reliability-evaluation-heading"
+  >
+    Avaliação da ocorrência
+  </h3>
+
+  <div class="reliability-controls">
+    <label for="reliability-occurrence">Ocorrência publicada</label>
+    <select
+      id="reliability-occurrence"
+      name="occurrence"
+      (change)="pickOccurrence($event)"
+      data-testid="reliability-occurrence"
+    >
+      @for (occurrence of occurrences(); track occurrence.id) {
+        <option [value]="occurrence.id" [selected]="occurrence.id === selectedOccurrence()">
+          {{ occurrence.title }}
+        </option>
+      }
+    </select>
+    <button
+      type="button"
+      class="map-tool-button"
+      (click)="evaluate()"
+      [disabled]="busy() || !selectedOccurrence()"
+      data-testid="reliability-evaluate"
+    >
+      Avaliar ocorrência
+    </button>
+  </div>
+
+  @if (loadingEvaluation()) {
+    <p role="status" data-testid="reliability-evaluation-loading">Carregando avaliação…</p>
+  }
+
+  @if (evaluationError()) {
+    <div role="alert" data-testid="reliability-evaluation-error">
+      <p>{{ evaluationError() }}</p>
+      <button
+        type="button"
+        class="inline-retry"
+        (click)="loadEvaluation()"
+        data-testid="reliability-evaluation-retry"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (!loadingEvaluation() && !evaluationError()) {
+    @if (evaluation(); as current) {
+      <div class="reliability-result" data-testid="reliability-evaluation">
+        <p class="reliability-note">
+          Nota
+          <strong data-testid="reliability-note">{{ current.note }}</strong>
+          <span data-testid="reliability-state">
+            {{ current.state === 'PUBLISHED' ? 'publicada' : 'registrada, nota não publicada' }}
+          </span>
+        </p>
+        <p data-testid="reliability-version">
+          Versão da avaliação v{{ current.evaluationVersion }} · regra v{{ current.ruleVersion }}
+        </p>
+
+        @if (current.blocking.length > 0) {
+          <div role="alert" class="reliability-blocking" data-testid="reliability-blocking">
+            <p>Publicação bloqueada mesmo com nota alta:</p>
+            <ul>
+              @for (reason of current.blocking; track reason) {
+                <li>{{ blocking(reason) }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="reliability-grid">
+          <section aria-labelledby="reliability-factors-heading">
+            <h4 id="reliability-factors-heading">Fatores internos</h4>
+            <ul data-testid="reliability-factors">
+              <li>
+                Qualidade: {{ current.factors.quality.status }}
+                @if (current.factors.quality.neutralBaseUsed) {
+                  — sem fonte com nota, vale o centro da escala
+                }
+              </li>
+              <li>
+                Corroboração: {{ current.factors.corroboration.count }} fonte(s) independente(s) com
+                referência (bônus {{ current.factors.corroboration.bonus }})
+              </li>
+              <li>Divergência: {{ current.factors.divergence.effect }} (não desconta)</li>
+              <li>Arredondamento: {{ current.factors.rounding }}</li>
+            </ul>
+            <ul data-testid="reliability-field-status">
+              @for (entry of current.factors.completeness.fieldStatus | keyvalue; track entry.key) {
+                <li>{{ entry.key }}: {{ entry.value }}</li>
+              }
+            </ul>
+          </section>
+
+          <section aria-labelledby="reliability-sources-heading">
+            <h4 id="reliability-sources-heading">Fontes de suporte</h4>
+            @if (current.context.sources.length === 0) {
+              <p data-testid="reliability-sources-empty">
+                Nenhuma fonte de suporte com referência rastreável nesta ocorrência.
+              </p>
+            } @else {
+              <ul data-testid="reliability-sources">
+                @for (support of current.context.sources; track support.clippingId) {
+                  <li>
+                    {{ support.sourceName || support.sourceId }} — nota
+                    {{ support.rating ?? 'não informada' }}
+                    @if (support.referenceSource) {
+                      (fonte de referência)
+                    }
+                    @if (!support.traceableReference) {
+                      (sem referência: não eleva a nota)
+                    }
+                  </li>
+                }
+              </ul>
+            }
+            @if (current.context.reproductions.length > 0) {
+              <p data-testid="reliability-reproductions">
+                {{ current.context.reproductions.length }} reprodução(ões) contada(s) uma vez pela
+                origem.
+              </p>
+            }
+          </section>
+        </div>
+
+        <div class="reliability-actions">
+          <button
+            type="button"
+            class="map-tool-button"
+            (click)="reproduce()"
+            [disabled]="busy()"
+            data-testid="reliability-reproduce"
+          >
+            Reproduzir mesma versão
+          </button>
+          <button
+            type="button"
+            class="map-tool-button"
+            (click)="publish()"
+            [disabled]="busy() || !canPublish()"
+            data-testid="reliability-publish"
+          >
+            Publicar nota {{ current.note }}
+          </button>
+        </div>
+
+        @if (isPublished()) {
+          <p data-testid="reliability-published">
+            Nota publicada: a consulta passa a exibir esta nota de 1 a 5, sem fatores.
+          </p>
+        }
+
+        @if (reproduction(); as check) {
+          <div data-testid="reliability-reproduction">
+            <p>
+              {{ check.reproduced ? 'Reproduzida' : 'Dados mudaram desde o registro' }} — registrada
+              {{ check.storedNote }}, recalculada {{ check.recomputedNote }}.
+            </p>
+            @if (check.differences.length > 0) {
+              <ul>
+                @for (difference of check.differences; track difference) {
+                  <li>{{ difference }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <p data-testid="reliability-evaluation-empty">
+        Ocorrência ainda sem avaliação registrada. Avaliar cria a primeira versão com os fatores
+        internos.
+      </p>
+    }
+  }
+
+  <h3
+    id="reliability-source-heading"
+    #sourceHeading
+    tabindex="-1"
+    data-testid="reliability-source-heading"
+  >
+    Nota da fonte
+  </h3>
+
+  <div class="reliability-controls">
+    <label for="reliability-source">Fonte cadastrada</label>
+    <select
+      id="reliability-source"
+      name="source"
+      (change)="pickSource($event)"
+      data-testid="reliability-source"
+    >
+      @for (source of sources(); track source.id) {
+        <option [value]="source.id" [selected]="source.id === selectedSource()">
+          {{ source.name }} (nota {{ source.rating }})
+        </option>
+      }
+    </select>
+  </div>
+
+  @if (loadingSource()) {
+    <p role="status" data-testid="reliability-source-loading">Carregando recomendação…</p>
+  }
+
+  @if (sourceError()) {
+    <div role="alert" data-testid="reliability-source-error">
+      <p>{{ sourceError() }}</p>
+      <button
+        type="button"
+        class="inline-retry"
+        (click)="loadRecommendation()"
+        data-testid="reliability-source-retry"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  }
+
+  @if (!loadingSource() && !sourceError()) {
+    @if (recommendation(); as current) {
+      <div data-testid="reliability-recommendation">
+        <p>
+          <span
+            class="reliability-pill {{ tone(current.recommendation) }}"
+            data-testid="reliability-recommendation-state"
+          >
+            {{ label(current.recommendation) }}
+          </span>
+          nota atual {{ current.currentRating }} · janela de {{ current.windowDays }} dias
+        </p>
+        <p data-testid="reliability-recommendation-justification">{{ current.justification }}</p>
+        <ul data-testid="reliability-sample">
+          <li>Aplicáveis: {{ current.sample.applicable }} (mínimo {{ current.sample.minimum }})</li>
+          <li>Confirmadas: {{ current.sample.confirmed }}</li>
+          <li>Demonstradas incorretas: {{ current.sample.disproven }}</li>
+          <li>Corrigidas pela fonte: {{ current.sample.correctedBySource }}</li>
+          <li>Inconclusivas: {{ current.sample.inconclusive }}</li>
+          <li>Erro do sistema (fora da amostra): {{ current.sample.systemErrors }}</li>
+        </ul>
+        <p data-testid="reliability-limitations">{{ current.limitations }}</p>
+
+        <label for="reliability-justification">Justificativa da decisão</label>
+        <textarea
+          id="reliability-justification"
+          rows="3"
+          [value]="justification()"
+          (input)="updateJustification($event)"
+          data-testid="reliability-justification"
+        ></textarea>
+
+        <div class="reliability-actions">
+          <button
+            type="button"
+            class="map-tool-button"
+            (click)="decide(true)"
+            [disabled]="busy() || !canApproveChange() || justificationTooShort()"
+            data-testid="reliability-approve"
+          >
+            Aprovar mudança de nota
+          </button>
+          <button
+            type="button"
+            class="map-tool-button"
+            (click)="decide(false)"
+            [disabled]="busy()"
+            data-testid="reliability-reject"
+          >
+            Manter nota e registrar decisão
+          </button>
+        </div>
+
+        @if (!canApproveChange()) {
+          <p data-testid="reliability-no-change">
+            Amostra insuficiente ou recomendação de manter: não há mudança de nota a aprovar.
+          </p>
+        }
+
+        @if (decision(); as decided) {
+          <p data-testid="reliability-decision">
+            Decisão {{ decided.decision }} · nota {{ decided.previousRating }} →
+            {{ decided.appliedRating }} · {{ decided.flaggedOccurrences }} ocorrência(s)
+            sinalizada(s) para reavaliação sem trocar a nota delas.
+          </p>
+        }
+
+        @if (openFlags().length > 0) {
+          <ul data-testid="reliability-flags">
+            @for (flag of openFlags(); track flag.id) {
+              <li>
+                {{ flag.occurrence_id }} — nota atual {{ flag.current_note }}; reavaliação pendente
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    } @else {
+      <p data-testid="reliability-source-empty">
+        Nenhuma fonte cadastrada para recomendação. Cadastre a fonte antes de avaliar a nota.
+      </p>
+    }
+  }
+</section>

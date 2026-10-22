@@ -71,11 +71,31 @@ direção da recomendação, registra a decisão com amostra e justificativa, e 
 publicadas ligadas à fonte (`source_reevaluation_flags`) sem tocar nas notas delas. Resolver o sinal
 não altera nota: a mudança exige nova avaliação explícita do ticket 23.
 
+## Interface administrativa (22/10/2026)
+
+`apps/web/src/app/reliability/reliability-panel.ts` fica dentro do bloco diferido
+`AdminSourcesPanels` e oferece duas leituras:
+
+- **Avaliação da ocorrência** — escolhe uma ocorrência publicada (lista vem de
+  `admin/review-clippings/options`, não é inventada no cliente), mostra nota, estado, bloqueios
+  traduzidos, fatores internos (qualidade, corroboração, divergência, completude e situação de cada
+  campo), fontes de suporte e reproduções; permite avaliar, reproduzir a mesma versão e publicar a
+  nota quando não há bloqueio.
+- **Nota da fonte** — escolhe a fonte cadastrada, mostra a recomendação com amostra completa, a
+  justificativa calculada no servidor, os limites da regra, exige justificativa de 20 caracteres para
+  aprovar mudança e lista as ocorrências sinalizadas sem alterar a nota delas.
+
+O painel não calcula nota nem recomendação: só apresenta o que a API decidiu. 401/403 viram erro de
+sessão com mensagem própria; falha de leitura nunca aparece como lista vazia. O foco vai para o
+cabeçalho do resultado depois de avaliar ou decidir, e a leitura se mantém sem rolagem horizontal em
+390 px.
+
 Riscos e limites conhecidos:
 
 - Amostra insuficiente nunca produz mudança; aprovada só quando a recomendação é subir ou descer.
 - A regra não usa a nota calculada da ocorrência como prova da própria fonte.
-- Sem UI e sem jornada de navegador nesta rodada: os critérios de aceite de 23 e 24 continuam abertos
-  até Chromium/Firefox com teclado/foco, estados de carregamento/erro/vazio e 390 px.
+- A jornada de navegador está coberta em `e2e/reliability-panel.spec.ts` (Chromium e Firefox), com
+  teclado, bloqueio visível, publicação e amostra insuficiente. Nada aqui representa prontidão
+  operacional: não há dados reais, contratação nem publicação externa.
 - `reliability_rules.author_id` não tem FK para `local_accounts` (a regra aprovada precisa sobreviver
   ao expurgo de contas de teste e ao encerramento de conta); a autoria é validada na escrita.

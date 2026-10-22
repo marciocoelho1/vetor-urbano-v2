@@ -28,8 +28,8 @@
   da [proposta de calibração](../history/ticket-23-24-calibration-proposal-2026-10-22.md): regra v1
   versionada e imutável na migração V20, decisão mensal de fonte na V21. Evidência e limites em
   [checkpoint](../history/ticket-23-24-implementation-2026-10-22.md) e
-  [contrato](../architecture/reliability-rules-v1.md). **Não aceitos:** falta a jornada de navegador
-  exigida pelo critério 5 de cada um.
+  [contrato](../architecture/reliability-rules-v1.md). Interface e jornada de navegador entregues na
+  mesma data (Chromium/Firefox, teclado/foco, erro, vazio e 390 px): critério 5 coberto.
 
 ## Fechamento de B5 e do ticket 21 — concluído com aceite em 22/10/2026
 
@@ -82,8 +82,9 @@ Atualizado em **22/10/2026** após a implementação local do ticket 22, o créd
 - **Aceites de 20, 21 e 35** foram registrados como incremento local verificado na rodada de 22/10/2026,
   por delegação explícita do responsável; não representam prontidão operacional, publicação ou coleta
   real. A publicação jurídica do 36 continua adiada (D3).
-- **0 não iniciados.** 23 e 24 tiveram o backend implementado em 22/10/2026 e aguardam a fatia de
-  interface com jornada de navegador para aceite.
+- **0 não iniciados.** 23 e 24 foram implementados de ponta a ponta em 22/10/2026 (API, migrações,
+  interface e jornada de navegador), com aceite de incremento local; prontidão operacional continua
+  fora do escopo.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas dos 36 tickets não foram reexecutadas para produzir este inventário; as verificações específicas do ticket 21 estão registradas abaixo e no checkpoint.
 
@@ -93,10 +94,11 @@ Atualizado em **22/10/2026** após a implementação local do ticket 22, o créd
 
 ## Ainda não iniciados
 
-**23 e 24** — backend implementado e verificado em 22/10/2026 (migrações V20 e V21, `ReliabilityHttpIT`
-4/4 e `SourceRatingHttpIT` 3/3 em PostgreSQL/PostGIS real). Pendente: painel administrativo com estados
-de carregamento/erro/vazio, teclado/foco e 390 px, e specs Playwright em Chromium/Firefox — critério 5 de
-cada ticket. [Contrato](../architecture/reliability-rules-v1.md) e
+**23 e 24** — implementados e verificados em 22/10/2026: migrações V20/V21, `ReliabilityHttpIT` 4/4 e
+`SourceRatingHttpIT` 3/3 em PostgreSQL/PostGIS real; painel de confiabilidade com 8 testes unitários e
+jornada Playwright em Chromium/Firefox (teclado/foco, erro, vazio, 390 px). Pendências fora destes
+tickets: cartografia real (26), revisão jurídica e publicação (36) e as fases obrigatórias do
+controlador. [Contrato](../architecture/reliability-rules-v1.md) e
 [checkpoint](../history/ticket-23-24-implementation-2026-10-22.md).
 
 ## Parciais ou com pendência
@@ -129,8 +131,8 @@ cada ticket. [Contrato](../architecture/reliability-rules-v1.md) e
 | 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | **Implementado localmente em 19/10/2026** com a fonte autorizada (API Fogo Cruzado v2), recorte RM-RJ + cidade do Rio desde 01/06/2026: V15, cliente, máquina de estados, pausa/retomada, idempotência e endpoints administrativos, mais a seção «Coleta» na web com o crédito exigido pela fonte. **Execução real delimitada** no banco dedicado: 807 vistas/807 criadas e, na repetição, 807 duplicadas e 0 criadas; 807 revisões `PENDING` e **0 publicações automáticas**. [Checkpoint](../history/ticket-20-collection-2026-10-19.md). Pendências nomeadas: Petrópolis ausente na fonte (limitação de cobertura, não de código); crédito da fonte **encerrado em 22/10/2026** nas exportações XLSX/PDF. Aceite registrado como incremento local verificado em 22/10/2026 por delegação do responsável. |
 | 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Implementado localmente em 21/10/2026 no recorte aprovado do ticket 20. BACKFILL com 100 páginas cumulativas por janela, 20 por etapa e pacing de 1 s; falhas consomem reserva; continuação exige janela menor/não sobreposta; V17 reconcilia uso anterior à V16 e V18 falhas legadas. Após revisão Standards + Spec: guarda de configuração desde 01/06/2026, erros de datas associados aos campos, datas de publicação/coleta separadas, limite por etapa aplicado explicitamente ao BACKFILL e fixture E2E vinculada ao contêiner dedicado; helper rejeita `vetor-spec-postgis` antes de SQL. API 59 unitários + 124 integrações (execução anterior); web 166 testes/build inicial 871,81 kB; Playwright configurado 22/2 e sete specs persistentes 46/46 são evidências anteriores à alteração final do guard, não revalidadas depois. Os dois testes isolados do guard passaram sem SQL/API. Modo desligado não foi reexecutado. Nenhuma coleta real ou publicação automática. Aceite do responsável concedido em 22/10/2026; sincronização B5 bloqueada por `integrated-review`. [Checkpoint](../history/ticket-21-backfill-progress-2026-10-21.md). |
 | 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | **Implementado localmente em 22/10/2026:** `GET /api/v1/admin/operations` (ADMIN+MFA, `no-store`, auditoria `OPERATIONS_VIEW` na V19) e painel somente leitura com estados fechados por fonte, fila/espera e confirmações com antecedência explícita (`vetor.operations.expiry-window`, 24h; em branco → `NOT_CONFIGURED`). API 4 IT novos, web 180 testes e E2E **4/4** Chromium/Firefox. [Contrato](../architecture/operations-panel-local-v1.md) e [checkpoint](../history/ticket-22-operations-panel-2026-10-22.md). Limitação: ambiente sintético, sem prazo/SLA novo. |
-| 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Backend pronto e verificado (V20, regra v1, reprodução, bloqueios, nota pública restrita). Pendente a jornada de navegador; sem aceite. |
-| 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Backend pronto e verificado (V21, rubrica, janela, amostra, decisão versionada e sinalização). Pendente a jornada de navegador; sem aceite. |
+| 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Implementado de ponta a ponta (V20, regra v1, reprodução, bloqueios, nota pública restrita, painel e Playwright 2 navegadores); aceite de incremento local. |
+| 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Implementado de ponta a ponta (V21, rubrica, janela, amostra, decisão versionada, sinalização, painel e Playwright 2 navegadores); aceite de incremento local. |
 | 25 | [Consultar proximidade e vigência no fluxo integrado](../../.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md) | Integra localização consentida ou ponto manual às regras de vigência dos Informes. | Concluído localmente em 19/10: HTTP/USER/PostGIS, política declarada com negação segura, insuficiência pública, auditoria, web de localização/manual e persistência D06/CA08 — V14 com verificação humana por versão do efeito, evidência obrigatória, conflito sem sobrescrita, desligamento de autoria no encerramento, filtro estrito de vigência e ciclo administrativo de expiração (toast persistente, container de expiradas, botão tratar, editor sem evidência pré-preenchida, repetição a cada expiração). API 21 + 101, web 127 e Playwright 42/42 Chromium/Firefox; V1–V13 intactas. [Checkpoint](../history/closure-round-2026-10-19.md#estado-final-da-trilha-a). Prazos aprovados ativos no código; aceite operacional aberto e demais specs de navegador não reexecutadas. |
 | 26 | [Revisar versões persistidas de Áreas de Risco](../../.scratch/consulta-coerente/issues/26-versoes-areas-risco.md) | Persiste versões de áreas territoriais com referência temporal e procedência. | Implementado localmente: V13, revisões/aprovação explícita, autoria histórica, HTTP ADMIN/MFA/CSRF, correções AREA e web opt-in; API 18 + 93, web 127 e Playwright 12/12 Chromium/Firefox. [Checkpoint](../history/ticket-26-progress-2026-10-18.md). Revisão Standards + Spec sem achados pendentes; aceite operacional aberto (autorização/evidência e validação cartográfica reais). |
 | 27 | [Solicitar e acompanhar correção de dados](../../.scratch/consulta-coerente/issues/27-solicitar-correcao.md) | Recebe solicitações de correção e permite acompanhar o andamento. | Implementado localmente; canal autenticado privado com quatro estados, fila ADMIN/MFA e alvo validado. |
