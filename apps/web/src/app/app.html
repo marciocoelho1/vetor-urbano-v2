@@ -29,7 +29,7 @@
           (click)="openView('active')"
           [attr.aria-current]="activeView() === 'active' ? 'page' : null"
         >
-          Informes ativos
+          Ocorrências
         </button>
         <button
           class="nav-link"
@@ -1040,7 +1040,7 @@
                       mapPickPurpose() === 'radius'
                         ? 'definir o centro da busca'
                         : mapPickPurpose() === 'active'
-                          ? 'definir o centro dos Informes ativos'
+                          ? 'definir o centro dos Ocorrências'
                           : 'escolher o local do registro'
                     }}.
                     <button type="button" class="inline-retry" (click)="cancelMapPick()">
@@ -1746,7 +1746,14 @@
           <header class="page-header">
             <div>
               <p class="eyebrow">Acompanhamento · protótipo local</p>
-              <h1 id="active-heading" data-view-title="active" tabindex="-1">Informes ativos</h1>
+              <h1 id="active-heading" data-view-title="active" tabindex="-1">Ocorrências</h1>
+              @if (session.state()?.role === 'ADMIN') {
+                <p data-testid="active-admin-filter-hint">
+                  Administração: use os filtros abaixo para consultar ocorrências ativas, inativas e
+                  concluídas neste mesmo módulo. O usuário comum vê apenas as ativas.
+                </p>
+                <app-occurrences-admin-panel />
+              }
               <p class="page-intro">
                 Ocorrências das últimas 24 horas (inclusive encerradas) e vigentes antigas em um
                 raio de até 5 km do ponto selecionado.
@@ -1789,7 +1796,7 @@
           <div
             class="informes-controls-card"
             role="region"
-            aria-label="Parâmetros de proximidade dos Informes ativos"
+            aria-label="Parâmetros de proximidade dos Ocorrências"
           >
             <div class="informes-controls-row">
               <div class="informes-control-group">
@@ -2785,7 +2792,7 @@
               ><small>Resultado dos filtros atuais</small>
             </article>
             <article>
-              <span>Informes ativos</span><strong>{{ activeRecords().length }}</strong
+              <span>Ocorrências</span><strong>{{ activeRecords().length }}</strong
               ><small>Sem promessa de tempo real</small>
             </article>
             <article>

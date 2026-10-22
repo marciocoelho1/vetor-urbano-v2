@@ -336,13 +336,7 @@ test('uses the available width across views and arranges results in responsive c
   const card = (await page.locator('.result-list > li').first().boundingBox())!;
   expect(detail.x).toBeGreaterThan(card.x);
   expect(detail.x + detail.width).toBeLessThan(card.x + card.width);
-  for (const name of [
-    'Informes ativos',
-    'Histórico',
-    'Relatórios',
-    'Fontes',
-    'Registrar ocorrência',
-  ]) {
+  for (const name of ['Ocorrências', 'Histórico', 'Relatórios', 'Fontes', 'Registrar ocorrência']) {
     await page.getByRole('button', { name, exact: true }).click();
     const view = page
       .locator(name === 'Registrar ocorrência' ? '.report-form' : '.workspace-view')

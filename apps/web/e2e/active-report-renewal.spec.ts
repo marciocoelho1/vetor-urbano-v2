@@ -34,7 +34,7 @@ test('expiração e renovação humanas repetem aviso persistente com teclado em
   await expect(notice).toBeVisible();
   await notice.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Informes ativos', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Ocorrências', exact: true })).toBeFocused();
   const container = page.getByTestId('expired-occurrences');
   await expect(container).toContainText('Renovação humana sintética 25');
   const treat = container.getByRole('button', { name: 'Tratar Renovação humana sintética 25' });
@@ -86,7 +86,7 @@ test('expiração e renovação humanas repetem aviso persistente com teclado em
   await expect(notice).toBeVisible();
   await notice.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Informes ativos', exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Ocorrências', exact: true })).toBeFocused();
   await expect(container).toContainText('Renovação humana sintética 25');
   await treat.focus();
   await page.keyboard.press('Enter');
@@ -117,7 +117,7 @@ test('fila distingue carregamento, falha e vazio com recuperação por teclado',
     const email = await confirmedUser(request, 'verification-empty');
     await loginBrowser(page, email);
     await expect(page.getByRole('button', { name: 'Minha conta', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Informes ativos', exact: true }).click();
+    await page.getByRole('button', { name: 'Ocorrências', exact: true }).click();
     await expect(
       page.getByText('Consultando confirmações expiradas…', { exact: true }),
     ).toBeVisible();

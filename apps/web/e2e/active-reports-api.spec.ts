@@ -56,7 +56,7 @@ test.describe('Informes integrados — ticket 25', () => {
     await expect(page.getByRole('button', { name: 'Minha conta', exact: true })).toBeVisible();
     // Deliberately narrow an unrelated map filter; Informes does not inherit it.
     await page.getByRole('button', { name: 'Remover pilar Trânsito', exact: true }).click();
-    await page.getByRole('button', { name: 'Informes ativos', exact: true }).click();
+    await page.getByRole('button', { name: 'Ocorrências', exact: true }).click();
     await expect(page.getByTestId('informes-location-status')).toContainText(
       'Localização permitida',
     );
@@ -85,7 +85,7 @@ test.describe('Informes integrados — ticket 25', () => {
     const email = await confirmedUser(request, 'active25-error');
     await loginBrowser(page, email);
     await expect(page.getByRole('button', { name: 'Minha conta', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Informes ativos', exact: true }).click();
+    await page.getByRole('button', { name: 'Ocorrências', exact: true }).click();
     await expect(page.getByTestId('informes-location-status')).toContainText(
       'Não foi possível obter localização',
     );
@@ -113,7 +113,7 @@ test.describe('Informes integrados — ticket 25', () => {
     await expect(page.getByTestId('informes-record-vu25-recent-closed')).toBeVisible();
     await page.getByTestId('informes-pick-map-btn').click();
     await expect(page.locator('.map-pick-prompt')).toContainText(
-      'definir o centro dos Informes ativos',
+      'definir o centro dos Ocorrências',
     );
     await page.locator('#map-canvas').click({ position: { x: 300, y: 250 } });
     await expect(page.locator('#active-heading')).toBeFocused();
@@ -134,7 +134,7 @@ test.describe('Informes integrados — ticket 25', () => {
     const email = await confirmedUser(request, 'active25');
     await loginBrowser(page, email);
     await expect(page.getByRole('button', { name: 'Minha conta', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Informes ativos', exact: true }).click();
+    await page.getByRole('button', { name: 'Ocorrências', exact: true }).click();
     await expect(page.locator('#active-heading')).toBeFocused();
     await expect(page.getByTestId('informes-location-status')).toContainText('Localização negada');
     await expect(page.getByTestId('informes-radius-input')).toHaveValue('5000');

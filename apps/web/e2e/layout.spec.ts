@@ -103,7 +103,7 @@ test('applies proposal 6 across all menus, both themes and responsive consultati
     await page.setViewportSize({ width: 1440, height: 1120 });
   }
   for (const [menu, view] of [
-    ['Informes ativos', 'active'],
+    ['Ocorrências', 'active'],
     ['Histórico', 'history'],
     ['Relatórios', 'insights'],
     ['Fontes', 'sources'],

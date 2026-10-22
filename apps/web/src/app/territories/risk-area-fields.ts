@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
+import { loadLeafletStyles } from '../maps/leaflet-style-loader';
+import { MINIMUM_POINTS, polygonFrom, polygonProblem, type MapPoint } from './polygon-drawing';
 import { Session } from '../auth/session';
 import { RiskAreaApiError, riskAreaRequest } from '../data/risk-area-api';
 
@@ -40,6 +42,26 @@ export class RiskAreaFields implements OnDestroy {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly drawing = signal(false);
+  protected readonly points = signal<MapPoint[]>([]);
+  protected readonly drawingError = signal('');
+  protected readonly polygonReady = signal<Array<Array<[number, number]>> | null>(null);
+  private leaflet?: typeof import('leaflet');
+  private map?: import('leaflet').Map;
+  private shapes: Array<import('leaflet').Layer> = [];
+  /**
+   * O canvas só existe quando o modo de desenho entra no DOM: o setter do ViewChild é o gatilho
+   * correto para inicializar o mapa, sem depender de microtasks ou timers.
+   */
+  @ViewChild('drawSurface')
+  set drawSurface(ref: ElementRef<HTMLElement> | undefined) {
+    if (!ref) return;
+    setTimeout(() => {
+      const element = ref.nativeElement;
+      if (element && !this.map) void this.buildMap([-22.9, -43.2], element);
+    }, 0);
+  }
+  protected readonly minimumPoints = MINIMUM_POINTS;
 
   constructor() {
     void this.load();
@@ -47,6 +69,7 @@ export class RiskAreaFields implements OnDestroy {
 
   ngOnDestroy(): void {
     this.abort.abort();
+    this.map?.remove();
   }
 
   protected async load(): Promise<void> {
@@ -98,6 +121,117 @@ export class RiskAreaFields implements OnDestroy {
     this.draft.set({ ...this.draft(), [field]: (event.target as HTMLInputElement).value });
   }
 
+  /** Abre a superfície de desenho: os cliques marcam os pontos que definirão o polígono. */
+  protected async startDrawing(): Promise<void> {
+    this.drawing.set(true);
+    this.points.set([]);
+    this.polygonReady.set(null);
+    this.drawingError.set('');
+    // O mapa é criado pelo setter do ViewChild quando o canvas entra no DOM.
+  }
+
+  private async buildMap(center: [number, number], element: HTMLElement): Promise<void> {
+    try {
+      await loadLeafletStyles();
+      const leaflet = this.leaflet ?? (await import('leaflet'));
+      this.leaflet = leaflet;
+      this.map?.remove();
+      this.shapes = [];
+      // O contêiner precisa de altura explícita no instante da inicialização; sem isso o Leaflet
+      // calcula área zero e os cliques não chegam ao mapa.
+      element.style.height = element.style.height || '18rem';
+      element.style.width = '100%';
+      this.map = leaflet
+        .map(element, { zoomControl: true, attributionControl: false })
+        .setView(center, 11);
+      leaflet
+        .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 })
+        .addTo(this.map);
+      this.map.on('click', (event: import('leaflet').LeafletMouseEvent) => {
+        this.addPoint([Number(event.latlng.lng.toFixed(6)), Number(event.latlng.lat.toFixed(6))]);
+      });
+      this.map.invalidateSize();
+      setTimeout(() => this.map?.invalidateSize(), 60);
+    } catch {
+      this.drawingError.set('Não foi possível carregar o mapa de desenho; tente novamente.');
+    }
+  }
+
+  /** Cada clique entra como [longitude, latitude]; a prévia é redesenhada a cada ponto. */
+  protected addPoint(point: MapPoint): void {
+    const next = [...this.points(), point];
+    this.points.set(next);
+    this.drawingError.set('');
+    this.redraw(next);
+  }
+
+  private redraw(points: MapPoint[]): void {
+    const leaflet = this.leaflet;
+    const map = this.map;
+    if (!leaflet || !map) return;
+    this.shapes.forEach((shape) => shape.remove());
+    this.shapes = points.map(([longitude, latitude]) =>
+      leaflet.circleMarker([latitude, longitude], { radius: 5, color: '#0b57d0' }).addTo(map),
+    );
+    if (points.length > 1) {
+      this.shapes.push(
+        leaflet
+          .polyline(
+            points.map(([longitude, latitude]) => [latitude, longitude] as [number, number]),
+            { color: '#0b57d0' },
+          )
+          .addTo(map),
+      );
+    }
+    if (points.length >= MINIMUM_POINTS) {
+      try {
+        const polygon = polygonFrom(points);
+        this.shapes.push(
+          leaflet
+            .polygon(
+              polygon.coordinates[0].map(
+                ([longitude, latitude]) => [latitude, longitude] as [number, number],
+              ),
+              { color: '#0b57d0', fillOpacity: 0.15 },
+            )
+            .addTo(map),
+        );
+        this.polygonReady.set(polygon.coordinates);
+        this.drawingError.set('');
+      } catch (error) {
+        this.drawingError.set(error instanceof Error ? error.message : 'Área inválida.');
+      }
+    } else {
+      this.polygonReady.set(null);
+    }
+  }
+
+  protected undoPoint(): void {
+    const next = this.points().slice(0, -1);
+    this.points.set(next);
+    this.redraw(next);
+  }
+
+  protected closeDrawing(): void {
+    const problem = polygonProblem(this.points());
+    if (problem) {
+      this.drawingError.set(problem);
+      return;
+    }
+    this.polygonReady.set(polygonFrom(this.points()).coordinates);
+    this.notice.set(
+      `Polígono definido com ${this.points().length} pontos. Salve a versão para gravar a area desenhada.`,
+    );
+    this.stopDrawing();
+  }
+
+  protected stopDrawing(): void {
+    this.drawing.set(false);
+    this.map?.remove();
+    this.map = undefined;
+    this.shapes = [];
+  }
+
   protected async save(): Promise<void> {
     const area = this.current();
     if (!area) return;
@@ -120,6 +254,10 @@ export class RiskAreaFields implements OnDestroy {
           evidenceReference: blank(form['evidenceReference']),
           referenceDate: blank(form['referenceDate']),
           limitations: blank(form['limitations']),
+          // Sem desenho novo, o corpo vai sem geometria e o servidor herda o polígono vigente.
+          ...(this.polygonReady()
+            ? { geometry: { type: 'Polygon', coordinates: this.polygonReady() } }
+            : {}),
           justification:
             form['justification']?.trim() ||
             'Edição de campos da área sem alterar a geometria vigente',
@@ -127,8 +265,12 @@ export class RiskAreaFields implements OnDestroy {
         csrf,
       );
       this.notice.set(
-        `«${form['name']}» salva em nova versão; o polígono foi preservado e a consulta continua na versão aprovada até a aprovação.`,
+        this.polygonReady()
+          ? `«${form['name']}» salva em nova versão com o polígono desenhado (${this.points().length} pontos).`
+          : `«${form['name']}» salva em nova versão; o polígono foi preservado e a consulta continua na versão aprovada até a aprovação.`,
       );
+      this.polygonReady.set(null);
+      this.points.set([]);
       await this.load();
       this.draft.set({ ...this.draft(), justification: '' });
     } catch (error) {

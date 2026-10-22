@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
+test.describe('Ocorrências por ponto manual (Ticket 08)', () => {
   test.beforeEach(async ({ page }) => {
     // Demo regression only: complete synthetic USER access boundary. Ticket 25 below uses real sessions.
     const session = {
@@ -30,15 +30,15 @@ test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
   }) => {
     await page.goto('/');
 
-    // Acessa módulo de Informes ativos pelo cabeçalho
-    const informesNavBtn = page.getByRole('button', { name: 'Informes ativos' });
+    // Acessa módulo de Ocorrências pelo cabeçalho
+    const informesNavBtn = page.getByRole('button', { name: 'Ocorrências' });
     await expect(informesNavBtn).toBeVisible();
     await informesNavBtn.click();
 
     // Título e cabeçalho observáveis
     const heading = page.locator('#active-heading');
     await expect(heading).toBeVisible();
-    await expect(heading).toContainText('Informes ativos');
+    await expect(heading).toContainText('Ocorrências');
 
     // Raio inicial e máximo de 5.000 m (5 km)
     const radiusInput = page.getByTestId('informes-radius-input');
@@ -73,8 +73,8 @@ test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
   }) => {
     await page.goto('/');
 
-    // Acessa Informes ativos
-    await page.getByRole('button', { name: 'Informes ativos' }).click();
+    // Acessa Ocorrências
+    await page.getByRole('button', { name: 'Ocorrências' }).click();
 
     const list = page.getByTestId('informes-list');
     await expect(list).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
   }) => {
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'Informes ativos' }).click();
+    await page.getByRole('button', { name: 'Ocorrências' }).click();
 
     // Clica em "Escolher local no mapa"
     const pickMapBtn = page.getByTestId('informes-pick-map-btn');
@@ -126,14 +126,14 @@ test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
     // Transiciona para a visão de mapa com prompt observável
     const mapPrompt = page.locator('.map-pick-prompt');
     await expect(mapPrompt).toBeVisible();
-    await expect(mapPrompt).toContainText('definir o centro dos Informes ativos');
+    await expect(mapPrompt).toContainText('definir o centro dos Ocorrências');
 
     // Clica no canvas do mapa para definir novo ponto
     const mapCanvas = page.locator('#map-canvas');
     await expect(mapCanvas).toBeVisible();
     await mapCanvas.click({ position: { x: 300, y: 250 }, force: true });
 
-    // Retorna automaticamente para os Informes ativos
+    // Retorna automaticamente para os Ocorrências
     await expect(page.locator('#active-heading')).toBeVisible();
 
     // Reduz o raio para o mínimo de 100 m para testar estado vazio
@@ -164,8 +164,8 @@ test.describe('Informes ativos por ponto manual (Ticket 08)', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
 
-    // Navega para Informes ativos em viewport móvel
-    const informesNavBtn = page.getByRole('button', { name: 'Informes ativos' });
+    // Navega para Ocorrências em viewport móvel
+    const informesNavBtn = page.getByRole('button', { name: 'Ocorrências' });
     await expect(informesNavBtn).toBeVisible();
     await informesNavBtn.click();
 

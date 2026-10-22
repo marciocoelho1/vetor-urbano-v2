@@ -128,7 +128,7 @@ test('keeps all dark views readable on desktop/mobile without recreating the map
   for (const check of checks) expect(check.contrast, check.selector).toBeGreaterThanOrEqual(4.5);
   await page.screenshot({ path: `test-results/${testInfo.project.name}-dark-desktop.png` });
   for (const label of [
-    'Informes ativos',
+    'Ocorrências',
     'Histórico',
     'Relatórios',
     'Fontes',

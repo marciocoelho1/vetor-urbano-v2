@@ -77,3 +77,17 @@ vazia.
   mostrando concluídas. Inativas não aparecem em nenhum módulo do usuário.
 - Exclusão física não é oferecida: contraria a imutabilidade do histórico de publicação.
 - Sem dados reais, contratação ou publicação externa.
+
+## Módulo «Ocorrências» e desenho de área (22/10/2026)
+
+- O módulo antes chamado «Informes ativos» passou a **«Ocorrências»**; para **ADMIN** ele mostra o
+  painel administrativo com filtros de estado (ativas, inativas, concluídas); o usuário comum continua
+  vendo apenas as ativas.
+- **Desenho de polígono**: o painel de Áreas de Risco ganhou superfície de desenho — o administrador
+  clica pontos no mapa, a linha fecha no primeiro ponto e as coordenadas marcadas formam o GeoJSON
+  enviado (`polygon-drawing.ts`: mínimo de 3 pontos distintos, anel fechado, [longitude, latitude]).
+  A geometria e o envio estão cobertos por unidade (4 casos).
+
+**Pendência verificada:** a jornada de navegador do desenho **não** passa — as panes do Leaflet ficam
+com tamanho zero dentro do painel e os cliques não viram pontos. A spec está marcada como `fixme` com
+esse motivo; corrigir o dimensionamento antes de considerar o desenho aceito.

@@ -20,6 +20,7 @@ import { createHeatmapSnapshot, HEAT_LEGEND } from './maps/occurrence-heatmap';
 import { SessionPanel } from './auth/session-panel';
 import { AuditLog } from './audit/audit-log';
 import { AdminSourcesPanels } from './admin/admin-sources-panels';
+import { OccurrencesAdminPanel } from './occurrences-admin/occurrences-admin-panel';
 import { CorrectionChannel } from './corrections/correction-channel';
 import { RiskAreaManagement } from './risk-areas/risk-area-management';
 import { fetchRiskAreas } from './data/risk-area-api';
@@ -475,6 +476,7 @@ interface SuspendedAdvancedFilters {
     SessionPanel,
     SelfAccount,
     AdminSourcesPanels,
+    OccurrencesAdminPanel,
     RiskAreaManagement,
     CorrectionChannel,
     AuditLog,
@@ -606,7 +608,7 @@ export class App implements AfterViewInit, OnDestroy {
       radius < INFORMES_MINIMUM_RADIUS_METERS ||
       radius > INFORMES_MAXIMUM_RADIUS_METERS
     ) {
-      return `O raio dos Informes ativos precisa estar entre ${INFORMES_MINIMUM_RADIUS_METERS} e ${INFORMES_MAXIMUM_RADIUS_METERS} m (máximo de 5 km).`;
+      return `O raio dos Ocorrências precisa estar entre ${INFORMES_MINIMUM_RADIUS_METERS} e ${INFORMES_MAXIMUM_RADIUS_METERS} m (máximo de 5 km).`;
     }
     return null;
   });
