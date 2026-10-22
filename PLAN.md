@@ -1,5 +1,17 @@
 # Plano de trabalho
 
+## Atualização documental do Ticket 36 — 22/10/2026
+
+- **Escopo desta fase:** transparência documental; os quatro textos seguem rascunhos locais v1.4,
+  sem aprovação jurídica/publicação ou declaração de operação. A nota pública agora descreve a regra
+  versionada dos Tickets 23/24, a revisão humana e seus limites, sem expor rubrica/cálculo interno.
+- **Limites:** o canal de correções é descrito como fluxo integrado local; atendimento operacional,
+  publicação final e validação jurídica não são aceitos por esta atualização. Dados reais não foram
+  integrados.
+- **Evidências e verificações:** [checkpoint 36](docs/history/ticket-36-progress-2026-10-22.md).
+- **Próxima ação:** revisão independente; publicação e aprovação final continuam dependentes do
+  responsável e do destino autorizado.
+
 ## Rodada 23 — regra de confiabilidade versionada e decisão de nota de fonte — 22/10/2026
 
 - **Autorização:** o responsável aprovou em bloco a proposta de calibração de 23/24 e autorizou o push
@@ -18,8 +30,11 @@
   Chromium/Firefox cobrindo teclado/foco, erro, vazio e 390 px.
 - **Estado dos tickets:** 23 e 24 com critérios de implementação cobertos e aceite de incremento local
   registrado; nenhum representa prontidão operacional.
-- **Próxima ação:** `complete-phase` no controlador para 06/07/integrated-review (única barreira que
-  mantém `next` em exit 3), depois cartografia real do 26 e revisão jurídica/publicação do 36.
+- **Fases obrigatórias destravadas:** novo `complete-phase` no controlador fechou `06`, `07`, `10` e
+  `integrated-review` com evidência validada e contínua (arquivo versionado e commitado em HEAD +
+  commit ancestral). `ticketctl next` passou a apontar **36** em vez de «Fila sem tarefa pronta».
+- **Próxima ação:** decisão de publicação jurídica do **36** (D3 do responsável) — é o que resta para a
+  fila andar —, depois cartografia real do 26 e restauração de backup no segundo PC.
 
 ## Rodada 22 — ticket 22, crédito em exportações, rebaseline e carga diferida — 22/10/2026
 

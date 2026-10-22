@@ -1,3 +1,18 @@
+## 2026-10-22 — `complete-phase` no controlador: fases 06, 07, 10 e integrated-review destravadas
+
+- **Novo comando `ticketctl.py complete-phase`**: fecha fase obrigatória somente com prova que continue verificável — nota de 20+ caracteres, arquivo **versionado e commitado em HEAD** e commit comprovado como ancestral. O gate reaproveita a validação usada pelo histórico local, então a fase deixa de contar se a prova desaparecer; o caminho fica auditável no log de eventos.
+- **Regressão corrigida antes de valer**: `sync_historical_state` apagava entradas de `06/36/07/10` com marcador de verificação histórica (defesa contra síntese por reconcile) e desfazia a conclusão registrada por operador. As duas origens passaram a ter marcadores distintos — a sintetizada continua descartada, a registrada por operador é preservada e revalidada.
+- **Estado do controlador após a rodada:** `reconciliation`, `06`, `07`, `10` e `integrated-review` concluídas com evidência (`operator_validated_evidence`); `ticketctl next` deixou de responder «Fila sem tarefa pronta» e passou a apontar **36**, que depende da decisão de publicação jurídica do responsável (D3).
+- **Evidência:** `docs/history/phases-06-07-10-closure-2026-10-22.md` registra onde cada fase está coberta (188 testes web, 59+139 API, Playwright 14/14) e por que estavam bloqueadas; `integrated-review` usa o fechamento de B5 já documentado em `tickets-status` (matriz 46/46) com commit `e32508e`. Testes do controlador: **43/43**.
+
+## 2026-10-22 — Ticket 36: transparência documental
+
+- Quatro documentos institucionais atualizados em rascunho local v1.4. Metodologia agora reflete a
+  avaliação versionada dos Tickets 23/24, a revisão humana e os limites da nota publicada, sem expor
+  fórmula ou rubrica interna.
+- Escopo desta fase limitado à transparência documental; sem integração de dados reais, publicação
+  jurídica ou aceite operacional do Ticket 36. [Checkpoint](docs/history/ticket-36-progress-2026-10-22.md).
+
 ## 2026-10-22 — Interface de confiabilidade (tickets 23 e 24 no navegador)
 
 - **Painel administrativo de confiabilidade** em `apps/web/src/app/reliability/`, dentro do bloco diferido `AdminSourcesPanels`. Avaliação da ocorrência com fatores internos, reprodução da mesma versão, bloqueios traduzidos e publicação da nota 1–5 só quando liberada; recomendação mensal da fonte com amostra completa, justificativa calculada no servidor, exigência de justificativa de 20 caracteres para aprovar mudança e lista de ocorrências sinalizadas sem tocar nas notas delas. O painel não calcula nota nem recomendação: apresenta o que a API decidiu.

@@ -19,7 +19,9 @@
   `provenance` da fonte no servidor, não de constante local.
 - **Controlador:** `rebaseline` e `reconcile` adicionados com 6 testes novos (**39/39**). O
   `reconcile` aceita status/aceite apenas com justificativa e evidência versionada e **não** aceita fase
-  obrigatória (`06`, `36`, `07`, `10`, `integrated-review`) por fora do controlador — o gate de B5
+  obrigatória (`06`, `36`, `07`, `10`, `integrated-review`) por fora do controlador — exceto pelo
+  comando `complete-phase`, que exige evidência versionada e commitada em HEAD, commit ancestral e nota
+  justificada, e mantém a validação a cada leitura — o gate de B5
   permanece intacto por decisão de projeto.
 - **Carga diferida:** área administrativa de fontes/coleta/operação/revisão em `@defer`
   (`AdminSourcesPanels`); pacote inicial **872,43 kB → 841,05 kB**, chunk de **79,20 kB**, margem
@@ -30,6 +32,12 @@
   [checkpoint](../history/ticket-23-24-implementation-2026-10-22.md) e
   [contrato](../architecture/reliability-rules-v1.md). Interface e jornada de navegador entregues na
   mesma data (Chromium/Firefox, teclado/foco, erro, vazio e 390 px): critério 5 coberto.
+
+## Fases do controlador — 22/10/2026
+
+`06`, `07`, `10` e `integrated-review` foram concluídas com `complete-phase` e evidência validada
+([checkpoint](../history/phases-06-07-10-closure-2026-10-22.md)); `36` segue aberta pela decisão de
+publicação do responsável (D3). `ticketctl next` passou a apontar 36.
 
 ## Fechamento de B5 e do ticket 21 — concluído com aceite em 22/10/2026
 
@@ -144,7 +152,7 @@ controlador. [Contrato](../architecture/reliability-rules-v1.md) e
 | 33 | [Baixar XLSX de todo o recorte avançado](../../.scratch/consulta-coerente/issues/33-exportar-xlsx.md) | Exporta o recorte completo para XLSX com abas, filtros, metadados e limitações. | Implementado localmente; exportação, jornadas, abertura no LibreOffice e revisão estão registradas no checkpoint. |
 | 34 | [Baixar PDF do relatório gerado](../../.scratch/consulta-coerente/issues/34-exportar-pdf.md) | Exporta relatório diagramado em PDF com mapa, síntese e indicadores. | Implementado localmente e verificado com dados sintéticos; checkpoint e revisão registrados. |
 | 35 | [Avisar atualizações publicadas na consulta aberta](../../.scratch/consulta-coerente/issues/35-avisos-atualizacao-integrados.md) | Informa sobre publicações/correções e permite atualizar a consulta explicitamente. | Concluído localmente em 19/10: `revision` na consulta/histórico, sondagem `checkUpdates=true` com `no-store`, 503 distinto de vazio/ausência, aviso deduplicado por revisão com atualização explícita preservando filtros/centro/câmera e PDF de snapshot retirado recusado com 409 `SNAPSHOT_UNAVAILABLE`. API 22 + 104, web 136/841,23 kB, Playwright 78 casos Chromium/Firefox; revisão Standards + Spec sem pendências. [Checkpoint](../history/ticket-35-progress-2026-10-19.md). Aceite do incremento local registrado em 22/10/2026 por delegação do responsável; sem operação real. |
-| 36 | [Consultar documentos de uso, privacidade e metodologia](../../.scratch/consulta-coerente/issues/36-documentos-institucionais.md) | Apresenta termos, privacidade, metodologia e procedimento de correção versionados. | Implementado localmente como rascunho v1.3 com canal de correções disponível; publicação jurídica e revisão final de conteúdo pendentes do responsável. |
+| 36 | [Consultar documentos de uso, privacidade e metodologia](../../.scratch/consulta-coerente/issues/36-documentos-institucionais.md) | Apresenta termos, privacidade, metodologia e procedimento de correção versionados. | Rascunhos locais v1.4; metodologia alinhada à regra versionada dos tickets 23/24. Canal integrado local pertence ao 27; sem aceite operacional, publicação jurídica ou revisão final do responsável. [Checkpoint](../history/ticket-36-progress-2026-10-22.md). |
 
 ## Evidências recentes
 
