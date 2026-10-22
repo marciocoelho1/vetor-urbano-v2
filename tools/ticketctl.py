@@ -105,6 +105,105 @@ def commit_ticket(name, config, state, rec):
     return 0
 
 
+def rebaseline_ticket(name, state, includes, note, config):
+    """Reset a ticket's worktree baseline, optionally releasing paths the ticket owns.
+
+    The baseline exists to prove that pre-existing dirty work is preserved. When a ticket was
+    started before corrections landed, its baseline no longer matches the tree and the commit
+    phase blocks forever. Rebaselining re-reads the current tree and, for every `--include`, stops
+    treating that path as pre-existing work, so it becomes a commit candidate of this ticket.
+    Files not listed keep being protected. Nothing is inferred about acceptance.
+    """
+    if name in config.get("mandatory_phases", []) and includes:
+        raise ValueError("Fase obrigatória não libera arquivos para commit; rebaseline sem --include.")
+    rec = state["tickets"].get(name)
+    if not rec:
+        raise ValueError(f"Ticket {name} não tem registro no controlador.")
+    if (state.get("active") or {}).get("ticket") == name:
+        raise ValueError("Há execução ativa deste ticket; use resume antes de rebaselinar.")
+    if not isinstance(note, str) or len(note.strip()) < 20:
+        raise ValueError("Registre o motivo do rebaseline em --note (mínimo 20 caracteres).")
+    snapshot = worktree_snapshot()
+    if snapshot["staged"]:
+        raise ValueError("O índice tem trabalho staged; rebaseline exige árvore sem staging.")
+    previous = dict(rec.get("baseline_worktree", {}).get("files", {}))
+    released = sorted(set(includes or []))
+    for path in released:
+        if path not in snapshot["files"]:
+            raise ValueError(f"Arquivo não está alterado no worktree e não seria commitável: {path}")
+        if path not in previous:
+            raise ValueError(f"Arquivo não fazia parte da base do ticket: {path}")
+    baseline = {path: digest for path, digest in snapshot["files"].items() if path not in released}
+    rec["baseline_worktree"] = {"files": baseline, "staged": False}
+    rec.pop("commit_block", None)
+    rec.pop("commit_conflicts", None)
+    rec.setdefault("rebaselines", []).append({
+        "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "note": note.strip(),
+        "released_files": released,
+        "previous_baseline_files": sorted(previous),
+        "baseline_files": sorted(baseline),
+    })
+    event(state, "rebased", ticket=name, released_files=released, note=note.strip())
+    save(STATE, state)
+    print(f"Ticket {name}: base refeita; {len(released)} arquivo(s) liberado(s) para commit "
+          f"e {len(baseline)} preservado(s) como trabalho preexistente.")
+    return 0
+
+
+def reconcile_ticket(name, state, status, acceptance, note, evidence, commit, config):
+    """Record an explicit administrative reconciliation, never a provider verification.
+
+    Mandatory phases stay owned by the controller: accepting one here would bypass the gate that
+    the controller exists to enforce. Everything recorded becomes auditable through the event log,
+    and a reconciliation without a named reason or verifiable evidence is refused.
+    """
+    allowed = {"accepted", "accepted_partial", "blocked", "pending_technical"}
+    if status not in allowed:
+        raise ValueError(f"Status de reconciliação inválido: {status!r}.")
+    if name in config.get("mandatory_phases", []) and status == "accepted":
+        raise ValueError("Fase obrigatória só é aceita pelo próprio controlador; registre como bloqueio.")
+    if not isinstance(note, str) or len(note.strip()) < 20:
+        raise ValueError("Registre a justificativa em --note (mínimo 20 caracteres).")
+    if not isinstance(acceptance, str) or not acceptance.strip():
+        raise ValueError("Informe o tipo de aceite em --acceptance.")
+    if (state.get("active") or {}).get("ticket") == name:
+        raise ValueError("Há execução ativa deste ticket.")
+    paths = []
+    for item in evidence or []:
+        relative = Path(item)
+        if relative.is_absolute() or ".." in relative.parts or not (ROOT / relative).is_file():
+            raise ValueError(f"Evidência precisa ser um arquivo versionado do repositório: {item!r}.")
+        paths.append(relative.as_posix())
+    commit_proof = None
+    if commit:
+        if git_result(["merge-base", "--is-ancestor", commit, "HEAD"]).returncode:
+            raise ValueError(f"Commit não comprovado como ancestral de HEAD: {commit!r}.")
+        commit_proof = git(["rev-parse", f"{commit}^{{commit}}"]).strip()
+    if not paths and not commit_proof and status != "blocked":
+        raise ValueError("Reconciliação exige ao menos uma evidência versionada ou um commit ancestral.")
+    rec = state["tickets"].setdefault(name, {"attempts": 0})
+    rec.update(status=status, acceptance=acceptance.strip())
+    if status != "blocked":
+        rec.pop("pause_reason", None)
+    if commit_proof:
+        rec["commit"] = commit_proof[:7]
+        rec["integration_commit"] = commit_proof
+    rec.setdefault("reconciliations", []).append({
+        "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "status": status,
+        "acceptance": acceptance.strip(),
+        "note": note.strip(),
+        "evidence": paths,
+        "commit": commit_proof,
+    })
+    event(state, "reconciled", ticket=name, status=status, acceptance=acceptance.strip(),
+          evidence=paths, commit=commit_proof or "")
+    save(STATE, state)
+    print(f"Ticket {name}: reconciliação registrada como {status} ({acceptance.strip()}).")
+    return 0
+
+
 def file_digest(path):
     if path.is_symlink():
         return "symlink:" + os.readlink(path)
@@ -783,13 +882,18 @@ class Controller:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "record-local-demo", "clear-quota"])
+    parser.add_argument("command", choices=["auto", "status", "simulate", "run", "next", "phase", "verify", "review", "correct", "resume", "models", "migrate", "record-local-demo", "clear-quota", "rebaseline", "reconcile"])
     parser.add_argument("ticket", nargs="?")
     parser.add_argument("--ticket", dest="resume_ticket")
     parser.add_argument("--scenario", choices=["happy", "two-tasks", "correction", "failure-resume", "dependency-blocked", "quota", "correction-limit", "blocked"], default="happy")
     parser.add_argument("--commit")
     parser.add_argument("--code-commit", action="append", default=[])
     parser.add_argument("--checkpoint", action="append", default=[])
+    parser.add_argument("--include", action="append", default=[], help="Caminho que passa a pertencer ao ticket (rebaseline).")
+    parser.add_argument("--note", help="Justificativa obrigatória de rebaseline/reconciliação.")
+    parser.add_argument("--status", dest="reconcile_status", help="Status administrativo registrado por reconcile.")
+    parser.add_argument("--acceptance", help="Tipo de aceite registrado por reconcile.")
+    parser.add_argument("--evidence", action="append", default=[], help="Arquivo versionado que comprova a reconciliação.")
     parser.add_argument("--web-evidence")
     parser.add_argument("--api-evidence")
     parser.add_argument("--browser-evidence")
@@ -856,6 +960,22 @@ def main():
         if args.command == "migrate":
             print("Checkpoint migrado; nenhuma chamada ao provedor.")
             return 0
+        if args.command in {"rebaseline", "reconcile"}:
+            if simulated:
+                print("Reconciliação administrativa não pode usar estado simulado.")
+                return 2
+            target = canonical(args.resume_ticket or args.ticket or "")
+            if not target:
+                print("Informe o ticket a reconciliar.")
+                return 2
+            try:
+                if args.command == "rebaseline":
+                    return rebaseline_ticket(target, state, args.include, args.note, config)
+                return reconcile_ticket(target, state, args.reconcile_status, args.acceptance,
+                                        args.note, args.evidence, args.commit, config)
+            except ValueError as error:
+                print(f"{args.command} recusado: {error}")
+                return 2
         if args.command == "clear-quota":
             state.pop("provider_pause", None)
             event(state, "quota_pause_cleared_by_operator")

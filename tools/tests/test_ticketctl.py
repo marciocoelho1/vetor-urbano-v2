@@ -218,6 +218,123 @@ class ControllerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             m.Controller(self.config,{'mode':'simulation'},self.path,self.logs)
 
+    def test_rebaseline_releases_only_the_named_paths_and_unblocks_commit(self):
+        (self.root / 'existing.txt').write_text('dirty before start\n')
+        snapshot = m.worktree_snapshot()
+        self.state['tickets']['12'] = {
+            'status': 'awaiting_commit',
+            'baseline_worktree': snapshot,
+            'commit_block': 'ticket modified files already dirty at start',
+        }
+        self.state['tickets']['12']['baseline_worktree']['staged'] = False
+        # The tree changes after the baseline was taken: the ticket corrects the dirty file.
+        (self.root / 'existing.txt').write_text('corrected by the ticket\n')
+        self.assertEqual(m.commit_ticket('12', self.config, self.state, self.state['tickets']['12']), 3)
+        self.assertEqual(self.state['tickets']['12']['commit_block'],
+                         'ticket modified files already dirty at start')
+
+        self.assertEqual(m.rebaseline_ticket('12', self.state, ['existing.txt'],
+                                            'base anterior às correções do ticket', self.config), 0)
+        rec = self.state['tickets']['12']
+        self.assertNotIn('existing.txt', rec['baseline_worktree']['files'])
+        self.assertEqual(rec['baseline_worktree']['files'], {})
+        self.assertNotIn('commit_block', rec)
+        self.assertEqual(rec['rebaselines'][0]['released_files'], ['existing.txt'])
+
+        self.assertEqual(m.commit_ticket('12', self.config, self.state, rec), 0)
+        self.assertEqual(self.git('show', '--name-only', '--format=', 'HEAD'), 'existing.txt')
+        self.assertEqual((self.root / 'existing.txt').read_text(), 'corrected by the ticket\n')
+
+    def test_rebaseline_refuses_stale_paths_short_notes_and_mandatory_phases(self):
+        (self.root / 'existing.txt').write_text('dirty\n')
+        self.state['tickets']['12'] = {'baseline_worktree': m.worktree_snapshot()}
+        self.state['tickets']['12']['baseline_worktree']['staged'] = False
+        with self.assertRaisesRegex(ValueError, 'motivo do rebaseline'):
+            m.rebaseline_ticket('12', self.state, [], 'curto', self.config)
+        with self.assertRaisesRegex(ValueError, 'não está alterado'):
+            m.rebaseline_ticket('12', self.state, ['never-seen.txt'],
+                                'justificativa suficientemente longa', self.config)
+        # Dirty but created after the baseline: it belongs to the ticket, not to the pre-existing work.
+        (self.root / 'ticket-new.txt').write_text('created by the ticket\n')
+        with self.assertRaisesRegex(ValueError, 'não fazia parte da base'):
+            m.rebaseline_ticket('12', self.state, ['ticket-new.txt'],
+                                'justificativa suficientemente longa', self.config)
+        mandatory = {**self.config, 'mandatory_phases': ['06']}
+        with self.assertRaisesRegex(ValueError, 'não libera arquivos'):
+            m.rebaseline_ticket('06', self.state, ['existing.txt'],
+                                'justificativa suficientemente longa', mandatory)
+        self.state['tickets']['06'] = {'baseline_worktree': m.worktree_snapshot()}
+        self.state['tickets']['06']['baseline_worktree']['staged'] = False
+        self.assertEqual(m.rebaseline_ticket('06', self.state, [],
+                                             'fase obrigatória com base refeita', mandatory), 0)
+        with self.assertRaisesRegex(ValueError, 'Fase obrigatória'):
+            m.reconcile_ticket('06', self.state, 'accepted', 'verified',
+                               'fase obrigatória não é aceita fora do controlador', [], None, mandatory)
+        with self.assertRaisesRegex(ValueError, 'não tem registro'):
+            m.rebaseline_ticket('99', self.state, [], 'justificativa suficientemente longa', self.config)
+
+        # Untracked files are part of the snapshot and keep being protected unless released.
+        (self.root / 'untracked-baseline.txt').write_text('pre-existing untracked\n')
+        rec = {'baseline_worktree': m.worktree_snapshot()}
+        rec['baseline_worktree']['staged'] = False
+        self.state['tickets']['12'] = rec
+        self.assertEqual(m.rebaseline_ticket('12', self.state, [], 'base refeita sem liberar arquivos',
+                                             self.config), 0)
+        self.assertIn('untracked-baseline.txt', self.state['tickets']['12']['baseline_worktree']['files'])
+
+    def test_rebaseline_refuses_a_staged_index(self):
+        (self.root / 'existing.txt').write_text('dirty\n')
+        self.git('add', 'existing.txt')
+        self.state['tickets']['12'] = {'baseline_worktree': {'files': {}, 'staged': False}}
+        with self.assertRaisesRegex(ValueError, 'staged'):
+            m.rebaseline_ticket('12', self.state, [], 'justificativa suficientemente longa', self.config)
+
+    def test_reconcile_records_acceptance_with_evidence_and_releases_dependents(self):
+        commit = self.commit_checkpoint('docs/history/reconcile-12.md')
+        self.assertEqual(m.reconcile_ticket('12', self.state, 'accepted', 'verified_local_demonstration',
+                                           'verificação local registrada com evidência versionada',
+                                           ['docs/history/reconcile-12.md'], commit, self.config), 0)
+        self.ctl.state = self.state
+        self.assertTrue(self.ctl.accepted('12'))
+        self.assertTrue(self.ctl.ready('13'))
+        rec = self.state['tickets']['12']
+        self.assertEqual(rec['integration_commit'], commit)
+        self.assertEqual(rec['acceptance'], 'verified_local_demonstration')
+        self.assertEqual(rec['reconciliations'][0]['evidence'], ['docs/history/reconcile-12.md'])
+        self.assertEqual(self.state['events'][-1]['kind'], 'reconciled')
+
+    def test_reconcile_refuses_inference_without_evidence_and_mandatory_acceptance(self):
+        with self.assertRaisesRegex(ValueError, 'justificativa'):
+            m.reconcile_ticket('12', self.state, 'accepted', 'verified', 'curto', [], None, self.config)
+        with self.assertRaisesRegex(ValueError, 'evidência'):
+            m.reconcile_ticket('12', self.state, 'accepted', 'verified',
+                               'verificação local sem prova nomeada', [], None, self.config)
+        with self.assertRaisesRegex(ValueError, 'não comprovado como ancestral'):
+            m.reconcile_ticket('12', self.state, 'accepted', 'verified',
+                               'verificação local com commit inventado', [], 'deadbeef', self.config)
+        with self.assertRaisesRegex(ValueError, 'arquivo versionado'):
+            m.reconcile_ticket('12', self.state, 'accepted', 'verified',
+                               'verificação local com caminho inexistente', ['docs/missing.md'], None,
+                               self.config)
+        mandatory = {**self.config, 'mandatory_phases': ['12']}
+        with self.assertRaisesRegex(ValueError, 'Fase obrigatória'):
+            m.reconcile_ticket('12', self.state, 'accepted', 'verified',
+                               'tentativa de aceitar fase obrigatória por fora',
+                               [], None, mandatory)
+        with self.assertRaisesRegex(ValueError, 'Status de reconciliação'):
+            m.reconcile_ticket('12', self.state, 'done', 'verified',
+                               'status fora da lista permitida', [], None, self.config)
+
+    def test_reconcile_keeps_a_blocked_ticket_blocked_and_records_the_reason(self):
+        self.state['tickets']['12'] = {'status': 'blocked', 'pause_reason': 'limitação de ferramenta'}
+        self.assertEqual(m.reconcile_ticket('12', self.state, 'blocked', 'tool_limitation_recorded',
+                                           'bloqueio registrado por limitação de ferramenta',
+                                           [], None, self.config), 0)
+        rec = self.state['tickets']['12']
+        self.assertEqual(rec['status'], 'blocked')
+        self.assertEqual(rec['pause_reason'], 'limitação de ferramenta')
+        self.assertFalse(m.Controller(self.config, self.state, self.path, self.logs).accepted('12'))
+
     def test_preserve_dirty_work(self):
         (self.root/'existing.txt').write_text('dirty before execution')
         self.assertEqual(self.ctl.auto(),0)
