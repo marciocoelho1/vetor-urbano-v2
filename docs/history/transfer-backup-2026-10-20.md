@@ -1,0 +1,9 @@
+# Cópia de transferência — 20/10/2026
+
+Destino: `/run/media/marciocoelho/C007-1D45/VetorUrbano/backup-2026-10-20`.
+
+Inclui checkout inteiro em tar gzip (arquivos ocultos, Git, ignorados, dependências locais e modificações existentes), dumps lógicos e snapshots físicos dos cinco bancos locais: `vetor-spec-postgis`, `vu-selected-db`, `vu-ticket30-db`, `vu-fogo-cruzado-db` e `vu-ticket29-e2e-db`. Os snapshots físicos são exportados com cada banco parado, restaurando depois o estado anterior do contêiner. Inclui imagem PostGIS e metadados públicos sem senhas e arquivo separado de credenciais autorizado. Cada banco tem seu próprio instante de snapshot.
+
+O roteiro externo `LEIA-ME.txt` e `restaurar-bancos.py` explicam restauração em Linux x86_64, portas, pré-requisitos e preservação das senhas de conexão originais. A revisão automática inicialmente bloqueou a transferência de credenciais externas. Após autorização explícita do responsável, a chave MFA e os arquivos de configuração externos foram incluídos em arquivos separados, preservando permissões na restauração. Nenhum valor secreto foi exibido. A validade das credenciais depende dos respectivos serviços. A primeira comparação identificou alteração concorrente em CollectionService.java; a cópia do projeto foi refeita a partir de snapshot local para preservar o estado mais recente disponível.
+
+Verificação documental: `bash scripts/verify.sh planning` (estrutura e links, não aplicação). O procedimento de cópia confere gzip/tar e gera SHA-256, comparando arquivos e links do checkout com o arquivo compactado. O resultado final desses passos é informado ao responsável ao concluir; este registro descreve o procedimento, não substitui o resultado. Não foram executados testes da aplicação nem restauração funcional em outro PC. Ferramentas do sistema e caches globais não integram o backup; mapas e instalações podem precisar de internet.

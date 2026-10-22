@@ -132,6 +132,26 @@ Na árvore final de 22/10/2026 a suíte foi repetida com os mesmos resultados �
 
 O frontend E2E padrão deve escutar em `127.0.0.1:4201`: `LocalWebConfiguration` só autoriza CORS para `127.0.0.1:4201` e `localhost:4201`. Uma porta web ad hoc `4211` recebe 403 em OPTIONS e invalida o fluxo de login; se a API for servida fora de 8080, `VETOR_E2E_API_BASE` sozinho altera apenas os helpers `APIRequestContext` — chame `routeApplicationApi(page)` antes de navegar para redirecionar o navegador. Não aponte essas fixtures aos bancos protegidos nem use a fonte real. A seleção desligada da coleta foi revalidada em 22/10/2026 contra a API sem `vetor.collection.enabled`: **2 aprovados e 22 pulados**, todos esperados.
 
+### Painel de operação (ticket 22) — 22/10/2026
+
+O painel administrativo de operação lê `GET /api/v1/admin/operations` (ADMIN + segundo fator,
+`no-store`) e é auditado como `OPERATIONS_VIEW` com contagens agregadas. A janela de antecedência das
+confirmações vem de **`vetor.operations.expiry-window`** (padrão de repositório `24h`); em branco, o
+painel responde `NOT_CONFIGURED` e não sugere prazo. Contrato completo em
+[`docs/architecture/operations-panel-local-v1.md`](../architecture/operations-panel-local-v1.md).
+
+A área administrativa de fontes, coleta, operação e revisão é carregada por **`@defer`**
+(`AdminSourcesPanels`): o pacote inicial caiu de **872,43 kB** para **841,05 kB** e o bloco
+administrativo virou o chunk preguiçoso `admin-sources-panels` de **79,20 kB**. Telas de conta e de
+logs permanecem no pacote inicial de propósito: o foco do título da tela é verificado por navegador e
+o carregamento diferido o perdia.
+
+Jornada de navegador desta entrega (`VETOR_ACCOUNTS_E2E=1 VETOR_E2E_DATABASE_CONTAINER=vu-ticket29-e2e-db`,
+API com `--vetor.accounts.enabled=true` e caixa em 8025): `operations-panel.spec.ts` passou **4/4**
+Chromium/Firefox, junto com as regressões `admin-local-sources.spec.ts` e `audit-log.spec.ts`
+(**10/10** no total, `--workers=1`). A fixture usa `SET session_replication_role = replica` somente
+para remover as próprias linhas, porque o histórico de verificação é imutável por gatilho.
+
 ## Gerar o artefato
 
 Na raiz do repositório, com o Node.js de `.nvmrc`:

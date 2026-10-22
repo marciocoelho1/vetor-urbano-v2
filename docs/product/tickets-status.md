@@ -1,5 +1,33 @@
 # Vetor Urbano — situação dos tickets
 
+## Rodada 22 — ticket 22, crédito em exportações, controlador e carga diferida (22/10/2026)
+
+- **Autorização e decisões por delegação:** o responsável autorizou implementar os itens restantes e
+  escolher as pendências de aceite com base no escopo, mantendo responsividade e carga baixa. As
+  escolhas estão registradas abaixo e nos checkpoints; nenhum aceite foi declarado como prontidão
+  operacional.
+- **Ticket 22 implementado e verificado localmente.** `GET /api/v1/admin/operations` (ADMIN+MFA,
+  `no-store`, auditado como `OPERATIONS_VIEW` no módulo `operations` da V19) devolve fontes com estado
+  fechado (`PAUSED`, `NEVER_ATTEMPTED`, `FAILING` com classe, `RUNNING`, `PARTIAL`,
+  `UP_TO_DATE_NO_NEW_ITEMS`, `NEW_ITEMS`, `IDLE`), fila/espera e confirmações. Fonte não configurada,
+  fila vazia e sucesso sem novidades têm textos próprios; falha de conector não vira contagem de
+  ocorrências. Antecedência explícita em `vetor.operations.expiry-window` (24h); em branco o bloco
+  responde `NOT_CONFIGURED`. [Contrato](../architecture/operations-panel-local-v1.md),
+  [checkpoint](../history/ticket-22-operations-panel-2026-10-22.md), E2E **4/4** Chromium/Firefox.
+- **Pendência do ticket 20 encerrada:** o crédito «Fonte: Instituto Fogo Cruzado» passou a acompanhar
+  as exportações XLSX (aba «Recorte») e PDF (seção «Crédito de fonte autorizada»), com o texto vindo da
+  `provenance` da fonte no servidor, não de constante local.
+- **Controlador:** `rebaseline` e `reconcile` adicionados com 6 testes novos (**39/39**). O
+  `reconcile` aceita status/aceite apenas com justificativa e evidência versionada e **não** aceita fase
+  obrigatória (`06`, `36`, `07`, `10`, `integrated-review`) por fora do controlador — o gate de B5
+  permanece intacto por decisão de projeto.
+- **Carga diferida:** área administrativa de fontes/coleta/operação/revisão em `@defer`
+  (`AdminSourcesPanels`); pacote inicial **872,43 kB → 841,05 kB**, chunk de **79,20 kB**, margem
+  **58,95 kB** até o teto de 900 kB.
+- **Tickets 23 e 24 continuam não iniciados**, com proposta de calibração pronta para decisão em
+  [ticket-23-24-calibration-proposal](../history/ticket-23-24-calibration-proposal-2026-10-22.md).
+  A regra/rubrica e a amostra mínima não foram inventadas.
+
 ## Fechamento de B5 e do ticket 21 — concluído com aceite em 22/10/2026
 
 - B5: correções dos cinco findings 06/10/36 verificadas no código e em navegador — entradas avançadas reconciliam filtros, atualização demonstrativa devolve foco, metodologia distingue a camada territorial atribuída dos exemplos sintéticos e privacidade descreve a sessão exigida. `two-modes` prepara sessão sintética; a configuração de `integrated-review` inclui jornadas 06/36. Matriz Chromium/Firefox **46/46** na árvore final; revisões independentes Standards (sem violação inequívoca) e Spec (um defeito real, corrigido no 21) concluídas. O controlador permanece em `correction` por **limitação de ferramenta** (base anterior às correções, commit bloqueado por arquivo da base alterado e sem rebaseline), não por achado aberto; proposta de fatia própria registrada.
@@ -47,19 +75,25 @@ Atualizado em **21/10/2026** após a implementação local do ticket 21. O inven
 
 ## Visão geral
 
-- **33 implementados localmente**, incluindo o ticket 21 implementado e verificado com dados e fonte sintéticos.
-- Nenhum aceite novo foi inferido: o ticket 21 está implementado localmente, mas o aceite permanece reservado ao responsável; o 20 e o 35 também aguardam aceite, e a publicação jurídica do 36 continua adiada.
-- **3 ainda não iniciados:** 22, 23 e 24; 23/24 seguem bloqueados pela definição da regra de confiabilidade.
+- **34 implementados localmente**, incluindo o ticket 22 (painel de operação) e o ticket 21.
+- **Aceites de 20, 21 e 35** foram registrados como incremento local verificado na rodada de 22/10/2026,
+  por delegação explícita do responsável; não representam prontidão operacional, publicação ou coleta
+  real. A publicação jurídica do 36 continua adiada (D3).
+- **2 ainda não iniciados:** 23 e 24; ambos dependem da definição da regra de confiabilidade, cuja
+  proposta de calibração está registrada e aguarda decisão.
 
 “Implementado localmente” descreve o estado do código e das evidências sintéticas disponíveis; não significa publicação, operação real ou aprovação de produção. As suítes completas dos 36 tickets não foram reexecutadas para produzir este inventário; as verificações específicas do ticket 21 estão registradas abaixo e no checkpoint.
 
 ## Implementados localmente
 
-**01–21, 25, 26–34, 35 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 20, 21, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35 e 36 têm checkpoints ou validações posteriores documentados.
+**01–22, 25, 26–34, 35 e 36** — incrementos implementados; a tabela resume a entrega e o tipo de evidência/limitação atual. Os tickets 07, 11, 15, 17, 18, 19, 20, 21, 22, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35 e 36 têm checkpoints ou validações posteriores documentados.
 
 ## Ainda não iniciados
 
-**22, 23 e 24** — ainda não há implementação local do fluxo correspondente. O 22 tem estados e eventos disponíveis a partir do ticket 20; 23/24 continuam bloqueados pela definição da regra de confiabilidade.
+**23 e 24** — sem implementação local. Dependem da definição da regra de confiabilidade (fórmula,
+pesos, arredondamento) e da rubrica de recomendação mensal (amostra mínima, janela, critérios de
+subida/descida); a proposta de calibração está em
+[../history/ticket-23-24-calibration-proposal-2026-10-22.md](../history/ticket-23-24-calibration-proposal-2026-10-22.md).
 
 ## Parciais ou com pendência
 
@@ -88,9 +122,9 @@ Atualizado em **21/10/2026** após a implementação local do ticket 21. O inven
 | 17 | [Revisar e publicar ocorrências sem duplicar clippings](../../.scratch/consulta-coerente/issues/17-revisar-publicar.md) | Revisa clippings, associa acontecimentos e decide publicação sem duplicar ocorrências. | Implementado localmente; fila ADMIN/MFA, núcleo validado no servidor, replay/concorrência e histórico registrados no checkpoint. |
 | 18 | [Corrigir ou retirar uma ocorrência publicada](../../.scratch/consulta-coerente/issues/18-corrigir-retirar.md) | Corrige ou retira publicação com revisão e histórico auditável. | Concluído localmente em 18/10: E2E editor e canal 4/4 cada em Chromium/Firefox, incluindo erro/retry por teclado e fila vazia; API 18 + 86 prova remoção de query/export, contagens e trilha de snapshots; web 124, `planning` 433 links e `git diff --check` passaram. [Checkpoint](../history/ticket-18-progress-2026-10-18.md). Aceite sintético; sem prontidão operacional. |
 | 19 | [Consultar logs administrativos com retenção configurada](../../.scratch/consulta-coerente/issues/19-consultar-logs.md) | Permite consulta administrativa de logs com retenção definida para o ambiente. | Concluído localmente em 18/10: `/api/v1/admin/logs` devolve `actor` e `historicalActor` para conta viva e autoria residual; `AuditHttpIT` prova o encerramento, a ausência do UUID eliminado e as duas referências distintas. [Checkpoint](../history/ticket-19-progress-2026-10-18.md). |
-| 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | **Implementado localmente em 19/10/2026** com a fonte autorizada (API Fogo Cruzado v2), recorte RM-RJ + cidade do Rio desde 01/06/2026: V15, cliente, máquina de estados, pausa/retomada, idempotência e endpoints administrativos, mais a seção «Coleta» na web com o crédito exigido pela fonte. **Execução real delimitada** no banco dedicado: 807 vistas/807 criadas e, na repetição, 807 duplicadas e 0 criadas; 807 revisões `PENDING` e **0 publicações automáticas**. [Checkpoint](../history/ticket-20-collection-2026-10-19.md). Pendências nomeadas: Petrópolis ausente na fonte; crédito ainda não exibido em exportações/relatórios; aceite é decisão do responsável. |
+| 20 | [Coletar publicações recentes de uma fonte autorizada](../../.scratch/consulta-coerente/issues/20-coleta-recente.md) | Coleta publicações recentes de fonte autorizada e encaminha os itens para revisão. | **Implementado localmente em 19/10/2026** com a fonte autorizada (API Fogo Cruzado v2), recorte RM-RJ + cidade do Rio desde 01/06/2026: V15, cliente, máquina de estados, pausa/retomada, idempotência e endpoints administrativos, mais a seção «Coleta» na web com o crédito exigido pela fonte. **Execução real delimitada** no banco dedicado: 807 vistas/807 criadas e, na repetição, 807 duplicadas e 0 criadas; 807 revisões `PENDING` e **0 publicações automáticas**. [Checkpoint](../history/ticket-20-collection-2026-10-19.md). Pendências nomeadas: Petrópolis ausente na fonte (limitação de cobertura, não de código); crédito da fonte **encerrado em 22/10/2026** nas exportações XLSX/PDF. Aceite registrado como incremento local verificado em 22/10/2026 por delegação do responsável. |
 | 21 | [Carregar publicações retroativas com retomada](../../.scratch/consulta-coerente/issues/21-coleta-retroativa.md) | Ingere publicações históricas por período e território, com retomada e acompanhamento. | Implementado localmente em 21/10/2026 no recorte aprovado do ticket 20. BACKFILL com 100 páginas cumulativas por janela, 20 por etapa e pacing de 1 s; falhas consomem reserva; continuação exige janela menor/não sobreposta; V17 reconcilia uso anterior à V16 e V18 falhas legadas. Após revisão Standards + Spec: guarda de configuração desde 01/06/2026, erros de datas associados aos campos, datas de publicação/coleta separadas, limite por etapa aplicado explicitamente ao BACKFILL e fixture E2E vinculada ao contêiner dedicado; helper rejeita `vetor-spec-postgis` antes de SQL. API 59 unitários + 124 integrações (execução anterior); web 166 testes/build inicial 871,81 kB; Playwright configurado 22/2 e sete specs persistentes 46/46 são evidências anteriores à alteração final do guard, não revalidadas depois. Os dois testes isolados do guard passaram sem SQL/API. Modo desligado não foi reexecutado. Nenhuma coleta real ou publicação automática. Aceite do responsável pendente; sincronização B5 bloqueada por `integrated-review`. [Checkpoint](../history/ticket-21-backfill-progress-2026-10-21.md). |
-| 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | Ainda não iniciado; estados e eventos da coleta já existem (ticket 20). Falta a leitura de espera da fila e as confirmações com prazo explicitamente configurado. |
+| 22 | [Acompanhar falhas de coleta e espera de revisão](../../.scratch/consulta-coerente/issues/22-painel-operacao.md) | Monitora falhas, progresso de coleta e espera na fila de revisão. | **Implementado localmente em 22/10/2026:** `GET /api/v1/admin/operations` (ADMIN+MFA, `no-store`, auditoria `OPERATIONS_VIEW` na V19) e painel somente leitura com estados fechados por fonte, fila/espera e confirmações com antecedência explícita (`vetor.operations.expiry-window`, 24h; em branco → `NOT_CONFIGURED`). API 4 IT novos, web 180 testes e E2E **4/4** Chromium/Firefox. [Contrato](../architecture/operations-panel-local-v1.md) e [checkpoint](../history/ticket-22-operations-panel-2026-10-22.md). Limitação: ambiente sintético, sem prazo/SLA novo. |
 | 23 | [Avaliar confiabilidade com regra calibrada e versionada](../../.scratch/consulta-coerente/issues/23-avaliar-ocorrencia.md) | Calcula avaliação versionada da ocorrência e publica explicação resumida. | Ainda não iniciado; calibração e fórmula de confiabilidade precisam ser definidas. |
 | 24 | [Decidir recomendação mensal sobre notas de fontes](../../.scratch/consulta-coerente/issues/24-reavaliar-fontes.md) | Recomenda revisão periódica das notas das fontes, sujeita a aprovação humana. | Ainda não iniciado; depende das definições e do mecanismo de avaliação do ticket 23. |
 | 25 | [Consultar proximidade e vigência no fluxo integrado](../../.scratch/consulta-coerente/issues/25-proximidade-vigencia-integradas.md) | Integra localização consentida ou ponto manual às regras de vigência dos Informes. | Concluído localmente em 19/10: HTTP/USER/PostGIS, política declarada com negação segura, insuficiência pública, auditoria, web de localização/manual e persistência D06/CA08 — V14 com verificação humana por versão do efeito, evidência obrigatória, conflito sem sobrescrita, desligamento de autoria no encerramento, filtro estrito de vigência e ciclo administrativo de expiração (toast persistente, container de expiradas, botão tratar, editor sem evidência pré-preenchida, repetição a cada expiração). API 21 + 101, web 127 e Playwright 42/42 Chromium/Firefox; V1–V13 intactas. [Checkpoint](../history/closure-round-2026-10-19.md#estado-final-da-trilha-a). Prazos aprovados ativos no código; aceite operacional aberto e demais specs de navegador não reexecutadas. |
