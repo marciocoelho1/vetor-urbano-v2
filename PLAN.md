@@ -1,5 +1,34 @@
 # Plano de trabalho
 
+## Rodada 22 — ticket 22, crédito em exportações, rebaseline e carga diferida — 22/10/2026
+
+- **Autorização do responsável nesta data:** implementar os itens restantes e decidir os aceites
+  pendentes por delegação, com as escolhas registradas. As decisões tomadas estão em
+  [tickets-status](docs/product/tickets-status.md) e no checkpoint de cada item.
+- **Ticket 22 implementado e verificado localmente:** `GET /api/v1/admin/operations` (ADMIN+MFA,
+  `no-store`, auditado como `OPERATIONS_VIEW` no módulo `operations` na V19) e painel somente leitura com fontes
+  (pausada, nunca tentada, falha com classe, execução em andamento, parcial, sem novidades, com itens),
+  fila/espera e confirmações. A janela de antecedência é `vetor.operations.expiry-window` (24h no
+  repositório); em branco o bloco responde `NOT_CONFIGURED` e não sugere prazo. [Contrato](docs/architecture/operations-panel-local-v1.md)
+  e [checkpoint](docs/history/ticket-22-operations-panel-2026-10-22.md).
+- **Crédito da fonte nas exportações (pendência do 20 em 29/33/34) encerrado:** a consulta publicada
+  passou a devolver `attribution` derivada de `sources.provenance` (fora do hash de revisão) e o XLSX
+  (aba «Recorte») e o PDF (seção «Crédito de fonte autorizada») exibem o texto do servidor; o crédito
+  não é constante local. Só aparece quando o recorte referencia a fonte autorizada.
+- **Controlador:** novos comandos `rebaseline` (refaz a base do ticket e libera paths nomeados, sem
+  aceitar nada) e `reconcile` (registra status/aceite com evidência versionada e justificativa; recusa
+  aceitar fase obrigatória por fora). `ticketctl` passou de 33 para **39 testes**.
+- **Carga diferida da área administrativa:** `AdminSourcesPanels` + `@defer`; pacote inicial
+  **872,43 kB → 841,05 kB** (chunk `admin-sources-panels` de 79,20 kB; margem 58,95 kB até 900 kB).
+  Conta e logs permanecem no pacote inicial porque o foco do título da tela é verificado em navegador.
+- **Verificação desta árvore:** API completa pelo runner (contagem no checkpoint); web lint,
+  **180 testes/24 arquivos**, build 841,05 kB; Playwright do painel + regressões **10/10**
+  Chromium/Firefox; `ticketctl` 39/39; `planning` e `git diff --check` no fechamento.
+- **Adiado com justificativa registrada:** tickets **23 e 24** continuam não iniciados — os critérios
+  exigem rubrica, pesos e amostra mínima aprovados, e os próprios tickets vedam adotar valores por
+  suposição. A proposta de calibração está em
+  [ticket-23-24-calibration-proposal](docs/history/ticket-23-24-calibration-proposal-2026-10-22.md).
+
 ## Fechamento de B5 e do ticket 21 — concluído com aceite em 22/10/2026
 
 - Achados técnicos B5 06/10/36 corrigidos e verificados: entradas avançadas reconciliam filtros, atualização demonstrativa restaura foco, metodologia distingue a camada territorial atribuída dos exemplos sintéticos e privacidade descreve a sessão exigida. `two-modes` recebeu sessão sintética; configuração de `integrated-review` inclui jornadas 06/36; matriz navegador 46/46 repetida na árvore final. O aceite do responsável foi concedido em 22/10/2026.
