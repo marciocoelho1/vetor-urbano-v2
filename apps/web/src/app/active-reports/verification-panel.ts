@@ -42,8 +42,8 @@ interface Verification {
       z-index: 1200;
       max-width: calc(100vw - 2rem);
       padding: 1rem;
-      background: var(--surface, #fff);
-      color: var(--text, #18232e);
+      background: var(--color-bg-surface);
+      color: var(--color-text-main);
       border: 2px solid #89671b;
       border-radius: 12px;
       box-shadow: 0 4px 20px #0003;

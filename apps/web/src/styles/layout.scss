@@ -195,7 +195,7 @@
       padding: 2px 8px;
       border-radius: 4px;
       background: var(--accent);
-      color: #ffffff;
+      color: var(--color-on-accent);
       font-size: var(--vu-text-xs);
       font-weight: var(--vu-weight-strong);
       letter-spacing: 0.02em;
@@ -230,7 +230,7 @@
       border: 1px solid var(--accent);
       border-radius: 6px;
       background: var(--accent);
-      color: #ffffff;
+      color: var(--color-on-accent);
       font: inherit;
       font-size: var(--vu-text-xs);
       font-weight: var(--vu-weight-strong);
@@ -263,6 +263,7 @@
     }
   }
   .skip-link {
+    background: var(--accent);
     color: var(--color-bg-surface);
   }
   .main-content {

@@ -771,7 +771,7 @@
 }
 .area-result-mark {
   background: rgb(240 167 43 / 12%);
-  color: #f0a72b;
+  color: var(--color-warning-dot);
 }
 .search-result-copy {
   display: grid;

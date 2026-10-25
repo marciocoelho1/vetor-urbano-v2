@@ -8,7 +8,6 @@ app-root {
     padding: 0.75rem 1rem;
     transform: translateY(-160%);
     border-radius: 0.5rem;
-    background: var(--accent);
     font-weight: var(--vu-weight-strong);
   }
   .skip-link:focus {
@@ -840,11 +839,11 @@ app-root {
     margin: 12px;
   }
   .query-error-state {
-    border-color: #ef4444;
+    border-color: var(--color-error);
   }
   .query-error-icon {
     font-size: var(--vu-icon-md);
-    color: #ef4444;
+    color: var(--color-error);
   }
   .query-error-title {
     color: var(--color-text-main);
@@ -867,13 +866,13 @@ app-root {
     margin-left: 8px;
   }
   .result-led.is-error {
-    background: #ef4444;
+    background: var(--color-error);
   }
   .result-led.is-loading {
     background: var(--accent);
   }
   .query-error-note {
-    color: #ef4444;
+    color: var(--color-error);
     font-size: var(--vu-text-xs);
   }
 
