@@ -14,7 +14,7 @@ Demonstração sem o parâmetro: dados locais + importações manuais
     → regras no Angular → mapa, lista, indicadores e exportação
 ```
 
-Mapa e lista compartilham o resultado filtrado. As 75 ocorrências e os dois pontos de interesse são fictícios. Arquivos importados ficam na memória da aba; tema e filtros salvos usam armazenamento local do navegador. Não há coleta automática, geocodificação real ou envio do cadastro.
+Mapa e lista compartilham o resultado filtrado. As 75 ocorrências e os dois pontos de interesse são fictícios. Arquivos importados ficam na memória da aba; tema e filtros salvos usam armazenamento local do navegador. A demonstração não executa coleta nem envia o cadastro de ocorrência. A API possui coleta administrativa configurável; isso não autoriza ativá-la nesta rodada ou no piloto. Não há geocodificador externo integrado.
 
 ## Frontend
 
@@ -38,9 +38,9 @@ A galeria tem entrada e `tsconfig` próprios em `apps/web/prototypes/`. O build 
 - Localização da ocorrência e identidade de quem informa são conceitos separados.
 - Eventos geolocalizados e estatísticas agregadas mantêm unidades e origem próprias.
 
-## Backend local de leitura
+## Backend local integrado
 
-A API usa Spring Boot 4.1.1, Java 21, PostgreSQL 17/PostGIS 3.5 e Flyway. A fatia do Ticket 12 implementa `GET /api/v1/occurrences`, migração versionada e dados fictícios locais; o navegador consome esse endpoint no modo local explícito, inclusive relações fora do recorte sem alterar as contagens. Cadastro, autorização, sessões, MFA e moderação dependem das regras de acesso e dos tickets correspondentes.
+A API usa Spring Boot 4.1.1, Java 21, PostgreSQL 17/PostGIS 3.5 e Flyway. A fatia do Ticket 12 implementa `GET /api/v1/occurrences`, migração versionada e dados fictícios locais; o navegador consome esse endpoint no modo local explícito, inclusive relações fora do recorte sem alterar as contagens. O código também implementa cadastro/confirmação, recuperação e encerramento de conta, sessões revogáveis, MFA administrativo, fontes, auditoria, correções, revisão/publicação, versões territoriais, coleta configurável, confiabilidade e administração de ocorrências. As migrações atuais vão de V1 a V22; sua presença não prova aplicação em qualquer banco. Consulte os contratos específicos nesta pasta e as verificações da rodada no plano. Hospedagem, cobertura cartográfica e condições operacionais permanecem pendentes.
 
 Contrato HTTP atual e versões estão no [api-query-v1](api-query-v1.md). O [contrato preliminar P1.1](../archive/architecture/proposal-2026-10.md#5-contrato-preliminar-p11--somente-leitura) e a [especificação de implementação](../archive/planning/implementation-2026-10.md) permanecem referências históricas; não são requisitos para a API atual.
 

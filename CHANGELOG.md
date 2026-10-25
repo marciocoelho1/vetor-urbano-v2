@@ -1,3 +1,61 @@
+## 2026-10-24 — Recuperação e correções de cobertura
+
+- Retomada pelo checkpoint, com bancos antigos preservados e fixtures por família. Sessão 6/6 e gestão de fontes 4/4 corrigidas; revisão/publicação 2/2 com ADMIN exato e canal de correção 4/4 com contexto USER preservado e decisão exata. XLSX completo 8/8 em cada porta 8080/8081, incluindo 503 e conteúdo. Web final: lint, 205 testes/28 arquivos e build 852,03 kB.
+- Consolidação de evidências válidas anteriores e retestes afetados: 184 aprovadas/24 skips de modo/zero falhas em 208 entradas; não é matriz integral nova, seleções sobrepostas substituídas, não somadas. [Registro técnico](docs/history/uxh-01-five-fixes-2026-10-24.md). Produto/API/controlador não modificados; API e controlador não reexecutados nesta recuperação.
+- UXH-02/cartografia e aceite do responsável continuam pendentes; nenhuma operação Git de escrita, dado real, publicação ou deploy.
+
+## 2026-10-24 — Interrupção solicitada e ponto de recuperação
+
+- Execução dos cinco diagnósticos interrompida a pedido do responsável. [Checkpoint de recuperação](docs/history/uxh-01-recovery-stop-2026-10-24.md) registra estado local, artefatos, resultados não consolidados e próximos passos; sem declaração de aceite ou matriz final aprovada. Processos encerrados e contêineres sintéticos parados/preservados; sem staging, commit, push ou merge.
+
+## 2026-10-24 — Lote A UXH, execução local parcial
+
+- UXH-01: reconciliados AGENTS, arquitetura, estrutura e escopo com backend, contas, coleta configurável e migrações V1–V22 existentes; proposta de destino versionável da especificação/tickets ignorados, sem alterar ignore ou publicar.
+- Verificação atual: web lint/205 testes/build 852,03 kB; controlador 43; API/PostGIS descartável 59 unitários + 145 integrações, sem falhas/skips; Playwright demonstrativo 46/46 Chromium/Firefox. Seleção persistida interrompida em 13 aprovados, 3 falhas e 36 não executados; sem aceite por interrupção e sem recomendar merge. [Evidências](docs/history/uxh-01-verification-2026-10-24.md).
+- UXH-02: [inventário por metadados](docs/history/uxh-02-inventory-2026-10-24.md) com 22 municípios e 46 linhas de investigação; direitos, datas e lacunas registrados, sem geometrias baixadas ou incorporação real. Quantitativos intramunicipais e validação espacial permanecem pendentes.
+- **Retomada autorizada:** novo PostGIS sintético `vu-uxh01-resume-db:55441`, banco anterior preservado; oito arquivos de harness/E2E corrigidos sem alterar produto, contagens esperadas ou validação XLSX. Matriz persistida Chromium/Firefox **54/54**, guards finais **8/8**, demonstrativas **46/46** e web lint/205/build aprovados. Ampliação integrada segue bloqueada após três seleções: segunda com 70 aprovados/2 falhas/1 erro/55 skips; suplemento 29 aprovados/1 falha/22 skips; coleta configurada local 22/2 skips de modo. Sem somar sobreposições ou aceitar skips. [Diagnóstico e evidências da retomada](docs/history/uxh-01-resume-2026-10-24.md). API/controlador não reexecutados nessa retomada; lote permanece parcial.
+- Preservado trabalho anterior; sem staging, commit, push, merge, troca de branch, alteração do controlador, recursos externos ou deploy. Aceites reservados ao responsável; lote não concluído.
+
+## 2026-10-23 — Entrevista de mapa e hospedagem
+
+- Grill de produto encerrado por confirmação do responsável após Q1–Q38. Criados [adendo UXH v1.0](docs/product/ui-ux-pilot-specification.md), 29 critérios próprios e [23 tickets locais em sete lotes propostos](docs/product/ui-ux-pilot-plan.md), sem renumerar requisitos ou tickets anteriores. Checklist manual fora do repositório. E-mail, backup/restauração, feedback e segredos adiados explicitamente à preparação do piloto antes de convidados. Apenas consolidação documental; sem implementação, issues publicadas, commit, merge, push ou deploy.
+
+- Q36–Q38 aprovadas integralmente: geração no Mapa copia filtros uma vez e confirma substituição; Relatórios sem painéis demonstrativos dependentes do Mapa, mantendo gráficos do resultado gerado e séries CSV separadas; filtros próprios no topo e recortes espaciais removíveis sem afetar o Mapa. Perguntas de produto desta extensão resolvidas; confirmação final de fechamento/consolidação ainda pendente. Apenas documentação, sem implementação ou operações Git.
+
+- Q31–Q35 aprovadas integralmente: filtros/UI de Informes e Histórico, Relatórios inicialmente sem consulta/indicadores, período escolhido obrigatório, preservação das escolhas na sessão e PDF/XLSX do mesmo resultado gerado. Mantida remoção completa de Reprodução temporal e vedada herança implícita do Mapa. Q36–Q38 ainda propostas; sem alteração de aplicação.
+
+- Inspeção de Relatórios identificou comando de geração do Mapa localizado hoje em Relatórios, fallback implícito ao Mapa pelo XLSX e painéis demonstrativos externos ao snapshot. Registrada rodada proposta Q31–Q35 para filtros, estado vazio/ciclo de vida e exportações consistentes; apenas leitura e documentação.
+
+- Fechamento suspenso por extensão de escopo solicitada: UI/UX e filtros de Informes, Histórico e Relatórios; retirar Reprodução temporal; filtros do relatório no topo, sem preenchimento automático e transferência apenas por «gerar relatório» no Mapa. [Entrevista dos módulos](docs/history/modules-filtering-interview-2026-10-23.md). Apenas documentação/inspeção; sem implementação.
+
+- Organizada sequência de continuidade e proposto fechamento do grill de produto, ainda dependente da confirmação do responsável. Preparações operacionais permanecem como gates antes do piloto; criação de contas não é pré-requisito da consolidação local.
+
+- Q27–Q30: aprovadas candidata Vercel/Render/Neon para validação, RAs/APs distintas no Rio, detalhe único e formulário simples de feedback. [Guia de contas/segredos](docs/operations/pilot-account-preparation.md) separa intervenções do responsável e automação; nenhuma credencial coletada, conta criada ou implantação executada.
+
+- Cartografia de municípios/bairros da RMRJ e bairros/regiões do Rio registrada como **pendência extrema**, com [escopo próprio](docs/product/territorial-mapping-priority.md). Q22–Q26: catálogo territorial aprovado; Áreas de Risco atuais devem compor o piloto, além de ocorrências fictícias, sem coleta real; teste não comercial com allowlist de e-mails no backend e tolerância à hibernação.
+- Relatório externo analisado contra a integração atual: diagnóstico baseado em baseline antiga não reabre backend/autenticação/moderação já implementados. Curadoria de padrões, conflitos e recomendação de homologação em [análise do benchmark](docs/history/ui-ux-benchmark-review-2026-10-23.md); propostas novas dependem de decisão, sem deploy ou mudança funcional.
+
+- Pesquisa territorial e de hospedagem concluída, com conferência de fontes oficiais e bloqueios do código: ausência de geometrias municipais/de bairros, condições dos planos gratuitos, cookies, chave MFA efêmera e autenticação do mapa-base. [Levantamento](docs/history/pilot-territory-hosting-research-2026-10-23.md). Nenhum serviço escolhido ou implantado.
+
+- Q19–Q21: confirmados painéis móveis de Filtros/Ferramentas/Resultados, preservação do estado e confirmação de descarte em Configurações e piloto integrado com ocorrências fictícias/coleta real desligada. Investigação territorial e pesquisa de hospedagem iniciadas sem alterações de aplicação ou infraestrutura.
+
+- Q14–Q18: registrados Menu responsivo, padrão móvel orientado ao mapa (referência Waze), resumo em duas linhas, Áreas de Risco nas ferramentas e chamada «Ver resumo da consulta». Movimento funcional pode se estender aos componentes existentes; referências externas não implicam adoção de código/bibliotecas. Sem mudança funcional nesta rodada.
+
+- Q11–Q13: escolhida opção 01 para filtros ativos; Configurações exclusivo de Admin terá somente Gestão de Fontes (tela atual inteira) e Logs Administrativos, com navegação lateral e conteúdo à direita conforme imagem de referência. Direção visual do estudo aprovada; nenhuma implementação funcional.
+
+- Q6–Q10: testar calor/busca no bloco do raio; aprovadas busca explícita «Buscar nesta área», interseção espacial e remoção dos blocos de filtros acima do mapa. Resumo ativo ainda sem posição escolhida.
+- Cinco alternativas HTML criadas e verificadas em Chromium fora do repositório, sem inclusão em commit; não alteram a aplicação. Acrescentadas ideias de Configurações exclusivo de Admin, topbar, lista, estilo e chamada inferior à [entrevista](docs/history/map-and-hosting-interview-2026-10-23.md).
+
+- Registradas decisões de piloto restrito, sequência de trabalho e preferência por gratuidade sem cobrança automática.
+- Proposta anterior (superada em Q6): filtros à esquerda dentro do mapa, raio independente acima e heatmap na lateral direita. A direção atual e as pendências estão na [entrevista](docs/history/map-and-hosting-interview-2026-10-23.md); sem alteração funcional.
+
+## 2026-10-23 — Verificação do repositório e limpeza seletiva
+
+- Removidos 6,91 MB de caches Angular/Python e resultados temporários; preservados fontes, evidências, dependências, builds e bancos.
+- Fetch confirmou ausência de commits locais sem push; merge simulado com main sem conflitos, sem executar merge ou push.
+- Web passou lint, 205 testes e build; controlador 43/43. API bloqueada por socket Podman ausente; navegador não reexecutado.
+- Registradas defasagens documentais e especificação normativa fora do Git, além das propostas para a próxima entrevista. [Auditoria](docs/history/repository-audit-2026-10-23.md).
+
 ## 2026-10-22 — Visibilidade pública por estado administrativo
 
 - **Inativa e excluída saem da consulta do usuário** (decisão do responsável): a consulta de ocorrências vigentes entrega apenas `ACTIVE`; o **histórico** continua mostrando `ACTIVE` e `CONCLUDED`; `INACTIVE` não aparece em nenhum módulo do usuário, nem por leitura de identificador. A administração continua vendo todos os estados na lista própria.

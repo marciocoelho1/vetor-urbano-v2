@@ -1,5 +1,7 @@
 # Escopo do produto
 
+> Adendo aprovado em 23/10/2026: [UX, cartografia e piloto restrito](ui-ux-pilot-specification.md), com [tickets/lotes propostos](ui-ux-pilot-plan.md). O grill desse incremento foi encerrado; Lote A (UXH-01/02) autorizado para execução local em 24/10/2026, sem operações Git de escrita, dados reais ou deploy. O inventário abaixo foi reconciliado com o código nesta rodada; resultados executáveis e limitações devem ser consultados no plano.
+
 Atualização: 15/10/2026. A [especificação funcional interna v1.1](specification.md) consolida as decisões Q1–Q88 e prevalece sobre lacunas superadas da entrevista anterior Q1–Q14. Aprovação funcional não comprova implementação. Esta reconciliação e a proposta de tickets permanecem locais, sem publicação autorizada.
 
 ## Decisões aprovadas
@@ -23,13 +25,13 @@ Decisões completas e CA01–CA25 locais estão na spec. O primeiro lote propost
 
 Frontend Angular demonstrativo, 75 ocorrências e dois POIs fictícios: mapa/lista, busca, filtros locais, marcadores/calor, camada territorial atribuída, Informes por estado, Histórico textual, comparação/indicadores, reprodução temporal experimental, filtros salvos, importação manual e XLSX. As regras atuais ainda divergem da spec.
 
-O formulário valida campos/coordenadas, mas não cria, envia ou persiste ocorrência. Triagem local de referências não é fila real. Não há API Java, PostgreSQL/PostGIS integrado, contas, autorização de servidor ou coleta automática. A camada territorial existente tem procedência e autorização próprias; não é fixture de ocorrência nem cobertura operacional validada. Consulte [inventário](development-status.md) e [fontes territoriais](../maps/territorial-sources.md).
+A demonstração local e a integração explícita `?consulta=api` coexistem. O código da API Java/Spring Boot implementa consulta PostgreSQL/PostGIS, contas/confirmação/recuperação/encerramento, sessão e MFA, autorização de servidor, fontes, fila de revisão/publicação, correções, versões territoriais, coleta configurável, confiabilidade e administração de ocorrências. As migrações versionadas vão de V1 a V22. Triagem demonstrativa não substitui a fila persistida; a existência da coleta não autoriza execução contra fonte real. A camada territorial existente não comprova catálogo municipal/de bairros nem cobertura operacional. Consulte [arquitetura](../architecture/overview.md), contratos específicos e evidências atuais no [plano](../../PLAN.md); o [inventário de 15/10](development-status.md) é histórico.
 
 ## Parâmetros pendentes
 
-Fórmula/calibragem da nota; rubrica/amostra/janela da fonte; validade de confirmação por tipo; correspondência automática de publicações; limites oficiais/interseção de trechos; confirmação/recuperação/sessão/MFA/desvinculação; fontes autorizadas, custo/frequência/extração; paginação/desempate de datas imprecisas; granularidade/colunas/composição dos arquivos; retenção definitiva e textos institucionais. A hipótese configurável de logs de 60 dias/um ano não é política definitiva.
+Permanecem pendentes a cobertura cartográfica/direitos, condições do piloto, e-mail operacional, backup/restauração comprovada e publicação dos textos institucionais. Não tratar decisões locais já implementadas como abertas: regra de confiabilidade V20 e decisões de fonte V21, verificação humana V14, contas/sessão/MFA, paginação e exportações têm contratos próprios; retenção de logs vigente é de 15 dias. Correspondência automática, novas fontes e operação real continuam sujeitas ao escopo e às autorizações específicas.
 
-Esses parâmetros bloqueiam apenas os incrementos correspondentes. Não impedem catálogo, consulta e fixtures rotuladas. A referência legada de uma hora de inatividade permanece até reconciliação explícita. RF06 e perfis legados exigem reconciliação; não é reaberta a decisão atual Usuário/Administrador.
+Essas pendências bloqueiam apenas os incrementos correspondentes. Não impedem consulta e fixtures rotuladas. A inatividade padrão de uma hora está implementada e configurável. RF06 e perfis legados exigem reconciliação; não é reaberta a decisão atual Usuário/Administrador.
 
 ## Futuro e fora do recorte inicial
 
@@ -45,16 +47,16 @@ IDs e textos de [initial-context.md](../references/initial-context.md) preservad
 | RF02 | Mapa, marcadores, calor e filtros | Cliente parcial; primeiro lote reconcilia consulta. Servidor/espacial/análise e medições não encerrados. |
 | RF03 | Alertas em perímetro ativo | Futuro; Informes e avisos de atualização não implementam geofencing. |
 | RF04 | Votos e relevância | Futuro; solicitação de correção e nota administrativa não são votação. |
-| RF05 | Autenticação e permissões por perfil | Não implementado; Usuário/Administrador aprovados para MVP, sem apagar referência Gestor/Operador/Usuário. |
+| RF05 | Autenticação e permissões por perfil | Implementação local de Usuário/Administrador, sessão e MFA; sem apagar referência Gestor/Operador/Usuário nem declarar prontidão operacional. |
 | RF06 | Gestão de Operadores | Não implementado; permanece em reconciliação, sem equivalência automática com gestão de Administrador. |
-| RF07 | Fila exclusiva de moderação | Não implementada; spec reserva ao Administrador. Divergência com Operador/Gestor legados registrada, sem declarar requisito encerrado. |
+| RF07 | Fila exclusiva de moderação | Fila/revisão/publicação local implementada para ADMIN com MFA. Correspondência com Operador/Gestor legados permanece distinta; requisito original não declarado encerrado. |
 | RNF01 | Consulta até 1,5 s em 4G | Meta preservada; ensaio representativo pendente. |
 | RNF02 | Privacidade e separação da identidade | Fixtures não comprovam proteção real; separar pessoa, consulta e local da ocorrência. |
 | RNF03 | Disponibilidade de alertas 99,9% | Futuro; sem serviço/medição. |
 | RNF04 | 20.000 conexões ativas | Futuro; sem carga/serviço. |
 | RNF05 | Mapa móvel 30 fps | Meta preservada, aparelho físico pendente; refinamento mobile adiado. |
-| RNF06 | Senhas protegidas | Obrigatório antes de contas reais; não implementado. |
-| RNF07 | Inatividade e revogação | Não implementado; referência original de uma hora preservada até reconciliação. |
-| RNF08 | MFA para Gestor | Não implementado; Administrador exige segundo fator pela spec. Correspondência com Gestor não é presumida. |
+| RNF06 | Senhas protegidas | PBKDF2 com salt implementado localmente; não é aceite de operação com contas reais. |
+| RNF07 | Inatividade e revogação | Sessão persistida com inatividade configurável (padrão de uma hora) e revogação implementadas localmente. |
+| RNF08 | MFA para Gestor | MFA administrativo implementado no servidor; correspondência com Gestor não é presumida. |
 
 [RN-P01–RN-P14 e CA01–CA08 legados](../archive/planning/scope-2026-10.md) continuam propostas arquivadas para reconciliação. [Registro da reconciliação](../history/spec-to-tickets-2026-10-15.md), [definição funcional](feature-definition.md) e [plano](../../PLAN.md) orientam a continuidade local.

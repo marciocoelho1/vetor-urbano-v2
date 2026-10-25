@@ -95,6 +95,12 @@ Em `?consulta=api`, autentique-se como USER e entre em Informes. A função soli
 
 A Trilha A de 19/10/2026 substitui a política baseada em mapas por verificações humanas persistidas na V14. Autor da ocorrência e ADMIN com MFA podem confirmar a revisão atual, com evidência e concorrência explícitas. Prazos aprovados, transições e desligamento estão no [contrato](../architecture/active-reports-local-v1.md). A lista integrada não garante andamento atual por si só; expiração indica insuficiência. Fora do modo API, permanece a demonstração.
 
+## Harness de recuperação UXH-01 — 24/10/2026
+
+Os comandos de E2E anteriores abaixo são **históricos**: a allowlist atual de `apps/web/e2e/helpers/synthetic-admin.ts` aceita somente `vu-uxh01-five-db` (55442), com **`VETOR_E2E_DATABASE_NAME` obrigatório** e enumerado por família. Não usar os bancos anteriores como fixtures nem fazer alias silencioso entre nomes. API e SQL precisam usar a mesma base comprovada antes dos testes; o guard verifica a allowlist, não descobre a família automaticamente. Releia o helper e os manifestos antes de iniciar. [Comandos, flags, bases e evidências da recuperação](../history/uxh-01-five-fixes-2026-10-24.md).
+
+Fixtures distintas por família não autorizam limpeza/reset dos bancos preservados. Launchers e credenciais sintéticas ficam fora do repositório; clone novo exige preparar ambiente próprio de forma explícita e comprovar PID/JDBC/base/contêiner/HTTP/browser antes de qualquer operação integrada. Não executar cegamente lançadores antigos ou copiar o diretório privado inteiro.
+
 ## Verificar a API neste host sem JDK
 
 `bash scripts/verify.sh api` no host retorna **BLOQUEADO: comando não disponível: javac**. A alternativa verificada usa o mesmo runner em Maven/JDK 21, sem instalar JDK e sem recriar o banco sintético. Requisitos: Podman local funcional, curl, imagem Maven acessível e `$TMPDIR` gravável fora do repositório. O Testcontainers cria bancos descartáveis PostgreSQL **17.5/PostGIS 3.5** reais para as integrações; não usa mocks nem o banco E2E persistente.

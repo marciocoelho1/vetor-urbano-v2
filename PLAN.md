@@ -1,5 +1,49 @@
 # Plano de trabalho
 
+## RECUPERAÇÃO VALIDADA LOCALMENTE — 24/10/2026
+
+- Pedido do responsável: «Retome pelo ponto de recuperação de 24/10/2026.» Branch `integration/functional-spec-v1`, HEAD `fc35eba`, trabalho anterior preservado. Sem staging/commit/push/merge, alteração de controlador, dados reais ou deploy.
+- **UXH-01 — parcela técnica verificada localmente, aceite pendente:** sessão 6/6, fontes 4/4, publicação com autoria exata 2/2 e correção acompanhada pelo USER original 4/4. XLSX completo 8/8 em **cada porta 8080 e 8081**, conteúdo/loading/503 preservados. Web final lint/205 testes/build 852,03 kB. [Causas, comandos, isolamento e evidências](docs/history/uxh-01-five-fixes-2026-10-24.md).
+- Consolidação programática sem duplicação: **184 aprovações, zero falhas/erros, 24 skips de configuração em 208 entradas**, combinando XMLs anteriores válidos e reexecuções afetadas; não é execução integral nova. Substituídas as parcelas antigas de sessão/fontes/publicação/correção/XLSX pelos XMLs finais. As 24 condições de coleta foram exercitadas no arranque complementar; nenhum skip conta como prova. Porta 8081 é prova adicional, não soma à matriz. Demonstrativas 46/46 e API59+145/controlador43 são evidências anteriores, sem reexecução nesta recuperação; produto/API não alterados.
+- **Lote A permanece parcial pelo UXH-02:** inventário documental 22 municípios/46 linhas, quantitativos intramunicipais/direitos/validação espacial ainda pendentes. Sem geometrias reais adquiridas.
+- Parecer: não autorizar merge/publicação por inferência. Proposta de destino dos materiais ignorados já registrada; publicação desses materiais, cartografia, hospedagem e aceite do responsável continuam decisões próprias. Revisão final independente Standards/segurança e Spec: zero achados pendentes no diff corrigido; resultados anteriores abaixo são históricos.
+
+## Histórico da recuperação retomada — 24/10/2026
+
+- Responsável: «Retome pelo ponto de recuperação de 24/10/2026.» Branch/HEAD/status e ausência de serviços ativos reconferidos; trabalho anterior preservado. Sem extensão das autorizações Git, controlador, dados reais ou deploy.
+- Auditoria inicial recalculou XMLs anteriores: persistida 56/56, guards 10/10, demonstrativas 46/46; cinco correções têm provas estreitas, mas `final_session_access-complete` tem 4 aprovados/2 falhas e `final_source_management-complete` 2 aprovados/2 falhas. Matriz anterior exit 1 continua sem aceite. Diagnóstico e conferência de validade/limite acumulado de tentativas em andamento; não repetir matriz ampla cegamente.
+
+## PARADO a pedido do responsável — recuperação 24/10/2026 (histórico)
+
+- Pedido: «Crie um ponto de recuperação e pare a tarefa, preciso encerrar a sessão».
+- [Ponto de recuperação](docs/history/uxh-01-recovery-stop-2026-10-24.md): árvore, logs/XML, processos encerrados, bancos preservados e passos de retomada. Evidências atuais em `/home/marciocoelho/.hermes/workspace/uxh01-five/`; matriz principal exit 1, resultados posteriores ainda exigem consolidação/revisão independente.
+- Não retomar automaticamente. Nenhum aceite, commit, staging ou push. Serviços verificados sem listeners e contêineres parados; alterações locais preservadas.
+
+## Lote A UXH — 24/10/2026 — parcial, sem aceite
+
+- Selecionados **UXH-01 e UXH-02**, sem dependências de tickets; execução local autorizada, sem commit/push/merge, alteração do controlador, dados reais ou deploy. Baseline `fc35eba` preservada e alterações anteriores separadas no [registro de reconciliação](docs/history/uxh-lot-a-reconciliation-2026-10-24.md).
+- **UXH-01 parcial — retomada:** baseline novo `vu-uxh01-resume-db:55441`, banco anterior preservado. Corrigido apenas harness/specs: guard exclusivo, destinos explícitos, barreira sobre resposta XLSX genuína e centralização do canvas. Matriz persistida **54/54**, guards finais **8/8**, demonstrativas **46/46**, web lint/205/build 852,03 kB. XMLs recalculados pela sessão principal. [Retomada e evidências](docs/history/uxh-01-resume-2026-10-24.md). API 59+145 e controlador 43 são da primeira execução, não reexecutados na retomada.
+- **Bloqueio integrado remanescente:** segunda ampliação 70 aprovados/2 falhas/1 erro/55 skips (29 de configuração e 26 interrompidos); suplemento 29 aprovados/1 falha/22 skips de configuração. Sem somar seleções sobrepostas. Renovação, clique no mapa, fila global e associação Firefox pendentes após limite de três seleções. Coleta configurada com stub local 22 aprovados/2 skips do modo desligado; modo desligado exercitado no suplemento. Não há aceite por skip.
+- **UXH-02 parcial:** inventário calculado de 22 municípios/46 linhas de investigação, fontes/direitos/datas/lacunas; quantitativos de bairros/RA/AP desconhecidos preservados, sem baixar geometrias ou incorporar dados reais. [Inventário e bloqueios](docs/history/uxh-02-inventory-2026-10-24.md).
+- **Merge não recomendado:** ampliação integrada incompleta e destino/publicação dos materiais normativos ignorados ainda sujeito a decisão. Matriz persistida original agora aprovada; não há aceite espacial, hospedado ou operacional.
+- **Retomada autorizada pelo responsável em 24/10/2026:** «Autorizo. Retome a tarefa.» — baseline isolado e correções dirigidas executados sem reduzir critérios. Nova ampliação atingiu limite de três seleções; revisão Standards também apontou risco de encadeamento da interceptação XLSX em porta alternativa (não exercitada em 8080). Próxima ação é decisão sobre diagnóstico mínimo dos quatro bloqueios remanescentes, rota alternativa XLSX e isolamento por família antes de nova tentativa. Sem extensão das permissões Git, dados reais ou publicação cartográfica. Processos encerrados; novo contêiner parado e preservado.
+
+- **Nova autorização — cinco pontos, 24/10/2026:** responsável: «Autorizo o diagnóstico e correções isoladas desses cinco pontos, com fixtures separadas por família, antes de repetir a matriz ampliada.» Execução em andamento: reproduções mínimas por ponto, isolamento por família preservando bancos anteriores, correções dirigidas e provas estreitas antes da matriz ampliada. Sem autorização adicional de Git, dados reais, publicação ou controlador; resultados acima são anteriores a esta nova fase.
+
+## Incremento UX e piloto — fechamento do grill em 23/10/2026
+
+- **Grill de produto encerrado pelo responsável após Q1–Q38.** Autorizada apenas consolidação local, com pendências operacionais na preparação da hospedagem antes dos convidados. [Mapa/hospedagem](docs/history/map-and-hosting-interview-2026-10-23.md) e [módulos](docs/history/modules-filtering-interview-2026-10-23.md).
+- Entregas: [especificação UXH v1.0](docs/product/ui-ux-pilot-specification.md), 29 critérios UXH-CA e [23 tickets propostos em sete lotes](docs/product/ui-ux-pilot-plan.md), cada ticket em arquivo próprio. IDs anteriores preservados; sem publicação de issues ou execução dos tickets.
+- **PENDÊNCIA EXTREMA:** polígonos de municípios e respectivos bairros de toda a RMRJ; bairros/Regiões Administrativas/Áreas de Planejamento do Rio distintos de Áreas de Risco. [Escopo cartográfico](docs/product/territorial-mapping-priority.md). Trilha paralela às correções independentes de UX; lacunas não viram aceite de cobertura completa.
+- Consulta: mapa predominante, filtros únicos à esquerda, ferramentas acima e resumo/resultados à direita; ação explícita de área/interseção sem desligar contexto territorial; painéis móveis exclusivos e detalhe único. Configurações Admin com telas completas de Gestão de Fontes e Logs.
+- Módulos: filtros próprios em Informes e Histórico, retirada integral de Reprodução temporal; Relatórios com estado inicial vazio, período escolhido obrigatório, snapshot independente e exportações consistentes; importação somente pelo comando no Mapa.
+- Piloto candidato: Vercel/Render/Neon, não comercial, contas individuais/allowlist backend, ocorrências fictícias e Áreas de Risco atuais condicionadas a direitos/validação; coleta real desligada. [Contas e segredos](docs/operations/pilot-account-preparation.md).
+- Condições antes de convidados: e-mail/recuperação, backup/restauração e responsável, destino de feedback, segredos seguros, textos aplicáveis do 36/D3, integração remota e prova hospedada. Cartão/cobrança interrompem execução para alinhamento.
+- [Auditoria anterior desta sessão](docs/history/repository-audit-2026-10-23.md): limpeza de 6,91 MB, integração sincronizada após fetch e merge simulado sem conflito; planning/web 205 testes/build/controlador 43 passaram. API bloqueada por socket/JDK e Playwright não reexecutado. **São evidências históricas, não reexecução dos novos critérios.**
+- Antes de recomendar merge: UXH-01 revalida API/PostGIS/navegador, reconcilia documentação defasada e apresenta destino da especificação/tickets antigos ignorados. Nenhum commit/merge/push autorizado nesta consolidação.
+- Validações desta consolidação: planejamento/diff-check e conferência estrutural de IDs/dependências/cobertura/checklist aprovados; sem reexecução das suítes da aplicação. [Evidências e limites](docs/history/uxh-consolidation-2026-10-23.md).
+- Próxima ação: revisar granularidade/dependências dos lotes e selecionar uma rodada; primeira proposta **UXH-01 + UXH-02** (baseline e fontes). Sem implementação, contas, alteração de banco, envio de material real ou deploy nesta etapa.
+
 ## Atualização documental do Ticket 36 — 22/10/2026
 
 - **Escopo desta fase:** transparência documental; os quatro textos seguem rascunhos locais v1.4,

@@ -4,6 +4,9 @@ Comece pelo [README do projeto](../README.md) para conhecer o Vetor Urbano e exe
 
 | Preciso entender… | Documento |
 |---|---|
+| Incremento UX e piloto aprovado no grill de 23/10 (a implementar) | [Especificação UXH v1.0](product/ui-ux-pilot-specification.md) |
+| Novos tickets locais, dependências e lotes propostos | [Plano UXH](product/ui-ux-pilot-plan.md) |
+| Lotes de UX, critério verificável por lote e evidência datada | [Lotes de UX](product/ux-lotes.md) |
 | Especificação funcional interna (local, sem publicação autorizada) | [Spec v1.1](product/specification.md) |
 | Proposta local de tarefas e dependências | [Tickets em revisão](../.scratch/consulta-coerente/README.md) |
 | Recursos disponíveis e limites do produto | [Escopo](product/scope.md) |

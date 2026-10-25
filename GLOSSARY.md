@@ -64,6 +64,14 @@ _Evitar_: Confiabilidade da fonte, confiança de extração, probabilidade de ve
 Condição da ocorrência: Em andamento, Encerrada ou Desconhecida. É distinta da aprovação editorial e do estado de coleta.
 _Evitar_: Estado de publicação, expiração (como prova de encerramento)
 
+**Região Administrativa do Rio de Janeiro**:
+Divisão administrativa oficial da cidade do Rio usada para organizar territorialmente seus bairros, distinta de Área de Planejamento e de Área de Risco.
+_Evitar_: Zona (como equivalência automática), Área de Planejamento, Área de Risco
+
+**Área de Planejamento do Rio de Janeiro**:
+Recorte oficial de planejamento da cidade do Rio, relacionado às Regiões Administrativas e aos bairros sem se confundir com essas unidades.
+_Evitar_: Região Administrativa (como sinônimo), Área de Risco
+
 **Área de Risco**:
 Polígono territorial de contexto com nome, grupo indicado, fonte e referência temporal, distinto de ocorrência e de índice automático de risco.
 _Evitar_: Área Dominada, garantia de risco ou segurança atual

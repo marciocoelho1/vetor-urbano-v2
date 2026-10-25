@@ -9,7 +9,7 @@ O monorepo separa aplicações, ferramentas, materiais de marca e documentação
 | `apps/web/src/styles/` | Tokens, estilos globais, controles e layout |
 | `apps/web/public/` | Recursos que a aplicação serve ao navegador |
 | `apps/web/prototypes/` | Experimentos isolados da entrada de produção |
-| `apps/api/` | Espaço reservado à futura aplicação Java |
+| `apps/api/` | API Java/Spring Boot local, migrações Flyway e testes HTTP/PostGIS |
 | `scripts/` | Verificações reutilizáveis do repositório; `verify*.sh` conferem, `run-local-stack.sh` abre a aplicação local (API + conferência de login) |
 | `tools/` | Extração cartográfica e captura visual |
 | `assets/brand/` | Materiais e projetos dos vídeos de marca |
