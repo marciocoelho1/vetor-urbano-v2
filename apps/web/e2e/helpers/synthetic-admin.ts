@@ -4,8 +4,8 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { confirmedUser, testPassword } from './local-account';
 
 const databaseByContainer: Record<string, string> = {
-  // This fixture round is restricted to the dedicated PostGIS on 127.0.0.1:55440.
-  'vu-ticket29-e2e-db': 'vetor_urbano',
+  // Only the new five-point container is writable; prior round databases are preserved.
+  'vu-uxh01-five-db': '',
 };
 
 /** Só permite contêineres sintéticos explicitamente aprovados para as fixtures locais. */
@@ -17,13 +17,52 @@ export function syntheticDatabaseContainer(expectedContainer?: string): string {
   if (expectedContainer !== undefined && container !== expectedContainer) {
     throw new Error(`Este fluxo exige o contêiner PostGIS sintético ${expectedContainer}.`);
   }
+  if (
+    container === 'vu-uxh01-five-db' &&
+    ![
+      'vetor_renewal',
+      'vetor_active',
+      'vetor_operations',
+      'vetor_publication',
+      'vetor_export',
+      'vetor_final_account_registration',
+      'vetor_final_account_recovery',
+      'vetor_final_account_self_service',
+      'vetor_final_account_closure',
+      'vetor_final_session_access',
+      'vetor_final_local_origin_session',
+      'vetor_final_source_management',
+      'vetor_final_admin_local_sources',
+      'vetor_final_audit_authorship',
+      'vetor_final_audit_log',
+      'vetor_final_active_report_renewal',
+      'vetor_final_active_reports_api',
+      'vetor_final_operations_panel',
+      'vetor_final_publication_editor',
+      'vetor_final_publication_review',
+      'vetor_final_reliability_panel',
+      'vetor_final_risk_area_drawing',
+      'vetor_final_risk_area_versions',
+      'vetor_final_occurrences_admin',
+      'vetor_final_query_update_notices',
+      'vetor_final_correction_channel',
+      'vetor_final_collection_recent',
+      'vetor_final_collection_configured',
+      'vetor_final_persisted',
+    ].includes(process.env['VETOR_E2E_DATABASE_NAME'] ?? '')
+  ) {
+    throw new Error('Exige base sintética explicitamente permitida por família.');
+  }
   return container;
 }
 
 /** Only explicitly allowlisted synthetic databases may receive these fixtures. */
 export function fixtureSql(sql: string, expectedContainer?: string): string {
   const container = syntheticDatabaseContainer(expectedContainer);
-  const database = databaseByContainer[container]!;
+  const database =
+    container === 'vu-uxh01-five-db'
+      ? process.env['VETOR_E2E_DATABASE_NAME']!
+      : databaseByContainer[container]!;
   const postgresUser = execFileSync('podman', ['exec', container, 'printenv', 'POSTGRES_USER'])
     .toString()
     .trim();

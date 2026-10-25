@@ -34,7 +34,9 @@ test('expiração e renovação humanas repetem aviso persistente com teclado em
   await expect(notice).toBeVisible();
   await notice.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Ocorrências', exact: true })).toBeFocused();
+  await expect(
+    page.getByRole('heading', { name: 'Ocorrências', exact: true, level: 1 }),
+  ).toBeFocused();
   const container = page.getByTestId('expired-occurrences');
   await expect(container).toContainText('Renovação humana sintética 25');
   const treat = container.getByRole('button', { name: 'Tratar Renovação humana sintética 25' });
@@ -86,7 +88,9 @@ test('expiração e renovação humanas repetem aviso persistente com teclado em
   await expect(notice).toBeVisible();
   await notice.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Ocorrências', exact: true })).toBeFocused();
+  await expect(
+    page.getByRole('heading', { name: 'Ocorrências', exact: true, level: 1 }),
+  ).toBeFocused();
   await expect(container).toContainText('Renovação humana sintética 25');
   await treat.focus();
   await page.keyboard.press('Enter');

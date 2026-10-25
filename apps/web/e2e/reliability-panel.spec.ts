@@ -15,7 +15,7 @@ test.use({ trace: 'off', screenshot: 'off', actionTimeout: 20_000 });
  * mostrar a nota registrada, bloquear a publicação quando falta essencial, publicar só depois de
  * liberar, e nunca oferecer aprovação de mudança de nota com amostra insuficiente.
  */
-const CONTAINER = 'vu-ticket29-e2e-db';
+const CONTAINER = 'vu-uxh01-five-db';
 const SOURCE_ID = 'vu23-e2e-source';
 const OCCURRENCE_OK = 'vu23-e2e-ok';
 const OCCURRENCE_BLOCKED = 'vu23-e2e-blocked';

@@ -14,7 +14,7 @@ function resetPublicationFixture(
     'TRUNCATE correction_editor_audit, occurrence_editor_preparations, correction_decisions, correction_requests CASCADE',
   );
   fixtureSql(
-    `UPDATE occurrences SET title='${title}', revision=1, publication_status='PUBLISHED', withdrawn_at=NULL, description=description WHERE id='${target}'`,
+    `UPDATE occurrences SET title='${title}', revision=GREATEST(revision, COALESCE((SELECT max(version) FROM publication_versions WHERE occurrence_id='${target}'), 1)), publication_status='PUBLISHED', withdrawn_at=NULL, description=description WHERE id='${target}'`,
   );
 }
 

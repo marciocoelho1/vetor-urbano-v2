@@ -132,10 +132,7 @@ test.beforeEach(async ({ page }) => {
     await page.route('http://127.0.0.1:8080/**', async (route) => {
       const target = new URL(route.request().url());
       target.port = apiPort;
-      if (target.pathname.endsWith('/reports/occurrences/export')) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-      await route.continue({ url: target.toString() });
+      await route.fallback({ url: target.toString() });
     });
   }
   await page.route('https://tiles.stadiamaps.com/**', (route) => route.abort());
@@ -152,13 +149,34 @@ test('Chromium/Firefox exporta todo o recorte autenticado em XLSX acessível no 
   await exportButton.focus();
   await expect(exportButton).toBeFocused();
 
-  const exportResponse = page.waitForResponse((response) =>
-    response.url().startsWith(reportExport),
+  // Hold the genuine Java/PostGIS response until the transient state is observed.
+  // A fixed delay (or an unheld response) races the local server on fast machines.
+  let releaseResponse!: () => void;
+  let markResponseReady!: () => void;
+  const responseHeld = new Promise<void>((resolve) => (releaseResponse = resolve));
+  const responseReady = new Promise<void>((resolve) => (markResponseReady = resolve));
+  await page.route('**/api/v1/reports/occurrences/export**', async (route) => {
+    const target = new URL(route.request().url());
+    target.port = apiPort;
+    const actualResponse = await route.fetch({ url: target.toString() });
+    markResponseReady();
+    await responseHeld;
+    await route.fulfill({ response: actualResponse });
+  });
+  const exportResponse = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(reportExport) ||
+      response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences/export'),
   );
   const downloadPromise = page.waitForEvent('download');
-  await page.keyboard.press('Enter');
-  await expect(exportButton).toBeDisabled();
-  await expect(page.getByTestId('report-export-status')).toContainText('Preparando a planilha');
+  try {
+    await page.keyboard.press('Enter');
+    await responseReady;
+    await expect(exportButton).toBeDisabled();
+    await expect(page.getByTestId('report-export-status')).toContainText('Preparando a planilha');
+  } finally {
+    releaseResponse();
+  }
   const [response, download] = await Promise.all([exportResponse, downloadPromise]);
   expect(response.status()).toBe(200);
   const query = await response.json();
@@ -214,8 +232,10 @@ test('recorte vazio gera abas completas, cabeçalhos e totais zero', async ({ pa
   await expect(page.getByTestId('report-empty')).toBeVisible();
   await expect(page.getByTestId('report-snapshot-counts')).toContainText('0 ocorrências');
 
-  const exportResponse = page.waitForResponse((response) =>
-    response.url().startsWith(reportExport),
+  const exportResponse = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(reportExport) ||
+      response.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences/export'),
   );
   const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('report-export-xlsx').click();
@@ -267,7 +287,10 @@ test('falha do PostGIS durante a exportação não baixa arquivo vazio ou parcia
   execFileSync('podman', ['pause', database!]);
   try {
     const response = page.waitForResponse(
-      (item) => item.url().startsWith(reportExport) && item.status() === 503,
+      (item) =>
+        (item.url().startsWith(reportExport) ||
+          item.url().startsWith('http://127.0.0.1:8080/api/v1/reports/occurrences/export')) &&
+        item.status() === 503,
       { timeout: 30_000 },
     );
     const exportButton = page.getByTestId('report-export-xlsx');

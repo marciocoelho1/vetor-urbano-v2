@@ -14,7 +14,7 @@ test.use({ trace: 'off', screenshot: 'off', actionTimeout: 30_000 });
  * clicando no mapa, fecha o anel e salva: as coordenadas marcadas passam a definir a área — sem
  * reenvio manual de GeoJSON.
  */
-const CONTAINER = 'vu-ticket29-e2e-db';
+const CONTAINER = 'vu-uxh01-five-db';
 const TERRITORY = '11111111-2222-3333-4444-555555555555';
 
 const panel = (page: Page) => page.locator('section[aria-labelledby="risk-area-fields-heading"]');
@@ -87,7 +87,9 @@ test('ADMIN desenha o polígono no mapa e salva a área com as coordenadas marca
 
   // Três cliques crus no mapa: o Leaflet trata o evento no contêiner, não no elemento interno.
   // `mouse.click` usa coordenadas do viewport: sem rolar até o canvas o clique cai fora da tela.
-  await canvas.scrollIntoViewIfNeeded();
+  // Native nearest scrolling can leave a fractional bottom edge outside the viewport.
+  // Center the real canvas before asserting that every click is in view.
+  await canvas.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   const box = (await canvas.boundingBox())!;
   const viewport = page.viewportSize()!;
   expect(box.y).toBeGreaterThanOrEqual(0);

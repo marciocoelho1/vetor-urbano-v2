@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { confirmedUser, testPassword } from './helpers/local-account';
+import { api, confirmedUser, testPassword } from './helpers/local-account';
 
 test.skip(process.env['VETOR_ACCOUNTS_E2E'] !== '1', 'Exige API e PostGIS sintéticos isolados.');
 test.use({ trace: 'off', screenshot: 'off', actionTimeout: 15000 });
@@ -50,6 +50,7 @@ test('ADMIN MFA decide e titular acompanha motivo privado e versão aplicada', a
   browser,
 }) => {
   const { syntheticAdmin, loginBrowser, fixtureSql } = await import('./helpers/synthetic-admin');
+  const quote = (text: string) => `'${text.replaceAll("'", "''")}'`;
   const reference = `Documento sintético 27-${Date.now()}`;
   const email = await confirmedUser(request, 'requester27');
   await loginBrowser(page, email);
@@ -61,35 +62,64 @@ test('ADMIN MFA decide e titular acompanha motivo privado e versão aplicada', a
   await channel.getByLabel('Referências restritas').fill(reference);
   await channel.getByRole('button', { name: 'Enviar pedido de correção' }).click();
   await expect(channel.getByText(/Recebida · versão 1/)).toBeVisible();
+  const requesterResponse = await page.request.get(`${api}/auth/session`);
+  expect(requesterResponse.status()).toBe(200);
+  const requesterSession = await requesterResponse.json();
+  expect(requesterSession).toMatchObject({ role: 'USER', authenticated: true });
+  expect(
+    fixtureSql(`SELECT email FROM local_accounts WHERE id=${quote(requesterSession.accountId)}`),
+  ).toBe(email);
+  const requestsResponse = await page.request.get(`${api}/corrections`);
+  expect(requestsResponse.status()).toBe(200);
+  const requests = await requestsResponse.json();
+  const ownRequest = requests.items.find(
+    (entry: { private_references: string }) => entry.private_references === reference,
+  );
+  expect(ownRequest).toBeDefined();
   const context = await browser.newContext({
     baseURL: 'http://127.0.0.1:4201',
     viewport: { width: 390, height: 844 },
   });
   const admin = await context.newPage();
-  await syntheticAdmin(admin, request);
-  await admin.locator('#corrections-link').click();
-  const queue = admin.locator('app-correction-channel');
-  await queue.getByRole('button', { name: 'Fila administrativa de correções' }).click();
-  const item = queue.locator('li').filter({ hasText: reference }).last();
-  await item.getByLabel('Motivo visível ao solicitante').fill('Conferência iniciada');
-  await item.getByRole('button', { name: 'Iniciar análise' }).click();
-  await expect(item.getByText(/Em análise · versão 2/)).toBeVisible();
-  await item
-    .getByLabel('Motivo visível ao solicitante')
-    .fill('Referência conferida; registro correto sem alteração material');
-  await item.getByRole('button', { name: 'Concluir com motivo' }).focus();
-  await admin.keyboard.press('Enter');
-  await expect(item.getByText(/Concluída · versão 3/)).toBeVisible();
-  await channel.getByRole('button', { name: 'Atualizar pedidos' }).click();
-  await expect(
-    channel.getByText(
-      'Motivo da decisão: Referência conferida; registro correto sem alteração material',
-    ),
-  ).toBeVisible();
-  expect(
-    fixtureSql(
-      "SELECT count(*) FROM correction_decisions WHERE state='COMPLETED' AND author_id IS NOT NULL",
-    ),
-  ).not.toBe('0');
-  await context.close();
+  try {
+    await syntheticAdmin(admin, context.request);
+    const adminResponse = await context.request.get(`${api}/auth/session`);
+    expect(adminResponse.status()).toBe(200);
+    const adminSession = await adminResponse.json();
+    expect(adminSession).toMatchObject({ role: 'ADMIN', authenticated: true });
+    expect(adminSession.accountId).not.toBe(requesterSession.accountId);
+    await admin.locator('#corrections-link').click();
+    const queue = admin.locator('app-correction-channel');
+    await queue.getByRole('button', { name: 'Fila administrativa de correções' }).click();
+    const item = queue.locator('li').filter({ hasText: reference }).last();
+    await item.getByLabel('Motivo visível ao solicitante').fill('Conferência iniciada');
+    await item.getByRole('button', { name: 'Iniciar análise' }).click();
+    await expect(item.getByText(/Em análise · versão 2/)).toBeVisible();
+    await item
+      .getByLabel('Motivo visível ao solicitante')
+      .fill('Referência conferida; registro correto sem alteração material');
+    await item.getByRole('button', { name: 'Concluir com motivo' }).focus();
+    await admin.keyboard.press('Enter');
+    await expect(item.getByText(/Concluída · versão 3/)).toBeVisible();
+    const stillRequester = await page.request.get(`${api}/auth/session`);
+    expect(stillRequester.status()).toBe(200);
+    expect(await stillRequester.json()).toMatchObject({
+      accountId: requesterSession.accountId,
+      role: 'USER',
+      authenticated: true,
+    });
+    await channel.getByRole('button', { name: 'Atualizar pedidos' }).click();
+    await expect(
+      channel.getByText(
+        'Motivo da decisão: Referência conferida; registro correto sem alteração material',
+      ),
+    ).toBeVisible();
+    expect(
+      fixtureSql(
+        `SELECT count(*) FROM correction_decisions d JOIN correction_requests r ON r.id=d.request_id WHERE d.request_id=${quote(ownRequest.id)} AND r.requester_id=${quote(requesterSession.accountId)} AND r.target_kind='OCCURRENCE' AND r.target_id='vu-demo-occurrence-traffic-001' AND r.private_references=${quote(reference)} AND d.version=3 AND d.previous_state='IN_REVIEW' AND d.state='COMPLETED' AND d.reason='Referência conferida; registro correto sem alteração material' AND d.author_id=${quote(adminSession.accountId)}`,
+      ),
+    ).toBe('1');
+  } finally {
+    await context.close();
+  }
 });

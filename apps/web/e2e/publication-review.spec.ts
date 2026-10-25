@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { api } from './helpers/local-account';
 import { fixtureSql, syntheticAdmin } from './helpers/synthetic-admin';
 
 test.skip(process.env['VETOR_ACCOUNTS_E2E'] !== '1', 'Exige HTTP/PostGIS sintéticos isolados.');
@@ -31,6 +32,12 @@ test('ADMIN revisa original, bloqueia núcleo/conflito, publica efeito relaciona
   clipping(`${id}-associate`);
   clipping(`${id}-pending`);
   await syntheticAdmin(page, request);
+  const sessionResponse = await page.request.get(`${api}/auth/session`);
+  expect(sessionResponse.status()).toBe(200);
+  const adminSession = await sessionResponse.json();
+  expect(adminSession).toMatchObject({ role: 'ADMIN', authenticated: true });
+  expect(adminSession.accountId).toMatch(/^[0-9a-f-]{36}$/);
+  const adminId = quote(adminSession.accountId);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Fontes', exact: true }).click();
   const queue = page.locator('app-review-queue');
@@ -78,6 +85,11 @@ test('ADMIN revisa original, bloqueia núcleo/conflito, publica efeito relaciona
     .fill('Mesmo fato, somente referência adicional');
   await editor.getByRole('button', { name: 'Associar referência à ocorrência' }).click();
   await expect(queue.getByText(/Decisão registrada com autoria/)).toBeVisible();
+  expect(
+    fixtureSql(
+      `SELECT count(*) FROM clipping_review_decisions d JOIN occurrence_clippings c ON c.clipping_id=d.clipping_id WHERE d.clipping_id=${quote(`${id}-associate`)} AND d.action='ASSOCIATE' AND d.author_id=${adminId} AND c.occurrence_id='vu-demo-occurrence-traffic-001'`,
+    ),
+  ).toBe('1');
   await queue.getByRole('button', { name: `Revisar ${id}-pending`, exact: true }).click();
   await editor
     .getByLabel('Justificativa da decisão')

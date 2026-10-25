@@ -15,7 +15,7 @@ test.use({ trace: 'off', screenshot: 'off', actionTimeout: 20_000 });
  * preservadas e continuam na lista. Cobre ordenação por última atualização, filtro de estado, ações
  * em lote e exclusão com confirmação + senha pedida uma única vez para o lote.
  */
-const CONTAINER = 'vu-ticket29-e2e-db';
+const CONTAINER = 'vu-uxh01-five-db';
 const HAPPENING = 'vu26-e2e-happening';
 const NEWER = 'vu26-e2e-newer';
 const OLDER = 'vu26-e2e-older';

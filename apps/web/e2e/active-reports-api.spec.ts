@@ -115,7 +115,21 @@ test.describe('Informes integrados — ticket 25', () => {
     await expect(page.locator('.map-pick-prompt')).toContainText(
       'definir o centro dos Ocorrências',
     );
-    await page.locator('#map-canvas').click({ position: { x: 300, y: 250 } });
+    const canvas = page.locator('#map-canvas');
+    await canvas.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    // The old y=250 hit the sibling legend in the compact map, not the map itself.
+    const position = { x: 500, y: 150 };
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    expect(position.x).toBeLessThan(box!.width);
+    expect(position.y).toBeLessThan(box!.height);
+    expect(
+      await canvas.evaluate((element, point) => {
+        const rect = element.getBoundingClientRect();
+        return element.contains(document.elementFromPoint(rect.left + point.x, rect.top + point.y));
+      }, position),
+    ).toBe(true);
+    await canvas.click({ position });
     await expect(page.locator('#active-heading')).toBeFocused();
     await expect(page.getByTestId('informes-consulted-at')).toBeVisible();
   });

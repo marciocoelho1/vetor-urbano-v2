@@ -39,7 +39,7 @@ const PRIVATE_VALUES = (process.env['VETOR_COLLECTION_E2E_SECRETS'] ?? '')
   .filter(Boolean);
 
 const SOURCE_ID = 'fogo-cruzado';
-const COLLECTION_E2E_DATABASE_CONTAINER = 'vu-ticket29-e2e-db';
+const COLLECTION_E2E_DATABASE_CONTAINER = 'vu-uxh01-five-db';
 
 interface FocusCall {
   testid: string;

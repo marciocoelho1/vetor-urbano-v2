@@ -16,7 +16,7 @@ test.use({ trace: 'off', screenshot: 'off', actionTimeout: 20_000 });
  * A falha de alimentação precisa aparecer como falha — nunca como zero ocorrências — e a fila
  * vazia precisa aparecer como vazia, não como serviço saudável.
  */
-const CONTAINER = 'vu-ticket29-e2e-db';
+const CONTAINER = 'vu-uxh01-five-db';
 const SOURCE_ID = 'fogo-cruzado';
 const CLIPPING_ID = 'vu22-e2e-clipping';
 const OCCURRENCE_ID = 'vu22-e2e-expiring';
@@ -46,6 +46,8 @@ function resetFixture(): void {
     CONTAINER,
   );
 }
+
+test.afterEach(() => resetFixture());
 
 /** Só o necessário para o painel: fonte com falha, item pendente e confirmação vencendo. */
 function seedFailingFeed(): void {

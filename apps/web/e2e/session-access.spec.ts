@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { api, confirmedUser, loginUser, testPassword } from './helpers/local-account';
+import { fixtureSql, syntheticDatabaseContainer } from './helpers/synthetic-admin';
 
 test.skip(process.env['VETOR_SESSION_E2E'] !== '1', 'Exige API, caixa e PostGIS reais.');
 test.use({ trace: 'off', screenshot: 'off' });
@@ -35,7 +36,7 @@ test('visitante, erros, teclado, consulta nos dois modos, recarga e logout móve
   await expect(page.getByRole('heading', { name: 'Acesso aos módulos' })).toBeVisible();
   expect((await page.request.get(`${api}/occurrences`)).status()).toBe(401);
   await page.getByRole('link', { name: 'Conheça nossas fontes' }).click();
-  await expect(page.getByRole('heading', { name: 'Conheça nossas fontes' })).toBeVisible();
+  await expect(page.locator('#managed-public-sources-heading')).toBeVisible();
   await page.getByRole('button', { name: 'Mapa de ocorrências', exact: true }).click();
   const email = await confirmedUser(page.request);
   await page.getByLabel('E-mail', { exact: true }).fill(email);
@@ -79,17 +80,9 @@ test('visitante, erros, teclado, consulta nos dois modos, recarga e logout móve
 test('Administrador: segundo fator real, inválido, ativação e proibição de replay', async ({
   page,
 }) => {
-  const email = `admin14-browser-${Date.now()}@example.test`;
-  // Offline bootstrap uses private stdin; no secret appears in command arguments or output.
-  execFileSync('python3', ['../../scripts/local-account-admin.py', '--synthetic-local-only'], {
-    input: JSON.stringify({
-      action: 'create',
-      email,
-      displayName: 'Administrador sintético',
-      password: testPassword,
-    }),
-    stdio: ['pipe', 'ignore', 'pipe'],
-  });
+  syntheticDatabaseContainer('vu-uxh01-five-db');
+  const email = await confirmedUser(page.request, 'admin14-browser');
+  fixtureSql(`UPDATE local_accounts SET role='ADMIN' WHERE email='${email}'`);
   await page.route('https://tiles.stadiamaps.com/**', (route) => route.abort());
   await page.goto('/?consulta=api');
   await page.getByLabel('E-mail', { exact: true }).fill(email);
@@ -130,7 +123,8 @@ test('Administrador: segundo fator real, inválido, ativação e proibição de 
 
 test('indisponibilidade e carregamento reais não liberam acesso', async ({ page }) => {
   await loginUser(page.request);
-  execFileSync('podman', ['pause', 'vetor-api-ticket12-db']);
+  const database = syntheticDatabaseContainer('vu-uxh01-five-db');
+  execFileSync('podman', ['pause', database]);
   try {
     await page.goto('/?consulta=api');
     await expect(page.getByText('Verificando acesso…')).toBeVisible();
@@ -138,7 +132,7 @@ test('indisponibilidade e carregamento reais não liberam acesso', async ({ page
     await expect(page.locator('#access-result')).toContainText(/indisponível|conexão/);
     await expect(page.getByTestId('event-count')).toHaveCount(0);
   } finally {
-    execFileSync('podman', ['unpause', 'vetor-api-ticket12-db']);
+    execFileSync('podman', ['unpause', database]);
   }
   await page.reload();
   await expect(page.getByTestId('event-count')).toHaveText('4');

@@ -76,6 +76,8 @@ test.describe('gestão autenticada de fonte em HTTP local', () => {
     await page.getByLabel('Código do autenticador').fill(totp(credentials.totpSecret, offset));
     await page.getByRole('button', { name: 'Confirmar segundo fator' }).click();
     let listAttempts = 0;
+    // Reliability also loads this endpoint; the empty state is a phase, not request #2.
+    let showEmptyList = true;
     let finishFirstListRequest!: () => void;
     const firstListRequest = new Promise<void>((resolve) => {
       finishFirstListRequest = resolve;
@@ -95,7 +97,7 @@ test.describe('gestão autenticada de fonte em HTTP local', () => {
         });
         return;
       }
-      if (listAttempts === 2) {
+      if (showEmptyList) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -113,6 +115,7 @@ test.describe('gestão autenticada de fonte em HTTP local', () => {
     await expect(page.getByTestId('managed-sources-error')).toBeVisible();
     await manager.getByRole('button', { name: 'Tentar novamente' }).click();
     await expect(page.getByTestId('managed-sources-empty')).toBeVisible();
+    showEmptyList = false;
     await manager.getByRole('button', { name: 'Atualizar lista' }).click();
     await expect(page.getByTestId('managed-sources-loading')).toBeHidden();
 
