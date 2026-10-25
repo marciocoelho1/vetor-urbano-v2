@@ -1,0 +1,53 @@
+// Vetor Urbano — tokens de interface (UX-0)
+// Fonte única de número para os LOTES UX-1..UX-7. Cor não mora aqui: fica em theme.scss.
+// Importado uma vez em src/styles.scss, depois de theme.scss.
+:root {
+  // Tipo — 8 degraus, nada fora da lista.
+  --vu-text-xs: 0.75rem; // 12
+  --vu-text-sm: 0.8125rem; // 13
+  --vu-text-base: 0.875rem; // 14
+  --vu-text-md: 1rem; // 16
+  --vu-text-lg: 1.25rem; // 20
+  --vu-text-xl: clamp(1.375rem, 2.2vw, 1.5rem); // 22 móvel → 24
+  --vu-text-2xl: clamp(1.75rem, 2.6vw, 2rem); // 28 móvel → 32
+  --vu-text-3xl: clamp(2.25rem, 3.4vw, 2.75rem); // 36 móvel → 44
+  --vu-tracking-tight: -0.02em; // só a partir de 24 px
+
+  // Ícone — uma família, só a que tem uso concreto (`.query-error-icon`).
+  --vu-icon-md: 1.5rem; // 24
+
+  // Peso — 3. Decisão de UX (@ux), aceita pelo @arquiteto: 400/500/700.
+  // 550→500, 600/650/700→700; `strong` do UA (bolder sobre 600 = 900) vira 700 por regra única.
+  --vu-weight-regular: 400;
+  --vu-weight-medium: 500;
+  --vu-weight-strong: 700;
+
+  // Espaço — ritmo de painel.
+  --vu-space-1: 4px;
+  --vu-space-2: 8px;
+  --vu-space-3: 12px;
+  --vu-space-4: 16px;
+  --vu-space-5: 20px;
+  --vu-space-6: 24px;
+  --vu-space-8: 32px;
+
+  // Movimento — 3 durações, 2 easings.
+  --vu-motion-fast: 120ms;
+  --vu-motion-base: 240ms;
+  --vu-motion-slow: 400ms;
+  --vu-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vu-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Alvo e folha.
+  --vu-target: 44px;
+  --vu-target-comfortable: 48px;
+  --vu-sheet-gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vu-motion-fast: 0ms;
+    --vu-motion-base: 0ms;
+    --vu-motion-slow: 0ms;
+  }
+}

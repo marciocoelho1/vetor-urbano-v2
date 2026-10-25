@@ -13,7 +13,7 @@ app-root .public-map {
   }
   .spatial-result-counts {
     color: var(--color-text-secondary);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .map-meta-bar > div:first-child {
     flex-wrap: wrap;
@@ -29,7 +29,7 @@ app-root .public-map {
     align-items: stretch;
     gap: 6px;
     padding: 8px 0;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     color: var(--color-text-secondary);
   }
   .query-filter-chips {
@@ -92,7 +92,7 @@ app-root .public-map {
     gap: 8px;
     min-height: 44px;
     color: var(--color-text-secondary);
-    font-size: 12px;
+    font-size: var(--vu-text-xs);
     text-decoration: none;
   }
   .map-scroll-cue:hover {
@@ -165,8 +165,8 @@ app-root .public-map {
     display: block;
     margin-bottom: 8px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .consultation-query .map-search-wrap {
     margin: 0;
@@ -177,7 +177,7 @@ app-root .public-map {
     padding: 6px 6px 6px 12px;
   }
   .consultation-query .map-search-control input {
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
   }
   .consultation-query .search-submit {
     min-height: 36px;
@@ -200,8 +200,8 @@ app-root .public-map {
     padding: 10px;
     border-radius: 8px;
     background: var(--color-selected-bg);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     cursor: pointer;
     list-style: none;
   }
@@ -234,7 +234,7 @@ app-root .public-map {
     justify-content: center;
     min-height: 44px;
     padding-inline: 5px;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .consultation-quick-disclosure .quick-period {
     flex: 1 1 100%;
@@ -260,8 +260,8 @@ app-root .public-map {
     background: transparent;
     color: var(--accent-strong);
     font: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     cursor: pointer;
   }
   .consultation-sidebar .results-panel {
@@ -276,8 +276,8 @@ app-root .public-map {
     padding: 18px;
   }
   .consultation-sidebar .results-heading h2 {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: var(--vu-text-md);
+    font-weight: var(--vu-weight-strong);
   }
   .consultation-sidebar .results-panel .result-list {
     grid-template-columns: minmax(0, 1fr);
@@ -348,8 +348,8 @@ app-root .public-map {
     padding: 0 12px;
     cursor: pointer;
     font: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .map-filter-toggle {
     grid-column: 1;
@@ -366,7 +366,7 @@ app-root .public-map {
     place-items: center;
     border-radius: 50%;
     background: var(--color-bg-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .map-theme-toggle {
     width: var(--map-control-size);
@@ -406,12 +406,12 @@ app-root .public-map {
     text-align: left;
   }
   .map-radius-title {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .map-radius-current {
     color: var(--color-radius-text);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     white-space: nowrap;
   }
   .map-radius-disclosure[aria-expanded='true'] .chevron {
@@ -534,13 +534,13 @@ app-root .public-map {
   }
   .results-panel .record-copy strong {
     font-family: var(--font-heading);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: var(--vu-text-base);
+    font-weight: var(--vu-weight-strong);
     white-space: normal;
     overflow-wrap: anywhere;
   }
   .results-panel .record-copy span {
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     overflow-wrap: anywhere;
   }
   .results-panel .record-detail-button {
@@ -560,7 +560,7 @@ app-root .public-map {
     }
   }
   .filter-heading h2 {
-    font-size: 22px;
+    font-size: var(--vu-text-xl);
   }
   .map-panel-close {
     width: 44px;
@@ -569,7 +569,7 @@ app-root .public-map {
     border-radius: 7px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
-    font-size: 22px;
+    font-size: var(--vu-text-xl);
     cursor: pointer;
   }
   .filter-panel .module-content {
@@ -590,7 +590,7 @@ app-root .public-map {
   }
   .quick-filter-label {
     padding-right: 12px;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .category-shortcuts {
     flex-wrap: wrap;
@@ -726,7 +726,7 @@ app-root .public-map {
       background: transparent;
       color: var(--color-text-main);
       font: inherit;
-      font-size: 12px;
+      font-size: var(--vu-text-xs);
       cursor: pointer;
     }
     .consultation-mobile-tabs [aria-pressed='true'] {
@@ -793,7 +793,6 @@ app-root .public-map {
     }
     .map-first-screen .map-page-header h1 {
       margin: 0;
-      font-size: 22px;
     }
     .consultation-quick-disclosure {
       margin-top: 8px;
@@ -808,7 +807,7 @@ app-root .public-map {
       flex-basis: 96px;
     }
     .consultation-query .map-search-control input {
-      font-size: 16px;
+      font-size: var(--vu-text-md);
     }
     .map-layout {
       margin-inline: 0;
@@ -910,7 +909,7 @@ app-root .app-shell.map-view {
 }
 .public-map .risk-areas-panel summary {
   margin: 0 0 10px;
-  font-size: 1rem;
+  font-size: var(--vu-text-md);
   cursor: pointer;
 }
 .public-map .risk-layer-toggle {
@@ -918,7 +917,7 @@ app-root .app-shell.map-view {
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .public-map .risk-area-list {
   display: grid;

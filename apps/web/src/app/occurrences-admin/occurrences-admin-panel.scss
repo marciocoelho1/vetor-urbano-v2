@@ -18,7 +18,7 @@
   align-items: center;
 
   label {
-    font-weight: 600;
+    font-weight: var(--vu-weight-strong);
   }
 }
 
@@ -36,7 +36,7 @@
 
 .occurrences-meta {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--vu-text-sm);
   opacity: 0.75;
 }
 
@@ -45,7 +45,7 @@
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
   border: 1px solid currentColor;
-  font-size: 0.85rem;
+  font-size: var(--vu-text-base);
 }
 
 .occurrences-admin table {

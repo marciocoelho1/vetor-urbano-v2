@@ -3,6 +3,7 @@
 @use './styles/public-map';
 @use './styles/theme';
 @use './styles/theme-motion';
+@use './styles/tokens';
 
 .heat-scale {
   width: min(100%, 18rem);
@@ -59,8 +60,8 @@ body {
 body {
   min-height: 100dvh;
   font-family: var(--font-interface);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--vu-text-base);
+  font-weight: var(--vu-weight-medium);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
@@ -89,7 +90,7 @@ h6 {
   color: var(--color-text-main);
 }
 .map-popup strong {
-  font-size: 0.82rem;
+  font-size: var(--vu-text-sm);
 }
 .leaflet-tooltip.fallback-marker-code {
   padding: 2px 3px;
@@ -99,8 +100,8 @@ h6 {
   box-shadow: none;
   color: #18181b;
   font-family: var(--font-interface);
-  font-size: 0.56rem;
-  font-weight: 700;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
   text-shadow:
     0 0 2px #fff,
     0 0 4px #fff;
@@ -112,13 +113,13 @@ h6 {
 .map-popup p {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
   line-height: 1.4;
 }
 .map-popup span,
 .map-popup small {
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 
 #map-canvas .occurrence-pin {
@@ -151,8 +152,8 @@ h6 {
   background: var(--color-error);
   color: #fff;
   font-family: var(--font-interface);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
   border: 1.5px solid var(--color-bg-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   pointer-events: none;
@@ -167,8 +168,8 @@ h6 {
   background: var(--accent);
   color: #fff;
   font-family: var(--font-interface);
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-size: var(--vu-text-sm);
+  font-weight: var(--vu-weight-strong);
   border: 2px solid var(--color-bg-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
@@ -182,13 +183,13 @@ h6 {
 }
 .coincident-pins-expansion .coincident-title {
   display: block;
-  font-size: 0.875rem;
-  font-weight: 650;
+  font-size: var(--vu-text-base);
+  font-weight: var(--vu-weight-strong);
   color: var(--color-text-main);
 }
 .coincident-pins-expansion .coincident-desc {
   margin: 4px 0 8px;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   color: var(--color-text-muted);
   line-height: 1.35;
 }
@@ -227,13 +228,13 @@ h6 {
   outline-offset: 1px;
 }
 .coincident-pins-expansion .coincident-item-name {
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--vu-text-sm);
+  font-weight: var(--vu-weight-strong);
   color: var(--color-text-main);
   pointer-events: none;
 }
 .coincident-pins-expansion .coincident-item-meta {
-  font-size: 0.7rem;
+  font-size: var(--vu-text-xs);
   color: var(--color-text-muted);
   margin-top: 2px;
   pointer-events: none;
@@ -247,8 +248,8 @@ h6 {
   border-radius: 50%;
   background: #a3e635;
   color: #111;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .legend-pin {
   width: 15px;
@@ -265,7 +266,7 @@ textarea {
 }
 
 app-root small {
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 button,
 a,
@@ -296,7 +297,7 @@ textarea {
 
   caption {
     text-align: left;
-    font-weight: 700;
+    font-weight: var(--vu-weight-strong);
   }
   th,
   td {

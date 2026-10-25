@@ -9,8 +9,7 @@ app-root {
     transform: translateY(-160%);
     border-radius: 0.5rem;
     background: var(--accent);
-    color: #071711;
-    font-weight: 700;
+    font-weight: var(--vu-weight-strong);
   }
   .skip-link:focus {
     transform: translateY(0);
@@ -41,11 +40,11 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 6%);
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .demo-ribbon strong {
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     letter-spacing: 0.08em;
   }
   .demo-dot {
@@ -64,14 +63,14 @@ app-root {
     margin: 5px 0 0;
     color: var(--color-text-main);
     font-family: var(--font-heading);
-    font-size: clamp(1.35rem, 2vw, 1.75rem);
-    font-weight: 700;
+    font-size: var(--vu-text-2xl);
+    font-weight: var(--vu-weight-strong);
     letter-spacing: -0.045em;
   }
   .page-intro {
     margin: 7px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
   }
   .heatmap-button,
   .submit-button,
@@ -88,8 +87,8 @@ app-root {
     color: var(--color-text-main);
     cursor: pointer;
     font: inherit;
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     white-space: nowrap;
   }
   .heatmap-button:hover,
@@ -100,7 +99,7 @@ app-root {
   }
   .heat-icon {
     color: var(--accent-strong);
-    font-size: 1.15rem;
+    font-size: var(--vu-text-lg);
   }
 
   .map-layout {
@@ -132,12 +131,12 @@ app-root {
   .filter-heading h2 {
     margin: 4px 0 0;
     font-family: var(--font-heading);
-    font-size: 0.99rem;
-    font-weight: 650;
+    font-size: var(--vu-text-md);
+    font-weight: var(--vu-weight-strong);
     letter-spacing: -0.025em;
   }
   .filter-heading .eyebrow {
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .filter-count {
     display: grid;
@@ -147,7 +146,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 50%;
     color: var(--color-text-main);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .module-block + .module-block {
     border-top: 1px solid var(--color-border-subtle);
@@ -174,7 +173,7 @@ app-root {
     height: 25px;
     place-items: center;
     border-radius: 7px;
-    font-size: 0.95rem;
+    font-size: var(--vu-text-md);
   }
   .glyph-analysis {
     background: rgb(16 185 129 / 12%);
@@ -190,12 +189,12 @@ app-root {
   }
   .module-title {
     flex: 1;
-    font-size: 0.78rem;
-    font-weight: 650;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .chevron {
     color: var(--color-text-muted);
-    font-size: 0.9rem;
+    font-size: var(--vu-text-base);
     transition: transform 150ms ease;
   }
   .module-toggle[aria-expanded='true'] .chevron {
@@ -214,8 +213,8 @@ app-root {
     padding: 0;
     margin-bottom: 8px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 650;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .filter-choice {
     display: flex;
@@ -225,7 +224,7 @@ app-root {
     padding: 5px 1px;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.4;
   }
   .filter-choice input {
@@ -245,8 +244,8 @@ app-root {
   .subtype-type-title {
     display: block;
     margin-bottom: 4px;
-    font-size: 0.75rem;
-    font-weight: 650;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     color: var(--color-text-main);
   }
   .subtype-choice {
@@ -274,7 +273,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 6px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .period-option input:checked + span {
     border-color: rgb(16 185 129 / 55%);
@@ -296,7 +295,7 @@ app-root {
     justify-content: space-between;
     color: var(--color-text-muted);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     list-style: none;
   }
   .advanced-filter summary::-webkit-details-marker {
@@ -311,7 +310,7 @@ app-root {
   .filter-hint {
     margin: 12px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.5;
   }
   .source-warning {
@@ -323,17 +322,17 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 5%);
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.45;
   }
   .source-warning strong {
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .source-warning a {
     width: fit-content;
     color: var(--accent-strong);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     text-underline-offset: 3px;
   }
   .inline-retry {
@@ -341,7 +340,7 @@ app-root {
     min-height: 34px;
     padding-inline: 9px;
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .territory-choice {
     align-items: center;
@@ -365,7 +364,7 @@ app-root {
   }
   .territory-count {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     font-variant-numeric: tabular-nums;
   }
   .territory-legend-note {
@@ -390,7 +389,7 @@ app-root {
     min-height: 38px;
     padding: 0 2px 8px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .map-layout.filters-collapsed {
     grid-template-columns: minmax(0, 1fr);
@@ -420,8 +419,8 @@ app-root {
     color: var(--color-text-main);
     cursor: pointer;
     font: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .map-tool-button:hover,
   .map-expand-toggle:hover,
@@ -491,7 +490,7 @@ app-root {
   }
   .result-total strong {
     color: var(--color-text-main);
-    font-size: 0.9rem;
+    font-size: var(--vu-text-base);
   }
   .result-led {
     background: var(--accent);
@@ -524,7 +523,7 @@ app-root {
     border-radius: 6px;
     background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
     color: var(--color-text-main);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .map-frame.heat-active::after {
     position: absolute;
@@ -548,8 +547,8 @@ app-root {
     border-radius: 6px;
     background: color-mix(in srgb, var(--color-bg-surface) 91%, transparent);
     color: var(--color-text-main);
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     letter-spacing: 0.05em;
     pointer-events: none;
   }
@@ -577,14 +576,14 @@ app-root {
   }
   .map-fallback strong {
     color: var(--color-text-main);
-    font-size: 0.9rem;
+    font-size: var(--vu-text-base);
   }
   .map-fallback > span:last-child {
-    font-size: 0.77rem;
+    font-size: var(--vu-text-xs);
   }
   .fallback-mark {
     color: var(--accent-strong);
-    font-size: 1.6rem;
+    font-size: var(--vu-text-2xl);
   }
   .map-notice {
     position: absolute;
@@ -599,7 +598,7 @@ app-root {
     border-radius: 7px;
     background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.4;
   }
   .map-legend {
@@ -610,7 +609,7 @@ app-root {
     min-height: 37px;
     padding: 7px 3px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .map-legend > span {
     display: inline-flex;
@@ -648,17 +647,17 @@ app-root {
   .results-heading h2 {
     margin: 0;
     font-family: var(--font-heading);
-    font-size: 0.85rem;
+    font-size: var(--vu-text-base);
     letter-spacing: -0.02em;
   }
   .results-heading p {
     margin: 4px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .results-heading > span {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     white-space: nowrap;
   }
   .result-list {
@@ -705,7 +704,7 @@ app-root {
     border-radius: 8px;
     background: rgb(16 185 129 / 8%);
     color: var(--accent-strong);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .record-symbol.poi-symbol {
     border-color: rgb(163 230 53 / 27%);
@@ -721,21 +720,21 @@ app-root {
   .record-copy strong {
     overflow: hidden;
     color: var(--color-text-main);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .record-copy span {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .record-tag {
     padding: 4px 6px;
     border: 1px solid var(--color-border-subtle);
     border-radius: 4px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     letter-spacing: 0.07em;
   }
   .record-detail-button {
@@ -751,7 +750,7 @@ app-root {
     color: var(--accent-strong);
     cursor: pointer;
     font: inherit;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .record-detail-button:hover:not(:disabled) {
     border-color: var(--accent);
@@ -772,14 +771,14 @@ app-root {
     margin: 0 38px 9px 0;
     color: var(--color-text-main);
     font-family: var(--font-heading);
-    font-size: 0.88rem;
+    font-size: var(--vu-text-base);
   }
   .results-detail-limit {
     padding: 8px 14px;
     margin: 0;
     border-top: 1px solid var(--color-border-subtle);
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.45;
   }
   .empty-state {
@@ -792,14 +791,14 @@ app-root {
   }
   .empty-state > span:first-child {
     color: var(--accent-strong);
-    font-size: 1.3rem;
+    font-size: var(--vu-text-lg);
   }
   .empty-state strong {
     color: var(--color-text-main);
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
   }
   .empty-state span:last-child {
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
   }
   .empty-state-actions {
     display: flex;
@@ -816,8 +815,8 @@ app-root {
     background: var(--color-bg-surface);
     color: var(--color-text-main);
     font: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     cursor: pointer;
     transition: all 150ms ease-out;
 
@@ -844,17 +843,17 @@ app-root {
     border-color: #ef4444;
   }
   .query-error-icon {
-    font-size: 1.5rem;
+    font-size: var(--vu-icon-md);
     color: #ef4444;
   }
   .query-error-title {
     color: var(--color-text-main);
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--vu-text-base);
+    font-weight: var(--vu-weight-strong);
   }
   .query-error-description {
     color: var(--color-text-muted);
-    font-size: 0.8125rem;
+    font-size: var(--vu-text-sm);
     line-height: 1.45;
     max-width: 320px;
   }
@@ -864,7 +863,7 @@ app-root {
   .query-timestamp {
     display: inline-block;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     margin-left: 8px;
   }
   .result-led.is-error {
@@ -875,7 +874,7 @@ app-root {
   }
   .query-error-note {
     color: #ef4444;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
 
   .report-header {
@@ -889,7 +888,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 999px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     white-space: nowrap;
   }
   .lock-mark {
@@ -925,27 +924,27 @@ app-root {
     border-radius: 7px;
     background: rgb(16 185 129 / 8%);
     color: var(--accent-strong);
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .section-heading h2 {
     margin: 1px 0 0;
     font-family: var(--font-heading);
-    font-size: 0.98rem;
+    font-size: var(--vu-text-md);
     letter-spacing: -0.03em;
   }
   .section-heading p {
     margin: 4px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
   }
   .required-chip {
     padding: 6px 9px;
     border: 1px solid var(--color-border-subtle);
     border-radius: 999px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
     letter-spacing: 0.05em;
     white-space: nowrap;
   }
@@ -967,7 +966,7 @@ app-root {
     color: var(--color-text-main);
     cursor: pointer;
     font: inherit;
-    font-size: 0.78rem;
+    font-size: var(--vu-text-xs);
     text-align: left;
     transition:
       border-color 130ms ease,
@@ -990,7 +989,7 @@ app-root {
     border: 1px solid var(--color-border-subtle);
     border-radius: 8px;
     color: var(--color-text-muted);
-    font-size: 1rem;
+    font-size: var(--vu-text-md);
   }
   .category-option.selected .category-icon {
     border-color: rgb(16 185 129 / 40%);
@@ -1000,7 +999,7 @@ app-root {
     display: none;
     margin-left: auto;
     color: var(--accent-strong);
-    font-weight: 700;
+    font-weight: var(--vu-weight-strong);
   }
   .category-option.selected .selection-check {
     display: inline;
@@ -1019,8 +1018,8 @@ app-root {
     align-content: start;
     gap: 7px;
     color: var(--color-text-main);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .field input,
   .field select,
@@ -1033,8 +1032,8 @@ app-root {
     background: var(--color-bg-surface);
     color: var(--color-text-main);
     font: inherit;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: var(--vu-text-base);
+    font-weight: var(--vu-weight-medium);
   }
   .field textarea {
     min-height: 88px;
@@ -1046,8 +1045,8 @@ app-root {
   }
   .field small {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-medium);
     line-height: 1.45;
   }
   .field-wide {
@@ -1062,19 +1061,19 @@ app-root {
   .specific-fields h3 {
     margin: 0 0 12px;
     color: var(--accent-strong);
-    font-size: 0.75rem;
-    font-weight: 650;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-strong);
   }
   .field-note {
     margin: 10px 0 0;
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .optional-label {
     margin-left: 5px;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--vu-text-xs);
+    font-weight: var(--vu-weight-medium);
   }
   .location-card {
     padding-bottom: 14px;
@@ -1087,21 +1086,18 @@ app-root {
   }
   .confirm-point {
     min-height: 42px;
-    border-color: var(--accent);
-    background: var(--accent);
-    color: #04130d;
   }
   .confirm-point:hover,
   .submit-button:hover {
     background: #237b5e;
   }
   .confirm-point span {
-    font-size: 1rem;
+    font-size: var(--vu-text-md);
   }
   .coordinate-help {
     margin: 9px 0 0;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.45;
   }
   .point-confirmed {
@@ -1110,7 +1106,7 @@ app-root {
     gap: 7px;
     margin: 10px 0 0;
     color: var(--accent-strong);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .submit-row {
     display: grid;
@@ -1128,19 +1124,16 @@ app-root {
   }
   .submit-note strong {
     color: var(--color-text-warning);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .submit-note span {
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
     line-height: 1.4;
   }
   .submit-button {
     min-height: 46px;
-    border-color: var(--accent);
-    background: var(--accent);
-    color: #04130d;
-    font-weight: 700;
+    font-weight: var(--vu-weight-strong);
   }
   .form-status {
     padding: 11px 13px;
@@ -1149,7 +1142,7 @@ app-root {
     border-radius: 7px;
     background: rgb(245 158 11 / 6%);
     color: var(--color-text-warning);
-    font-size: 0.875rem;
+    font-size: var(--vu-text-base);
     line-height: 1.45;
   }
 
@@ -1159,7 +1152,7 @@ app-root {
     }
     .demo-ribbon {
       align-items: flex-start;
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
       line-height: 1.4;
     }
     .demo-ribbon strong {
@@ -1169,18 +1162,15 @@ app-root {
       align-items: flex-start;
       padding: 18px 1px 13px;
     }
-    .page-header h1 {
-      font-size: 1.35rem;
-    }
     .page-intro {
       max-width: 32ch;
-      font-size: 0.875rem;
+      font-size: var(--vu-text-base);
       line-height: 1.45;
     }
     .heatmap-button {
       min-height: 38px;
       padding-inline: 9px;
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
     }
     .heat-icon {
       display: none;
@@ -1216,7 +1206,7 @@ app-root {
     .map-expand-toggle {
       max-width: none;
       padding-inline: 7px;
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
       white-space: nowrap;
     }
     .map-frame.map-expanded {
@@ -1234,7 +1224,7 @@ app-root {
     }
     .map-legend {
       gap: 8px 12px;
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
     }
     .result-item {
       padding-inline: 10px;
@@ -1244,7 +1234,7 @@ app-root {
       gap: 12px;
     }
     .account-badge {
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
     }
     .form-card {
       padding: 13px;
@@ -1253,16 +1243,16 @@ app-root {
       align-items: flex-start;
     }
     .section-heading h2 {
-      font-size: 0.88rem;
+      font-size: var(--vu-text-base);
     }
     .section-heading p {
       max-width: 29ch;
-      font-size: 0.875rem;
+      font-size: var(--vu-text-base);
       line-height: 1.45;
     }
     .required-chip {
       padding: 5px 6px;
-      font-size: 0.75rem;
+      font-size: var(--vu-text-xs);
     }
     .category-options {
       grid-template-columns: 1fr;

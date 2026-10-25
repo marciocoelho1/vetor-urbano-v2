@@ -22,7 +22,7 @@
 
 .operations-panel h3 {
   margin: 0 0 6px;
-  font-size: 1rem;
+  font-size: var(--vu-text-md);
 }
 
 .operations-source-list,
@@ -55,7 +55,7 @@
 
 .operations-credit {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--vu-text-sm);
   color: var(--color-text-muted, currentColor);
 }
 
@@ -71,7 +71,7 @@
 }
 
 .operations-meta dt {
-  font-size: 0.72rem;
+  font-size: var(--vu-text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-text-muted, currentColor);
@@ -79,7 +79,7 @@
 
 .operations-meta dd {
   margin: 2px 0 0;
-  font-size: 0.86rem;
+  font-size: var(--vu-text-base);
 }
 
 .operations-expiring li {
@@ -90,12 +90,12 @@
   padding: 8px 10px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 9px;
-  font-size: 0.85rem;
+  font-size: var(--vu-text-base);
 }
 
 .operations-limitations {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--vu-text-xs);
   color: var(--color-text-muted, currentColor);
 }
 

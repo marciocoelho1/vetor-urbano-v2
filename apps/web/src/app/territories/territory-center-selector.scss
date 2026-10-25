@@ -16,8 +16,8 @@
   color: var(--color-radius-text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
   text-align: left;
 }
 .territory-disclosure:hover {
@@ -47,7 +47,7 @@
 }
 .territory-label {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .territory-input {
   width: 100%;
@@ -58,7 +58,7 @@
   background: var(--color-bg-base);
   color: var(--color-text-main);
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .territory-hint,
 .territory-count,
@@ -67,7 +67,7 @@
 .territory-status {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.7rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -102,13 +102,13 @@
 }
 .territory-name {
   color: var(--color-text-main);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
   overflow-wrap: anywhere;
 }
 .territory-context {
   color: var(--color-text-muted);
-  font-size: 0.68rem;
+  font-size: var(--vu-text-xs);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -118,7 +118,7 @@
   background: var(--color-bg-muted);
 }
 .territory-option-active .territory-name {
-  font-weight: 700;
+  font-weight: var(--vu-weight-strong);
 }
 .territory-option-selected {
   background: var(--color-selected-bg);
@@ -134,7 +134,7 @@
   display: grid;
   gap: 4px;
   color: var(--color-error);
-  font-size: 0.7rem;
+  font-size: var(--vu-text-xs);
 }
 .territory-error p {
   margin: 0;
@@ -149,8 +149,8 @@
   color: var(--color-radius-text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .territory-action:hover {
   background: rgb(196 181 253 / 20%);

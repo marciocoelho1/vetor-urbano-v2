@@ -30,10 +30,10 @@ li {
   border-radius: 12px;
 }
 h2 {
-  font-size: 1rem;
+  font-size: var(--vu-text-md);
 }
 dt {
-  font-weight: 600;
+  font-weight: var(--vu-weight-strong);
 }
 dd {
   margin: 0 0 12px;
@@ -41,7 +41,7 @@ dd {
 pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 0.8125rem;
+  font-size: var(--vu-text-sm);
 }
 summary {
   cursor: pointer;

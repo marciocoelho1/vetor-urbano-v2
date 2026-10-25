@@ -59,7 +59,7 @@
 
 .collection-meta dt,
 .collection-counters dt {
-  font-weight: 650;
+  font-weight: var(--vu-weight-strong);
 }
 
 .collection-meta dd,
@@ -117,7 +117,7 @@
 
 .collection-backfill legend,
 .collection-date-range label {
-  font-weight: 650;
+  font-weight: var(--vu-weight-strong);
 }
 
 .collection-date-range {

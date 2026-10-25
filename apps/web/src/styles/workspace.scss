@@ -18,7 +18,7 @@
   border-radius: 9px;
   background: rgb(245 158 11 / 6%);
   color: var(--color-text-warning);
-  font-size: 0.76rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.5;
 }
 .workspace-metrics,
@@ -52,27 +52,27 @@
 .workspace-record > p,
 .workspace-detail > p {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.5;
 }
 .workspace-metrics strong {
   color: var(--accent-strong);
-  font-size: 1.6rem;
+  font-size: var(--vu-text-2xl);
   font-variant-numeric: tabular-nums;
 }
 .workspace-metrics small {
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .workspace-card h2,
 .workspace-record h2,
 .workspace-detail h2 {
   margin: 0 0 9px;
-  font-size: 0.98rem;
+  font-size: var(--vu-text-md);
 }
 .workspace-card > p,
 .workspace-record > p,
 .workspace-detail > p {
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
 }
 .workspace-card > p {
   margin: 0 0 12px;
@@ -98,12 +98,12 @@
   flex-basis: 100%;
   margin: 0;
   color: var(--color-text-main);
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
 }
 .report-snapshot-counts {
   color: var(--accent-strong);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--vu-text-lg);
+  font-weight: var(--vu-weight-strong);
   font-variant-numeric: tabular-nums;
 }
 .report-snapshot-list {
@@ -125,7 +125,7 @@
 .report-snapshot-list li > span,
 .report-snapshot-list time {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.5;
 }
 .report-demo-notice h2,
@@ -135,7 +135,7 @@
 .report-demo-notice p {
   margin-top: 5px;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
   line-height: 1.5;
 }
 .workspace-record {
@@ -145,7 +145,7 @@
 .workspace-record h2,
 .workspace-record h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--vu-text-base);
 }
 .workspace-record > p {
   margin: 0;
@@ -158,7 +158,7 @@
   align-items: center;
   gap: 8px 13px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .record-meta {
   padding-top: 8px;
@@ -176,8 +176,8 @@
   border-radius: 999px;
   background: var(--color-bg-surface);
   color: var(--color-text-main);
-  font-size: 0.75rem;
-  font-weight: 650;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .active-status {
   border-color: rgb(16 185 129 / 45%);
@@ -202,8 +202,8 @@
   border-radius: 999px;
   background: rgb(16 185 129 / 12%);
   color: var(--accent-strong);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -215,8 +215,8 @@
   border-radius: 999px;
   background: rgb(245 158 11 / 10%);
   color: var(--color-text-warning);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .distance-pill {
   display: inline-flex;
@@ -226,8 +226,8 @@
   border-radius: 999px;
   background: var(--color-bg-base);
   color: var(--color-text-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .workspace-record.is-ongoing {
   border-left: 3px solid var(--accent-strong);
@@ -251,13 +251,13 @@
   gap: 6px;
 }
 .informes-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--vu-text-sm);
+  font-weight: var(--vu-weight-strong);
   color: var(--color-text-main);
 }
 .informes-hint {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   color: var(--color-text-muted);
   line-height: 1.4;
 }
@@ -276,7 +276,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.8125rem;
+  font-size: var(--vu-text-sm);
   color: var(--color-text-muted);
 }
 .informes-input {
@@ -287,7 +287,7 @@
   background: var(--color-bg-base);
   color: var(--color-text-main);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--vu-text-sm);
   &.radius-input {
     width: 90px;
   }
@@ -300,7 +300,7 @@
   outline-offset: 1px;
 }
 .informes-radius-unit {
-  font-size: 0.8125rem;
+  font-size: var(--vu-text-sm);
   color: var(--color-text-muted);
 }
 .informes-radius-badge {
@@ -311,15 +311,15 @@
   border-radius: 999px;
   background: rgb(16 185 129 / 10%);
   color: var(--accent-strong);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .workspace-empty {
   display: grid;
   justify-items: start;
   gap: 6px;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
 }
 .workspace-empty strong {
   color: var(--color-text-main);
@@ -340,7 +340,7 @@
   background: var(--color-bg-surface);
   color: var(--color-text-main);
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: var(--vu-text-lg);
 }
 .detail-grid {
   display: grid;
@@ -353,12 +353,12 @@
 }
 .detail-grid dt {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .detail-grid dd {
   margin: 3px 0 0;
   color: var(--color-text-main);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   overflow-wrap: anywhere;
 }
 .bar-chart {
@@ -372,7 +372,7 @@
   align-items: center;
   gap: 9px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .bar-row > span {
   overflow-wrap: anywhere;
@@ -413,7 +413,7 @@
 .query-error {
   margin: 0;
   color: var(--color-error);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .query-advanced {
   margin: 0 0 9px;
@@ -426,8 +426,8 @@
   min-height: 36px;
   color: var(--color-text-main);
   cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 650;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .query-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -439,7 +439,7 @@
 .comparison-controls .field input,
 .comparison-controls .field select,
 .comparison-controls .field textarea {
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
 }
 .query-radius-toggle {
   align-items: center;
@@ -459,7 +459,7 @@
 .query-note {
   margin: 6px 0 0;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.5;
 }
 .map-pick-prompt {
@@ -476,7 +476,7 @@
   border-radius: 7px;
   background: var(--color-bg-surface);
   color: var(--accent-strong);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .report-map-shell {
   position: relative;
@@ -515,7 +515,7 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
   color: var(--color-text-main);
-  font-size: 0.78rem;
+  font-size: var(--vu-text-xs);
 }
 .report-map-error {
   display: grid;
@@ -553,7 +553,7 @@
   flex: 1;
   gap: 5px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .timeline-range input {
   width: 100%;
@@ -587,7 +587,7 @@
   padding: 8px 0;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .saved-searches li strong {
   flex: 1;
@@ -611,7 +611,7 @@
 .source-card a {
   width: fit-content;
   color: var(--accent-strong);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   text-underline-offset: 3px;
 }
 .import-card .comparison-controls {
@@ -628,14 +628,14 @@
   background: rgb(16 185 129 / 9%);
   color: var(--accent-strong);
   cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 650;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .upload-file input {
   max-width: min(260px, 55vw);
   margin-left: 10px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .source-import-list {
   display: grid;
@@ -650,7 +650,7 @@
   padding: 10px 0;
   border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   overflow-wrap: anywhere;
 }
 .source-import-list small {
@@ -675,7 +675,7 @@
   color: var(--accent-strong);
   cursor: pointer;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   text-align: left;
 }
 .map-search-wrap {
@@ -707,7 +707,7 @@
   background: transparent;
   color: var(--color-text-main);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
 }
 .map-search-control input::placeholder {
   color: var(--color-text-muted);
@@ -717,14 +717,14 @@
 }
 .search-glyph {
   color: var(--accent-strong);
-  font-size: 1.3rem;
+  font-size: var(--vu-text-lg);
 }
 .search-clear {
   width: 36px;
   min-height: 34px;
   flex: 0 0 auto;
   padding: 0;
-  font-size: 1.05rem;
+  font-size: var(--vu-text-md);
 }
 .search-results {
   position: absolute;
@@ -785,18 +785,18 @@
   white-space: nowrap;
 }
 .search-result-copy strong {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--vu-text-base);
+  font-weight: var(--vu-weight-strong);
 }
 .search-result-copy small {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .search-message {
   padding: 10px 12px;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--vu-text-base);
   line-height: 1.45;
 }
 .visually-hidden {
@@ -879,7 +879,7 @@
   .bar-row {
     grid-template-columns: minmax(90px, 1fr) minmax(45px, 1.3fr) 30px;
     gap: 6px;
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
   .timeline-controls {
     align-items: stretch;
@@ -902,7 +902,7 @@
     margin-bottom: 8px;
   }
   .map-search-control input {
-    font-size: 16px;
+    font-size: var(--vu-text-md);
   }
 }
 
@@ -926,7 +926,7 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  font-size: 0.76rem;
+  font-size: var(--vu-text-xs);
 }
 @media (max-width: 420px) {
   .period-time-options {
@@ -950,7 +950,7 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  font-size: 0.76rem;
+  font-size: var(--vu-text-xs);
 }
 @media (max-width: 420px) {
   .score-range-inputs {
@@ -964,7 +964,7 @@
   background: none;
   border: none;
   color: var(--accent);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -995,8 +995,8 @@
   display: block;
   min-width: 0;
   color: var(--color-radius-text);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .map-radius-toggle {
   display: flex;
@@ -1006,7 +1006,7 @@
   white-space: nowrap;
   color: var(--color-text-main);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .map-radius-toggle input {
   width: 15px;
@@ -1027,13 +1027,13 @@
   justify-content: space-between;
   gap: 8px;
   color: var(--color-text-main);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .map-radius-value output {
   color: var(--color-radius-text);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--vu-weight-strong);
 }
 .map-radius-slider {
   width: 100%;
@@ -1046,7 +1046,7 @@
 .map-radius-center {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
   line-height: 1.4;
 }
 .map-radius-center {
@@ -1062,8 +1062,8 @@
   color: var(--color-radius-text);
   cursor: pointer;
   font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--vu-text-xs);
+  font-weight: var(--vu-weight-strong);
 }
 .map-radius-pick:hover {
   background: rgb(196 181 253 / 20%);
@@ -1081,7 +1081,7 @@
   padding-top: 5px;
   color: var(--color-radius-text);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .map-radius-coordinate-grid {
   display: grid;
@@ -1092,7 +1092,7 @@
   display: grid;
   gap: 3px;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .map-radius-coordinate-grid input {
   width: 100%;
@@ -1103,7 +1103,7 @@
   background: var(--color-bg-surface);
   color: var(--color-text-main);
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--vu-text-xs);
 }
 .radius-legend-note {
   color: var(--color-radius-text);
@@ -1131,6 +1131,6 @@
     grid-column: auto;
   }
   .map-radius-hint {
-    font-size: 0.75rem;
+    font-size: var(--vu-text-xs);
   }
 }
