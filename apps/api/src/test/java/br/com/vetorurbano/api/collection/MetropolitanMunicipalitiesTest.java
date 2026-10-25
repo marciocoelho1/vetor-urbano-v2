@@ -20,6 +20,29 @@ class MetropolitanMunicipalitiesTest {
         assertTrue(municipalities.legalSource().contains("Lei Complementar 184/2018"));
         assertEquals("2026-10-19", municipalities.recordedAt());
         assertFalse(municipalities.limitations().isBlank());
+        assertEquals(2, municipalities.version());
+    }
+
+    /** Código IBGE é identidade: o recorte v2 o carrega, e a cobertura é calculada sobre ele. */
+    @Test
+    void carriesTheIbgeCodeOfEveryMunicipalityAndSaysWhereItCameFrom() {
+        assertEquals(22, municipalities.municipalityCodes().size());
+        assertEquals(22, municipalities.entries().size());
+        municipalities.entries().forEach(entry -> assertTrue(entry.ibgeCode().matches("[0-9]{7}"),
+                "código fora do padrão IBGE: " + entry.ibgeCode()));
+        assertEquals(22, new java.util.HashSet<>(municipalities.municipalityCodes()).size(),
+                "código repetido no recorte legal");
+        assertEquals(22, municipalities.entries().stream()
+                .map(entry -> MetropolitanMunicipalities.normalize(entry.name())).distinct().count(),
+                "nome normalizado repetido no recorte legal");
+        assertEquals("3304557", municipalities.entries().stream()
+                .filter(entry -> entry.name().equals("Rio de Janeiro")).findFirst().orElseThrow().ibgeCode());
+        assertEquals("3303203", municipalities.entries().stream()
+                .filter(entry -> entry.name().equals("Nilópolis")).findFirst().orElseThrow().ibgeCode());
+        // Origem do código é declarada: ele vem da API de Localidades, não da lei.
+        assertTrue(municipalities.codesSourceUrl().startsWith("https://servicodados.ibge.gov.br/"));
+        assertEquals("2026-10-24", municipalities.codesSourceObtainedAt());
+        assertTrue(municipalities.codesSourceNote().contains("não da lei"));
     }
 
     @Test

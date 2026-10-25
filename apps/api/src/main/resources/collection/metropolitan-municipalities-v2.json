@@ -1,0 +1,38 @@
+{
+  "resource": "regiao-metropolitana-rio-de-janeiro",
+  "version": 2,
+  "recordedAt": "2026-10-19",
+  "legalSource": "Lei Complementar 184/2018, redação consolidada da composição da Região Metropolitana do Rio de Janeiro",
+  "legalSourceNote": "A redação original listava 19 municípios; a consolidada vigente lista 22, incluindo Petrópolis, Cachoeiras de Macacu, Mesquita e Rio Bonito. Esta lista usa a composição vigente.",
+  "codesSource": {
+    "url": "https://servicodados.ibge.gov.br/api/v1/localidades/estados/33/municipios",
+    "obtainedAt": "2026-10-24",
+    "note": "O código IBGE de 7 dígitos vem da API de Localidades do IBGE, não da lei: a lei nomeia o município, a API o identifica. Divergência entre o código fixado aqui e o resolvido na ingestão reprova a ingestão em vez de corrigir o número em silêncio."
+  },
+  "recorte": "Municípios da Região Metropolitana do Estado do Rio de Janeiro, incluindo a cidade do Rio de Janeiro.",
+  "limitations": "Lista legal, não um limite operacional nem geográfico. Não promete cobertura da fonte e não substitui o cruzamento com GET /cities. O código IBGE é a identidade do território; o nome é apenas rótulo.",
+  "municipalities": [
+    { "name": "Rio de Janeiro", "ibgeCode": "3304557" },
+    { "name": "Belford Roxo", "ibgeCode": "3300456" },
+    { "name": "Cachoeiras de Macacu", "ibgeCode": "3300803" },
+    { "name": "Duque de Caxias", "ibgeCode": "3301702" },
+    { "name": "Guapimirim", "ibgeCode": "3301850" },
+    { "name": "Itaboraí", "ibgeCode": "3301900" },
+    { "name": "Itaguaí", "ibgeCode": "3302007" },
+    { "name": "Japeri", "ibgeCode": "3302270" },
+    { "name": "Magé", "ibgeCode": "3302502" },
+    { "name": "Maricá", "ibgeCode": "3302700" },
+    { "name": "Mesquita", "ibgeCode": "3302858" },
+    { "name": "Nilópolis", "ibgeCode": "3303203" },
+    { "name": "Niterói", "ibgeCode": "3303302" },
+    { "name": "Nova Iguaçu", "ibgeCode": "3303500" },
+    { "name": "Paracambi", "ibgeCode": "3303609" },
+    { "name": "Petrópolis", "ibgeCode": "3303906" },
+    { "name": "Queimados", "ibgeCode": "3304144" },
+    { "name": "Rio Bonito", "ibgeCode": "3304300" },
+    { "name": "São Gonçalo", "ibgeCode": "3304904" },
+    { "name": "São João de Meriti", "ibgeCode": "3305109" },
+    { "name": "Seropédica", "ibgeCode": "3305554" },
+    { "name": "Tanguá", "ibgeCode": "3305752" }
+  ]
+}
