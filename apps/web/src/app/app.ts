@@ -23,6 +23,10 @@ import { AdminSourcesPanels } from './admin/admin-sources-panels';
 import { OccurrencesAdminPanel } from './occurrences-admin/occurrences-admin-panel';
 import { CorrectionChannel } from './corrections/correction-channel';
 import { RiskAreaManagement } from './risk-areas/risk-area-management';
+import {
+  TerritoryCenterSelector,
+  type TerritoryCenterSelection,
+} from './territories/territory-center-selector';
 import { fetchRiskAreas } from './data/risk-area-api';
 import { persistedRiskAreaFeature } from './domain/persisted-risk-areas';
 import { PublicSourceList } from './sources/public-source-list';
@@ -478,6 +482,7 @@ interface SuspendedAdvancedFilters {
     AdminSourcesPanels,
     OccurrencesAdminPanel,
     RiskAreaManagement,
+    TerritoryCenterSelector,
     CorrectionChannel,
     AuditLog,
     PublicSourceList,
@@ -565,6 +570,60 @@ export class App implements AfterViewInit, OnDestroy {
   protected updateConsultationViewport(): void {
     this.compactConsultation.set(window.innerWidth <= 960);
   }
+
+  /**
+   * Ancora o painel de raio na barra, dentro do `.map-shell`, sem deixar a superfície sair da
+   * viewport: abaixo da barra quando cabe, acima quando o mapa está espremido.
+   *
+   * No móvel o painel é `position: fixed` (o CSS acompanha este mesmo breakpoint): ele deixa de
+   * seguir a barra e passa a ser folha presa à base do viewport, com altura limitada à tela. Era a
+   * única forma de manter banda de leitura com a página rolada — ancorado no shell, o painel andava
+   * junto com o documento e saía da vista.
+   */
+  private positionRadiusPanel(): void {
+    const shell = document.querySelector<HTMLElement>('.map-shell');
+    const bar = document.querySelector<HTMLElement>('.map-radius-bar');
+    if (!shell || !bar) return;
+    const shellRect = shell.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
+    const gap = 10;
+    const margin = 12;
+    const width = Math.min(300, window.innerWidth - 36);
+    const center = Math.min(
+      Math.max(barRect.left + barRect.width / 2, width / 2 + margin),
+      window.innerWidth - width / 2 - margin,
+    );
+    if (window.matchMedia('(max-width: 560px)').matches) {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      // Folha presa à base: `left`/`bottom` em coordenadas de viewport, sem a origem do shell.
+      this.radiusPanelLeft.set(Math.round(center));
+      this.radiusPanelTop.set(null);
+      this.radiusPanelBottom.set(margin);
+      this.radiusPanelMaxHeight.set(Math.round(Math.min(520, viewportHeight - margin * 2)));
+      return;
+    }
+    const spaceBelow = window.innerHeight - barRect.bottom - gap - margin;
+    const spaceAbove = barRect.top - gap - margin;
+    const below = spaceBelow >= 240 || spaceBelow >= spaceAbove;
+    const available = Math.max(160, Math.min(520, below ? spaceBelow : spaceAbove));
+    this.radiusPanelLeft.set(Math.round(center - shellRect.left));
+    this.radiusPanelMaxHeight.set(Math.round(available));
+    if (below) {
+      this.radiusPanelTop.set(Math.round(barRect.bottom + gap - shellRect.top));
+      this.radiusPanelBottom.set(null);
+    } else {
+      this.radiusPanelTop.set(null);
+      this.radiusPanelBottom.set(Math.round(shellRect.bottom - barRect.top + gap));
+    }
+  }
+  /**
+   * Coordenada para exibição, arredondada só na leitura: o estado guarda o texto, que é o mesmo que
+   * alimenta a consulta de raio e a captura pelo mapa. Entrada inválida aparece como foi digitada.
+   */
+  protected formatCoordinate(value: string | number): string {
+    const parsed = typeof value === 'number' ? value : Number(value.trim().replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed.toFixed(4) : String(value);
+  }
   protected readonly expandedModule = signal<ModuleId | null>('intelligence');
   protected readonly selectedCategory = signal<Category | null>(null);
   protected readonly activeFilters = signal<string[]>(
@@ -586,6 +645,8 @@ export class App implements AfterViewInit, OnDestroy {
     longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),
     latitude: String(CENTRAL_DO_BRASIL_CENTER[1]),
   });
+  /** Vínculo com o catálogo territorial: cai assim que o centro deixa de ser o ponto do município. */
+  protected readonly selectedTerritory = signal<TerritoryCenterSelection | null>(null);
   protected readonly mapPickPurpose = signal<'report' | 'radius' | 'active' | null>(null);
   protected readonly formatDistance = formatDistance;
   protected readonly informesLoading = signal(false);
@@ -750,6 +811,14 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly mapReady = signal(false);
   protected readonly filtersCollapsed = signal(false);
   protected readonly radiusOptionsOpen = signal(false);
+  /**
+   * Geometria da superfície do painel de raio. O bloco vive fora do `.map-frame` (o empilhamento do
+   * mapa cobria a lista no móvel) e é ancorado na barra em coordenadas do `.map-shell`.
+   */
+  protected readonly radiusPanelTop = signal<number | null>(null);
+  protected readonly radiusPanelBottom = signal<number | null>(null);
+  protected readonly radiusPanelLeft = signal<number | null>(null);
+  protected readonly radiusPanelMaxHeight = signal<number | null>(null);
   protected readonly mapExpanded = signal(false);
   protected readonly mapDark = signal(this.theme.dark());
   protected readonly reportMapDark = signal(this.theme.dark());
@@ -1635,6 +1704,20 @@ export class App implements AfterViewInit, OnDestroy {
 
   constructor() {
     void this.session.refresh();
+    // Painel de raio ancorado na barra: reposiciona quando a superfície abre, no scroll e no resize.
+    effect((onCleanup) => {
+      if (!this.radiusOptionsOpen()) return;
+      const reposition = () => this.positionRadiusPanel();
+      const frame = requestAnimationFrame(reposition);
+      // Capture: o scroll pode acontecer em qualquer contêiner, não só na janela.
+      document.addEventListener('scroll', reposition, { passive: true, capture: true });
+      window.addEventListener('resize', reposition);
+      onCleanup(() => {
+        cancelAnimationFrame(frame);
+        document.removeEventListener('scroll', reposition, { capture: true });
+        window.removeEventListener('resize', reposition);
+      });
+    });
     effect((onCleanup) => {
       const view = this.activeView();
       const authenticated = this.session.state()?.authenticated;
@@ -2012,6 +2095,7 @@ export class App implements AfterViewInit, OnDestroy {
     requestAnimationFrame(() => {
       this.map?.resize();
       this.fallbackMap?.invalidateSize();
+      if (this.radiusOptionsOpen()) this.positionRadiusPanel();
       if (this.mapExpanded()) {
         document.querySelector<HTMLElement>('.map-expand-toggle')?.focus();
       }
@@ -2732,6 +2816,8 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected setSearchCoordinate(axis: 'longitude' | 'latitude', value: string): void {
+    // Editar coordenada desfaz o vínculo: não existe nome de município com centro que não é o dele.
+    this.selectedTerritory.set(null);
     this.searchCenter.update((center) => ({ ...center, [axis]: value }));
     this.refreshMapData();
   }
@@ -2869,6 +2955,7 @@ export class App implements AfterViewInit, OnDestroy {
       if (this.persistedQueryEnabled) this.consultInformes();
       requestAnimationFrame(() => document.getElementById('active-heading')?.focus());
     } else {
+      this.selectedTerritory.set(null);
       this.searchCenter.set({ longitude: String(longitude), latitude: String(latitude) });
       this.useRadius.set(true);
     }
@@ -2879,6 +2966,37 @@ export class App implements AfterViewInit, OnDestroy {
   private handleMapClick(longitude: number, latitude: number, button = 0): void {
     if (button !== 0) return;
     this.acceptMapPick(longitude, latitude);
+  }
+
+  /**
+   * Centro vindo do catálogo territorial (UXH-03). O ponto é o `internalPoint` da versão publicada,
+   * entregue pelo servidor: aqui só se aplica ao mapa, sem calcular centro nem disparar consulta.
+   */
+  protected applyTerritoryCenter(selection: TerritoryCenterSelection): void {
+    this.selectedTerritory.set(selection);
+    this.searchCenter.set({
+      longitude: String(selection.longitude),
+      latitude: String(selection.latitude),
+    });
+    this.useRadius.set(true);
+    this.centerMapOnTerritory(selection);
+    this.refreshMapData();
+  }
+
+  /** Movimento reduzido salta; sem a preferência, a câmera anima até o ponto interno. */
+  private centerMapOnTerritory(selection: TerritoryCenterSelection): void {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const point: [number, number] = [selection.longitude, selection.latitude];
+    if (this.map) {
+      const zoom = Math.max(12.6, this.map.getZoom());
+      if (reduced) this.map.jumpTo({ center: point, zoom });
+      else this.map.flyTo({ center: point, zoom });
+    }
+    if (this.fallbackMap) {
+      const zoom = Math.max(13.6, this.fallbackMap.getZoom());
+      if (reduced) this.fallbackMap.setView([point[1], point[0]], zoom);
+      else this.fallbackMap.flyTo([point[1], point[0]], zoom);
+    }
   }
 
   protected saveCurrentSearch(): void {
@@ -2935,6 +3053,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.timeEnd.set(search.timeEnd ?? '');
     this.useRadius.set(search.useRadius ?? false);
     this.radiusMeters.set(search.radiusMeters ?? 1000);
+    this.selectedTerritory.set(null);
     this.searchCenter.set(
       search.center ?? {
         longitude: String(CENTRAL_DO_BRASIL_CENTER[0]),

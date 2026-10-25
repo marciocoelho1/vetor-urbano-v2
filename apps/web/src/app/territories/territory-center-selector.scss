@@ -1,0 +1,195 @@
+.territory-selector {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.territory-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 1px solid rgb(196 181 253 / 42%);
+  border-radius: 6px;
+  background: rgb(196 181 253 / 10%);
+  color: var(--color-radius-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+.territory-disclosure:hover {
+  background: rgb(196 181 253 / 20%);
+}
+.territory-disclosure:focus-visible,
+.territory-input:focus-visible,
+.territory-action:focus-visible,
+.territory-list:focus-visible {
+  outline: 2px solid #c4b5fd;
+  outline-offset: 2px;
+}
+.territory-disclosure[aria-expanded='true'] .territory-chevron {
+  transform: rotate(180deg);
+}
+.territory-chevron {
+  transition: transform 160ms ease;
+}
+.territory-panel {
+  display: grid;
+  gap: 4px;
+  padding: 5px 6px 6px;
+  border: 1px solid rgb(196 181 253 / 22%);
+  border-radius: 6px;
+  background: var(--color-bg-surface);
+  min-width: 0;
+}
+.territory-label {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+.territory-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  background: var(--color-bg-base);
+  color: var(--color-text-main);
+  font: inherit;
+  font-size: 0.75rem;
+}
+.territory-hint,
+.territory-count,
+.territory-coverage,
+.territory-attribution,
+.territory-status {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.territory-count {
+  color: var(--color-text-main);
+  font-variant-numeric: tabular-nums;
+}
+.territory-attribution {
+  border-top: 1px solid rgb(196 181 253 / 18%);
+  padding-top: 3px;
+}
+.territory-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  // Sem altura própria: o painel que hospeda o seletor é a única superfície rolável, para o móvel
+  // não ter dois contêineres encaixados (a lista ficava com uma opção visível).
+  list-style: none;
+}
+.territory-list[hidden] {
+  display: none;
+}
+.territory-list > li {
+  display: grid;
+  gap: 1px;
+  min-height: 40px;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.territory-name {
+  color: var(--color-text-main);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.territory-context {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.territory-option-active {
+  border-color: var(--color-focus-border);
+  border-left-width: 2px;
+  background: var(--color-bg-muted);
+}
+.territory-option-active .territory-name {
+  font-weight: 700;
+}
+.territory-option-selected {
+  background: var(--color-selected-bg);
+  border-color: var(--color-selected-border);
+}
+.territory-option-unavailable {
+  cursor: not-allowed;
+}
+.territory-option-unavailable .territory-name {
+  color: var(--color-text-secondary);
+}
+.territory-error {
+  display: grid;
+  gap: 4px;
+  color: var(--color-error);
+  font-size: 0.7rem;
+}
+.territory-error p {
+  margin: 0;
+}
+.territory-action {
+  justify-self: start;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid rgb(196 181 253 / 42%);
+  border-radius: 4px;
+  background: rgb(196 181 253 / 10%);
+  color: var(--color-radius-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.territory-action:hover {
+  background: rgb(196 181 253 / 20%);
+}
+
+@media (max-width: 560px) {
+  .territory-list > li {
+    min-height: 44px;
+  }
+  .territory-input,
+  .territory-disclosure,
+  .territory-action {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  // Telas estreitas: o bloco fixo entre o disclosure e a lista comia a altura do painel e sobravam
+  // duas opções. A instrução do campo continua na árvore de acessibilidade (`aria-describedby`),
+  // só sai da vista — não há informação perdida para leitor de tela.
+  #map-locality-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .territory-selector,
+  .territory-panel {
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .territory-chevron {
+    transition: none;
+  }
+}

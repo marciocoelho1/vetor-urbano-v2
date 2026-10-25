@@ -1408,8 +1408,14 @@ describe('Vetor Urbano', () => {
     const app = fixture.componentInstance as unknown as {
       beginMapPick: (purpose: 'radius') => void;
       cancelMapPick: () => void;
+      useRadius: { set: (value: boolean) => void };
     };
     const root = fixture.nativeElement as HTMLElement;
+    // Com o raio ligado a superfície existe; ela não pode continuar na frente do mapa na escolha.
+    app.useRadius.set(true);
+    fixture.detectChanges();
+    expect(root.querySelector('#map-radius-options')).not.toBeNull();
+
     app.beginMapPick('radius');
     fixture.detectChanges();
 
@@ -1417,10 +1423,132 @@ describe('Vetor Urbano', () => {
       'definir o centro da busca',
     );
     expect(root.querySelector('.map-radius-panel')).toBeNull();
+    expect(root.querySelector('#map-radius-options')).toBeNull();
 
     app.cancelMapPick();
     fixture.detectChanges();
     expect(root.querySelector('.map-radius-panel')).not.toBeNull();
+    expect(root.querySelector('#map-radius-options')).not.toBeNull();
+  });
+
+  it('fixa o painel de raio na base do viewport no móvel, mesmo com a barra fora da dobra', () => {
+    const app = fixture.componentInstance as unknown as {
+      useRadius: { set: (value: boolean) => void };
+      radiusPanelTop: () => number | null;
+      radiusPanelBottom: () => number | null;
+      radiusPanelLeft: () => number | null;
+      radiusPanelMaxHeight: () => number | null;
+      positionRadiusPanel: () => void;
+    };
+    const root = fixture.nativeElement as HTMLElement;
+    app.useRadius.set(true);
+    fixture.detectChanges();
+    const shell = root.querySelector('.map-shell') as HTMLElement;
+    const bar = root.querySelector('.map-radius-bar') as HTMLElement;
+    expect(shell).not.toBeNull();
+    expect(bar).not.toBeNull();
+
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    vi.stubGlobal('innerHeight', 500);
+    vi.stubGlobal('innerWidth', 320);
+    // Barra muito abaixo da dobra: ancorado no shell, o painel era desenhado fora da tela.
+    shell.getBoundingClientRect = () =>
+      ({
+        top: 900,
+        bottom: 1600,
+        left: 40,
+        right: 320,
+        width: 280,
+        height: 700,
+        x: 40,
+        y: 900,
+      }) as DOMRect;
+    bar.getBoundingClientRect = () =>
+      ({
+        top: 1023,
+        bottom: 1063,
+        left: 8,
+        right: 312,
+        width: 304,
+        height: 40,
+        x: 8,
+        y: 1023,
+      }) as DOMRect;
+
+    app.positionRadiusPanel();
+
+    expect(app.radiusPanelTop()).toBeNull();
+    expect(app.radiusPanelBottom()).toBe(12);
+    // Centro em coordenada de viewport (160), não relativo ao shell (160 − 40 = 120).
+    expect(app.radiusPanelLeft()).toBe(160);
+    expect(app.radiusPanelMaxHeight()).toBe(476);
+  });
+
+  it('mantém o painel ancorado na barra acima de 560 px', () => {
+    const app = fixture.componentInstance as unknown as {
+      useRadius: { set: (value: boolean) => void };
+      radiusPanelTop: () => number | null;
+      radiusPanelBottom: () => number | null;
+      radiusPanelLeft: () => number | null;
+      radiusPanelMaxHeight: () => number | null;
+      positionRadiusPanel: () => void;
+    };
+    const root = fixture.nativeElement as HTMLElement;
+    app.useRadius.set(true);
+    fixture.detectChanges();
+    const shell = root.querySelector('.map-shell') as HTMLElement;
+    const bar = root.querySelector('.map-radius-bar') as HTMLElement;
+
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }));
+    vi.stubGlobal('innerHeight', 800);
+    vi.stubGlobal('innerWidth', 1024);
+    shell.getBoundingClientRect = () =>
+      ({
+        top: 100,
+        bottom: 700,
+        left: 40,
+        right: 1000,
+        width: 960,
+        height: 600,
+        x: 40,
+        y: 100,
+      }) as DOMRect;
+    bar.getBoundingClientRect = () =>
+      ({
+        top: 300,
+        bottom: 340,
+        left: 100,
+        right: 300,
+        width: 200,
+        height: 40,
+        x: 100,
+        y: 300,
+      }) as DOMRect;
+
+    app.positionRadiusPanel();
+
+    expect(app.radiusPanelTop()).toBe(250);
+    expect(app.radiusPanelBottom()).toBeNull();
+    expect(app.radiusPanelLeft()).toBe(160);
+    expect(app.radiusPanelMaxHeight()).toBe(438);
   });
 
   it('toggles each result detail beside its record instead of below the full list', () => {

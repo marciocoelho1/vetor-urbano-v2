@@ -1,0 +1,101 @@
+<div class="territory-selector">
+  <button
+    type="button"
+    #disclosure
+    class="territory-disclosure"
+    [attr.aria-expanded]="open()"
+    aria-controls="map-locality-panel"
+    (click)="toggle()"
+  >
+    <span>Definir centro por local</span>
+    <span class="territory-chevron" aria-hidden="true">⌄</span>
+  </button>
+
+  <div id="map-locality-panel" class="territory-panel" [hidden]="!open()">
+    @switch (status()) {
+      @case ('loading') {
+        <p class="territory-status" role="status">Carregando catálogo territorial…</p>
+      }
+      @case ('error') {
+        <div class="territory-error" role="alert">
+          <p>Não foi possível carregar o catálogo territorial.</p>
+          <button type="button" class="territory-action" (click)="load()">Tentar novamente</button>
+        </div>
+      }
+      @case ('ready') {
+        @if (catalogEmpty()) {
+          <p class="territory-status">Catálogo territorial ainda não publicado.</p>
+          <p class="territory-hint">Use «Escolher centro no mapa» ou as coordenadas.</p>
+        } @else {
+          <label class="territory-label" for="map-locality-search">Buscar município</label>
+          <input
+            id="map-locality-search"
+            #search
+            class="territory-input"
+            type="search"
+            role="combobox"
+            [attr.aria-expanded]="listOpen()"
+            aria-controls="map-locality-listbox"
+            aria-autocomplete="list"
+            [attr.aria-activedescendant]="activeDescendant()"
+            aria-describedby="map-locality-hint map-locality-count"
+            autocomplete="off"
+            [value]="term()"
+            (input)="onInput($any($event.target).value)"
+            (keydown.arrowdown)="$event.preventDefault(); move(1)"
+            (keydown.arrowup)="$event.preventDefault(); move(-1)"
+            (keydown.home)="$event.preventDefault(); edge(true)"
+            (keydown.end)="$event.preventDefault(); edge(false)"
+            (keydown.enter)="$event.preventDefault(); confirm()"
+            (keydown.escape)="$event.preventDefault(); escape($event)"
+          />
+          <p id="map-locality-hint" class="territory-hint">
+            Digite parte do nome; acentos não são obrigatórios.
+          </p>
+          <p id="map-locality-count" class="territory-count" role="status" aria-live="polite">
+            {{ announcement() }}
+          </p>
+          <ul
+            id="map-locality-listbox"
+            class="territory-list"
+            role="listbox"
+            aria-label="Municípios"
+            [hidden]="!listOpen()"
+          >
+            @for (item of options(); track item.id; let index = $index) {
+              <li
+                role="option"
+                [id]="optionId(item)"
+                [attr.aria-selected]="selected(item)"
+                [attr.aria-disabled]="!selectable(item)"
+                [attr.aria-label]="optionLabel(item)"
+                [class.territory-option-active]="index === activeIndex()"
+                [class.territory-option-selected]="selected(item)"
+                [class.territory-option-unavailable]="!selectable(item)"
+                (click)="choose(item)"
+              >
+                <span class="territory-name">{{ item.name }}</span>
+                <span class="territory-context"
+                  >IBGE {{ item.officialCode }} ·
+                  {{ selectable(item) ? 'Geometria validada' : 'Sem geometria validada' }}</span
+                >
+              </li>
+            }
+          </ul>
+          @if (noMatch()) {
+            <p class="territory-status" role="status">
+              Nenhum município corresponde a “{{ term() }}”.
+            </p>
+            <button type="button" class="territory-action" (click)="clearSearch()">
+              Limpar busca
+            </button>
+          }
+          <p class="territory-coverage">{{ coverage() }}</p>
+          @if (attribution()) {
+            <p class="territory-attribution">{{ attribution() }}</p>
+          }
+        }
+      }
+    }
+  </div>
+</div>

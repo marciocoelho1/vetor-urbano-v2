@@ -106,6 +106,14 @@ app-root .public-map {
     flex-shrink: 0;
   }
 
+  .map-shell {
+    // Contêiner do quadro do mapa e das superfícies de painel ancoradas nele.
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
   .map-frame {
     flex: 1;
     height: auto;
@@ -410,11 +418,13 @@ app-root .public-map {
     transform: rotate(180deg);
   }
   .map-radius-options {
+    // Superfície de painel: vive fora do `.map-frame` e acima da legenda e do atalho «mais abaixo».
     position: absolute;
-    top: calc(var(--map-control-size) + 10px);
+    z-index: 950;
+    top: 66px;
     left: 50%;
-    width: 300px;
-    max-height: calc(var(--public-map-height) - 220px);
+    width: min(300px, calc(100vw - 36px));
+    max-height: min(520px, calc(100dvh - 90px));
     padding: 16px;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -424,6 +434,10 @@ app-root .public-map {
     background: var(--color-bg-surface);
     box-shadow: 0 8px 24px rgb(var(--shadow-color) / 15%);
     scrollbar-width: thin;
+  }
+  .map-shell.map-expanded .map-radius-options {
+    // Mapa ampliado é `position: fixed` com z-index 1000 e a barra 1100: o painel fica acima dos dois.
+    z-index: 1200;
   }
   .filter-panel {
     --filter-panel-bottom: 114px;
@@ -822,8 +836,12 @@ app-root .public-map {
       display: none;
     }
     .map-radius-options {
+      // Folha presa ao viewport: no móvel o painel não segue a barra nem a rolagem do documento —
+      // `top`/`bottom`/`left` vêm de `positionRadiusPanel()` em coordenadas de viewport.
+      position: fixed;
       width: min(300px, calc(100vw - 36px));
-      max-height: calc(var(--public-map-height) - 225px);
+      // Painel mais estreito nas laterais: 12 px de altura a mais para a lista do seletor de centro.
+      padding: 10px;
     }
     .quick-filters {
       right: 8px;

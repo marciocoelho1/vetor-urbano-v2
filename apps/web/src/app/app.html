@@ -394,679 +394,716 @@
                   >
                 </div>
               </div>
-              <div
-                class="map-frame"
-                [class.heat-active]="heatmap()"
-                [class.map-expanded]="mapExpanded()"
-                [class.map-dark]="mapDark()"
-                [attr.role]="mapExpanded() ? 'dialog' : null"
-                [attr.aria-modal]="mapExpanded() ? 'true' : null"
-                [attr.aria-label]="
-                  mapExpanded() ? 'Mapa ampliado. Pressione Escape para sair.' : null
-                "
-              >
+              <div class="map-shell" [class.map-expanded]="mapExpanded()">
                 <div
-                  id="map-canvas"
-                  class="map-canvas"
-                  role="region"
-                  aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as Áreas de Risco seguem a classificação da fonte."
-                ></div>
-                <div class="map-top-controls">
-                  <button
-                    class="map-filter-toggle"
-                    type="button"
-                    data-testid="filter-panel-toggle"
-                    [attr.aria-expanded]="!filtersCollapsed()"
-                    aria-controls="map-filter-panel"
-                    aria-label="Filtros e camadas"
-                    title="Filtros e camadas"
-                    (click)="toggleFilters()"
-                  >
-                    <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#filter" /></svg>
-                    <span class="map-filter-label">Filtros e camadas</span>
-                    <span class="map-filter-count" aria-label="camadas ativas">{{
-                      activeFilters().length
-                    }}</span>
-                  </button>
-                  @if (!mapPickPurpose()) {
-                    <div class="map-radius-panel" role="group" aria-labelledby="map-radius-heading">
-                      <div class="map-radius-bar" (wheel)="adjustRadiusWithWheel($event)">
-                        <label class="map-radius-toggle">
-                          <input
-                            type="checkbox"
-                            [checked]="useRadius()"
-                            (change)="toggleRadius($any($event.target).checked)"
-                          />
-                          <span class="visually-hidden">Filtrar por raio</span>
-                        </label>
-                        <button
-                          class="map-radius-disclosure"
-                          type="button"
-                          [attr.aria-expanded]="useRadius() && radiusOptionsOpen()"
-                          aria-controls="map-radius-options"
-                          aria-label="Ajustar raio personalizado"
-                          (click)="toggleRadiusOptions()"
-                        >
-                          <span id="map-radius-heading" class="map-radius-title"
-                            >Raio<span class="radius-full-label"> personalizado</span></span
-                          >
-                          @if (useRadius()) {
-                            <span class="map-radius-current">{{ radiusMeters() }} m</span>
-                          }
-                          <span class="chevron" aria-hidden="true">⌄</span>
-                        </button>
-                      </div>
-                      @if (useRadius()) {
-                        <div
-                          id="map-radius-options"
-                          class="map-radius-options"
-                          [hidden]="!radiusOptionsOpen()"
-                        >
-                          <label class="map-radius-value" for="map-radius-slider">
-                            <span>Distância do centro</span>
-                            <output id="map-radius-value" for="map-radius-slider"
-                              >{{ radiusMeters() }} m</output
-                            >
-                          </label>
-                          <input
-                            id="map-radius-slider"
-                            class="map-radius-slider"
-                            type="range"
-                            min="100"
-                            max="25000"
-                            step="100"
-                            [value]="radiusMeters()"
-                            [attr.aria-valuetext]="radiusMeters() + ' metros'"
-                            (input)="setRadiusMeters($any($event.target).value)"
-                          />
-                          <p class="map-radius-hint">
-                            Clique no mapa para mudar o centro; segure e arraste para navegar. Use o
-                            scroll sobre a barra de raio para ajustar a distância em passos de 100
-                            m, até 25 km.
-                          </p>
-                          <p class="map-radius-center">
-                            Centro: {{ searchCenter().longitude }}, {{ searchCenter().latitude }}
-                          </p>
-                          <button
-                            type="button"
-                            class="map-radius-pick"
-                            (click)="beginMapPick('radius')"
-                          >
-                            Escolher centro no mapa
-                          </button>
-                          <details class="map-radius-coordinates">
-                            <summary>Definir centro por coordenadas</summary>
-                            <div class="map-radius-coordinate-grid">
-                              <label
-                                >Longitude<input
-                                  inputmode="decimal"
-                                  [value]="searchCenter().longitude"
-                                  (input)="
-                                    setSearchCoordinate('longitude', $any($event.target).value)
-                                  "
-                              /></label>
-                              <label
-                                >Latitude<input
-                                  inputmode="decimal"
-                                  [value]="searchCenter().latitude"
-                                  (input)="
-                                    setSearchCoordinate('latitude', $any($event.target).value)
-                                  "
-                              /></label>
-                            </div>
-                          </details>
-                          @if (radiusInvalid()) {
-                            <p class="query-error" role="status">
-                              Confira o centro e o raio entre 100 e 25.000 m.
-                            </p>
-                          }
-                        </div>
-                      }
-                    </div>
-                  }
-                  <div class="map-top-actions">
+                  class="map-frame"
+                  [class.heat-active]="heatmap()"
+                  [class.map-expanded]="mapExpanded()"
+                  [class.map-dark]="mapDark()"
+                  [attr.role]="mapExpanded() ? 'dialog' : null"
+                  [attr.aria-modal]="mapExpanded() ? 'true' : null"
+                  [attr.aria-label]="
+                    mapExpanded() ? 'Mapa ampliado. Pressione Escape para sair.' : null
+                  "
+                >
+                  <div
+                    id="map-canvas"
+                    class="map-canvas"
+                    role="region"
+                    aria-label="Mapa interativo do Rio de Janeiro. Os marcadores são fictícios; as Áreas de Risco seguem a classificação da fonte."
+                  ></div>
+                  <div class="map-top-controls">
                     <button
-                      class="map-theme-toggle"
+                      class="map-filter-toggle"
                       type="button"
-                      data-testid="map-theme-toggle"
-                      [attr.aria-pressed]="mapDark()"
-                      [attr.aria-label]="
-                        mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
-                      "
-                      [title]="
-                        mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
-                      "
-                      (click)="toggleMapTheme()"
+                      data-testid="filter-panel-toggle"
+                      [attr.aria-expanded]="!filtersCollapsed()"
+                      aria-controls="map-filter-panel"
+                      aria-label="Filtros e camadas"
+                      title="Filtros e camadas"
+                      (click)="toggleFilters()"
                     >
-                      <svg
-                        class="theme-glyph"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <g class="theme-moon">
-                          <path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" />
-                        </g>
-                        <g class="theme-sun">
-                          <circle cx="12" cy="12" r="4" />
-                          <path
-                            class="theme-rays"
-                            d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
-                          />
-                        </g>
+                      <svg class="ui-icon" aria-hidden="true">
+                        <use href="ui-icons.svg#filter" />
                       </svg>
-                    </button>
-                    <button
-                      class="map-expand-toggle"
-                      type="button"
-                      data-testid="map-expand-toggle"
-                      [attr.aria-pressed]="mapExpanded()"
-                      [attr.aria-label]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
-                      [title]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
-                      (click)="toggleMapExpanded()"
-                    >
-                      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
-                      </svg>
-                      <span class="map-expand-label">{{
-                        mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'
+                      <span class="map-filter-label">Filtros e camadas</span>
+                      <span class="map-filter-count" aria-label="camadas ativas">{{
+                        activeFilters().length
                       }}</span>
                     </button>
-                  </div>
-                </div>
-                <aside
-                  id="map-filter-panel"
-                  class="filter-panel"
-                  appPanelResize
-                  [hidden]="filtersCollapsed()"
-                  aria-label="Filtros do mapa"
-                >
-                  <div class="filter-panel-content">
-                    <div class="filter-heading">
-                      <div>
-                        <span class="eyebrow">Filtros e camadas</span>
-                        <h2>Explore por tema</h2>
-                      </div>
-                      <button
-                        class="map-panel-close"
-                        type="button"
-                        aria-label="Fechar filtros e camadas"
-                        (click)="closeMapFilters()"
+                    @if (!mapPickPurpose()) {
+                      <div
+                        class="map-radius-panel"
+                        role="group"
+                        aria-labelledby="map-radius-heading"
                       >
-                        ×
+                        <div class="map-radius-bar" (wheel)="adjustRadiusWithWheel($event)">
+                          <label class="map-radius-toggle">
+                            <input
+                              type="checkbox"
+                              [checked]="useRadius()"
+                              (change)="toggleRadius($any($event.target).checked)"
+                            />
+                            <span class="visually-hidden">Filtrar por raio</span>
+                          </label>
+                          <button
+                            class="map-radius-disclosure"
+                            type="button"
+                            [attr.aria-expanded]="useRadius() && radiusOptionsOpen()"
+                            aria-controls="map-radius-options"
+                            aria-label="Ajustar raio personalizado"
+                            (click)="toggleRadiusOptions()"
+                          >
+                            <span id="map-radius-heading" class="map-radius-title"
+                              >Raio<span class="radius-full-label"> personalizado</span></span
+                            >
+                            @if (useRadius()) {
+                              <span class="map-radius-current">{{ radiusMeters() }} m</span>
+                            }
+                            <span class="chevron" aria-hidden="true">⌄</span>
+                          </button>
+                        </div>
+                      </div>
+                    }
+                    <div class="map-top-actions">
+                      <button
+                        class="map-theme-toggle"
+                        type="button"
+                        data-testid="map-theme-toggle"
+                        [attr.aria-pressed]="mapDark()"
+                        [attr.aria-label]="
+                          mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
+                        "
+                        [title]="
+                          mapDark() ? 'Ativar modo claro do mapa' : 'Ativar modo escuro do mapa'
+                        "
+                        (click)="toggleMapTheme()"
+                      >
+                        <svg
+                          class="theme-glyph"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <g class="theme-moon">
+                            <path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" />
+                          </g>
+                          <g class="theme-sun">
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                              class="theme-rays"
+                              d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+                            />
+                          </g>
+                        </svg>
+                      </button>
+                      <button
+                        class="map-expand-toggle"
+                        type="button"
+                        data-testid="map-expand-toggle"
+                        [attr.aria-pressed]="mapExpanded()"
+                        [attr.aria-label]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
+                        [title]="mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'"
+                        (click)="toggleMapExpanded()"
+                      >
+                        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
+                        </svg>
+                        <span class="map-expand-label">{{
+                          mapExpanded() ? 'Sair do mapa ampliado' : 'Ampliar mapa'
+                        }}</span>
                       </button>
                     </div>
+                  </div>
+                  <aside
+                    id="map-filter-panel"
+                    class="filter-panel"
+                    appPanelResize
+                    [hidden]="filtersCollapsed()"
+                    aria-label="Filtros do mapa"
+                  >
+                    <div class="filter-panel-content">
+                      <div class="filter-heading">
+                        <div>
+                          <span class="eyebrow">Filtros e camadas</span>
+                          <h2>Explore por tema</h2>
+                        </div>
+                        <button
+                          class="map-panel-close"
+                          type="button"
+                          aria-label="Fechar filtros e camadas"
+                          (click)="closeMapFilters()"
+                        >
+                          ×
+                        </button>
+                      </div>
 
-                    <section class="module-block">
-                      <button
-                        class="module-toggle"
-                        data-module="intelligence"
-                        [attr.aria-expanded]="expandedModule() === 'intelligence'"
-                        aria-controls="module-intelligence"
-                        (click)="toggleModule('intelligence')"
-                      >
-                        <span class="module-glyph glyph-analysis" aria-hidden="true">⌁</span
-                        ><span class="module-title">Análise e Inteligência</span
-                        ><span class="chevron" aria-hidden="true">⌄</span>
-                      </button>
-                      @if (expandedModule() === 'intelligence') {
-                        <div class="module-content" id="module-intelligence">
-                          <fieldset class="filter-group period-group">
-                            <legend>Filtro por período</legend>
-                            <div class="period-options">
-                              @for (
-                                option of consultationMode() === 'advanced'
-                                  ? advancedPeriodOptions
-                                  : simplePeriodOptions;
-                                track option.id
-                              ) {
-                                <label class="period-option"
+                      <section class="module-block">
+                        <button
+                          class="module-toggle"
+                          data-module="intelligence"
+                          [attr.aria-expanded]="expandedModule() === 'intelligence'"
+                          aria-controls="module-intelligence"
+                          (click)="toggleModule('intelligence')"
+                        >
+                          <span class="module-glyph glyph-analysis" aria-hidden="true">⌁</span
+                          ><span class="module-title">Análise e Inteligência</span
+                          ><span class="chevron" aria-hidden="true">⌄</span>
+                        </button>
+                        @if (expandedModule() === 'intelligence') {
+                          <div class="module-content" id="module-intelligence">
+                            <fieldset class="filter-group period-group">
+                              <legend>Filtro por período</legend>
+                              <div class="period-options">
+                                @for (
+                                  option of consultationMode() === 'advanced'
+                                    ? advancedPeriodOptions
+                                    : simplePeriodOptions;
+                                  track option.id
+                                ) {
+                                  <label class="period-option"
+                                    ><input
+                                      type="radio"
+                                      name="period"
+                                      [value]="option.id"
+                                      [checked]="period() === option.id"
+                                      [attr.data-filter]="'period-' + option.id"
+                                      (change)="selectPeriod(option.id)"
+                                    /><span>{{ option.label }}</span></label
+                                  >
+                                }
+                              </div>
+                              @if (period() === 'custom' && consultationMode() === 'advanced') {
+                                <div class="period-custom-options">
+                                  <label class="field"
+                                    >Início (horário de Brasília)
+                                    <input
+                                      type="datetime-local"
+                                      [value]="customRangeStart()"
+                                      (change)="setCustomRange('start', $any($event.target).value)"
+                                    />
+                                  </label>
+                                  <label class="field"
+                                    >Fim (horário de Brasília; exclusivo)
+                                    <input
+                                      type="datetime-local"
+                                      [value]="customRangeEnd()"
+                                      (change)="setCustomRange('end', $any($event.target).value)"
+                                    />
+                                  </label>
+                                  @if (customRangeInvalid()) {
+                                    <p class="query-error" role="status">
+                                      Informe início e fim válidos; o início precisa anteceder o
+                                      fim.
+                                    </p>
+                                  }
+                                </div>
+                              }
+                              <div class="period-time-options">
+                                <label class="field"
+                                  >Horário a partir de
+                                  <input
+                                    type="time"
+                                    [value]="timeStart()"
+                                    (change)="setTimeRange('start', $any($event.target).value)"
+                                  />
+                                </label>
+                                <label class="field"
+                                  >Horário até
+                                  <input
+                                    type="time"
+                                    [value]="timeEnd()"
+                                    (change)="setTimeRange('end', $any($event.target).value)"
+                                  />
+                                </label>
+                              </div>
+                              <p class="query-note">
+                                Períodos usam America/Sao_Paulo e intervalo [início, fim); horários
+                                são filtros locais opcionais.
+                              </p>
+                            </fieldset>
+                            <fieldset class="filter-group">
+                              <legend>Tipos de ocorrência</legend>
+                              @for (option of occurrenceCatalogue; track option.id) {
+                                <label class="filter-choice"
                                   ><input
-                                    type="radio"
-                                    name="period"
-                                    [value]="option.id"
-                                    [checked]="period() === option.id"
-                                    [attr.data-filter]="'period-' + option.id"
-                                    (change)="selectPeriod(option.id)"
+                                    type="checkbox"
+                                    [checked]="isFilterActive('type:' + option.id)"
+                                    [attr.data-filter]="'type:' + option.id"
+                                    (change)="toggleFilter('type:' + option.id)"
                                   /><span>{{ option.label }}</span></label
                                 >
                               }
-                            </div>
-                            @if (period() === 'custom' && consultationMode() === 'advanced') {
-                              <div class="period-custom-options">
-                                <label class="field"
-                                  >Início (horário de Brasília)
-                                  <input
-                                    type="datetime-local"
-                                    [value]="customRangeStart()"
-                                    (change)="setCustomRange('start', $any($event.target).value)"
-                                  />
-                                </label>
-                                <label class="field"
-                                  >Fim (horário de Brasília; exclusivo)
-                                  <input
-                                    type="datetime-local"
-                                    [value]="customRangeEnd()"
-                                    (change)="setCustomRange('end', $any($event.target).value)"
-                                  />
-                                </label>
-                                @if (customRangeInvalid()) {
-                                  <p class="query-error" role="status">
-                                    Informe início e fim válidos; o início precisa anteceder o fim.
-                                  </p>
-                                }
-                              </div>
-                            }
-                            <div class="period-time-options">
-                              <label class="field"
-                                >Horário a partir de
-                                <input
-                                  type="time"
-                                  [value]="timeStart()"
-                                  (change)="setTimeRange('start', $any($event.target).value)"
-                                />
-                              </label>
-                              <label class="field"
-                                >Horário até
-                                <input
-                                  type="time"
-                                  [value]="timeEnd()"
-                                  (change)="setTimeRange('end', $any($event.target).value)"
-                                />
-                              </label>
-                            </div>
-                            <p class="query-note">
-                              Períodos usam America/Sao_Paulo e intervalo [início, fim); horários
-                              são filtros locais opcionais.
-                            </p>
-                          </fieldset>
-                          <fieldset class="filter-group">
-                            <legend>Tipos de ocorrência</legend>
-                            @for (option of occurrenceCatalogue; track option.id) {
-                              <label class="filter-choice"
-                                ><input
-                                  type="checkbox"
-                                  [checked]="isFilterActive('type:' + option.id)"
-                                  [attr.data-filter]="'type:' + option.id"
-                                  (change)="toggleFilter('type:' + option.id)"
-                                /><span>{{ option.label }}</span></label
-                              >
-                            }
-                          </fieldset>
-                          @if (consultationMode() === 'advanced') {
-                            <fieldset class="filter-group" data-testid="advanced-subtypes-group">
-                              <legend>Subtipos de ocorrência</legend>
-                              <p class="filter-hint">Detalhamento por tipo selecionado.</p>
-                              @for (
-                                typeOption of catalogueTypesWithSubtypes();
-                                track typeOption.id
-                              ) {
-                                <div class="subtype-group" [attr.data-subtype-type]="typeOption.id">
-                                  <span class="subtype-type-title">{{ typeOption.label }}</span>
-                                  @for (subtype of typeOption.subtypes; track subtype) {
+                            </fieldset>
+                            @if (consultationMode() === 'advanced') {
+                              <fieldset class="filter-group" data-testid="advanced-subtypes-group">
+                                <legend>Subtipos de ocorrência</legend>
+                                <p class="filter-hint">Detalhamento por tipo selecionado.</p>
+                                @for (
+                                  typeOption of catalogueTypesWithSubtypes();
+                                  track typeOption.id
+                                ) {
+                                  <div
+                                    class="subtype-group"
+                                    [attr.data-subtype-type]="typeOption.id"
+                                  >
+                                    <span class="subtype-type-title">{{ typeOption.label }}</span>
+                                    @for (subtype of typeOption.subtypes; track subtype) {
+                                      <label class="filter-choice subtype-choice">
+                                        <input
+                                          type="checkbox"
+                                          [checked]="
+                                            isFilterActive(
+                                              'subtype:' + typeOption.id + ':' + subtype
+                                            )
+                                          "
+                                          [attr.data-filter]="
+                                            'subtype:' + typeOption.id + ':' + subtype
+                                          "
+                                          (change)="
+                                            toggleFilter('subtype:' + typeOption.id + ':' + subtype)
+                                          "
+                                        /><span>{{ subtype }}</span>
+                                      </label>
+                                    }
                                     <label class="filter-choice subtype-choice">
                                       <input
                                         type="checkbox"
                                         [checked]="
-                                          isFilterActive('subtype:' + typeOption.id + ':' + subtype)
+                                          isFilterActive(
+                                            'subtype:' + typeOption.id + ':Não informado'
+                                          )
                                         "
                                         [attr.data-filter]="
-                                          'subtype:' + typeOption.id + ':' + subtype
+                                          'subtype:' + typeOption.id + ':Não informado'
                                         "
                                         (change)="
-                                          toggleFilter('subtype:' + typeOption.id + ':' + subtype)
+                                          toggleFilter(
+                                            'subtype:' + typeOption.id + ':Não informado'
+                                          )
                                         "
-                                      /><span>{{ subtype }}</span>
+                                      /><span>Não informado</span>
                                     </label>
-                                  }
-                                  <label class="filter-choice subtype-choice">
+                                  </div>
+                                }
+                              </fieldset>
+                              <fieldset class="filter-group" data-testid="advanced-text-group">
+                                <legend>Busca textual</legend>
+                                <p class="filter-hint">Termo em título, descrição ou endereço.</p>
+                                <label class="field">
+                                  <span class="field-label">Termo de busca</span>
+                                  <input
+                                    type="text"
+                                    data-testid="advanced-text-filter"
+                                    placeholder="Ex.: colisão, via expressa..."
+                                    [value]="advancedTextFilter()"
+                                    (input)="setAdvancedTextFilter($any($event.target).value)"
+                                  />
+                                </label>
+                                @if (advancedTextFilter()) {
+                                  <button
+                                    type="button"
+                                    class="filter-clear-link"
+                                    (click)="setAdvancedTextFilter('')"
+                                  >
+                                    Limpar busca textual
+                                  </button>
+                                }
+                              </fieldset>
+                              <fieldset class="filter-group" data-testid="advanced-source-group">
+                                <legend>Fontes de dados</legend>
+                                <p class="filter-hint">Filtro por fonte catalogada ou informe.</p>
+                                @for (source of availableSources(); track source.id) {
+                                  <label class="filter-choice">
                                     <input
                                       type="checkbox"
-                                      [checked]="
-                                        isFilterActive(
-                                          'subtype:' + typeOption.id + ':Não informado'
-                                        )
-                                      "
-                                      [attr.data-filter]="
-                                        'subtype:' + typeOption.id + ':Não informado'
-                                      "
-                                      (change)="
-                                        toggleFilter('subtype:' + typeOption.id + ':Não informado')
-                                      "
-                                    /><span>Não informado</span>
+                                      [checked]="isFilterActive('source:' + source.id)"
+                                      [attr.data-filter]="'source:' + source.id"
+                                      (change)="toggleFilter('source:' + source.id)"
+                                    />
+                                    <span>{{ source.name }}</span>
+                                  </label>
+                                }
+                              </fieldset>
+                              <fieldset class="filter-group" data-testid="advanced-score-group">
+                                <legend>Faixa de nota fictícia</legend>
+                                <p class="filter-hint">
+                                  Índice sintético de confiabilidade (1 a 5).
+                                </p>
+                                <div class="score-range-inputs">
+                                  <label class="field">
+                                    <span class="field-label">Nota mínima</span>
+                                    <select
+                                      data-testid="advanced-min-score"
+                                      [value]="minScore() !== null ? minScore() : ''"
+                                      (change)="setMinScore($any($event.target).value)"
+                                    >
+                                      <option value="">Qualquer</option>
+                                      <option value="1">1 (Mínima)</option>
+                                      <option value="2">2</option>
+                                      <option value="3">3</option>
+                                      <option value="4">4</option>
+                                      <option value="5">5 (Máxima)</option>
+                                    </select>
+                                  </label>
+                                  <label class="field">
+                                    <span class="field-label">Nota máxima</span>
+                                    <select
+                                      data-testid="advanced-max-score"
+                                      [value]="maxScore() !== null ? maxScore() : ''"
+                                      (change)="setMaxScore($any($event.target).value)"
+                                    >
+                                      <option value="">Qualquer</option>
+                                      <option value="1">1</option>
+                                      <option value="2">2</option>
+                                      <option value="3">3</option>
+                                      <option value="4">4</option>
+                                      <option value="5">5 (Máxima)</option>
+                                    </select>
                                   </label>
                                 </div>
+                                @if (scoreRangeInvalid()) {
+                                  <p class="query-error" role="status">
+                                    A nota mínima não pode ser superior à nota máxima.
+                                  </p>
+                                }
+                              </fieldset>
+                              <fieldset class="filter-group" data-testid="advanced-situation-group">
+                                <legend>Situação da ocorrência</legend>
+                                <p class="filter-hint">Filtro por andamento ou resolução.</p>
+                                @for (situation of situationOptions; track situation.id) {
+                                  <label class="filter-choice">
+                                    <input
+                                      type="checkbox"
+                                      [checked]="isFilterActive('situation:' + situation.id)"
+                                      [attr.data-filter]="'situation:' + situation.id"
+                                      (change)="toggleFilter('situation:' + situation.id)"
+                                    />
+                                    <span>{{ situation.label }}</span>
+                                  </label>
+                                }
+                              </fieldset>
+                            }
+                            <fieldset class="filter-group">
+                              <legend>Análise de alertas</legend>
+                              @for (category of categories; track category.id) {
+                                <label class="filter-choice"
+                                  ><input
+                                    type="checkbox"
+                                    [checked]="isFilterActive('category:' + category.id)"
+                                    (change)="toggleFilter('category:' + category.id)"
+                                  /><span>{{ category.label }}</span></label
+                                >
                               }
                             </fieldset>
-                            <fieldset class="filter-group" data-testid="advanced-text-group">
-                              <legend>Busca textual</legend>
-                              <p class="filter-hint">Termo em título, descrição ou endereço.</p>
-                              <label class="field">
-                                <span class="field-label">Termo de busca</span>
-                                <input
-                                  type="text"
-                                  data-testid="advanced-text-filter"
-                                  placeholder="Ex.: colisão, via expressa..."
-                                  [value]="advancedTextFilter()"
-                                  (input)="setAdvancedTextFilter($any($event.target).value)"
-                                />
-                              </label>
-                              @if (advancedTextFilter()) {
-                                <button
-                                  type="button"
-                                  class="filter-clear-link"
-                                  (click)="setAdvancedTextFilter('')"
+                            <p class="filter-hint">
+                              As camadas se somam. O período filtra a data do fato, não a data de
+                              inclusão.
+                            </p>
+                          </div>
+                        }
+                      </section>
+
+                      <section class="module-block">
+                        <button
+                          class="module-toggle"
+                          data-module="information"
+                          [attr.aria-expanded]="expandedModule() === 'information'"
+                          aria-controls="module-information"
+                          (click)="toggleModule('information')"
+                        >
+                          <span class="module-glyph glyph-info" aria-hidden="true">⌖</span
+                          ><span class="module-title">Informações</span
+                          ><span class="chevron" aria-hidden="true">⌄</span>
+                        </button>
+                        @if (expandedModule() === 'information') {
+                          <div class="module-content" id="module-information">
+                            <fieldset class="filter-group">
+                              <legend>Pontos de interesse coletivos</legend>
+                              @for (
+                                poi of [
+                                  { id: 'HOSPITAL_PUBLICO', label: 'Hospitais públicos' },
+                                  { id: 'HOSPITAL_PARTICULAR', label: 'Hospitais particulares' },
+                                  { id: 'UPA', label: 'UPAs' },
+                                  { id: 'AEROPORTO', label: 'Aeroportos' },
+                                  { id: 'EMBAIXADA_CONSULADO', label: 'Embaixadas e consulados' },
+                                  { id: 'ESTADIO', label: 'Estádios' },
+                                ];
+                                track poi.id
+                              ) {
+                                <label class="filter-choice"
+                                  ><input
+                                    type="checkbox"
+                                    [attr.data-filter]="'poi:' + poi.id"
+                                    [checked]="isFilterActive('poi:' + poi.id)"
+                                    (change)="toggleFilter('poi:' + poi.id)"
+                                  /><span>{{ poi.label }}</span></label
                                 >
-                                  Limpar busca textual
+                              }
+                            </fieldset>
+                            <fieldset class="filter-group">
+                              <legend>Pontos exclusivos</legend>
+                              <label class="filter-choice"
+                                ><input
+                                  type="checkbox"
+                                  [checked]="isFilterActive('poi:EXCLUSIVO')"
+                                  (change)="toggleFilter('poi:EXCLUSIVO')"
+                                /><span>Locais do cliente</span></label
+                              >
+                              <p class="filter-hint">
+                                Disponíveis apenas em uma conta autenticada. Nenhum local privado é
+                                carregado nesta demonstração.
+                              </p>
+                            </fieldset>
+                          </div>
+                        }
+                      </section>
+
+                      <section class="module-block">
+                        <button
+                          class="module-toggle"
+                          data-module="territory"
+                          [attr.aria-expanded]="expandedModule() === 'territory'"
+                          aria-controls="module-territory"
+                          (click)="toggleModule('territory')"
+                        >
+                          <span class="module-glyph glyph-territory" aria-hidden="true">⬡</span
+                          ><span class="module-title">Áreas de Risco</span
+                          ><span class="chevron" aria-hidden="true">⌄</span>
+                        </button>
+                        @if (expandedModule() === 'territory') {
+                          <div class="module-content" id="module-territory">
+                            <fieldset class="filter-group">
+                              <legend>Áreas de Risco</legend>
+                              @for (area of territoryGroups; track area.id) {
+                                <label class="filter-choice territory-choice">
+                                  <input
+                                    type="checkbox"
+                                    [checked]="isFilterActive('territory:' + area.id)"
+                                    [attr.data-filter]="'territory:' + area.id"
+                                    (change)="toggleFilter('territory:' + area.id)"
+                                  />
+                                  <span
+                                    class="territory-swatch"
+                                    [style.background]="area.color"
+                                  ></span>
+                                  <span class="territory-label">{{ area.label }}</span>
+                                  <span class="territory-count">{{
+                                    area.count.toLocaleString('pt-BR')
+                                  }}</span>
+                                </label>
+                              }
+                            </fieldset>
+                            <p class="source-warning">
+                              <strong>Classificação registrada segundo a fonte</strong>
+                              <span>
+                                Base informada: julho de 2026. O mapa não confirma a situação atual
+                                nem representa limites municipais oficiais.
+                              </span>
+                              <a
+                                href="https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                >Consultar a fonte</a
+                              >
+                              @if (territoryStatus() === 'loading') {
+                                <span role="status">Carregando polígonos…</span>
+                              }
+                              @if (territoryStatus() === 'error') {
+                                <span role="status">Não foi possível carregar a camada.</span>
+                                <button
+                                  class="inline-retry"
+                                  type="button"
+                                  (click)="retryTerritories()"
+                                >
+                                  Tentar novamente
                                 </button>
                               }
-                            </fieldset>
-                            <fieldset class="filter-group" data-testid="advanced-source-group">
-                              <legend>Fontes de dados</legend>
-                              <p class="filter-hint">Filtro por fonte catalogada ou informe.</p>
-                              @for (source of availableSources(); track source.id) {
-                                <label class="filter-choice">
-                                  <input
-                                    type="checkbox"
-                                    [checked]="isFilterActive('source:' + source.id)"
-                                    [attr.data-filter]="'source:' + source.id"
-                                    (change)="toggleFilter('source:' + source.id)"
-                                  />
-                                  <span>{{ source.name }}</span>
-                                </label>
-                              }
-                            </fieldset>
-                            <fieldset class="filter-group" data-testid="advanced-score-group">
-                              <legend>Faixa de nota fictícia</legend>
-                              <p class="filter-hint">Índice sintético de confiabilidade (1 a 5).</p>
-                              <div class="score-range-inputs">
-                                <label class="field">
-                                  <span class="field-label">Nota mínima</span>
-                                  <select
-                                    data-testid="advanced-min-score"
-                                    [value]="minScore() !== null ? minScore() : ''"
-                                    (change)="setMinScore($any($event.target).value)"
-                                  >
-                                    <option value="">Qualquer</option>
-                                    <option value="1">1 (Mínima)</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5 (Máxima)</option>
-                                  </select>
-                                </label>
-                                <label class="field">
-                                  <span class="field-label">Nota máxima</span>
-                                  <select
-                                    data-testid="advanced-max-score"
-                                    [value]="maxScore() !== null ? maxScore() : ''"
-                                    (change)="setMaxScore($any($event.target).value)"
-                                  >
-                                    <option value="">Qualquer</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5 (Máxima)</option>
-                                  </select>
-                                </label>
-                              </div>
-                              @if (scoreRangeInvalid()) {
-                                <p class="query-error" role="status">
-                                  A nota mínima não pode ser superior à nota máxima.
-                                </p>
-                              }
-                            </fieldset>
-                            <fieldset class="filter-group" data-testid="advanced-situation-group">
-                              <legend>Situação da ocorrência</legend>
-                              <p class="filter-hint">Filtro por andamento ou resolução.</p>
-                              @for (situation of situationOptions; track situation.id) {
-                                <label class="filter-choice">
-                                  <input
-                                    type="checkbox"
-                                    [checked]="isFilterActive('situation:' + situation.id)"
-                                    [attr.data-filter]="'situation:' + situation.id"
-                                    (change)="toggleFilter('situation:' + situation.id)"
-                                  />
-                                  <span>{{ situation.label }}</span>
-                                </label>
-                              }
-                            </fieldset>
-                          }
-                          <fieldset class="filter-group">
-                            <legend>Análise de alertas</legend>
-                            @for (category of categories; track category.id) {
-                              <label class="filter-choice"
-                                ><input
-                                  type="checkbox"
-                                  [checked]="isFilterActive('category:' + category.id)"
-                                  (change)="toggleFilter('category:' + category.id)"
-                                /><span>{{ category.label }}</span></label
-                              >
-                            }
-                          </fieldset>
-                          <p class="filter-hint">
-                            As camadas se somam. O período filtra a data do fato, não a data de
-                            inclusão.
-                          </p>
-                        </div>
-                      }
-                    </section>
-
-                    <section class="module-block">
-                      <button
-                        class="module-toggle"
-                        data-module="information"
-                        [attr.aria-expanded]="expandedModule() === 'information'"
-                        aria-controls="module-information"
-                        (click)="toggleModule('information')"
-                      >
-                        <span class="module-glyph glyph-info" aria-hidden="true">⌖</span
-                        ><span class="module-title">Informações</span
-                        ><span class="chevron" aria-hidden="true">⌄</span>
-                      </button>
-                      @if (expandedModule() === 'information') {
-                        <div class="module-content" id="module-information">
-                          <fieldset class="filter-group">
-                            <legend>Pontos de interesse coletivos</legend>
-                            @for (
-                              poi of [
-                                { id: 'HOSPITAL_PUBLICO', label: 'Hospitais públicos' },
-                                { id: 'HOSPITAL_PARTICULAR', label: 'Hospitais particulares' },
-                                { id: 'UPA', label: 'UPAs' },
-                                { id: 'AEROPORTO', label: 'Aeroportos' },
-                                { id: 'EMBAIXADA_CONSULADO', label: 'Embaixadas e consulados' },
-                                { id: 'ESTADIO', label: 'Estádios' },
-                              ];
-                              track poi.id
-                            ) {
-                              <label class="filter-choice"
-                                ><input
-                                  type="checkbox"
-                                  [attr.data-filter]="'poi:' + poi.id"
-                                  [checked]="isFilterActive('poi:' + poi.id)"
-                                  (change)="toggleFilter('poi:' + poi.id)"
-                                /><span>{{ poi.label }}</span></label
-                              >
-                            }
-                          </fieldset>
-                          <fieldset class="filter-group">
-                            <legend>Pontos exclusivos</legend>
-                            <label class="filter-choice"
-                              ><input
-                                type="checkbox"
-                                [checked]="isFilterActive('poi:EXCLUSIVO')"
-                                (change)="toggleFilter('poi:EXCLUSIVO')"
-                              /><span>Locais do cliente</span></label
-                            >
-                            <p class="filter-hint">
-                              Disponíveis apenas em uma conta autenticada. Nenhum local privado é
-                              carregado nesta demonstração.
                             </p>
-                          </fieldset>
-                        </div>
-                      }
-                    </section>
-
-                    <section class="module-block">
-                      <button
-                        class="module-toggle"
-                        data-module="territory"
-                        [attr.aria-expanded]="expandedModule() === 'territory'"
-                        aria-controls="module-territory"
-                        (click)="toggleModule('territory')"
-                      >
-                        <span class="module-glyph glyph-territory" aria-hidden="true">⬡</span
-                        ><span class="module-title">Áreas de Risco</span
-                        ><span class="chevron" aria-hidden="true">⌄</span>
-                      </button>
-                      @if (expandedModule() === 'territory') {
-                        <div class="module-content" id="module-territory">
-                          <fieldset class="filter-group">
-                            <legend>Áreas de Risco</legend>
-                            @for (area of territoryGroups; track area.id) {
-                              <label class="filter-choice territory-choice">
-                                <input
-                                  type="checkbox"
-                                  [checked]="isFilterActive('territory:' + area.id)"
-                                  [attr.data-filter]="'territory:' + area.id"
-                                  (change)="toggleFilter('territory:' + area.id)"
-                                />
-                                <span
-                                  class="territory-swatch"
-                                  [style.background]="area.color"
-                                ></span>
-                                <span class="territory-label">{{ area.label }}</span>
-                                <span class="territory-count">{{
-                                  area.count.toLocaleString('pt-BR')
-                                }}</span>
-                              </label>
-                            }
-                          </fieldset>
-                          <p class="source-warning">
-                            <strong>Classificação registrada segundo a fonte</strong>
-                            <span>
-                              Base informada: julho de 2026. O mapa não confirma a situação atual
-                              nem representa limites municipais oficiais.
-                            </span>
-                            <a
-                              href="https://dadosderiscos.com.br/mapa-rj-risco-faccoes.html"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              >Consultar a fonte</a
-                            >
-                            @if (territoryStatus() === 'loading') {
-                              <span role="status">Carregando polígonos…</span>
-                            }
-                            @if (territoryStatus() === 'error') {
-                              <span role="status">Não foi possível carregar a camada.</span>
-                              <button
-                                class="inline-retry"
-                                type="button"
-                                (click)="retryTerritories()"
-                              >
-                                Tentar novamente
-                              </button>
-                            }
-                          </p>
-                        </div>
-                      }
-                    </section>
-                  </div>
-                  <button
-                    type="button"
-                    class="panel-resize-handle resize-width"
-                    data-panel-resize="width"
-                    aria-label="Redimensionar largura de Explore por tema"
-                    aria-describedby="panel-resize-help"
-                    title="Arraste para ajustar a largura"
-                  ></button>
-                  <button
-                    type="button"
-                    class="panel-resize-handle resize-height"
-                    data-panel-resize="height"
-                    aria-label="Redimensionar altura de Explore por tema"
-                    aria-describedby="panel-resize-help"
-                    title="Arraste para ajustar a altura"
-                  ></button>
-                  <button
-                    type="button"
-                    class="panel-resize-handle resize-corner"
-                    data-panel-resize="both"
-                    aria-label="Redimensionar Explore por tema"
-                    aria-describedby="panel-resize-help"
-                    title="Arraste para ajustar largura e altura"
-                  >
-                    ↘
-                  </button>
-                  <span id="panel-resize-help" class="visually-hidden"
-                    >Arraste a borda ou use as setas para redimensionar. Home restaura o tamanho
-                    inicial.</span
-                  >
-                </aside>
-                @if (mapExpanded()) {
-                  <ng-container [ngTemplateOutlet]="quickFilters" />
-                }
-                @if (!mapReady() && !mapError()) {
-                  <div class="map-loading" role="status">Preparando mapa demonstrativo…</div>
-                }
-                @if (mapError()) {
-                  <div class="map-fallback" role="status">
-                    <span class="fallback-mark" aria-hidden="true">⌖</span>
-                    <strong>Não foi possível carregar o mapa</strong>
-                    <span
-                      >Os resultados continuam disponíveis na lista de resultados. A falha no mapa
-                      não indica ausência de ocorrências nem comprovação de segurança.</span
-                    >
-                    @if (mapErrorDetails()) {
-                      <small class="map-error-details"
-                        >Detalhe técnico: {{ mapErrorDetails() }}</small
-                      >
-                    }
+                          </div>
+                        }
+                      </section>
+                    </div>
                     <button
-                      class="map-tool-button"
                       type="button"
-                      data-testid="retry-map"
-                      (click)="retryMap()"
+                      class="panel-resize-handle resize-width"
+                      data-panel-resize="width"
+                      aria-label="Redimensionar largura de Explore por tema"
+                      aria-describedby="panel-resize-help"
+                      title="Arraste para ajustar a largura"
+                    ></button>
+                    <button
+                      type="button"
+                      class="panel-resize-handle resize-height"
+                      data-panel-resize="height"
+                      aria-label="Redimensionar altura de Explore por tema"
+                      aria-describedby="panel-resize-help"
+                      title="Arraste para ajustar a altura"
+                    ></button>
+                    <button
+                      type="button"
+                      class="panel-resize-handle resize-corner"
+                      data-panel-resize="both"
+                      aria-label="Redimensionar Explore por tema"
+                      aria-describedby="panel-resize-help"
+                      title="Arraste para ajustar largura e altura"
                     >
-                      Tentar carregar novamente
+                      ↘
                     </button>
+                    <span id="panel-resize-help" class="visually-hidden"
+                      >Arraste a borda ou use as setas para redimensionar. Home restaura o tamanho
+                      inicial.</span
+                    >
+                  </aside>
+                  @if (mapExpanded()) {
+                    <ng-container [ngTemplateOutlet]="quickFilters" />
+                  }
+                  @if (!mapReady() && !mapError()) {
+                    <div class="map-loading" role="status">Preparando mapa demonstrativo…</div>
+                  }
+                  @if (mapError()) {
+                    <div class="map-fallback" role="status">
+                      <span class="fallback-mark" aria-hidden="true">⌖</span>
+                      <strong>Não foi possível carregar o mapa</strong>
+                      <span
+                        >Os resultados continuam disponíveis na lista de resultados. A falha no mapa
+                        não indica ausência de ocorrências nem comprovação de segurança.</span
+                      >
+                      @if (mapErrorDetails()) {
+                        <small class="map-error-details"
+                          >Detalhe técnico: {{ mapErrorDetails() }}</small
+                        >
+                      }
+                      <button
+                        class="map-tool-button"
+                        type="button"
+                        data-testid="retry-map"
+                        (click)="retryMap()"
+                      >
+                        Tentar carregar novamente
+                      </button>
+                    </div>
+                  }
+                  @if (mapPickPurpose()) {
+                    <div class="map-pick-prompt" role="status">
+                      Clique no mapa para
+                      {{
+                        mapPickPurpose() === 'radius'
+                          ? 'definir o centro da busca'
+                          : mapPickPurpose() === 'active'
+                            ? 'definir o centro dos Ocorrências'
+                            : 'escolher o local do registro'
+                      }}.
+                      <button type="button" class="inline-retry" (click)="cancelMapPick()">
+                        Cancelar
+                      </button>
+                    </div>
+                  }
+                  @if (territorySelected()) {
+                    <div class="map-notice" role="status">
+                      @if (territoryStatus() === 'loading') {
+                        <span aria-hidden="true">◌</span>Carregando polígonos atribuídos à fonte…
+                      } @else if (territoryStatus() === 'error') {
+                        <span aria-hidden="true">ⓘ</span>A camada de Áreas de Risco está
+                        indisponível. Os filtros podem ser tentados novamente.
+                      } @else {
+                        <span aria-hidden="true">ⓘ</span>Classificação da fonte · base julho de 2026
+                        · não confirma a situação atual.
+                        @if (riskLayerWarning()) {
+                          <span>{{ riskLayerWarning() }}</span>
+                        }
+                      }
+                    </div>
+                  }
+                  <div class="map-stamp">
+                    <span class="stamp-dot" aria-hidden="true"></span>Mapa demonstrativo
                   </div>
-                }
-                @if (mapPickPurpose()) {
-                  <div class="map-pick-prompt" role="status">
-                    Clique no mapa para
-                    {{
-                      mapPickPurpose() === 'radius'
-                        ? 'definir o centro da busca'
-                        : mapPickPurpose() === 'active'
-                          ? 'definir o centro dos Ocorrências'
-                          : 'escolher o local do registro'
-                    }}.
-                    <button type="button" class="inline-retry" (click)="cancelMapPick()">
-                      Cancelar
-                    </button>
-                  </div>
-                }
-                @if (territorySelected()) {
-                  <div class="map-notice" role="status">
-                    @if (territoryStatus() === 'loading') {
-                      <span aria-hidden="true">◌</span>Carregando polígonos atribuídos à fonte…
-                    } @else if (territoryStatus() === 'error') {
-                      <span aria-hidden="true">ⓘ</span>A camada de Áreas de Risco está indisponível.
-                      Os filtros podem ser tentados novamente.
-                    } @else {
-                      <span aria-hidden="true">ⓘ</span>Classificação da fonte · base julho de 2026 ·
-                      não confirma a situação atual.
-                      @if (riskLayerWarning()) {
-                        <span>{{ riskLayerWarning() }}</span>
+                </div>
+
+                @if (useRadius() && !mapPickPurpose()) {
+                  <div
+                    id="map-radius-options"
+                    class="map-radius-options"
+                    role="group"
+                    aria-labelledby="map-radius-heading"
+                    [hidden]="!radiusOptionsOpen()"
+                    [style.top]="radiusPanelTop() === null ? 'auto' : radiusPanelTop() + 'px'"
+                    [style.bottom]="
+                      radiusPanelBottom() === null ? 'auto' : radiusPanelBottom() + 'px'
+                    "
+                    [style.left.px]="radiusPanelLeft()"
+                    [style.maxHeight.px]="radiusPanelMaxHeight()"
+                  >
+                    @if (radiusOptionsOpen()) {
+                      <label class="map-radius-value" for="map-radius-slider">
+                        <span>Distância do centro</span>
+                        <output id="map-radius-value" for="map-radius-slider"
+                          >{{ radiusMeters() }} m</output
+                        >
+                      </label>
+                      <input
+                        id="map-radius-slider"
+                        class="map-radius-slider"
+                        type="range"
+                        min="100"
+                        max="25000"
+                        step="100"
+                        [value]="radiusMeters()"
+                        [attr.aria-valuetext]="radiusMeters() + ' metros'"
+                        (input)="setRadiusMeters($any($event.target).value)"
+                      />
+                      <p class="map-radius-hint">
+                        Clique no mapa para mudar o centro; segure e arraste para navegar. Use o
+                        scroll sobre a barra de raio para ajustar a distância em passos de 100 m,
+                        até 25 km.
+                      </p>
+                      <app-territory-center-selector
+                        [selection]="selectedTerritory()"
+                        (territorySelected)="applyTerritoryCenter($event)"
+                      />
+                      <p class="map-radius-center">
+                        @if (selectedTerritory(); as territory) {
+                          Centro: {{ territory.name }} · IBGE {{ territory.officialCode }} · versão
+                          {{ territory.version }} ·
+                          {{ formatCoordinate(searchCenter().longitude) }},
+                          {{ formatCoordinate(searchCenter().latitude) }}
+                        } @else {
+                          Centro: {{ formatCoordinate(searchCenter().longitude) }},
+                          {{ formatCoordinate(searchCenter().latitude) }}
+                        }
+                      </p>
+                      <button
+                        type="button"
+                        class="map-radius-pick"
+                        (click)="beginMapPick('radius')"
+                      >
+                        Escolher centro no mapa
+                      </button>
+                      <details class="map-radius-coordinates">
+                        <summary>Definir centro por coordenadas</summary>
+                        <div class="map-radius-coordinate-grid">
+                          <label
+                            >Longitude<input
+                              inputmode="decimal"
+                              [value]="searchCenter().longitude"
+                              (input)="setSearchCoordinate('longitude', $any($event.target).value)"
+                          /></label>
+                          <label
+                            >Latitude<input
+                              inputmode="decimal"
+                              [value]="searchCenter().latitude"
+                              (input)="setSearchCoordinate('latitude', $any($event.target).value)"
+                          /></label>
+                        </div>
+                      </details>
+                      @if (radiusInvalid()) {
+                        <p class="query-error" role="status">
+                          Confira o centro e o raio entre 100 e 25.000 m.
+                        </p>
                       }
                     }
                   </div>
                 }
-                <div class="map-stamp">
-                  <span class="stamp-dot" aria-hidden="true"></span>Mapa demonstrativo
-                </div>
               </div>
               <div class="map-legend" aria-label="Legenda do mapa">
                 <span
