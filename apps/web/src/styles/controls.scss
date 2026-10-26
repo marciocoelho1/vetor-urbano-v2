@@ -194,7 +194,7 @@ app-root {
   .chevron {
     color: var(--color-text-muted);
     font-size: var(--vu-text-base);
-    transition: transform 150ms ease;
+    transition: transform var(--vu-motion-fast) var(--vu-ease-out);
   }
   .module-toggle[aria-expanded='true'] .chevron {
     transform: rotate(180deg);
@@ -817,7 +817,7 @@ app-root {
     font-size: var(--vu-text-xs);
     font-weight: var(--vu-weight-strong);
     cursor: pointer;
-    transition: all 150ms ease-out;
+    transition: all var(--vu-motion-fast) var(--vu-ease-out);
 
     &:hover {
       border-color: var(--accent);
@@ -968,8 +968,8 @@ app-root {
     font-size: var(--vu-text-xs);
     text-align: left;
     transition:
-      border-color 130ms ease,
-      background-color 130ms ease;
+      border-color var(--vu-motion-fast) var(--vu-ease-out),
+      background-color var(--vu-motion-fast) var(--vu-ease-out);
   }
   .category-option:hover {
     border-color: #5b5b63;

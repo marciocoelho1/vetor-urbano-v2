@@ -34,7 +34,7 @@
   transform: rotate(180deg);
 }
 .territory-chevron {
-  transition: transform 160ms ease;
+  transition: transform var(--vu-motion-fast) var(--vu-ease-out);
 }
 .territory-panel {
   display: grid;
