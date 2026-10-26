@@ -11,3 +11,10 @@
 form {
   margin-block: 16px;
 }
+
+// UX-3: o link de conta no painel de sessão também é alvo de toque.
+a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vu-target);
+}
