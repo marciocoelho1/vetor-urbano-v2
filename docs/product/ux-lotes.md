@@ -97,6 +97,13 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 
 
 **Dívida datada 26/10 (ambiente):** o helper `syntheticAdmin` espera o botão «Minha conta» visível ao fim do MFA; desde o UX-6 a topbar móvel esconde `.topbar-actions`, então **login a 390 falha**. A régua do UX-2 autentica a 1440 e só depois redimensiona. Qualquer spec futuro que faça login já no viewport móvel quebra pelo mesmo motivo — não é do banco.
+
+### UX-7 — o que a régua não vê
+
+**Dívida datada 26/10 (medida pelo @qa):** a 390 px o `section.results-panel` fica **`display: none`** no modo **Mapa** — o `data-state` existe no DOM, mas só é percebível depois de o usuário trocar para **Lista** (na Lista o mesmo painel mede `h=389`, com o banner de erro em `h=231`). A régua passou a entrar por Lista no móvel; a consequência que fica registrada é que "6 estados" **não é observável no modo padrão do celular**.
+
+**Dívida datada 26/10 (medida pelo @executor em `HEAD` limpo, e por mim na árvore de hoje):** `npm run test:ci` falha em `app.spec.ts:274`, «não substitui o relatório novo quando uma exportação anterior termina atrasada» — `expected '2026-10-15T13:00:00Z' to be '2026-10-15T15:00:00Z'`; resultado da suíte: **1 failed / 224 passed (225)**. É **pré-existente** e independente do UX-7: o diff não commitado do lote não toca `exportXlsx`, `reportSnapshot` nem `refreshReportSnapshot` (0 linhas de `export|report|snapshot` nos 6 hunks de `app.ts`). Enquanto ela existir, a linha "`verify.sh web` → `EXIT=0`" dos commits anteriores **não se reproduz na árvore atual**, e nenhum lote novo pode citar o gate como verde.
+
 ## 4. Evidência
 
 | Lote | Comando | Saída |
