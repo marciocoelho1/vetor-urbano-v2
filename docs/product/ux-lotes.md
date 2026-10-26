@@ -93,6 +93,8 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 | hooks | `data-vu="bottom-bar" \| "sheet" \| "sheet-disclosure"`, `data-vu-sheet-state` ∈ {`collapsed`,`expanded`}; ausente = falha, não pulo |
 | teclado | ordem do DOM, *skip link* primeiro; **nome acessível contém o texto visível**, após normalizar decoração (`×`, `⌄`, contadores) e NFD — igualdade literal não é requisito, nome que não contém o visível é falha (2.5.3). A contagem é **impressa, não asserida** (hoje 44; forçar 20 exigiria apagar conteúdo focável) |
 
+**Dívida datada 26/10 (medida pelo @qa):** a caixa do contêiner da folha **expandida** mede `844→862` — 18 px, inteira fora do viewport — porque a cobertura da barra acontece pelos filhos, não pelo retângulo do contêiner. O hit-test prova a cobertura (`z` 1200 sobre 940, com mutação `z=800` que volta a acertar item), e **nenhum assert depende da caixa** hoje. Quando o UX-2 mexer em painéis, uma asserção de caixa na folha expandida vai encontrar essa discrepância.
+
 ## 4. Evidência
 
 | Lote | Comando | Saída |
