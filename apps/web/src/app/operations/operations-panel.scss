@@ -6,7 +6,7 @@
 
 .operations-panel {
   display: grid;
-  gap: 14px;
+  gap: var(--vu-space-3);
   min-width: 0;
   overflow-wrap: anywhere;
 }
