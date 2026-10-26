@@ -104,11 +104,14 @@ Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceç
 | UX-1b / UX-1c | `npx playwright test e2e/contrast-tokens.spec.ts --project=chromium` no `:4201` (sem API e sem banco) | `6 passed (7,4 s)`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:26): badge/botão 5,50 / 11,02; nota, ícone e contorno de erro 6,11 / 8,49; agrupamento 5,50 / 11,02; IACVT do `fieldset.history-categories` em `solid 1px` nos dois temas; dívida do `.area-result-mark` em `test.fail` a 3,75:1 |
 | UX-1d | `npx playwright test e2e/contrast-tokens.spec.ts --project=chromium` em `56fdf8e` | `8 passed (9,5 s)`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:44): badge de coincidentes `6,11` no claro e `9,22` no escuro, medido no elemento **real** (`getByTestId('coincident-badge')`, sem injeção), com tinta diferente entre os temas; hover do dispensar com `borderTopColor === color` nos dois temas. **Mutação:** badge real apagado em cena → `1 failed`, `expect(locator).toBeVisible() failed — element(s) not found` (reproduzido pelo @revisor) |
 | UX-9 | `par base do contorno` | `10 passed (21,3 s)` (25/10, @arquiteto) — contorno `#838d9a` **3,36** sobre branco e **3,17** sobre `--color-bg-base`; chip selecionado **6,13** no próprio fundo e **6,71** no branco contra repouso **3,36**; escuro imprime `1,62`/`1,38` e chip `3,12`, sem asserção |
+| UX-9 (fecho) | `contorno no escuro` | `#738399` sobre `--color-bg-surface` = **4,30** e sobre `--color-bg-base` = **4,75** — conta WCAG sobre os tokens, autorizada pelo dono em 25/10 |
+| UX-9 (fecho) | `direção no escuro` | repouso `#738399` **4,30** na superfície / **3,66** na elevada; selecionado `#8aae9d` **6,81** / **5,80** / **5,18** no próprio preenchimento. Direção restaurada com margem, delta **1,46** contra o anel de foco (`#8fd7b6`), que fica em `outline-offset: 2px` (25/10, autorizado o valor do contorno pelo dono; o do selecionado é consequência do critério) |
 | UX-1 | `grep -rl "font-size" apps/web/src --include=*.scss \| wc -l` | `14` (reexecutado pelo @revisor) |
 | UX-1 | `grep -o "<strong" apps/web/src/app/app.html \| wc -l` | `37` (reexecutado pelo @revisor) |
 | UX-1 | `grep -rn "font-weight:\s*900" apps/web/src --include=*.scss \| wc -l` | `0` (reexecutado pelo @revisor) |
 | UX-3 / UX-4 / UX-7 | `VU_UX_GATES=1 npx playwright test --project=mobile-chromium` | 6 failed / 4 passed / 2 skipped (régua do @qa, 25/10) |
 | UX-6 | `npx playwright test e2e/ux6-folha-barra.spec.ts` | fixture: 4 passed / 1 skipped; app real pulada até o shell existir |
+
 
 ### 4.1 Contraste — pares medidos
 

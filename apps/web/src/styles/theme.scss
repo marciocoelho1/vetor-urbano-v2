@@ -37,8 +37,8 @@
   --color-bg-surface: #181f28;
   --color-bg-muted: #222c38;
   --color-border-subtle: #364250;
-  // Escuro mantém o render atual (1,62 sobre a superfície) — dívida nomeada, não mudança.
-  --color-border-control: #364250;
+  // Contorno de controle no escuro: #738399 dá 4,30 sobre a superfície e 4,75 sobre a base.
+  --color-border-control: #738399;
   --color-text-main: #e7ecf2;
   --color-text-muted: #b8c2cf;
   --color-text-secondary: #a9b7c8;
@@ -51,7 +51,9 @@
   --color-radius-text: #d1c0ff;
   --color-poi-text: #bef264;
   --color-selected-bg: #18392f;
-  --color-selected-border: #638675;
+  // Literal, não alias: no escuro `--accent` e `--accent-strong` são ambos #8fd7b6 (a cor
+  // do anel de foco) e `--color-focus-border` é outro papel. Valor próprio do estado.
+  --color-selected-border: #8aae9d;
   --color-action-hover: #cbd5e0;
   --color-map-loading: #1e2935;
   --color-line-strong: #738399;

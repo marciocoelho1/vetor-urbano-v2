@@ -22,9 +22,12 @@ type Tipo = 'texto' | 'borda';
  * contra a página branca — a mesma referência para os dois lados de uma
  * comparação de estados, senão o quociente mistura denominadores; `base` mede
  * contra `--color-bg-base` **declarado no tema**, que é o fundo onde o dono
- * autorizou 3:1 e que o `#8893a0` reprovava (2,94).
+ * autorizou 3:1 e que o `#8893a0` reprovava (2,94); `superficie` mede contra
+ * `--color-bg-surface` — o fundo comum com que os dois estados do chip no
+ * escuro são comparados (medir cada um no seu próprio fundo trocava o
+ * denominador da razão e invertia a leitura).
  */
-type Referencia = 'proprio' | 'branco' | 'base';
+type Referencia = 'proprio' | 'branco' | 'base' | 'superficie';
 type Alvo = { seletor: string; tipo: Tipo; referencia?: Referencia };
 type Medida = Alvo & {
   presente: boolean;
@@ -93,10 +96,10 @@ function medirAlvos(alvos: Alvo[]): Medida[] {
       return { ...alvo, presente: false, frente: '', fundo: '', contraste: 0, amostra: '' };
     }
     const estilo = getComputedStyle(elemento);
-    // `--color-bg-base` resolvido pelo navegador (sonda), não por regex no CSS.
-    const baseDeclarada = (): Cor => {
+    // Fundo declarado no tema, resolvido pelo navegador (sonda), não por regex no CSS.
+    const fundoDeclarado = (token: string): Cor => {
       const sonda = document.createElement('span');
-      sonda.style.color = 'var(--color-bg-base)';
+      sonda.style.color = `var(${token})`;
       sonda.style.display = 'none';
       document.body.appendChild(sonda);
       const lido = ler(getComputedStyle(sonda).color);
@@ -107,8 +110,10 @@ function medirAlvos(alvos: Alvo[]): Medida[] {
       alvo.referencia === 'branco'
         ? { r: 255, g: 255, b: 255, a: 1 }
         : alvo.referencia === 'base'
-          ? baseDeclarada()
-          : fundoEfetivo(elemento);
+          ? fundoDeclarado('--color-bg-base')
+          : alvo.referencia === 'superficie'
+            ? fundoDeclarado('--color-bg-surface')
+            : fundoEfetivo(elemento);
     const bruto = alvo.tipo === 'texto' ? estilo.color : estilo.borderTopColor;
     const frente = ler(bruto);
     const efetiva = frente && frente.a < 1 ? sobrepor(frente, fundo) : frente;
@@ -498,19 +503,26 @@ test('UX-9: o chip selecionado é mais forte que o de repouso e passa 3:1 no pr�
   ).toBeGreaterThan(repousoBranco.contraste);
 
   await trocarTema(page, 'dark');
-  const [repousoEscuro] = await medir(page, alvoProprio);
+  // Os dois estados contra o MESMO fundo (`--color-bg-surface`), como no claro.
+  // Medir o repouso na superfície e o selecionado no próprio preenchimento
+  // compara 4,30 com 3,12 — razões de fundos diferentes, que não respondem
+  // "qual dos dois é mais forte".
+  const alvoSuperficie: Alvo[] = [
+    { seletor: '.category-shortcut', tipo: 'borda', referencia: 'superficie' },
+  ];
+  const [repousoEscuro] = await medir(page, alvoSuperficie);
   await chip.click();
   await expect(chip).toHaveClass(/is-selected/);
-  const [selecionadoEscuro] = await medir(page, alvoProprio);
-  // A direção no escuro também é asserida: hoje 3,12 > 1,62. O limiar de 3:1
-  // continua fora — a dívida nomeada não vira gate —, mas a inversão que
-  // aconteceu no claro não pode passar calada no escuro.
+  const [selecionadoEscuro] = await medir(page, alvoSuperficie);
+  // A direção no escuro também é asserida. O limiar de 3:1 continua fora — a
+  // dívida nomeada não vira gate —, mas a inversão que aconteceu no claro não
+  // pode passar calada no escuro.
   expect(selecionadoEscuro.presente && repousoEscuro.presente).toBe(true);
   expect(
     selecionadoEscuro.contraste,
-    `direção no escuro: selecionado ${selecionadoEscuro.contraste} contra repouso ${repousoEscuro.contraste}`,
+    `direção no escuro (superfície): selecionado ${selecionadoEscuro.contraste} contra repouso ${repousoEscuro.contraste}`,
   ).toBeGreaterThan(repousoEscuro.contraste);
   console.log(
-    `escuro (dívida nomeada, sem asserção de limiar): repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1`,
+    `escuro: repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1 (os dois sobre --color-bg-surface)`,
   );
 });
