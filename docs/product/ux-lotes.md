@@ -47,7 +47,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-1c** | @executor | fantasma IACVT → token declarado; auditor + `--selftest` no `verify.sh` | UX-1b | **aplicado** em `f03974a` (9 caminhos, com a spec de contraste) |
 | **UX-1d** | @executor | `--color-on-error` em par; badge de coincidentes consumindo o token | UX-1c | **aplicado** em `6c4ca14` (3 caminhos) |
 | **UX-2** | @executor | ritmo e container dos painéis | UX-0 | pendente |
-| **UX-3** | @executor | alvos 44/48, feedback 120 ms | UX-0, régua do @qa | pendente |
+| **UX-3** | @executor | alvos 44/48, feedback 120 ms | UX-0, régua do @qa | **alvos aplicados** em `84a308e`; feedback de 120 ms segue no UX-4 |
 | **UX-5** | @executor | corte de copy 54 → ≤20 linhas | — | pendente |
 | **UX-4** | @executor | 3 durações + par `reduce` | UX-0, UX-3 | pendente |
 | **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | pendente (escopo autorizado) |
@@ -109,6 +109,7 @@ Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceç
 | UX-1 | `grep -rl "font-size" apps/web/src --include=*.scss \| wc -l` | `14` (reexecutado pelo @revisor) |
 | UX-1 | `grep -o "<strong" apps/web/src/app/app.html \| wc -l` | `37` (reexecutado pelo @revisor) |
 | UX-1 | `grep -rn "font-weight:\s*900" apps/web/src --include=*.scss \| wc -l` | `0` (reexecutado pelo @revisor) |
+| UX-3 | `npx playwright test e2e/targets-touch.spec.ts --project=chromium` em `84a308e` | `4 passed (1,8 s)`: **0 alvos < 44 px** a 320, 390 e 1440, **separação mínima ≥ 8 px**, rolagem horizontal ok nos três viewports; baseline em ata era **14 de 20** abaixo de 44 a 390/320 e **9 de 20** a 1440, com separação de **4 px**. Controle negativo: sonda de 24 px listada, par a 2 px listado, caixa de 2000 px marcada como estouro |
 | UX-3 / UX-4 / UX-7 | `VU_UX_GATES=1 npx playwright test --project=mobile-chromium` | 6 failed / 4 passed / 2 skipped (régua do @qa, 25/10) |
 | UX-6 | `npx playwright test e2e/ux6-folha-barra.spec.ts` | fixture: 4 passed / 1 skipped; app real pulada até o shell existir |
 
