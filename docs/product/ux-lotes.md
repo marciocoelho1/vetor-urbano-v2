@@ -45,6 +45,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-1** | @executor | escala aplicada + `strong` por regra | UX-0 | **aplicado** em `51fe617` — gate `EXIT=0`: 24 arquivos / 258 declarações / 0 fora / 3 pesos / 0 fantasma / 0 palavra em `aria-hidden`; **não medido**: prosa ≤72 ch/linha |
 | **UX-1b** | @executor | par `--color-on-accent`, `#ef4444` → `--color-error`, âmbar do glifo em token, `--surface`/`--text` pareados | UX-1 | **aplicado** em `00bca0f` |
 | **UX-1c** | @executor | fantasma IACVT → token declarado; auditor + `--selftest` no `verify.sh` | UX-1b | **aplicado** em `f03974a` (9 caminhos, com a spec de contraste) |
+| **UX-1d** | @executor | `--color-on-error` em par; badge de coincidentes consumindo o token | UX-1c | **aplicado** em `6c4ca14` (3 caminhos) |
 | **UX-2** | @executor | ritmo e container dos painéis | UX-0 | pendente |
 | **UX-3** | @executor | alvos 44/48, feedback 120 ms | UX-0, régua do @qa | pendente |
 | **UX-5** | @executor | corte de copy 54 → ≤20 linhas | — | pendente |
@@ -99,6 +100,7 @@ Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceç
 | UX-1 | `python3 apps/web/e2e/tools/audit-font-scale.py --src apps/web/src` em `f03974a` | `24 arquivos / 258 declarações`, `0 fora`, `pesos ['400','500','700'] (3)`, `43 usados / 62 declarados / 0 fantasma`, `aria-hidden 0 palavra`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:25) |
 | UX-1 | `python3 apps/web/e2e/tools/audit-font-scale.py --selftest` | `8/8 casos`, `EXIT=0` — o caso `peso_por_token` existe porque o gate de ≤3 pesos passava por vacuidade quando o peso vinha de `var(--vu-weight-*)`: `pesos: []` é sempre ≤ 3 |
 | UX-1b / UX-1c | `npx playwright test e2e/contrast-tokens.spec.ts --project=chromium` no `:4201` (sem API e sem banco) | `6 passed (7,4 s)`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:26): badge/botão 5,50 / 11,02; nota, ícone e contorno de erro 6,11 / 8,49; agrupamento 5,50 / 11,02; IACVT do `fieldset.history-categories` em `solid 1px` nos dois temas; dívida do `.area-result-mark` em `test.fail` a 3,75:1 |
+| UX-1d | `npx playwright test e2e/contrast-tokens.spec.ts --project=chromium` | `8 passed (10,2 s)`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:40): badge de coincidentes `6,11` no claro e `9,22` no escuro, exigindo tinta **diferente** entre os temas; hover do dispensar com `borderTopColor === color` nos dois temas |
 | UX-1 | `grep -rl "font-size" apps/web/src --include=*.scss \| wc -l` | `14` (reexecutado pelo @revisor) |
 | UX-1 | `grep -o "<strong" apps/web/src/app/app.html \| wc -l` | `37` (reexecutado pelo @revisor) |
 | UX-1 | `grep -rn "font-weight:\s*900" apps/web/src --include=*.scss \| wc -l` | `0` (reexecutado pelo @revisor) |
@@ -113,6 +115,7 @@ WCAG 2.x por luminância, recalculado dos hexos de `theme.scss` pelo @revisor e 
 |---|---|---|
 | texto branco sobre acento (badge do aviso, botão de atualizar, agrupamento) | `1,67:1` no escuro — `#ffffff` sobre `--accent` escuro `#8fd7b6` | **`11,02:1`** no escuro (`--color-on-accent` `#071711`) e **`5,50:1`** no claro |
 | erro (`#ef4444` → `--color-error`) | `3,76:1` claro / `4,41:1` escuro | **`6,11:1`** claro / **`8,49:1`** escuro |
+| tinta sobre erro (badge de ocorrências coincidentes) | `6,11:1` no claro / **`1,96:1`** no escuro — `#fff` fixo sobre `--color-error` | **`6,11:1`** / **`9,22:1`** com `--color-on-error` (`#ffffff` no claro, `#2a0d12` no escuro) |
 | âmbar do glifo (`#f0a72b` → `--color-warning-dot`) | `2,05:1` claro / `8,11:1` escuro | **`4,08:1`** claro / **`7,38:1`** escuro — único número que piora, e passa o 3:1 de objeto gráfico |
 | cartão do `.notice` (`--surface`/`--text` → par declarado) | **`15,92:1`** — fallback `#18232e` sobre `#fff`: cartão branco fixo no tema escuro | **`14,07:1`** no claro (`--color-text-main` sobre `--color-bg-surface`) / **`13,97:1`** no escuro. Não reprovava AA; quebrava o tema |
 | contorno de controle (UX-9, em espera) | — | `--color-border-subtle` **`1,24:1`** sobre `--color-bg-base` e `1,31:1` sobre branco; `--color-line-strong` `2,84` / `2,67`; fallback `#8893a0` `3,12` / `2,94` |
