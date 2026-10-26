@@ -6,13 +6,12 @@
         class="brand"
         href="#mapa"
         (click)="openView('map')"
-        aria-label="Vetor Urbano — mapa público"
+        aria-label="Vetor Urbano Estudo 02 — mapa público"
       >
         <svg class="brand-mark" viewBox="0 0 32 38" aria-hidden="true">
           <path d="M3 11 12 3h5v31h-6L2 15m14 19h4L30 8" />
         </svg>
-        <span class="brand-name">Vetor Urbano</span>
-        <span class="version-tag">Estudo 02</span>
+        <span class="brand-name">Vetor Urbano <span class="version-tag">Estudo 02</span></span>
       </a>
       <nav class="primary-nav" aria-label="Seções do Vetor Urbano">
         <button
@@ -4024,6 +4023,101 @@
       <span>Versão 02 · dados demonstrativos</span>
     </footer>
   </main>
+
+  <div class="vu-shell">
+    <!-- Folha e barra são IRMÃS: o §3 exige z próprio em cada uma e
+         bottom = altura da barra + --vu-sheet-gap. Aninhar tornava os três
+         assertos tautológicos (z herdado, bottom 0, hit-test por ancestralidade). -->
+    <div class="vu-sheet-panel" data-vu="sheet" [attr.data-vu-sheet-state]="mobileSheet()">
+      <button
+        type="button"
+        class="vu-sheet-disclosure"
+        data-vu="sheet-disclosure"
+        [attr.aria-expanded]="mobileSheet() === 'expanded'"
+        aria-controls="vu-sheet-content"
+        (click)="toggleMobileSheet()"
+      >
+        <span class="vu-grip" aria-hidden="true"></span>
+        <span>{{ mobileSheet() === 'expanded' ? 'Recolher' : 'Mais' }}</span>
+      </button>
+      @if (mobileSheet() === 'expanded') {
+        <div class="vu-sheet-content" id="vu-sheet-content">
+          <button
+            class="vu-sheet-item theme-toggle"
+            type="button"
+            aria-label="Modo escuro"
+            [attr.aria-pressed]="theme.dark()"
+            [title]="theme.dark() ? 'Ativar modo claro' : 'Ativar modo escuro'"
+            (click)="theme.toggle($event)"
+          >
+            <svg class="theme-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g class="theme-moon"><path d="M20.5 13.5A9 9 0 0 1 10.5 3a9 9 0 1 0 10 10.5z" /></g>
+              <g class="theme-sun">
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  class="theme-rays"
+                  d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+                />
+              </g>
+            </svg>
+            <span>Modo escuro</span>
+          </button>
+        </div>
+      }
+    </div>
+    <div class="vu-shell-actions">
+      <button
+        type="button"
+        class="vu-fab"
+        aria-label="Registrar ocorrência"
+        (click)="openView('report')"
+      >
+        <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#plus" /></svg>
+      </button>
+    </div>
+    <nav class="vu-bottom-bar" data-vu="bottom-bar" aria-label="Destinos principais">
+      <button
+        type="button"
+        class="vu-bar-item"
+        [class.is-active]="activeView() === 'map'"
+        (click)="openView('map')"
+      >
+        Mapa
+      </button>
+      <button
+        type="button"
+        class="vu-bar-item"
+        [class.is-active]="activeView() === 'active'"
+        (click)="openView('active')"
+      >
+        Ocorrências
+      </button>
+      <button
+        type="button"
+        class="vu-bar-item"
+        [class.is-active]="activeView() === 'history'"
+        (click)="openView('history')"
+      >
+        Histórico
+      </button>
+      <button
+        type="button"
+        class="vu-bar-item"
+        [class.is-active]="activeView() === 'insights'"
+        (click)="openView('insights')"
+      >
+        Relatórios
+      </button>
+      <button
+        type="button"
+        class="vu-bar-item"
+        [class.is-active]="activeView() === 'sources'"
+        (click)="openView('sources')"
+      >
+        Fontes
+      </button>
+    </nav>
+  </div>
 </div>
 
 <ng-template #occurrenceDetails let-point let-rootId="rootId">

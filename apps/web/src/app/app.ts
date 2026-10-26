@@ -561,6 +561,8 @@ export class App implements AfterViewInit, OnDestroy {
     { id: 'UNKNOWN', label: 'Desconhecida' },
   ];
   protected readonly activeView = signal<ViewId>('map');
+  // UX-6: estado da folha do shell móvel — contrato `collapsed` | `expanded`.
+  protected readonly mobileSheet = signal<'collapsed' | 'expanded'>('collapsed');
   protected readonly consultationView = signal<'map' | 'list'>('map');
   protected readonly compactConsultation = signal(
     typeof window !== 'undefined' && window.innerWidth <= 960,
@@ -1940,6 +1942,19 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+    // UX-6: a folha assenta em `altura medida da barra + --vu-sheet-gap`. A altura
+    // vem do DOM em runtime — o CSS não guarda 56 nem 61 em lugar nenhum.
+    const barra = document.querySelector('[data-vu="bottom-bar"]');
+    const shell = barra?.closest('.vu-shell') as HTMLElement | null;
+    if (barra && shell) {
+      const medir = (): void =>
+        shell.style.setProperty(
+          '--vu-bottom-bar-height',
+          `${barra.getBoundingClientRect().height.toFixed(1)}px`,
+        );
+      medir();
+      new ResizeObserver(medir).observe(barra);
+    }
     try {
       this.filtersCollapsed.set(localStorage.getItem('vu2.filtersCollapsed') !== 'false');
       const savedMode =
@@ -1985,6 +2000,10 @@ export class App implements AfterViewInit, OnDestroy {
     this.destroyHeatOverlay();
     this.map?.remove();
     this.fallbackMap?.remove();
+  }
+
+  protected toggleMobileSheet(): void {
+    this.mobileSheet.update((estado) => (estado === 'collapsed' ? 'expanded' : 'collapsed'));
   }
 
   protected openView(view: ViewId): void {

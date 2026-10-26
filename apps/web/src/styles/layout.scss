@@ -1147,4 +1147,154 @@
       grid-column: 1 / -1;
     }
   }
+
+  // UX-6 — shell móvel (≤768 px). Folha e barra são irmãs: o §3 exige `z`
+  // próprio em cada uma e `bottom` da folha = altura da barra + --vu-sheet-gap.
+  // O `z` é constante de contrato (§3: barra ≤940, folha 950/1200) e a régua o
+  // assere — literal com teste é contrato; literal sem teste é lembrança.
+  .vu-shell {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .topbar {
+      margin: var(--vu-space-2) var(--vu-space-3) 0;
+    }
+    .topbar-inner {
+      flex-wrap: nowrap;
+      min-height: 0;
+      padding-block: var(--vu-space-1);
+      gap: var(--vu-space-2);
+    }
+    .primary-nav,
+    .topbar-actions {
+      display: none;
+    }
+    .main-content {
+      padding-bottom: calc(var(--vu-target-comfortable) + var(--vu-target) + var(--vu-space-6));
+    }
+    .vu-shell {
+      position: fixed;
+      inset: auto 0 0 0;
+      z-index: 940;
+      display: block;
+      height: 0;
+      background: transparent;
+    }
+    .vu-sheet-panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--vu-bottom-bar-height, 0px) + var(--vu-sheet-gap));
+      z-index: 950;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--vu-space-2);
+      padding: var(--vu-space-2);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 16px;
+      background: var(--color-bg-surface);
+    }
+    // Expandida, a folha cobre a barra: é o que dá sentido ao hit-test.
+    // Expandida, a folha cresce pelo conteúdo e assenta no fundo do viewport:
+    // é assim que ela cobre a barra (z 1200 sobre 940) sem altura literal.
+    .vu-sheet-panel[data-vu-sheet-state='expanded'] {
+      top: auto;
+      bottom: 0;
+      z-index: 1200;
+      justify-content: flex-end;
+      border-radius: 16px 16px 0 0;
+    }
+    .vu-sheet-disclosure {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vu-space-1);
+      min-height: var(--vu-target);
+      padding: 0 var(--vu-space-3);
+      border: 1px solid var(--color-border-control);
+      border-radius: 999px;
+      background: var(--color-bg-surface);
+      color: var(--color-text-main);
+      font: inherit;
+      font-size: var(--vu-text-xs);
+      cursor: pointer;
+    }
+    .vu-grip {
+      width: var(--vu-space-6);
+      height: var(--vu-space-1);
+      border-radius: 999px;
+      background: var(--color-border-control);
+    }
+    .vu-sheet-content {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .vu-sheet-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--vu-space-1);
+      min-height: var(--vu-target);
+      padding: 0 var(--vu-space-4);
+      border: 1px solid var(--color-border-control);
+      border-radius: 10px;
+      background: var(--color-bg-surface);
+      color: var(--color-text-main);
+      font: inherit;
+      font-size: var(--vu-text-sm);
+      cursor: pointer;
+    }
+    // O FAB flutua: se entrasse no fluxo, a folha assentaria em barra + FAB + gap
+    // e o contrato do §3 (`bottom` = barra + gap) deixaria de valer.
+    .vu-shell-actions {
+      position: absolute;
+      right: var(--vu-space-4);
+      bottom: calc(var(--vu-bottom-bar-height, 0px) + var(--vu-space-4));
+      z-index: 945;
+    }
+    .vu-fab {
+      display: grid;
+      place-items: center;
+      width: var(--vu-target-comfortable);
+      height: var(--vu-target-comfortable);
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--color-on-accent);
+      box-shadow: 0 3px 12px rgb(var(--shadow-color) / 24%);
+      cursor: pointer;
+    }
+    .vu-bottom-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      gap: var(--vu-space-1);
+      z-index: 940;
+      padding: var(--vu-space-2) var(--vu-space-2)
+        calc(var(--vu-space-2) + env(safe-area-inset-bottom, 0px));
+      background: var(--color-bg-surface);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    .vu-bar-item {
+      min-height: var(--vu-target);
+      padding: 0 var(--vu-space-1);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--color-text-main);
+      font: inherit;
+      font-size: var(--vu-text-xs);
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .vu-bar-item.is-active {
+      border-color: var(--color-selected-border);
+      background: var(--color-selected-bg);
+      color: var(--accent-strong);
+    }
+  }
 }
