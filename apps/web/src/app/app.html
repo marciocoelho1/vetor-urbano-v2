@@ -174,9 +174,7 @@
               </p>
               <h1 data-view-title="map" tabindex="-1">Explore o que está ao redor.</h1>
             </div>
-            <p class="hero-aside">
-              Explore ocorrências, conecte informações e entenda o território.
-            </p>
+            <p class="hero-aside">Explore ocorrências por território, período e tipo.</p>
           </header>
 
           <ng-template #quickFilters>
@@ -1533,16 +1531,15 @@
                 <div class="results-heading">
                   <div>
                     <h2 id="results-heading">Resultados visíveis</h2>
-                    <p>
-                      A lista reúne o recorte completo; o mapa mostra localizações com precisão
-                      compatível.
-                      @if (!queryError() && !queryLoading()) {
+                    @if (!queryError() && !queryLoading()) {
+                      <p>
                         <span class="query-counts"
                           >{{ eventCount() }} ocorrências ·
                           {{ happeningCount() }} acontecimentos</span
                         >
-                      }
-                    </p>
+                      </p>
+                    }
+                    <p class="query-note">O mapa mostra localizações com precisão compatível.</p>
                   </div>
                   @if (queryError()) {
                     <span>Erro</span>
