@@ -50,7 +50,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-3** | @executor | alvos 44/48, feedback 120 ms | UX-0, régua do @qa | **alvos aplicados** em `84a308e`; feedback de 120 ms segue no UX-4 |
 | **UX-5** | @executor | corte de copy: prosa da tela de entrada → 1 bloco ≤60 ch | — | **aplicado** em `dd4bad8` — prosa 1 bloco (51 ch), obrigação intocada, `<details>` de escopo 0 |
 | **UX-4** | @executor | 3 durações + par `reduce` | UX-0, UX-3 | **aplicado** em `c07d781` — durações e easings por token, par `reduce` preservado |
-| **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | pendente (escopo autorizado) |
+| **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | **aplicado** em `e1954d7` — topbar 54 px, barra 61, folha e FAB no lugar |
 | **UX-7** | @executor | `data-state` + CLS <0,1 | UX-1…UX-6 | pendente |
 | **UX-8** | @executor | contraste do `reliability-panel` — **2,11 / 2,80 / 2,54** no escuro (medido pelo @ux) | UX-1 | pendente, sem lote atribuído |
 | **UX-9** | @arquiteto → @user | contorno de controle a 3:1 no tema claro | decisão do dono | **aplicado** em `cedcfa9` (contorno `3,17/3,36` no claro, âmbar `5,41`), `5d054dd` (guarda do par base) e `9d710eb` (escuro `4,30`, chip `6,81 > 4,30`) |
@@ -84,13 +84,14 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 |---|---|
 | topbar só marca | ≤64 px a 390/320/768 |
 | barra inferior, 5 destinos | ≤72 px incluindo `env(safe-area-inset-bottom)` |
-| «Registrar ocorrência» | FAB 48×48 rotulado; nome acessível idêntico (`Registrar ocorrência`) |
+| «Registrar ocorrência» | FAB 48×48; é o **único** com esse nome no móvel, asserido por igualdade (`ícone puro: nome por igualdade`) |
 | conteúdo | ≥80% do viewport: 712 px a 390, 588 px a 320 |
 | folha do D6 | `bottom = barra.getBoundingClientRect().height + --vu-sheet-gap`, nunca `56 + 12` |
 | `z` | barra ≤940; folha 950 (colapsada) / 1200 (expandida) |
-| hit-test | folha cobre a barra: clique no centro da barra acerta a folha |
+| `z` literal | 940/950/1200 são **constantes de contrato**, não escala: ficam literais e a régua assere o valor computado nos dois estados da folha |
+| hit-test | **dois estados**: recolhida, o centro da barra acerta um item da barra e **não** a folha; expandida, acerta a folha (ou conteúdo dela) e **não** um item |
 | hooks | `data-vu="bottom-bar" \| "sheet" \| "sheet-disclosure"`, `data-vu-sheet-state` ∈ {`collapsed`,`expanded`}; ausente = falha, não pulo |
-| teclado | 20 paradas, ordem do DOM, skip link primeiro, nome acessível idêntico |
+| teclado | ordem do DOM, *skip link* primeiro; **nome acessível contém o texto visível**, após normalizar decoração (`×`, `⌄`, contadores) e NFD — igualdade literal não é requisito, nome que não contém o visível é falha (2.5.3). A contagem é **impressa, não asserida** (hoje 44; forçar 20 exigiria apagar conteúdo focável) |
 
 ## 4. Evidência
 
@@ -118,7 +119,7 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 | UX-3 | `npx playwright test e2e/targets-touch.spec.ts --project=chromium` em `84a308e` | `4 passed (1,8 s)`: **0 alvos < 44 px** a 320, 390 e 1440, **separação mínima ≥ 8 px**, rolagem horizontal ok nos três viewports; baseline em ata era **14 de 20** abaixo de 44 a 390/320 e **9 de 20** a 1440, com separação de **4 px**. Controle negativo: sonda de 24 px listada, par a 2 px listado, caixa de 2000 px marcada como estouro |
 | UX-4 | `npx playwright test e2e/motion-durations.spec.ts --project=chromium` em `c07d781` | `4 passed (1,8 s)`: **15 declarações, 0 fora** de `{120,240,400}`, **2 easings**; computado `120ms×3 / 240ms×2 / 400ms×3`, o resto `0ms`; sob `reduce` `0ms×144`, zero transições, zero animações, zero iterações infinitas — o `0.01ms` da casa passa porque a régua lê `animationDuration ≤ 1ms`. Substitui a linha `VU_UX_GATES=1 …`, comando que **nunca existiu no repositório** e por isso não era evidência |
 | UX-5 | `npx playwright test e2e/copy-support.spec.ts --project=chromium` em `dd4bad8` | `2 passed (7,1 s)`: **prosa 1 bloco, maior 51 ch** («Explore ocorrências por território, período e tipo.»), **obrigação 6 blocos, maior 121 ch** (`p.query-note`, intocada), **`<details>` 2 no total e 0 de escopo**; controle negativo: parágrafo de 300 ch injetado vira o maior e reprova. A separação de `app.html:1537` tirou a explicação de interface e deixou a limitação («o mapa mostra localizações com precisão compatível») em nota própria, visível |
-| UX-6 | `npx playwright test e2e/ux6-folha-barra.spec.ts` | fixture: 4 passed / 1 skipped; app real pulada até o shell existir |
+| UX-6 | `npx playwright test e2e/mobile-shell.spec.ts --project=chromium` em `e1954d7` | `14 passed (6,2 s)`: topbar **54 px** a 390/320/768; conteúdo **92,7% / 91,4% / 93,9%**; barra **61 px** (≤72 com safe area); folha `bottom` **73 px = 61 + 12**, medida em runtime por `--vu-bottom-bar-height`; `z` barra **940**, folha **950** recolhida / **1200** expandida (asserido); hit-test recolhida acerta item, expandida acerta a folha; FAB **48×48** único «Registrar ocorrência»; **44 paradas, 0 cortadas**; marca por contenção («Vetor Urbano Estudo 02 — mapa público»). Controles negativos: topbar a 50 px lida; `z 900`/`bottom 56` injetados lidos. Substitui a linha da `ux6-folha-barra.spec.ts`, que **pulava o app real** e por isso não era evidência |
 
 
 ### 4.1 Contraste — pares medidos
