@@ -4,18 +4,23 @@
   --color-bg-surface: #fff;
   --color-bg-muted: #f2f5f7;
   --color-border-subtle: #dde1e6;
+  // Contorno de controle (1.4.11): #838d9a dá 3,36 sobre a superfície e 3,17 sobre a base.
+  --color-border-control: #838d9a;
   --color-text-main: #252c36;
   --color-text-muted: #56616f;
   --color-text-secondary: #5d6978;
   --color-text-warning: #706044;
   --color-warning-dot: #967a3d;
+  // Tinta do texto sobre o tint de âmbar 12%: objeto gráfico (`--color-warning-dot`) fica.
+  --color-warning-ink: #7a6129;
   --color-error: #b2333f;
   --color-on-error: #ffffff;
   --color-chart-blue: #315f8a;
   --color-radius-text: #574185;
   --color-poi-text: #416311;
   --color-selected-bg: #f0f6f3;
-  --color-selected-border: #a3b5ad;
+  // Literal de propósito: no escuro o par é #638675 e `--accent-strong` lá é #8fd7b6.
+  --color-selected-border: #17684f;
   --color-action-hover: #3c4653;
   --color-map-loading: #edf0f2;
   --color-line-strong: #929aa7;
@@ -32,11 +37,14 @@
   --color-bg-surface: #181f28;
   --color-bg-muted: #222c38;
   --color-border-subtle: #364250;
+  // Escuro mantém o render atual (1,62 sobre a superfície) — dívida nomeada, não mudança.
+  --color-border-control: #364250;
   --color-text-main: #e7ecf2;
   --color-text-muted: #b8c2cf;
   --color-text-secondary: #a9b7c8;
   --color-text-warning: #d9c392;
   --color-warning-dot: #c8a96a;
+  --color-warning-ink: #c8a96a;
   --color-error: #f1a5af;
   --color-on-error: #2a0d12;
   --color-chart-blue: #89b5e0;
@@ -68,7 +76,7 @@ html[data-theme] {
   }
   .leaflet-control-zoom a,
   .maplibregl-ctrl-group button + button {
-    border-color: var(--color-border-subtle);
+    border-color: var(--color-border-control);
   }
   .leaflet-control-zoom a:hover,
   .maplibregl-ctrl-group button:hover {

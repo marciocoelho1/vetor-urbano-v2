@@ -85,7 +85,7 @@
     min-height: 38px;
     padding: 0 12px;
     margin-left: 8px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 7px;
   }
 
@@ -110,7 +110,7 @@
     gap: 6px;
     height: 44px;
     padding: 0 14px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 8px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -146,7 +146,7 @@
     align-self: center;
     place-items: center;
     padding: 0;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 8px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -248,7 +248,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid var(--color-border-subtle);
+      border: 1px solid var(--color-border-control);
       border-radius: 6px;
       background: transparent;
       color: var(--color-text-muted);
@@ -351,7 +351,7 @@
     gap: 16px;
     min-height: 60px;
     padding: 7px 8px 7px 20px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 14px;
     background: var(--color-bg-surface);
     box-shadow: 0 1px 2px rgb(var(--shadow-color) / 2%);
@@ -449,7 +449,7 @@
   .heatmap-button {
     min-height: 34px;
     padding: 0 10px;
-    border-color: var(--color-border-subtle);
+    border-color: var(--color-border-control);
     background: var(--color-bg-surface);
     font-weight: var(--vu-weight-medium);
   }
@@ -517,7 +517,7 @@
     align-items: center;
     gap: 7px;
     padding: 0 11px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 6px;
     background: var(--color-bg-surface);
     color: var(--color-text-muted);
@@ -559,7 +559,7 @@
     width: 100%;
     min-height: 38px;
     padding: 0 10px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 6px;
     background: var(--color-bg-surface);
     color: var(--color-text-muted);

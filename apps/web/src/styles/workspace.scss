@@ -282,7 +282,7 @@
 .informes-input {
   min-height: 34px;
   padding: 4px 8px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-control);
   border-radius: 6px;
   background: var(--color-bg-base);
   color: var(--color-text-main);
@@ -335,7 +335,7 @@
   right: 8px;
   width: 40px;
   min-height: 40px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-control);
   border-radius: 7px;
   background: var(--color-bg-surface);
   color: var(--color-text-main);
@@ -669,7 +669,7 @@
 .record-detail-button {
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-control);
   border-radius: 0 0 7px 7px;
   background: var(--color-bg-surface);
   color: var(--accent-strong);
@@ -689,7 +689,7 @@
   align-items: center;
   gap: 9px;
   padding: 0 9px 0 12px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-control);
   border-radius: 8px;
   background: var(--color-bg-surface);
   color: var(--color-text-muted);
@@ -771,7 +771,7 @@
 }
 .area-result-mark {
   background: rgb(240 167 43 / 12%);
-  color: var(--color-warning-dot);
+  color: var(--color-warning-ink);
 }
 .search-result-copy {
   display: grid;
@@ -1098,7 +1098,7 @@
   width: 100%;
   min-height: 29px;
   padding: 3px 5px;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border-control);
   border-radius: 5px;
   background: var(--color-bg-surface);
   color: var(--color-text-main);

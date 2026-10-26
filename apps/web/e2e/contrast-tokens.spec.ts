@@ -17,7 +17,13 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 type Tipo = 'texto' | 'borda';
-type Alvo = { seletor: string; tipo: Tipo };
+/**
+ * `proprio` (padrão) mede contra a pilha de fundos do elemento; `branco` mede
+ * contra a página branca — a mesma referência para os dois lados de uma
+ * comparação de estados, senão o quociente mistura denominadores.
+ */
+type Referencia = 'proprio' | 'branco';
+type Alvo = { seletor: string; tipo: Tipo; referencia?: Referencia };
 type Medida = Alvo & {
   presente: boolean;
   frente: string;
@@ -85,7 +91,8 @@ function medirAlvos(alvos: Alvo[]): Medida[] {
       return { ...alvo, presente: false, frente: '', fundo: '', contraste: 0, amostra: '' };
     }
     const estilo = getComputedStyle(elemento);
-    const fundo = fundoEfetivo(elemento);
+    const fundo =
+      alvo.referencia === 'branco' ? { r: 255, g: 255, b: 255, a: 1 } : fundoEfetivo(elemento);
     const bruto = alvo.tipo === 'texto' ? estilo.color : estilo.borderTopColor;
     const frente = ler(bruto);
     const efetiva = frente && frente.a < 1 ? sobrepor(frente, fundo) : frente;
@@ -100,6 +107,26 @@ function medirAlvos(alvos: Alvo[]): Medida[] {
   });
 }
 
+/**
+ * Espera as transições de CSS assentarem. Medir no meio de um
+ * `transition: border-color .15s` captura a cor anterior — foi assim que
+ * `.mode-toggle-button` apareceu com 3,36 no escuro quando o valor final é
+ * 1,62. Toda medição passa por aqui.
+ */
+async function assentar(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(document.getAnimations().map((animacao) => animacao.finished.catch(() => 0))),
+      new Promise((pronto) => setTimeout(pronto, 800)),
+    ]),
+  );
+}
+
+async function medir(page: Page, alvos: Alvo[]): Promise<Medida[]> {
+  await assentar(page);
+  return page.evaluate(medirAlvos, alvos);
+}
+
 /** Troca de tema pelo controle real (sem `data-theme` forçado no DOM). */
 async function trocarTema(page: Page, tema: 'light' | 'dark'): Promise<void> {
   await page.getByRole('button', { name: 'Modo escuro', exact: true }).click();
@@ -112,7 +139,7 @@ async function conferir(
   minimo: Record<Tipo, number>,
   tema: 'light' | 'dark',
 ): Promise<Medida[]> {
-  const medidas = await page.evaluate(medirAlvos, alvos);
+  const medidas = await medir(page, alvos);
   console.log(
     `${tema}: ` +
       medidas.map((m) => `${m.seletor}=${m.contraste}:1`).join('  ') +
@@ -270,35 +297,32 @@ test('controle negativo: a régua reprova um par de baixo contraste', async ({ p
   await expect(page.getByTestId('query-update-notice')).toBeVisible();
   await page.addStyleTag({ content: ':root { --color-on-accent: #7a8f86; }' });
 
-  const [medida] = await page.evaluate(medirAlvos, [
-    { seletor: '.query-update-badge', tipo: 'texto' },
-  ] as Alvo[]);
+  const [medida] = await medir(page, [{ seletor: '.query-update-badge', tipo: 'texto' }] as Alvo[]);
   expect(medida.presente).toBe(true);
   expect(medida.contraste).toBeGreaterThan(0);
   expect(medida.contraste).toBeLessThan(4.5);
 });
 
 /**
- * Dívida aberta, **não aceita**: o marcador de área do resultado de busca fica
- * em 12% de âmbar sobre a superfície. O alvo continua 4,5:1 — o marcador
- * `test.fail` só registra o defeito no relatório; no dia em que o token fechar
- * o par, o caso vira "unexpected pass" e alguém é obrigado a removê-lo.
+ * UX-9: o marcador de área do resultado de busca saiu da dívida. Era `3,75:1`
+ * (12% de âmbar sobre o branco da linha) com `--color-warning-dot` de tinta;
+ * `--color-warning-ink` separa o papel de texto do papel de marca e fecha o par.
+ * O `test.fail` que registrava a dívida morreu junto com ela — a asserção volta
+ * a ser 4,5, não o valor medido.
  */
-test('dívida: marcador de área do resultado de busca não alcança 4,5:1 no claro', async ({
+test('UX-9: o marcador de área do resultado de busca alcança 4,5:1 nos dois temas', async ({
   page,
 }) => {
-  test.fail();
   await page.goto('/');
   await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
   await page.getByTestId('map-search').first().fill('centro');
   await expect(page.locator('.area-result-mark').first()).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await conferir(
-    page,
-    [{ seletor: '.area-result-mark', tipo: 'texto' }],
-    { texto: 4.5, borda: 3 },
-    'light',
-  );
+
+  const alvos: Alvo[] = [{ seletor: '.area-result-mark', tipo: 'texto' }];
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
+  await trocarTema(page, 'dark');
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'dark');
 });
 
 /**
@@ -359,4 +383,95 @@ test('UX-1c: no hover, a borda do botão de dispensar é igual à cor do texto',
     expect(cores.borda, `borda != texto no tema ${tema}`).toBe(cores.texto);
     expect(cores.borda).not.toBe('rgba(0, 0, 0, 0)');
   }
+});
+
+/**
+ * UX-9: contorno de controle a 3:1 no claro (WCAG 1.4.11). O token
+ * `--color-border-control` existe para isso; a amostra é a dos controles que a
+ * tela de entrada renderiza, não a lista do grep.
+ *
+ * O escuro é **medido e impresso**, nunca asserido: a dívida (`#364250` a 1,62)
+ * foi nomeada no ruling e transformá-la em limiar faria o gate reprovar por
+ * desenho. Quem quiser fechá-la muda o token, e aí o número impresso muda antes
+ * de qualquer asserção.
+ */
+test('UX-9: o contorno dos controles alcança 3:1 no claro (escuro mede sem asserir)', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  const controles = ['.theme-toggle', '.nav-register', '.mode-toggle-button', '.map-filter-toggle'];
+  const alvos: Alvo[] = controles.map((seletor) => ({ seletor, tipo: 'borda' as Tipo }));
+  const claro = await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
+  // Anti-vacuidade: elemento ausente devolve `presente: false` e já reprova,
+  // mas a contagem explícita impede a lista de encolher em silêncio.
+  expect(claro.filter((medida) => medida.presente).length).toBe(controles.length);
+
+  await trocarTema(page, 'dark');
+  const escuro = await medir(page, alvos);
+  for (const medida of escuro) expect(medida.presente, medida.seletor).toBe(true);
+  console.log(
+    'escuro (dívida nomeada, sem asserção): ' +
+      escuro.map((m) => `${m.seletor}=${m.contraste}:1 (${m.frente} sobre ${m.fundo})`).join('  '),
+  );
+});
+
+/**
+ * UX-9: o chip de categoria selecionado não pode ficar mais apagado que o de
+ * repouso. A migração do contorno inverteu a direção no claro (repouso 3,36,
+ * selecionado 2,15) — só o limiar não pega isso, e só a direção não pega
+ * regressão de 1,4,5. As duas juntas é que fecham:
+ *
+ *  - direção: mesma referência (branco) para os dois estados;
+ *  - limiar do selecionado: contra o **próprio preenchimento**, que é a cor
+ *    adjacente de verdade em 1.4.11 (o branco é do repouso);
+ *  - escuro: imprime, não assere.
+ *
+ * Na carga os chips de pilar já vêm selecionados — desselecionar é o que cria a
+ * amostra de repouso. Sem esse clique a asserção passaria por vacuidade.
+ */
+test('UX-9: o chip selecionado é mais forte que o de repouso e passa 3:1 no próprio fundo', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  const chip = page.locator('.category-shortcut').first();
+  await expect(chip).toBeVisible();
+  await expect(chip).toHaveClass(/is-selected/);
+
+  const alvoProprio: Alvo[] = [{ seletor: '.category-shortcut', tipo: 'borda' }];
+  const alvoBranco: Alvo[] = [
+    { seletor: '.category-shortcut', tipo: 'borda', referencia: 'branco' },
+  ];
+  const [selecionadoProprio] = await medir(page, alvoProprio);
+  const [selecionadoBranco] = await medir(page, alvoBranco);
+  expect(selecionadoProprio.presente).toBe(true);
+  expect(
+    selecionadoProprio.contraste,
+    `selecionado sobre o próprio fundo: ${selecionadoProprio.frente} sobre ${selecionadoProprio.fundo}`,
+  ).toBeGreaterThanOrEqual(3);
+
+  await chip.click();
+  await expect(chip).not.toHaveClass(/is-selected/);
+  const [repousoBranco] = await medir(page, alvoBranco);
+  expect(repousoBranco.presente).toBe(true);
+  console.log(
+    `light: selecionado=${selecionadoProprio.contraste}:1 (próprio fundo) / ${selecionadoBranco.contraste}:1 (branco)  repouso=${repousoBranco.contraste}:1 (branco)`,
+  );
+  expect(
+    selecionadoBranco.contraste,
+    `direção: selecionado ${selecionadoBranco.contraste} tem de ser maior que repouso ${repousoBranco.contraste} (mesma referência: branco)`,
+  ).toBeGreaterThan(repousoBranco.contraste);
+
+  await trocarTema(page, 'dark');
+  const [repousoEscuro] = await medir(page, alvoProprio);
+  await chip.click();
+  await expect(chip).toHaveClass(/is-selected/);
+  const [selecionadoEscuro] = await medir(page, alvoProprio);
+  console.log(
+    `escuro (dívida nomeada, sem asserção): repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1`,
+  );
 });

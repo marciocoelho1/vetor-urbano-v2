@@ -80,7 +80,7 @@ app-root {
     gap: 8px;
     min-height: 42px;
     padding: 0 14px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 8px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -269,7 +269,7 @@ app-root {
     display: grid;
     min-height: 31px;
     place-items: center;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 6px;
     color: var(--color-text-muted);
     font-size: var(--vu-text-xs);
@@ -412,7 +412,7 @@ app-root {
   .inline-retry {
     min-height: 40px;
     padding: 0 11px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 7px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -743,7 +743,7 @@ app-root {
     justify-content: center;
     margin: 0 14px 9px var(--result-inset);
     padding: 5px 10px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 7px;
     background: var(--color-bg-surface);
     color: var(--accent-strong);
@@ -809,7 +809,7 @@ app-root {
   .empty-action-btn {
     min-height: 36px;
     padding: 6px 14px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 6px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -959,7 +959,7 @@ app-root {
     align-items: center;
     gap: 12px;
     padding: 11px 13px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 8px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
@@ -1026,7 +1026,7 @@ app-root {
     width: 100%;
     min-height: 42px;
     padding: 10px 11px;
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid var(--color-border-control);
     border-radius: 7px;
     background: var(--color-bg-surface);
     color: var(--color-text-main);
