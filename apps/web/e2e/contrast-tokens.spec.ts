@@ -314,20 +314,12 @@ test('UX-1d: o badge de ocorrências coincidentes contrasta nos dois temas', asy
   await page.goto('/');
   await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
   await expect(page.locator('#map-canvas')).toBeVisible();
-  const badges = page.locator('#map-canvas .coincident-badge');
-  if ((await badges.count()) === 0) {
-    // Nenhum par coincidente em cena: injeta o badge com a mesma classe, dentro
-    // do `#map-canvas` real, para não depender do estado do mapa.
-    await page.evaluate(() => {
-      const canvas = document.querySelector('#map-canvas');
-      if (!canvas) throw new Error('#map-canvas ausente');
-      const badge = document.createElement('span');
-      badge.className = 'coincident-badge';
-      badge.textContent = '2';
-      canvas.appendChild(badge);
-    });
-  }
-  await expect(badges.first()).toBeVisible();
+  // O badge é desenhado pelo app dentro do marcador coincidente (`app.ts:5554`).
+  // Exigir o elemento real é o que impede a vacuidade: injetar um equivalente
+  // mediria só o par de CSS e passaria mesmo que a UI nunca o renderizasse.
+  const badge = page.getByTestId('coincident-badge').first();
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveText(/^\d+$/);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
   const alvos: Alvo[] = [{ seletor: '#map-canvas .coincident-badge', tipo: 'texto' }];
