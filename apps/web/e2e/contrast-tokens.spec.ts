@@ -300,3 +300,71 @@ test('dívida: marcador de área do resultado de busca não alcança 4,5:1 no cl
     'light',
   );
 });
+
+/**
+ * UX-1d: tinta sobre `--color-error`. O badge de ocorrências coincidentes era o
+ * último branco fixo sobre vermelho — `#fff` sobre `--color-error` dá **1,96:1**
+ * no tema escuro (#f1a5af), que é o tema alternativo real. A tinta passa a vir
+ * de `--color-on-error`, em par nos dois blocos de `theme.scss`.
+ *
+ * O pin é desenhado pelo Leaflet fora do fluxo do template, então o badge entra
+ * dentro do `#map-canvas` **real** para ser submetido à cascata de verdade.
+ */
+test('UX-1d: o badge de ocorrências coincidentes contrasta nos dois temas', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await expect(page.locator('#map-canvas')).toBeVisible();
+  const badges = page.locator('#map-canvas .coincident-badge');
+  if ((await badges.count()) === 0) {
+    // Nenhum par coincidente em cena: injeta o badge com a mesma classe, dentro
+    // do `#map-canvas` real, para não depender do estado do mapa.
+    await page.evaluate(() => {
+      const canvas = document.querySelector('#map-canvas');
+      if (!canvas) throw new Error('#map-canvas ausente');
+      const badge = document.createElement('span');
+      badge.className = 'coincident-badge';
+      badge.textContent = '2';
+      canvas.appendChild(badge);
+    });
+  }
+  await expect(badges.first()).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  const alvos: Alvo[] = [{ seletor: '#map-canvas .coincident-badge', tipo: 'texto' }];
+  const claro = await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
+  await trocarTema(page, 'dark');
+  const escuro = await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'dark');
+
+  // Mesmo token, valor por tema: o par não pode ser um literal único.
+  expect(claro[0].frente).not.toBe(escuro[0].frente);
+});
+
+/**
+ * UX-1c: o hover do botão de dispensar do aviso de atualização. A borda era
+ * `var(--color-border-main)` — token fantasma, então o computado caía em
+ * `currentColor` por acidente. Virou `var(--color-text-main)` explícito; a
+ * igualdade borda-vs-texto é a prova de que o pixel não mudou.
+ */
+test('UX-1c: no hover, a borda do botão de dispensar é igual à cor do texto', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.map-loading, .map-fallback')).toHaveCount(0);
+  await page.evaluate(() =>
+    (
+      window as unknown as { vetorUrbano: { simulatePendingUpdate: () => void } }
+    ).vetorUrbano.simulatePendingUpdate(),
+  );
+  const botao = page.locator('.update-dismiss-btn');
+  await expect(botao).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  for (const tema of ['light', 'dark'] as const) {
+    if (tema === 'dark') await trocarTema(page, 'dark');
+    await botao.hover();
+    const cores = await botao.evaluate((elemento) => {
+      const estilo = getComputedStyle(elemento);
+      return { borda: estilo.borderTopColor, texto: estilo.color };
+    });
+    expect(cores.borda, `borda != texto no tema ${tema}`).toBe(cores.texto);
+    expect(cores.borda).not.toBe('rgba(0, 0, 0, 0)');
+  }
+});
