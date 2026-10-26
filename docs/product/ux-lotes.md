@@ -40,7 +40,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 
 | Lote | Dono | Entrega | Depende de | Status |
 |---|---|---|---|---|
-| **C0** | @infra | C0-1 catálogo (API), C0-2 seletor (web), C0-3 docs, C0-4 harness E2E | — | **C0-1** `c0b70ac`, **C0-2** `b8c6027`, **C0-4** `5346f70` (16 caminhos; harness em `vu-uxh01-five-db`, allowlist por família); C0-3 pendente |
+| **C0** | @infra | C0-1 catálogo (API), C0-2 seletor (web), C0-3 docs, C0-4 harness E2E | — | **C0-1** `c0b70ac`, **C0-2** `b8c6027`, **C0-4** `5346f70` (16 caminhos; harness em `vu-uxh01-five-db`, allowlist por família); **C0-3** fechado no commit de doc de 26/10 (texto de produto em `scope.md` e `overview.md` + evidência do lote) |
 | **UX-0** | @executor | `styles/tokens.scss` + import único | C0 | **aplicado** em `51fe617` |
 | **UX-1** | @executor | escala aplicada + `strong` por regra | UX-0 | **aplicado** em `51fe617` — gate `EXIT=0`: 24 arquivos / 258 declarações / 0 fora / 3 pesos / 0 fantasma / 0 palavra em `aria-hidden`; **não medido**: prosa ≤72 ch/linha |
 | **UX-1b** | @executor | par `--color-on-accent`, `#ef4444` → `--color-error`, âmbar do glifo em token, `--surface`/`--text` pareados | UX-1 | **aplicado** em `00bca0f` |
@@ -108,6 +108,8 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 | C0-2 | `npm run build` | exit 0 (avisos CommonJS de `pako` e `leaflet` pré-existentes) |
 | C0-2 | `npx playwright test e2e/territory-selector-visibility.spec.ts --project=chromium` | 5 passed, exit 0 (320/390/768/1024/1440) |
 | C0-1+C0-2 | `bash scripts/verify.sh web` | exit 0 — lint, test:ci e build (reexecutado pelo @revisor em 25/10, `HEAD b8c6027`) |
+| C0-3 | `git show --stat c0b70ac b8c6027 5346f70` | `c0b70ac` **10 arquivos** (módulo de catálogo + V23 + ingestor), `b8c6027` **12 arquivos** (seletor; 5 passed em `territory-selector-visibility.spec.ts`), `5346f70` **16 arquivos** (harness) |
+| C0-3 | `ls apps/api/src/main/resources/db/migration/ \| wc -l` | `23`, com `V23__territorial_catalog.sql` na ponta; `scope.md` e `overview.md:43` deixam de dizer "V1 a V22" e passam a declarar o catálogo como módulo próprio, com cobertura **municipal e parcial** |
 | UX-1 | `python3 apps/web/e2e/tools/audit-font-scale.py --src apps/web/src` | baseline em `904f0a7`, antes do UX-0: `23 arquivos / 265 declarações`, `68 fora`, `6 pesos`, `8 fantasma(s)`, `1 palavra em aria-hidden`, `EXIT=2` |
 | UX-1 | idem, com o censo de usos corrigido (elo 1 do @qa, ainda em `904f0a7`) | `8` com censo de usos só em `.scss` → **`10`** com censo único `.scss`+`.html`+`.ts`: `--text` de `verification-panel.ts:46` entrava como fantasma por assimetria do censo, não por defeito do código (reexecutado pelo @revisor, 25/10 20:41) |
 | UX-1 | `python3 apps/web/e2e/tools/audit-font-scale.py --src apps/web/src` em `f03974a` | `24 arquivos / 258 declarações`, `0 fora`, `pesos ['400','500','700'] (3)`, `43 usados / 62 declarados / 0 fantasma`, `aria-hidden 0 palavra`, `EXIT=0` (reexecutado pelo @revisor, 25/10 21:25) |

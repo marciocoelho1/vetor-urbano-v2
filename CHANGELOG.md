@@ -1,3 +1,9 @@
+## 2026-10-26 — C0-3: documentação do lote C0
+
+- C0 fechado na documentação: `docs/product/scope.md` e `docs/architecture/overview.md` deixam de dizer "V1 a V22" e passam a declarar o catálogo territorial administrativo como módulo próprio desde a V23 (`c0b70ac`) — município por código IBGE, proveniência obrigatória por versão, histórico imutável, publicação apenas da versão aprovada —, consumido pelo seletor da tela de entrada (`b8c6027`), com cobertura **municipal e parcial** declarada. Decisões em [ADR 0002](docs/adr/0002-publicacao-territorial-e-reveal.md); evidência do lote em [ux-lotes](docs/product/ux-lotes.md) §4.
+- Sem medição nova: os três hashes (`c0b70ac` 10 arquivos, `b8c6027` 12, `5346f70` 16) e as 23 migrações com `V23__territorial_catalog.sql` na ponta são leitura da árvore.
+- Dívida datada 26/10: os lotes UX-3 (`84a308e`+`879f1dc`), UX-4 (`c07d781`+`6af9c66`), UX-5 (`dd4bad8`+`990f1fd`), UX-6 (`e1954d7`, `b84cc25`, `d374ef5`) e UX-2 (`284bbf1`, `db8c82c`) fecharam com linha em `ux-lotes.md`, mas **sem entrada neste CHANGELOG** — registro pendente para o próximo commit de doc.
+
 ## 2026-10-25 — Rodada UX: tokens, escala, contraste e gate
 
 - UX-0 + UX-1 (`51fe617`): `apps/web/src/styles/tokens.scss` como fonte única (texto, peso, espaço, movimento) e escala tipográfica aplicada — 68 declarações fora → **0**; 6 pesos → **3**; palavra em `aria-hidden` reprovada e badge do aviso sem `aria-hidden`. [Lotes, critério e evidência](docs/product/ux-lotes.md).
