@@ -49,7 +49,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-2** | @executor | ritmo e container dos painéis | UX-0 | pendente |
 | **UX-3** | @executor | alvos 44/48, feedback 120 ms | UX-0, régua do @qa | **alvos aplicados** em `84a308e`; feedback de 120 ms segue no UX-4 |
 | **UX-5** | @executor | corte de copy 54 → ≤20 linhas | — | pendente |
-| **UX-4** | @executor | 3 durações + par `reduce` | UX-0, UX-3 | pendente |
+| **UX-4** | @executor | 3 durações + par `reduce` | UX-0, UX-3 | **aplicado** em `c07d781` — durações e easings por token, par `reduce` preservado |
 | **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | pendente (escopo autorizado) |
 | **UX-7** | @executor | `data-state` + CLS <0,1 | UX-1…UX-6 | pendente |
 | **UX-8** | @executor | contraste do `reliability-panel` — **2,11 / 2,80 / 2,54** no escuro (medido pelo @ux) | UX-1 | pendente, sem lote atribuído |
@@ -71,6 +71,12 @@ Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceç
 | **UX-7** | 6 estados por tela alterada com `data-state`; CLS <0,1 com altura reservada | `PerformanceObserver` de `layout-shift` | CLS **0** (390/320), **0,004** (1440) |
 
 **Regra de evidência — anti-vacuidade (25/10/2026, permanente).** Toda asserção que existe para provar ausência — de achado, de regressão, de defeito — registra na célula de evidência do §4 **dois** números: o valor medido e a **mutação** que a faz falhar. Sem o segundo, `N passed` não distingue asserção de tautologia. Duas portas de fuga apareceram nesta rodada com o mesmo sintoma, verde: o gate de ≤3 pesos imprimindo `pesos: []` quando o peso vinha de `var(--vu-weight-*)`, e a guarda do badge de coincidentes injetando o próprio objeto de medida. As duas foram fechadas com contraprova — `peso_por_token` reprovando 4 degraus distintos, e `getByTestId('coincident-badge')` falhando (1 failed, "element(s) not found") quando o badge real é apagado em cena.
+
+### UX-4 — leitura do par `reduce`
+
+Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transitionDuration === 0s`, `animationDuration ≤ 1ms`, `animationIterationCount !== 'infinite'` e `document.getAnimations()` sem animação em `running`. O critério original dizia "zera duração **e** transform"; literal, reprovaria código correto no primeiro elemento posicionado — `.map-canvas`, pinos do Leaflet e o `translate` dos painéis usam `transform` para posicionar, não para mover, e `transform: none` aparece **0 vezes** na árvore. A leitura é do @arquiteto, registrada em 26/10.
+
+**Dívida datada 26/10:** "abrir painel ≤240 ms até pintado" segue **sem asserção** — a baseline é `37/59 ms` e já passa, e instrumentar pintura com `PerformanceObserver`/`rAF` num alvo que não está em disputa gastaria rodada sem provar nada. Número e data ficam aqui; a medição entra quando o painel for tocado.
 
 ### UX-6 — escopo autorizado
 
@@ -110,7 +116,7 @@ Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceç
 | UX-1 | `grep -o "<strong" apps/web/src/app/app.html \| wc -l` | `37` (reexecutado pelo @revisor) |
 | UX-1 | `grep -rn "font-weight:\s*900" apps/web/src --include=*.scss \| wc -l` | `0` (reexecutado pelo @revisor) |
 | UX-3 | `npx playwright test e2e/targets-touch.spec.ts --project=chromium` em `84a308e` | `4 passed (1,8 s)`: **0 alvos < 44 px** a 320, 390 e 1440, **separação mínima ≥ 8 px**, rolagem horizontal ok nos três viewports; baseline em ata era **14 de 20** abaixo de 44 a 390/320 e **9 de 20** a 1440, com separação de **4 px**. Controle negativo: sonda de 24 px listada, par a 2 px listado, caixa de 2000 px marcada como estouro |
-| UX-3 / UX-4 / UX-7 | `VU_UX_GATES=1 npx playwright test --project=mobile-chromium` | 6 failed / 4 passed / 2 skipped (régua do @qa, 25/10) |
+| UX-4 | `npx playwright test e2e/motion-durations.spec.ts --project=chromium` em `c07d781` | `4 passed (1,8 s)`: **15 declarações, 0 fora** de `{120,240,400}`, **2 easings**; computado `120ms×3 / 240ms×2 / 400ms×3`, o resto `0ms`; sob `reduce` `0ms×144`, zero transições, zero animações, zero iterações infinitas — o `0.01ms` da casa passa porque a régua lê `animationDuration ≤ 1ms`. Substitui a linha `VU_UX_GATES=1 …`, comando que **nunca existiu no repositório** e por isso não era evidência |
 | UX-6 | `npx playwright test e2e/ux6-folha-barra.spec.ts` | fixture: 4 passed / 1 skipped; app real pulada até o shell existir |
 
 
