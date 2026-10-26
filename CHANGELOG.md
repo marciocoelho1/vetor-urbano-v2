@@ -1,3 +1,11 @@
+## 2026-10-25 — Rodada UX: tokens, escala, contraste e gate
+
+- UX-0 + UX-1 (`51fe617`): `apps/web/src/styles/tokens.scss` como fonte única (texto, peso, espaço, movimento) e escala tipográfica aplicada — 68 declarações fora → **0**; 6 pesos → **3**; palavra em `aria-hidden` reprovada e badge do aviso sem `aria-hidden`. [Lotes, critério e evidência](docs/product/ux-lotes.md).
+- UX-1b (`00bca0f`): par `--color-on-accent` (1,67 → **11,02** no escuro), `#ef4444` → `--color-error` (3,76/4,41 → **6,11/8,49**), âmbar do glifo em token, `--surface`/`--text` pareados. UX-1c (`f03974a`): fantasma IACVT volta a desenhar contorno (`--color-line-strong`, `--accent`), e auditor + `--selftest` entram no `scripts/verify.sh` (8/8 casos).
+- Contraste medido no DOM, não deduzido: `apps/web/e2e/contrast-tokens.spec.ts` — **6 passed**, seis pares nos dois temas mais o IACVT do `fieldset.history-categories`; a dívida do `.area-result-mark` (**3,75:1**) fica em `test.fail`, não em exclusão.
+- C0-4 (`5346f70`): harness E2E migrado para `vu-uxh01-five-db` (55442) com allowlist por família, rejeitando `vu-ticket29-e2e-db`; datasource de `:8080` esclarecido — `pid 18851` apontava para `55436/vetor_spec_test` sintético e foi encerrado.
+- Pendente de decisão do dono: UX-9 (68 bordas a 1,24–1,31 no tema claro) e `.coincident-badge` (1,96 no escuro). UX-8 medido, sem lote atribuído. Sem push.
+
 ## 2026-10-24 — Recuperação e correções de cobertura
 
 - Retomada pelo checkpoint, com bancos antigos preservados e fixtures por família. Sessão 6/6 e gestão de fontes 4/4 corrigidas; revisão/publicação 2/2 com ADMIN exato e canal de correção 4/4 com contexto USER preservado e decisão exata. XLSX completo 8/8 em cada porta 8080/8081, incluindo 503 e conteúdo. Web final: lint, 205 testes/28 arquivos e build 852,03 kB.
