@@ -842,7 +842,7 @@ app-root {
     border-color: var(--color-error);
   }
   .query-error-icon {
-    font-size: var(--vu-icon-md);
+    font-size: var(--vu-text-xl);
     color: var(--color-error);
   }
   .query-error-title {
@@ -857,7 +857,7 @@ app-root {
     max-width: 320px;
   }
   .query-loading-state {
-    border-color: var(--accent-subtle, #6366f1);
+    border-color: var(--accent);
   }
   .query-timestamp {
     display: inline-block;

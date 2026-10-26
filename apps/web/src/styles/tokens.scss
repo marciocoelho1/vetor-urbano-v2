@@ -13,9 +13,6 @@
   --vu-text-3xl: clamp(2.25rem, 3.4vw, 2.75rem); // 36 móvel → 44
   --vu-tracking-tight: -0.02em; // só a partir de 24 px
 
-  // Ícone — uma família, só a que tem uso concreto (`.query-error-icon`).
-  --vu-icon-md: 1.5rem; // 24
-
   // Peso — 3. Decisão de UX (@ux), aceita pelo @arquiteto: 400/500/700.
   // 550→500, 600/650/700→700; `strong` do UA (bolder sobre 600 = 900) vira 700 por regra única.
   --vu-weight-regular: 400;

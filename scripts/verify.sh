@@ -14,7 +14,8 @@ Aliases de compatibilidade: frontend = web; backend = api.
 
 docs      Confere orientação/referências, links Markdown locais e sintaxe Bash.
 planning  Confere docs + presença dos documentos atuais de produto/roadmap.
-web       Exige projeto e dependências locais; executa lint, test:ci e build.
+web       Exige projeto e dependências locais; executa o auditor estático
+          de tipografia/tokens/aria-hidden, lint, test:ci e build.
 api       Exige Maven Wrapper, JDK e Docker ou Podman com API compatível; executa clean verify.
 all       Executa planning, web e api; exige as duas aplicações.
 
@@ -73,7 +74,11 @@ check_web() {
   require_command npm
   require_file apps/web/package.json
   require_file apps/web/package-lock.json
+  require_file apps/web/e2e/tools/audit-font-scale.py
+  require_command python3
   [[ -d apps/web/node_modules ]] || blocked 'dependências ausentes: execute npm ci em apps/web após revisar o projeto.'
+  python3 apps/web/e2e/tools/audit-font-scale.py --src apps/web/src
+  python3 apps/web/e2e/tools/audit-font-scale.py --selftest
   (
     cd -- "$VU_ROOT/apps/web"
     node <<'NODE'
@@ -95,7 +100,7 @@ NODE
     fi
     npm run build
   )
-  printf 'OK: lint, test:ci e build da aplicação web concluídos.\n'
+  printf 'OK: auditor estático, lint, test:ci e build da aplicação web concluídos.\n'
 }
 
 check_api() {

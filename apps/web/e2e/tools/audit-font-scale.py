@@ -11,8 +11,10 @@ Réguas
    ``styles/tokens.scss`` (``--vu-text-*``); ``clamp()`` pinta os extremos.
    Fora da escala → exit 1.
 2. ``font-weight`` em ``**/*.scss``, **ignorando blocos ``@font-face``** (ali o
-   peso é descritor de face, não escolha tipográfica). Mais de três pesos
-   distintos → exit 1.
+   peso é descritor de face, não escolha tipográfica). Peso escrito por token
+   (``var(--vu-weight-*)``) resolve para o número declarado em
+   ``styles/tokens.scss`` — sem isso o gate de três pesos passa por vacuidade.
+   Mais de três pesos distintos → exit 1.
 3. ``var(--token)`` citado e não declarado em lugar nenhum do projeto (``.scss``,
    atributo ``style`` de template, ``setProperty``/``ngStyle`` de TS) → exit 2.
    Token fantasma é defeito: sem fallback o navegador descarta a declaração
@@ -83,6 +85,10 @@ RE_TOKEN_DECL = re.compile(
     r'(--vu-text-[a-z0-9-]+)\s*:\s*clamp\(\s*([\d.]+)rem\s*,\s*[^,]+,\s*([\d.]+)rem\s*\)'
 )
 RE_TOKEN_SIMPLES = re.compile(r'(--vu-text-[a-z0-9-]+)\s*:\s*([\d.]+)rem\s*;')
+# Pesos declarados por token: `font-weight: var(--vu-weight-strong)` conta como 700,
+# senão o gate de ≤3 pesos passa por vacuidade (0 distintos sempre ≤ 3).
+RE_PESO_DECL = re.compile(r'(--vu-weight-[a-z0-9-]+)\s*:\s*(\d{3})\s*;')
+RE_PESO_USO = re.compile(r'^var\(\s*(--vu-weight-[a-z0-9-]+)\s*\)$')
 
 RE_QUALQUER_VAR = re.compile(r'var\(\s*(--[a-zA-Z0-9_-]+)')
 # declaração = token abrindo um bloco (`{`) ou logo após um `;`; dentro de `var(` não conta
@@ -309,8 +315,17 @@ def trechos_de_uso(caminho: Path) -> list[tuple[int, str]]:
 
 
 
+def pesos_declarados(src: Path) -> dict[str, str]:
+    """`--vu-weight-*` → número, lidos de `styles/tokens.scss` (fonte única)."""
+    tokens = src / 'styles' / 'tokens.scss'
+    if not tokens.exists():
+        return {}
+    return dict(RE_PESO_DECL.findall(tokens.read_text()))
+
+
 def auditar(src: Path) -> dict:
     tabela = escala(src)
+    pesos_tokens = pesos_declarados(src)
     fontes = fontes_censo(src)
     arquivos_scss = sorted(glob.glob(str(src / '**' / '*.scss'), recursive=True))
 
@@ -339,6 +354,13 @@ def auditar(src: Path) -> dict:
             for casamento in RE_WEIGHT.finditer(linha):
                 bruto = casamento.group(1).strip()
                 valor = PESO_SINONIMO.get(bruto.lower(), bruto)
+                por_token = RE_PESO_USO.match(valor)
+                if por_token:
+                    resolvido = pesos_tokens.get(por_token.group(1))
+                    if resolvido is None:
+                        palavras_chave.setdefault(valor, []).append(f'{rel}:{numero}')
+                        continue
+                    valor = resolvido
                 if not RE_PESO_NUMERICO.match(valor):
                     palavras_chave.setdefault(valor, []).append(f'{rel}:{numero}')
                     continue
@@ -615,6 +637,32 @@ def selftest() -> int:
                 2,
                 obtido,
                 f"tokens={tokens} arquivos={locais}",
+            )
+        )
+        # 8 — peso escrito por token resolve para o número: 4 degraus distintos
+        #     reprovam. Sem a resolução, `distintos=[]` e o gate passaria vazio.
+        base = _arvore(
+            raiz / 'peso_token',
+            '.a { font-weight: var(--vu-weight-regular); }\n'
+            '.b { font-weight: var(--vu-weight-medium); }\n'
+            '.c { font-weight: var(--vu-weight-strong); }\n'
+            '.d { font-weight: var(--vu-weight-heavy); }\n',
+        )
+        (base / 'styles' / 'tokens.scss').write_text(
+            ':root {\n'
+            '  --vu-weight-regular: 400;\n'
+            '  --vu-weight-medium: 500;\n'
+            '  --vu-weight-strong: 700;\n'
+            '  --vu-weight-heavy: 800;\n'
+            '}\n'
+        )
+        dados = auditar(base)
+        casos.append(
+            (
+                'peso_por_token',
+                1,
+                veredicto(dados),
+                f"distintos={dados['pesos_distintos']}",
             )
         )
     falhas = 0

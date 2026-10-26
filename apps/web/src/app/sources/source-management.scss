@@ -34,7 +34,7 @@
   font-size: var(--vu-text-sm);
 }
 .source-version-list {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-line-strong);
   padding-top: 12px;
 }
 .source-version-list li + li {
@@ -66,7 +66,7 @@
 .source-pillar-fieldset {
   display: grid;
   gap: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-line-strong);
   border-radius: 8px;
 }
 .source-pillar-fieldset label {
