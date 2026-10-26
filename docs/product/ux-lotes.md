@@ -53,7 +53,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | pendente (escopo autorizado) |
 | **UX-7** | @executor | `data-state` + CLS <0,1 | UX-1…UX-6 | pendente |
 | **UX-8** | @executor | contraste do `reliability-panel` — **2,11 / 2,80 / 2,54** no escuro (medido pelo @ux) | UX-1 | pendente, sem lote atribuído |
-| **UX-9** | @arquiteto → @user | contorno de controle a 3:1 no tema claro | decisão do dono | **em espera** — 68 sítios de borda a 1,24–1,31 por nome de token, mas sítio com fallback renderiza o fallback (`#8893a0` = 3,12): a medição é por `getComputedStyle`, sítio a sítio |
+| **UX-9** | @arquiteto → @user | contorno de controle a 3:1 no tema claro | decisão do dono | **aplicado** em `cedcfa9` (contorno `3,17/3,36` no claro, âmbar `5,41`), `5d054dd` (guarda do par base) e `9d710eb` (escuro `4,30`, chip `6,81 > 4,30`) |
 
 Um lote = um commit (código + linha deste documento). `add -A` proibido. Exceção registrada em 25/10: o UX-1c fechou o código em `f03974a` e esta linha entrou em commit `docs:` próprio, por ordem do dono — a regra segue valendo para os lotes seguintes até ruling em contrário.
 

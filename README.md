@@ -25,6 +25,25 @@ Alertas, notificações e colaboração por votos fazem parte do backlog e depen
 
 Esta branch (`integration/functional-spec-v1`) reúne a API Java, o PostgreSQL/PostGIS, as contas com sessão e a moderação/revisão. Para abrir o Vetor Urbano aqui, com os dados sintéticos, são **três processos** — banco, API e frontend — mais o acesso pelo host correto.
 
+### Caminho rápido: só a interface, sem banco nem API
+
+```bash
+npm ci --prefix apps/web      # só na primeira vez
+npm start --prefix apps/web   # abra http://127.0.0.1:4201/
+```
+
+Sem API o app abre em modo demonstração, que é a tela de entrada com a tipografia,
+o contraste e os contornos atuais — serve para ver o incremento de UX/UI sem subir
+banco. O mapa e os painéis ficam atrás do gate de sessão e exigem os três
+processos abaixo.
+
+O que observar: o h1 a 32 px no desktop e 28 px a 390, com três pesos; os
+contornos de controle (3,17–3,36:1 no claro, 4,30:1 no escuro); o botão
+**Modo escuro** no topo, que é o teste mais rápido; e, na busca de território,
+o marcador âmbar a 5,41:1. Depois do login, o badge de ocorrências coincidentes
+no mapa fica em 6,11:1 no claro e 9,22:1 no escuro. Critérios, dívidas datadas
+e o hash de cada lote estão em docs/product/ux-lotes.md.
+
 ### 1. Banco sintético
 
 ```bash
