@@ -20,9 +20,11 @@ type Tipo = 'texto' | 'borda';
 /**
  * `proprio` (padrão) mede contra a pilha de fundos do elemento; `branco` mede
  * contra a página branca — a mesma referência para os dois lados de uma
- * comparação de estados, senão o quociente mistura denominadores.
+ * comparação de estados, senão o quociente mistura denominadores; `base` mede
+ * contra `--color-bg-base` **declarado no tema**, que é o fundo onde o dono
+ * autorizou 3:1 e que o `#8893a0` reprovava (2,94).
  */
-type Referencia = 'proprio' | 'branco';
+type Referencia = 'proprio' | 'branco' | 'base';
 type Alvo = { seletor: string; tipo: Tipo; referencia?: Referencia };
 type Medida = Alvo & {
   presente: boolean;
@@ -91,8 +93,22 @@ function medirAlvos(alvos: Alvo[]): Medida[] {
       return { ...alvo, presente: false, frente: '', fundo: '', contraste: 0, amostra: '' };
     }
     const estilo = getComputedStyle(elemento);
+    // `--color-bg-base` resolvido pelo navegador (sonda), não por regex no CSS.
+    const baseDeclarada = (): Cor => {
+      const sonda = document.createElement('span');
+      sonda.style.color = 'var(--color-bg-base)';
+      sonda.style.display = 'none';
+      document.body.appendChild(sonda);
+      const lido = ler(getComputedStyle(sonda).color);
+      sonda.remove();
+      return lido ?? { r: 255, g: 255, b: 255, a: 1 };
+    };
     const fundo =
-      alvo.referencia === 'branco' ? { r: 255, g: 255, b: 255, a: 1 } : fundoEfetivo(elemento);
+      alvo.referencia === 'branco'
+        ? { r: 255, g: 255, b: 255, a: 1 }
+        : alvo.referencia === 'base'
+          ? baseDeclarada()
+          : fundoEfetivo(elemento);
     const bruto = alvo.tipo === 'texto' ? estilo.color : estilo.borderTopColor;
     const frente = ler(bruto);
     const efetiva = frente && frente.a < 1 ? sobrepor(frente, fundo) : frente;
@@ -409,6 +425,21 @@ test('UX-9: o contorno dos controles alcança 3:1 no claro (escuro mede sem asse
   // mas a contagem explícita impede a lista de encolher em silêncio.
   expect(claro.filter((medida) => medida.presente).length).toBe(controles.length);
 
+  // O critério do dono é "3:1", e o hex `#838d9a` só foi escolhido porque o
+  // anterior reprovava **na base** (2,94). Medir só os quatro alvos acima, que
+  // resolvem branco, deixaria o caso verde com o hex antigo de volta na base —
+  // a decisão ficaria sem guarda justamente no par que a motivou.
+  const [naBase] = await medir(page, [
+    { seletor: '.theme-toggle', tipo: 'borda', referencia: 'base' },
+  ]);
+  console.log(
+    `light: contorno sobre --color-bg-base ${naBase.frente} sobre ${naBase.fundo} = ${naBase.contraste}:1`,
+  );
+  expect(
+    naBase.contraste,
+    `contorno sobre --color-bg-base: ${naBase.frente} sobre ${naBase.fundo}`,
+  ).toBeGreaterThanOrEqual(3);
+
   await trocarTema(page, 'dark');
   const escuro = await medir(page, alvos);
   for (const medida of escuro) expect(medida.presente, medida.seletor).toBe(true);
@@ -471,7 +502,15 @@ test('UX-9: o chip selecionado é mais forte que o de repouso e passa 3:1 no pr�
   await chip.click();
   await expect(chip).toHaveClass(/is-selected/);
   const [selecionadoEscuro] = await medir(page, alvoProprio);
+  // A direção no escuro também é asserida: hoje 3,12 > 1,62. O limiar de 3:1
+  // continua fora — a dívida nomeada não vira gate —, mas a inversão que
+  // aconteceu no claro não pode passar calada no escuro.
+  expect(selecionadoEscuro.presente && repousoEscuro.presente).toBe(true);
+  expect(
+    selecionadoEscuro.contraste,
+    `direção no escuro: selecionado ${selecionadoEscuro.contraste} contra repouso ${repousoEscuro.contraste}`,
+  ).toBeGreaterThan(repousoEscuro.contraste);
   console.log(
-    `escuro (dívida nomeada, sem asserção): repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1`,
+    `escuro (dívida nomeada, sem asserção de limiar): repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1`,
   );
 });
