@@ -1,6 +1,6 @@
 # Vetor Urbano — estado geral em 26/10/2026
 
-Resumo para acompanhamento do responsável. Branch `integration/functional-spec-v1`, `HEAD c2f9a0c`.
+Resumo para acompanhamento do responsável. Branch `integration/functional-spec-v1`, `HEAD 06e572a`.
 Não substitui `PLAN.md` nem `docs/product/ux-lotes.md`; é a leitura de conjunto.
 
 ## 1. O que existe agora que não existia antes (spec funcional)
@@ -57,10 +57,14 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
   ocorrência» e uma folha que abre com o botão de tema.
 - **Ritmo dos painéis (UX-2)** — espaçamento interno padronizado (12 e 16 px) e vãos de 12 px; os
   cartões deixaram de ter alturas e respiros diferentes entre si.
-- **Estado da tela (UX-7, em fecho)** — a área de resultados passa a declarar o que está fazendo
+- **Pilulas de confiabilidade (UX-8)** — no painel de fontes, os selos de estado ficaram legíveis no tema
+  escuro: o de alerta dava 2,80:1 e o verde de "recomendado subir" 2,11:1, ambos abaixo do mínimo. Agora
+  todos usam cor do tema — 7,38 e 10,10 no escuro —, e a moldura dos cartões segue discreta de propósito,
+  porque moldura não identifica estado.
+- **Estado da tela (UX-7)** — a área de resultados passa a declarar o que está fazendo
   (`initial`, `loading`, `empty`, `error`, `ready`, `refreshing`). Ao medir isso, apareceu um defeito
   real: quando um filtro não retorna nada, a tela mostrava «sem resultados» e o app dizia «estado
-  inicial». É o que está sendo corrigido agora.
+  inicial». Já está corrigido — o vazio passou a ser declarado como vazio.
 
 ## 3. O que está pendente e por quê
 
@@ -68,12 +72,12 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
 
 - **UX-7b — ordem de boot.** A tela de entrada tem um salto de layout a 390 px (CLS 0,1394, contra teto
   0,1), causado pela troca de ramo durante o boot. Consertar mexe em **quando o app começa a buscar
-  dados**. Opção A: autorizar o lote (critério triplo: CLS < 0,1, `test:ci` 225/225 e gate verde).
+  dados**. Opção A: autorizar o lote (critério triplo: CLS < 0,1, `test:ci` 226/226 e gate verde).
   Opção B: manter como dívida datada e não abrir.
-- **Push.** 15 commits locais não enviados. Enviar é ato seu.
+- **Push.** 22 commits locais não enviados. Enviar é ato seu.
 - **Ticket 36 (documentos institucionais)** — publicação jurídica adiada por você (D3). Sem publicação,
   o ticket não fecha.
-- **Aceite formal** dos lotes UX-2…UX-6 e do UX-7 quando fechar.
+- **Aceite formal** dos lotes UX-2…UX-8, do C0-3 e deste documento.
 
 **Depende de ferramenta ou autorização externa**
 
@@ -86,13 +90,13 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
 
 **Depende de trabalho do time**
 
-- **UX-7** — `empty` corrigido; régua em **5/6 no DOM** (`initial` não é pintado em nenhum dos dois
-  modos, provado por sonda no demo e em `?consulta=api`), com o sexto estado asserido no teste unitário.
-  Fecha com o commit de código + régua + teste.
-- **UX-8** — contraste do painel de confiabilidade no tema escuro (`2,11 / 2,80 / 2,54`); régua pronta,
-  alvo definido (texto 4,5:1, contorno 3:1).
+- **UX-7** — **fechado** em `c2f9a0c`: cinco estados provados no DOM (`initial` não é pintado em nenhum
+  dos dois modos, provado por sonda no demo e em `?consulta=api`) e o sexto asserido no teste unitário.
+- **UX-8** — **fechado** em `9d6cf37`/`59a4480` (passe) e `67088c3`/`06e572a` (régua): `.warn` 5,88/7,38,
+  `.alert` e `.blocking` 6,11/8,49, `.ok` **7,87/10,10**, sem literal de cor no arquivo.
 - **Lotes C e D do piloto** (UXH-07…17): 11 tickets de construção de interface — navegação, mapa,
-  configurações, informes, histórico, relatórios. Não iniciados; é a próxima tranche depois de UX-7/UX-8.
+  configurações, informes, histórico, relatórios. Não iniciados; é a próxima tranche e só abre com a
+  tua palavra.
 
 **Dívidas datadas que ficam registradas, não consertadas**
 
@@ -103,10 +107,7 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
 
 ## 4. Estado da árvore
 
-`HEAD c2f9a0c`, **17 commits locais à frente** de `origin/integration/functional-spec-v1` (mais o commit
-de documentação que publica este arquivo), nenhum enviado. **UX-7 commitado** em `c2f9a0c` — código,
-régua e teste no mesmo commit, `test:ci` **226/226** e `verify.sh web` `EXIT=0`. Árvore de trabalho com
-**3 arquivos sujos da régua do UX-8** (`e2e/helpers/reliability-fixtures.ts` não rastreado,
-`e2e/reliability-panel.spec.ts` e `e2e/contrast-tokens.spec.ts` modificados) — a régua está vermelha
-com `.reliability-pill` a **2,80** no escuro, e o passe é do @executor.
-`main` intocada, sem merge.
+`HEAD 06e572a`, **22 commits locais à frente** de `origin/integration/functional-spec-v1` (mais o commit
+de documentação que publica este arquivo), nenhum enviado. **UX-8 commitado** — passe em
+`9d6cf37`/`59a4480`, régua em `67088c3`/`06e572a`; `test:ci` **226/226**, `verify.sh web` `EXIT=0`.
+**Árvore limpa**, nada pendente de código ou teste. `main` intocada, sem merge.
