@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { syntheticAdmin } from './helpers/synthetic-admin';
+import { fixtureSql, syntheticAdmin } from './helpers/synthetic-admin';
 
 /**
  * UXH-09 — passada 2: câmera alterada e prova espacial em HTTP.
@@ -113,7 +113,47 @@ test('UXH-09: consulta por área leva a caixa e não devolve registro fora dela'
   expect(caixa.west).toBeLessThan(caixa.east);
   expect(caixa.south).toBeLessThan(caixa.north);
 
-  const resposta = await pedido.response();
+  // ANTI-VACUIDADE nos dois sentidos. `occurred_at` fica UMA HORA atrás porque no
+  // caminho API a janela de período é congelada na carga da página (app.ts:635):
+  // semente com `now()` nasce depois do `periodEnd` e a consulta não a vê — nem
+  // a de dentro. Com a âncora certa, os dois são elegíveis por status, categoria
+  // e janela, e só a coordenada os separa.
+  const dentroId = 'vu09-e2e-dentro';
+  const foraId = 'vu09-e2e-fora';
+  const centroLon = (caixa.west + caixa.east) / 2;
+  const centroLat = (caixa.south + caixa.north) / 2;
+  fixtureSql(
+    `
+    SET session_replication_role = replica;
+    DELETE FROM publication_versions WHERE occurrence_id IN ('${dentroId}','${foraId}');
+    DELETE FROM occurrences WHERE id IN ('${dentroId}','${foraId}');
+    DELETE FROM happenings WHERE id='vu09-e2e-happening';
+    SET session_replication_role = origin;
+    INSERT INTO happenings (id, title, description)
+      VALUES ('vu09-e2e-happening', 'Acontecimento sintético 09', 'Contexto do recorte por área.');
+    INSERT INTO occurrences (id, happening_id, title, description, category, occurrence_type, subtype,
+        situation, reliability_score, municipality, neighborhood, location_precision, location,
+        occurred_at, publication_status)
+      VALUES
+        ('${dentroId}', 'vu09-e2e-happening', 'Dentro da área', 'Registro dentro da caixa.',
+         'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3, 'Rio de Janeiro', 'Centro', 'POINT',
+         ST_SetSRID(ST_MakePoint(${centroLon}, ${centroLat}), 4326)::geography,
+         now() - interval '1 hour', 'PUBLISHED'),
+        ('${foraId}', 'vu09-e2e-happening', 'Fora da área', 'Registro fora da caixa.',
+         'TRANSITO', 'ACIDENTE', 'COLISAO', 'UNKNOWN', 3, 'Rio de Janeiro', 'Centro', 'POINT',
+         ST_SetSRID(ST_MakePoint(${caixa.east + 1}, ${caixa.north + 1}), 4326)::geography,
+         now() - interval '1 hour', 'PUBLISHED');
+  `,
+  );
+
+  const recaptura = page.waitForRequest(
+    (requisicao) =>
+      requisicao.url().includes('/api/v1/occurrences') && requisicao.url().includes('west='),
+    { timeout: 20_000 },
+  );
+  await page.getByRole('button', { name: 'Buscar nesta área' }).click({ timeout: 5000 });
+  const pedido2 = await recaptura;
+  const resposta = await pedido2.response();
   expect(resposta, 'requisição de área sem resposta').toBeTruthy();
   const corpo = (await resposta!.json()) as unknown;
   const itens: Array<Record<string, unknown>> = Array.isArray(corpo)
@@ -142,6 +182,13 @@ test('UXH-09: consulta por área leva a caixa e não devolve registro fora dela'
   expect(fora.length, `registros fora da área aplicada: ${JSON.stringify(fora.slice(0, 3))}`).toBe(
     0,
   );
+
+  // A prova só vale com o par: os dois registros têm versão publicada e estão na
+  // janela, então a única diferença entre eles é a coordenada.
+  const ids = itens.map((item) => String(item['id'] ?? ''));
+  console.log(`ids devolvidos: ${JSON.stringify(ids)}`);
+  expect(ids, 'registro com versão publicada DENTRO da área não foi devolvido').toContain(dentroId);
+  expect(ids, 'registro com versão publicada FORA da área foi devolvido').not.toContain(foraId);
 });
 
 /**
