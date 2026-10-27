@@ -1,4 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
+import { syntheticAdmin, syntheticDatabaseContainer } from './helpers/synthetic-admin';
+import {
+  CONTAINER as CONTAINER_UX8,
+  openSourcesView,
+  resetFixture,
+  seedFixture,
+  seedShortSample,
+} from './helpers/reliability-fixtures';
 
 /**
  * Contraste real dos pares que o UX-1b criou e dos contornos que o UX-1c
@@ -525,4 +533,45 @@ test('UX-9: o chip selecionado é mais forte que o de repouso e passa 3:1 no pr�
   console.log(
     `escuro: repouso=${repousoEscuro.contraste}:1  selecionado=${selecionadoEscuro.contraste}:1 (os dois sobre --color-bg-surface)`,
   );
+});
+
+/**
+ * UX-8 — painel de confiabilidade, tema escuro.
+ *
+ * Ruling: texto ≥ 4,5:1; indicador gráfico que codifica nota/estado ≥ 3:1.
+ * Moldura de cartão (1,62) **não** entra — 1.4.11 pede 3:1 para o que
+ * identifica componente ou estado, e a borda de contêiner não identifica nada.
+ *
+ * As fixtures vêm de `helpers/reliability-fixtures.ts`, as mesmas do
+ * `reliability-panel.spec.ts`: sem elas o painel só renderiza "sem dados" e a
+ * nota, que é o objeto da medida, não existe.
+ */
+test('UX-8: nota e estado do painel de confiabilidade contrastam no escuro', async ({
+  page,
+  request,
+}) => {
+  test.skip(
+    process.env['VETOR_ACCOUNTS_E2E'] !== '1',
+    'Exige API em 127.0.0.1:8080 e a família sintética em 55442.',
+  );
+  // A sessão sintética do `beforeEach` é de demonstração: aqui precisa de admin real.
+  await page.unroute('**/api/v1/auth/session');
+  await page.unroute('**/api/v1/auth/access/**');
+  syntheticDatabaseContainer(CONTAINER_UX8);
+  resetFixture();
+  await syntheticAdmin(page, request, CONTAINER_UX8);
+  seedFixture();
+  seedShortSample();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openSourcesView(page);
+  await expect(page.locator('.reliability-panel')).toBeVisible();
+  await expect(page.locator('.reliability-pill').first()).toBeVisible();
+
+  const alvos: Alvo[] = [
+    { seletor: '.reliability-pill', tipo: 'texto' },
+    { seletor: '.reliability-pill.warn', tipo: 'texto' },
+  ];
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
+  await trocarTema(page, 'dark');
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'dark');
 });
