@@ -3047,6 +3047,53 @@
       @if (activeView() === 'account') {
         <app-self-account />
       }
+      @if (activeView() === 'logs' || activeView() === 'sources') {
+        <!-- UXH-11: moldura de Configurações. Os dois destinos e a saída existem para os
+             dois papéis; quem é USER vê o estado de acesso restrito abaixo, porque o
+             backend já responde 403 e a tela não pode fingir que a área abriu. -->
+        <section
+          class="admin-frame"
+          [attr.data-vu-admin-section]="activeView() === 'logs' ? 'logs' : 'fontes'"
+        >
+          <button type="button" class="nav-link" data-vu-admin-back (click)="openView('map')">
+            Voltar ao aplicativo
+          </button>
+          <nav class="admin-nav" data-vu-admin-nav aria-label="Configurações">
+            <button
+              type="button"
+              class="nav-link"
+              [class.is-active]="activeView() === 'sources'"
+              [attr.aria-current]="activeView() === 'sources' ? 'page' : null"
+              (click)="openView('sources')"
+            >
+              Fontes
+            </button>
+            <button
+              type="button"
+              class="nav-link"
+              [class.is-active]="activeView() === 'logs'"
+              [attr.aria-current]="activeView() === 'logs' ? 'page' : null"
+              (click)="openView('logs')"
+            >
+              Logs administrativos
+            </button>
+          </nav>
+          @if (!isAdminSession() || adminAccessDenied()) {
+            <div class="admin-restricted" role="status" data-vu-admin-restricted>
+              @if (isAdminSession()) {
+                <strong>Acesso não autorizado a esta seção</strong>
+                <p>{{ adminAccessReason() }}</p>
+              } @else {
+                <strong>Esta área é restrita a administração</strong>
+                <p>
+                  Sua conta não tem permissão para abrir Configurações. Os dados continuam
+                  disponíveis nas telas de consulta.
+                </p>
+              }
+            </div>
+          }
+        </section>
+      }
       @if (activeView() === 'logs') {
         <app-audit-log />
       }

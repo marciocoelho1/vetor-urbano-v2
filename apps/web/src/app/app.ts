@@ -517,6 +517,12 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly session = inject(Session);
   protected readonly verifications = inject(VerificationSelection);
   protected readonly publicView = computed(() => PUBLIC_VIEWS.includes(this.activeView()));
+  /** UXH-11: ADMIN é quem vê o conteúdo de Configurações; USER vê o estado restrito. */
+  protected readonly isAdminSession = computed(() => this.session.state()?.role === 'ADMIN');
+  /** Motivo exibido quando o servidor nega a seção de administração (403). */
+  protected readonly adminAccessDenied = signal(false);
+  protected readonly adminAccessReason = signal('');
+
   protected readonly moduleAllowed = computed(
     () =>
       Boolean(this.session.state()?.authenticated) &&
@@ -2086,8 +2092,17 @@ export class App implements AfterViewInit, OnDestroy {
       } catch (error) {
         this.session.message.set(error instanceof Error ? error.message : 'Acesso indisponível.');
         this.session.failed.set(true);
-        if (!this.session.state()?.authenticated || this.session.state()?.role !== 'ADMIN')
+        // UXH-11: SÓ 401 (sessão ausente) volta ao mapa. Negação de autorização (403)
+        // mantém a view e mostra o motivo — recuar sem explicação escondia a regra do
+        // servidor e derrubava a moldura inteira de Configurações junto.
+        if (!this.session.state()?.authenticated) {
           this.activeView.set('map');
+        } else {
+          this.adminAccessDenied.set(true);
+          this.adminAccessReason.set(
+            error instanceof Error ? error.message : 'Acesso restrito a administração.',
+          );
+        }
         setTimeout(() => document.getElementById('access-result')?.focus());
         return;
       }
