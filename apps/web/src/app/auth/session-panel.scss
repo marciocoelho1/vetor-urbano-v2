@@ -4,8 +4,11 @@
 }
 .account-shell {
   width: min(100%, 560px);
-  margin: 24px auto;
-  padding: 24px;
+  margin: var(--vu-space-3) auto;
+  // UXH-08: com o documento curto, o último alvo desta tela pousava a 4 px da pílula
+  // fixa «Mais». O recuo do topo usa token e devolve a folga de 8 px sem mexer em
+  // barra, folha ou altura de documento.
+  padding: var(--vu-space-4);
   box-sizing: border-box;
 }
 form {
@@ -17,4 +20,16 @@ a {
   display: inline-flex;
   align-items: center;
   min-height: var(--vu-target);
+}
+
+// UXH-08: a barra fixa e a pílula da folha cobrem o fim desta tela; a reserva usa os
+// mesmos tokens da barra (nada de número solto) para o último alvo não encostar nela.
+@media (max-width: 768px) {
+  .account-shell {
+    // Padding, não margem: margem não cria espaço no fluxo do contêiner e não move
+    // o último alvo. É o elemento que encerra o documento que precisa da reserva.
+    padding-bottom: calc(
+      var(--vu-bottom-bar-height, 61px) + var(--vu-sheet-gap) + var(--vu-target) + var(--vu-space-2)
+    );
+  }
 }

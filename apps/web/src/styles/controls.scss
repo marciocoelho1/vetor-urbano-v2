@@ -1302,3 +1302,27 @@ app-root {
     }
   }
 }
+
+// UXH-08: barra de ferramentas acima do grid do workspace e paginação da lista.
+.map-layout > .workspace-tools {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vu-space-3);
+}
+
+.results-panel .result-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vu-space-3);
+  padding: var(--vu-space-3) var(--result-inset, 14px);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.results-panel .result-pagination-status {
+  color: var(--color-text-muted);
+  font-size: var(--vu-text-sm);
+}

@@ -176,6 +176,29 @@
             <p class="hero-aside">Explore ocorrências por território, período e tipo.</p>
           </header>
 
+          <ng-template #mapTools>
+            <section class="workspace-tools" aria-label="Ferramentas do mapa e camadas">
+              <button class="map-tool-button" type="button" (click)="applyVisibleQueryArea()">
+                Buscar nesta área
+              </button>
+              <button
+                class="heatmap-button"
+                [class.is-on]="heatmap()"
+                (click)="toggleHeatmap()"
+                [attr.aria-pressed]="heatmap()"
+              >
+                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
+                >{{ heatmap() ? 'Ver marcadores' : 'Ver mancha térmica' }}
+              </button>
+              <label class="risk-layer-toggle"
+                ><input
+                  type="checkbox"
+                  [checked]="territorySelected()"
+                  (change)="toggleRiskLayer()"
+                />Exibir Áreas de Risco</label
+              >
+            </section>
+          </ng-template>
           <ng-template #quickFilters>
             <section class="quick-filters" aria-label="Filtros rápidos">
               <span class="quick-filter-label"
@@ -219,13 +242,6 @@
                   }
                 </select></label
               >
-              <label class="risk-layer-toggle"
-                ><input
-                  type="checkbox"
-                  [checked]="territorySelected()"
-                  (change)="toggleRiskLayer()"
-                />Exibir Áreas de Risco</label
-              >
               <button
                 type="button"
                 class="map-tool-button"
@@ -234,15 +250,6 @@
                 data-testid="refresh-query-btn"
               >
                 Atualizar
-              </button>
-              <button
-                class="heatmap-button"
-                [class.is-on]="heatmap()"
-                (click)="toggleHeatmap()"
-                [attr.aria-pressed]="heatmap()"
-              >
-                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#layers" /></svg
-                >{{ heatmap() ? 'Ver marcadores' : 'Ver mancha térmica' }}
               </button>
             </section>
           </ng-template>
@@ -352,6 +359,7 @@
             [class.filters-collapsed]="filtersCollapsed()"
             [class.map-expanded]="mapExpanded()"
           >
+            <ng-container [ngTemplateOutlet]="mapTools" />
             <section id="consultation-map" class="map-column" aria-label="Mapa e resultados">
               <div class="map-meta-bar">
                 <div>
@@ -953,6 +961,7 @@
                     >
                   </aside>
                   @if (mapExpanded()) {
+                    <ng-container [ngTemplateOutlet]="mapTools" />
                     <ng-container [ngTemplateOutlet]="quickFilters" />
                   }
                   @if (!mapReady() && !mapError()) {
@@ -1206,9 +1215,6 @@
                   Recortes e referências sintéticos; sem geocodificador ou limites oficiais.
                   Exemplos: Central do Brasil e Fora do recorte.
                 </p>
-                <button class="map-tool-button" type="button" (click)="applyVisibleQueryArea()">
-                  Usar área visível
-                </button>
                 @if (spatialQueryNotice()) {
                   <p class="query-note" role="status">{{ spatialQueryNotice() }}</p>
                 }
@@ -1581,7 +1587,7 @@
                   </div>
                 } @else if (visiblePoints().length) {
                   <ul class="result-list">
-                    @for (point of visiblePoints(); track point.id) {
+                    @for (point of pagedResults(); track point.id) {
                       <li>
                         <button
                           class="result-item"
@@ -1664,6 +1670,34 @@
                       </li>
                     }
                   </ul>
+                  @if (resultPageCount() > 1) {
+                    <nav
+                      class="result-pagination"
+                      data-testid="result-pagination"
+                      aria-label="Paginação dos resultados"
+                    >
+                      <button
+                        type="button"
+                        class="map-tool-button"
+                        [disabled]="resultPage() === 0"
+                        (click)="goToResultPage(resultPage() - 1)"
+                      >
+                        Anterior
+                      </button>
+                      <span class="result-pagination-status"
+                        >Página {{ resultPage() + 1 }} de {{ resultPageCount() }} ·
+                        {{ visiblePoints().length }} itens</span
+                      >
+                      <button
+                        type="button"
+                        class="map-tool-button"
+                        [disabled]="resultPage() + 1 >= resultPageCount()"
+                        (click)="goToResultPage(resultPage() + 1)"
+                      >
+                        Próxima
+                      </button>
+                    </nav>
+                  }
                 } @else {
                   <div class="empty-state" data-testid="consultation-empty">
                     <span aria-hidden="true">⌕</span>

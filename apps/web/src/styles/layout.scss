@@ -1117,6 +1117,12 @@
       justify-content: start;
       gap: 12px;
       padding-block: 23px;
+      // UXH-08: com a lista paginada o rodapé passou a alcançar a área da barra
+      // inferior e os links ficavam por baixo do FAB/folha (0 px de separação
+      // medidos pela régua do UX-3). Reserva a altura do shell fixo.
+      padding-bottom: calc(
+        var(--vu-bottom-bar-height, 61px) + var(--vu-sheet-gap, 12px) + var(--vu-space-3)
+      );
     }
     .footer-brand {
       width: 100%;
@@ -1169,9 +1175,39 @@
     .topbar-actions {
       display: none;
     }
+    // UXH-08: a barra fixa cobre o fim do documento. A reserva substitui os três
+    // tokens fixos (que não conheciam a barra) pela altura medida em runtime +
+    // a folga da folha, para o rodapé parar acima da barra na rolagem máxima.
+    // A reserva cobre a barra (61) + a folga da folha (12) + a pílula recolhida
+    // (44) + 8 de separação: só a barra deixava o rodapé sob a pílula.
     .main-content {
-      padding-bottom: calc(var(--vu-target-comfortable) + var(--vu-target) + var(--vu-space-6));
+      padding-bottom: calc(
+        var(--vu-bottom-bar-height, 61px) + var(--vu-sheet-gap) + var(--vu-target) +
+          var(--vu-space-2)
+      );
     }
+    // `padding` resolve a rolagem máxima; `scroll-margin` resolve a rolagem PARA o
+    // rodapé (âncora/scrollIntoView), onde o link pousa exatamente sob a barra.
+    .site-footer,
+    .site-footer a {
+      scroll-margin-block-end: calc(
+        var(--vu-bottom-bar-height, 61px) + var(--vu-sheet-gap) + var(--vu-target) +
+          var(--vu-space-2)
+      );
+    }
+    // `main` tem altura fixa (782 de 844) e o conteúdo transborda dele: reserva em `main`
+    // cai no fim da CAIXA, não no fim do documento. Quem termina o documento é o rodapé,
+    // então a reserva vive aqui — é a barra fixa que a exige, não estética.
+    .site-footer {
+      padding-bottom: calc(
+        var(--vu-bottom-bar-height, 61px) + var(--vu-sheet-gap) + var(--vu-target) +
+          var(--vu-space-2)
+      );
+    }
+    // UXH-08: enquanto o documento couber na tela, o fim dele fica atrás da barra
+    // fixa — e o rodapé (que é o fim) pousa sob a folha e o FAB. Reservar no fim do
+    // documento não move o conteúdo que JÁ está no viewport; o que resolve é o
+    // documento ser mais alto que a tela, com a barra descontada.
     .vu-shell {
       position: fixed;
       inset: auto 0 0 0;
@@ -1272,7 +1308,8 @@
       display: grid;
       grid-auto-flow: column;
       grid-auto-columns: minmax(0, 1fr);
-      gap: var(--vu-space-1);
+      // UXH-08: a 320 os cinco destinos ficavam a 4 px um do outro — o UX-3 exige 8.
+      gap: var(--vu-space-2);
       z-index: 940;
       padding: var(--vu-space-2) var(--vu-space-2)
         calc(var(--vu-space-2) + env(safe-area-inset-bottom, 0px));

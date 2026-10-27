@@ -1713,6 +1713,24 @@ export class App implements AfterViewInit, OnDestroy {
     ).reduce((count, group) => count + group.count, 0),
   );
 
+  /** Quantos resultados por página na lista do workspace. */
+  protected readonly resultadoPorPagina = 10;
+  protected readonly resultPage = signal(0);
+  protected readonly resultPageCount = computed(() =>
+    Math.max(1, Math.ceil(this.visiblePoints().length / this.resultadoPorPagina)),
+  );
+  protected readonly pagedResults = computed(() => {
+    const pagina = Math.min(this.resultPage(), this.resultPageCount() - 1);
+    const inicio = pagina * this.resultadoPorPagina;
+    return this.visiblePoints().slice(inicio, inicio + this.resultadoPorPagina);
+  });
+
+  protected goToResultPage(pagina: number): void {
+    const alvo = Math.min(Math.max(0, pagina), this.resultPageCount() - 1);
+    this.resultPage.set(alvo);
+    document.querySelector<HTMLElement>('.result-list')?.scrollTo?.({ top: 0 });
+  }
+
   protected readonly eventCount = computed(
     () => this.visiblePoints().filter((point) => point.kind === 'occurrence').length,
   );
@@ -1960,10 +1978,13 @@ export class App implements AfterViewInit, OnDestroy {
     // UX-6: a folha assenta em `altura medida da barra + --vu-sheet-gap`. A altura
     // vem do DOM em runtime — o CSS não guarda 56 nem 61 em lugar nenhum.
     const barra = document.querySelector('[data-vu="bottom-bar"]');
-    const shell = barra?.closest('.vu-shell') as HTMLElement | null;
-    if (barra && shell) {
+    if (barra) {
+      // Publicada no `documentElement`, não no `.vu-shell`: `main` não está dentro do
+      // shell e é ele que precisa da reserva (`padding-bottom`), além da folha e do FAB.
+      // Uma fonte só da medida — duas é como se cria divergência de 12 px.
+      const raiz = document.documentElement;
       const medir = (): void =>
-        shell.style.setProperty(
+        raiz.style.setProperty(
           '--vu-bottom-bar-height',
           `${barra.getBoundingClientRect().height.toFixed(1)}px`,
         );
@@ -2802,6 +2823,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected refreshLocalQuery(): void {
+    this.resultPage.set(0);
     this.pendingUpdateAvailable.set(false);
     this.queryError.set(false);
     this.queryErrorMessage.set('');

@@ -119,6 +119,18 @@ function medirAlvos42(entrada: { seletor: string; minimo: number; separacao: num
       const a = alvos[i];
       const b = alvos[j];
       if (a.elemento.contains(b.elemento) || b.elemento.contains(a.elemento)) continue;
+      // Exclusão nomeada (ruling de 26/10): o par "rodapé × barra fixa" não é disputa de
+      // toque — o rodapé é fim de página, e qualquer chrome fixo cobre o fim do documento
+      // no scroll 0. O alcance de cada link é PROVADO no caso próprio (`elementFromPoint`),
+      // não presumido aqui. Esta exclusão vale só para este par; "≥8 px" segue para todo o resto.
+      const noRodape = (elemento: Element): boolean =>
+        Boolean(elemento.closest('footer.site-footer'));
+      const noShellFixo = (elemento: Element): boolean => Boolean(elemento.closest('.vu-shell'));
+      if (
+        (noRodape(a.elemento) && noShellFixo(b.elemento)) ||
+        (noRodape(b.elemento) && noShellFixo(a.elemento))
+      )
+        continue;
       const ca = a.elemento.getBoundingClientRect();
       const cb = b.elemento.getBoundingClientRect();
       const dx = Math.max(0, Math.max(ca.left, cb.left) - Math.min(ca.right, cb.right));
@@ -261,3 +273,34 @@ test('controle negativo: alvo de 24px e par a 2px reprovam a régua', async ({ p
   );
   expect(comEstouro.rolagemHorizontal.estoura, 'a régua não viu o estouro horizontal').toBe(true);
 });
+
+for (const largura of [320, 390]) {
+  test(`UX-3: todo link do rodapé é alcançável a ${largura} — o chrome fixo não o cobre`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: largura, height: largura === 320 ? 720 : 844 });
+    await page.goto('/');
+    await expect(page.locator('main')).toBeVisible();
+    const bloqueados = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll('footer.site-footer a')) as HTMLElement[];
+      const falhas: string[] = [];
+      for (const link of links) {
+        link.scrollIntoView({ block: 'end' });
+        const caixa = link.getBoundingClientRect();
+        const alvo = document.elementFromPoint(
+          caixa.left + caixa.width / 2,
+          caixa.top + caixa.height / 2,
+        );
+        if (alvo !== link && !link.contains(alvo))
+          falhas.push(
+            `${(link.textContent ?? '').trim()} → ${(alvo as HTMLElement | null)?.className ?? alvo?.tagName ?? 'null'}`,
+          );
+      }
+      return falhas;
+    });
+    console.log(`links do rodapé cobertos a ${largura}px: ${JSON.stringify(bloqueados)}`);
+    // O mesmo instrumento do hit-test do UX-6, no sentido oposto: em vez de provar que a
+    // folha cobre a barra, prova que a barra NÃO cobre o rodapé.
+    expect(bloqueados, `links do rodapé cobertos pelo chrome fixo a ${largura}px`).toEqual([]);
+  });
+}

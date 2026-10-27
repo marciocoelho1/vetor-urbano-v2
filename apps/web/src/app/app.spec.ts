@@ -672,6 +672,20 @@ describe('Vetor Urbano', () => {
 
     expect(fixture.nativeElement.querySelector('.result-total strong').textContent).toBe('17');
     expect(fixture.nativeElement.textContent).toContain('18 itens');
+    // A lista é paginada (UXH-08): o ponto de informação pode estar fora da primeira
+    // página, então a asserção navega até a página que o contém em vez de supor que
+    // todos os 18 itens estão renderizados de uma vez.
+    const app = fixture.componentInstance as unknown as {
+      visiblePoints: () => { id: string; name: string }[];
+      resultadoPorPagina: number;
+      goToResultPage: (pagina: number) => void;
+    };
+    const indice = app
+      .visiblePoints()
+      .findIndex((point) => point.name === 'Unidade de saúde demonstrativa');
+    expect(indice, 'ponto de informação ausente do recorte').toBeGreaterThanOrEqual(0);
+    app.goToResultPage(Math.floor(indice / app.resultadoPorPagina));
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Unidade de saúde demonstrativa');
   });
 
