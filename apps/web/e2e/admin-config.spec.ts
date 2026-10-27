@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { confirmedUser } from './helpers/local-account';
+import { confirmedUser, testPassword } from './helpers/local-account';
 import { loginBrowser, syntheticAdmin } from './helpers/synthetic-admin';
 
 /**
@@ -33,6 +33,11 @@ async function abrirDemo(page: Page): Promise<void> {
   };
   await page.route('**/api/v1/auth/session', (rota) => rota.fulfill({ json: sessao }));
   await page.route('**/api/v1/auth/access/**', (rota) => rota.fulfill({ json: sessao }));
+  // Sem isto, `admin/logs` bate no 8080 real sem cookie, recebe 401 e o app limpa
+  // a sessão mockada — 401 de instrumento, não de produto.
+  await page.route('**/api/v1/admin/**', (rota) =>
+    rota.fulfill({ status: 200, json: { items: [], total: 0 } }),
+  );
   await page.addInitScript(() =>
     Object.defineProperty(window, 'WebGL2RenderingContext', {
       configurable: true,
@@ -68,6 +73,16 @@ async function abrirFontes(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Fontes', exact: true }).first().click();
   }
   await page.waitForTimeout(400);
+}
+
+/** Entra na superfície de Logs pelo caminho real (a aplicação não tem rota por URL). */
+async function abrirLogs(page: Page): Promise<void> {
+  await abrirFontes(page);
+  const destino = page.locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button', {
+    hasText: 'Logs',
+  });
+  await destino.first().click();
+  await page.waitForTimeout(300);
 }
 
 async function abrirFolha(page: Page): Promise<void> {
@@ -183,11 +198,39 @@ test('UXH-11: a seção monta pelo caminho da aplicação e «Voltar» vem prime
     expect(ativo, `nenhum destino marcado como ativo após «${nome}»`).toBe(1);
     const voltar = page.locator('[data-vu-admin-back]');
     await expect(voltar, '«Voltar ao aplicativo» ausente').toHaveCount(1);
-    await voltar.first().focus();
-    const primeiro = await page.evaluate(() =>
-      (document.activeElement as HTMLElement | null)?.hasAttribute('data-vu-admin-back'),
+
+    // Estabilidade: o botão é recriado a cada ciclo? Três amostras com folga.
+    const amostras: number[] = [];
+    for (let s = 0; s < 3; s += 1) {
+      amostras.push(await page.locator('[data-vu-admin-back]').count());
+      await page.waitForTimeout(120);
+    }
+
+    // "Primeiro no foco" se mede por ORDEM, não por um .focus() que espera
+    // actionability — o `.focus()` do Playwright travou 90 s aqui.
+    const ordem = await page.evaluate(() => {
+      const back = document.querySelector('[data-vu-admin-back]') as HTMLElement | null;
+      if (!back) return null;
+      const raiz = back.closest('section') ?? document.body;
+      const focaveis = Array.from(
+        raiz.querySelectorAll<HTMLElement>(
+          'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+      back.focus();
+      return {
+        primeiroFocavel: focaveis[0] === back,
+        nomePrimeiro: (focaveis[0]?.textContent ?? '').trim().slice(0, 40),
+        totalFocaveis: focaveis.length,
+        focoAssentou: document.activeElement === back,
+      };
+    });
+    console.log(
+      `  «${nome}» · back amostrado ${JSON.stringify(amostras)} · ${JSON.stringify(ordem)}`,
     );
-    expect(primeiro, '«Voltar ao aplicativo» não recebe foco').toBe(true);
+    expect(ordem, 'moldura sem «Voltar» no instante da leitura').not.toBeNull();
+    expect(ordem!.primeiroFocavel, `primeiro focável é "${ordem!.nomePrimeiro}"`).toBe(true);
+    expect(ordem!.focoAssentou, 'o foco programático não assenta no «Voltar»').toBe(true);
   }
 });
 
@@ -218,6 +261,8 @@ test('UXH-11: USER não recebe destino de administração na navegação', async
   console.log(`USER: nav=${nav} · destino Logs=${logs} · marcador de restrito=${restrito}`);
   expect(nav, 'USER recebeu a navegação de administração').toBe(0);
   expect(logs, 'USER recebeu o destino «Logs administrativos»').toBe(0);
+  // Contador sem asserção é vacância: sem moldura, não há marcador de restrito a mostrar.
+  expect(restrito, 'USER recebeu o marcador de acesso restrito sem ter moldura').toBe(0);
 });
 
 test('UXH-11: trocar de seção com edição suja pede descarte, e Escape cancela', async ({
@@ -317,8 +362,8 @@ test('UXH-11: vazio de Logs é diferente de falha, e o vazio traz ação primár
   await page.route('**/api/v1/admin/logs**', (rota) =>
     rota.fulfill({ status: 200, json: { items: [], total: 0 } }),
   );
-  await page.goto('/#logs');
-  await page.waitForTimeout(500);
+  await abrirDemo(page);
+  await abrirLogs(page);
   const vazio = (await page.locator('[data-vu-admin-section="logs"]').textContent()) ?? '';
   console.log(`texto do vazio: "${vazio.trim().slice(0, 90)}"`);
   expect(vazio.trim().length, 'vazio de Logs sem mensagem').toBeGreaterThan(0);
@@ -332,8 +377,9 @@ test('UXH-11: vazio de Logs é diferente de falha, e o vazio traz ação primár
   await page.route('**/api/v1/admin/logs**', (rota) =>
     rota.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } }),
   );
-  await page.goto('/#logs');
-  await page.waitForTimeout(500);
+  await page.goto('/');
+  await page.reload();
+  await abrirLogs(page);
   const falha = (await page.locator('[data-vu-admin-section="logs"]').textContent()) ?? '';
   console.log(`texto da falha: "${falha.trim().slice(0, 90)}"`);
   expect(falha.trim(), 'falha de Logs sem mensagem própria').not.toBe(vazio.trim());
@@ -345,11 +391,14 @@ test('UXH-11: carregamento usa role=status e erro usa role=alert com tentar de n
   await abrirDemo(page);
   let liberar!: () => void;
   const portao = new Promise<void>((resolve) => (liberar = resolve));
+  await abrirDemo(page);
+  // Depois do abrirDemo: as rotas do Playwright são LIFO, e o mock de `/admin/**`
+  // registrado lá dentro venceria este.
   await page.route('**/api/v1/admin/logs**', async (rota) => {
     await portao;
     await rota.fulfill({ status: 503, json: { code: 'UNAVAILABLE' } });
   });
-  await page.goto('/#logs');
+  await abrirLogs(page);
   const status = page.locator('[data-vu-admin-section="logs"] [role="status"]');
   await expect(status, 'carregamento sem role="status"').toBeVisible({ timeout: 10_000 });
   liberar();
@@ -358,4 +407,178 @@ test('UXH-11: carregamento usa role=status e erro usa role=alert com tentar de n
   const tentar = alerta.getByRole('button', { name: /tentar|recarregar|novamente/i });
   await expect(tentar, 'alerta sem botão de tentar de novo').toHaveCount(1);
   console.log('carregando (status) e erro (alert + tentar de novo): ok');
+});
+
+test('UXH-11 diagnóstico: quais requisições respondem 401 a 390', async ({ page }) => {
+  await abrirDemo(page);
+  const registros: string[] = [];
+  page.on('response', (resposta) => {
+    const url = resposta.url();
+    if (!url.includes('/api/v1/')) return;
+    registros.push(`${resposta.status()} ${url.replace(/^https?:\/\/[^/]+/, '')}`);
+  });
+  await abrirFontes(page);
+  registros.push('--- clique em «Logs administrativos» ---');
+  const destino = page.locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button', {
+    hasText: 'Logs',
+  });
+  await destino.first().click();
+  await page.waitForTimeout(900);
+  const estado = await page.evaluate(() => ({
+    view: document.querySelector('.app-shell')?.getAttribute('data-vu-view'),
+    allowed: document.querySelector('.app-shell')?.getAttribute('data-vu-allowed'),
+    nav: document.querySelectorAll('[data-vu-admin-nav]').length,
+    back: document.querySelectorAll('[data-vu-admin-back]').length,
+  }));
+  console.log(`REQUISIÇÕES (${registros.length}):\n${registros.join('\n')}`);
+  console.log(`estado final: ${JSON.stringify(estado)}`);
+  const naoOk = registros.filter((r) => /^(4|5)/.test(r));
+  console.log(`não-2xx: ${JSON.stringify(naoOk)}`);
+});
+
+test('UXH-11: USER nunca vê moldura de administração, nem na primeira pintura', async ({
+  page,
+}) => {
+  // Ruling: "permissão presumida para quem não tem papel" é o que não pode existir.
+  // A observação é por MutationObserver, não por estado final: a primeira pintura é
+  // exatamente o instante que o estado final não mede.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __molduraApareceu?: string[] };
+    w.__molduraApareceu = [];
+    const anotar = () => {
+      if (
+        document.querySelector('[data-vu-admin-nav]') ||
+        document.querySelector('[data-vu-admin-back]')
+      ) {
+        w.__molduraApareceu!.push(new Date().toISOString());
+      }
+    };
+    new MutationObserver(anotar).observe(document, { childList: true, subtree: true });
+  });
+  await abrirDemo(page);
+  await page.unroute('**/api/v1/auth/session');
+  await page.route('**/api/v1/auth/session', (rota) =>
+    rota.fulfill({
+      json: {
+        code: 'SESSION',
+        message: 'Sessão sintética de USER',
+        authenticated: true,
+        role: 'USER',
+        csrfToken: 'synthetic-user',
+      },
+    }),
+  );
+  await page.route('**/api/v1/auth/access/**', (rota) =>
+    rota.fulfill({ status: 403, json: { code: 'ACCESS_DENIED' } }),
+  );
+  await page.route('**/api/v1/admin/**', (rota) =>
+    rota.fulfill({ status: 403, json: { code: 'ACCESS_DENIED' } }),
+  );
+  await page.goto('/');
+  await page.waitForTimeout(300);
+  await abrirFontes(page);
+  await page.waitForTimeout(600);
+  const apareceu = await page.evaluate(
+    () => (window as unknown as { __molduraApareceu?: string[] }).__molduraApareceu ?? [],
+  );
+  console.log(`USER · moldura apareceu ${apareceu.length} vez(es) na primeira pintura`);
+  expect(
+    apareceu.length,
+    `moldura de administração apareceu ${apareceu.length}× com sessão USER`,
+  ).toBe(0);
+});
+
+test('UXH-11: ADMIN com acesso negado vê estado restrito, com motivo e saída', async ({ page }) => {
+  await abrirDemo(page);
+  // Depois do abrirDemo (LIFO): `access/logs` negado, o resto liberado.
+  await page.route('**/api/v1/auth/access/logs', (rota) =>
+    rota.fulfill({ status: 403, json: { code: 'ACCESS_DENIED' } }),
+  );
+  await abrirFontes(page);
+  const destino = page.locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button', {
+    hasText: 'Logs',
+  });
+  await destino.first().click();
+  await page.waitForTimeout(500);
+  const restrito = page.locator('[data-vu-admin-restricted]');
+  await expect(restrito, 'negação de 403 não rendeu estado restrito').toBeVisible();
+  const texto = ((await restrito.textContent()) ?? '').trim().replace(/\s+/g, ' ');
+  console.log(`texto do restrito: "${texto.slice(0, 90)}"`);
+  expect(texto.length, 'estado restrito sem texto explicando o motivo').toBeGreaterThan(0);
+  const back = page.locator('[data-vu-admin-back]');
+  await expect(back, 'estado restrito sem «Voltar ao aplicativo»').toHaveCount(1);
+  await back.first().click();
+  await page.waitForTimeout(300);
+  const moldura = await page.locator('[data-vu-admin-nav]').count();
+  console.log(`após «Voltar»: moldura de administração = ${moldura}`);
+});
+
+test('UXH-11: permissão de módulo não sobrevive à troca de identidade a 390 (ADMIN → USER)', async ({
+  page,
+  request,
+}) => {
+  test.skip(!ADMIN, 'Exige API em 127.0.0.1:8080 e a família sintética em 55442.');
+  await page.addInitScript(() => {
+    const w = window as unknown as { __moldura?: string[] };
+    w.__moldura = [];
+    new MutationObserver(() => {
+      if (document.querySelector('[data-vu-admin-nav]')) w.__moldura!.push('1');
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await syntheticAdmin(page, request, 'vu-uxh01-five-db');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  await abrirFontes(page);
+
+  // 1) ADMIN aquece o cache de módulo abrindo Logs.
+  await page
+    .locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button', { hasText: 'Logs' })
+    .first()
+    .click();
+  await page.waitForTimeout(400);
+  const antes = await page.locator('[data-vu-admin-nav]').count();
+  console.log(`ADMIN com Logs aberto: moldura = ${antes}`);
+  expect(antes, 'ADMIN não abriu Logs — o cache não aqueceu e o caso seria vácuo').toBe(1);
+
+  // 2) Saída pela folha (o furo do @ux): em 390 esse é o único caminho.
+  await abrirFolha(page);
+  const sair = page.getByRole('button', { name: 'Sair', exact: true });
+  await expect(sair, '«Sair» não existe a 390 — ação perdida no móvel').toHaveCount(1);
+  await sair.first().click();
+  const formEntrada = page.getByLabel('E-mail', { exact: true });
+  await expect(formEntrada, 'a saída não devolveu a tela de entrada').toBeVisible({
+    timeout: 10_000,
+  });
+  console.log('«Sair» a 390 → tela de entrada');
+
+  // 3) USER entra na MESMA aba, sem recarregar.
+  const emailUsuario = await confirmedUser(request, 'troca-identidade');
+  await page.evaluate(() => {
+    (window as unknown as { __moldura?: string[] }).__moldura = [];
+  });
+  await formEntrada.fill(emailUsuario);
+  await page.getByLabel('Senha', { exact: true }).fill(testPassword);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await page.waitForTimeout(1200);
+
+  const moldura = await page.locator('[data-vu-admin-nav]').count();
+  const back = await page.locator('[data-vu-admin-back]').count();
+  const aparicoes = await page.evaluate(
+    () => ((window as unknown as { __moldura?: string[] }).__moldura ?? []).length,
+  );
+  console.log(`USER na mesma aba: moldura=${moldura} back=${back} · 1ª pintura=${aparicoes}`);
+  expect(moldura, 'USER herdou a moldura de administração do ADMIN anterior').toBe(0);
+  expect(back, 'USER herdou «Voltar ao aplicativo»').toBe(0);
+  expect(aparicoes, 'a moldura apareceu na primeira pintura depois da troca de identidade').toBe(0);
+});
+
+test('UXH-11: «Sair» é alcançável também a 1280 (topbar)', async ({ page, request }) => {
+  test.skip(!ADMIN, 'Exige API em 127.0.0.1:8080 e a família sintética em 55442.');
+  await syntheticAdmin(page, request, 'vu-uxh01-five-db');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(400);
+  const sair = page.getByRole('button', { name: 'Sair', exact: true });
+  await expect(sair, '«Sair» não alcançável a 1280').toHaveCount(1);
+  await expect(sair.first()).toBeInViewport({ ratio: 0.5 });
+  console.log('«Sair» a 1280: presente e no viewport');
 });

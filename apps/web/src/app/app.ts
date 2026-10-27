@@ -520,24 +520,38 @@ export class App implements AfterViewInit, OnDestroy {
   /** UXH-11: ADMIN é quem vê o conteúdo de Configurações; USER vê o estado restrito. */
   protected readonly isAdminSession = computed(() => this.session.state()?.role === 'ADMIN');
   /** Motivo exibido quando o servidor nega a seção de administração (403). */
+  /** Acesso por módulo, separado da identidade da sessão (ruling de 27/10). */
+  protected readonly moduleAccess = signal<Record<string, boolean>>({});
   protected readonly adminAccessDenied = signal(false);
   protected readonly adminAccessReason = signal('');
 
-  protected readonly moduleAllowed = computed(
-    () =>
-      Boolean(this.session.state()?.authenticated) &&
-      (!['sources', 'report', 'logs'].includes(this.activeView()) ||
-        this.session.state()?.role === 'ADMIN'),
-  );
+  protected readonly moduleAllowed = computed(() => {
+    const estado = this.session.state();
+    if (!estado?.authenticated) return false;
+    const view = this.activeView();
+    if (!['sources', 'report', 'logs'].includes(view)) return true;
+    // O gate LÊ a permissão de módulo que o `access/*` concedeu; a identidade é
+    // pré-requisito, não a resposta. Enquanto a requisição não voltou, vale o papel —
+    // o backend continua sendo quem nega, e a tela mostra o estado restrito.
+    const concedido = this.moduleAccess()[view];
+    return concedido ?? estado.role === 'ADMIN';
+  });
 
   @HostListener('window:vu-session-invalid')
   protected sessionInvalid(): void {
     this.session.clear();
     this.session.message.set('Sessão ausente ou expirada. Entre novamente.');
+    // Ruling 27/10: permissão de módulo não sobrevive à identidade que a concedeu.
+    this.moduleAccess.set({});
+    this.adminAccessDenied.set(false);
   }
 
   protected async logout(): Promise<void> {
     await this.session.perform('logout', {});
+    // Ruling 27/10: permissão de módulo não sobrevive à identidade que a concedeu —
+    // ADMIN → USER na mesma aba herdava a moldura de administração.
+    this.moduleAccess.set({});
+    this.adminAccessDenied.set(false);
     if (!this.session.state()) this.activeView.set('map');
     setTimeout(() => document.getElementById('access-result')?.focus());
   }
@@ -2070,6 +2084,11 @@ export class App implements AfterViewInit, OnDestroy {
     );
   }
 
+  protected logoutFromSheet(): void {
+    if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
+    void this.logout();
+  }
+
   protected openAccountFromSheet(): void {
     this.openView('account');
     if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
@@ -2085,19 +2104,30 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private async authorizeView(view: ViewId): Promise<void> {
+    // Foto do estado ANTES da requisição: a resposta de `access/*` é sobrescrita em
+    // `session.state` e não carrega `authenticated`/`role`, então ler o estado depois
+    // fazia o catch concluir "não é ADMIN" e recuar para o mapa — era isso que
+    // desmontava a moldura de Configurações ~120 ms depois do clique em Logs.
+    const sessaoAntes = this.session.state();
     if (!PUBLIC_VIEWS.includes(view) && !ACCOUNT_VIEWS.includes(view)) {
       try {
-        const reply = await this.session.request(`access/${view === 'map' ? 'query' : view}`);
-        this.session.state.set(reply);
+        await this.session.request(`access/${view === 'map' ? 'query' : view}`);
+        // Ruling de 27/10: a resposta de `access/*` diz "este módulo está liberado?",
+        // não "quem é você". Ela vive em `moduleAccess`, e o estado da sessão — que
+        // carrega identidade — não é tocado por chamada de módulo. Era a escrita
+        // cruzada que apagava `authenticated`/`role` e derrubava a moldura ~70 ms
+        // depois do clique.
+        this.moduleAccess.update((atual) => ({ ...atual, [view]: true }));
       } catch (error) {
         this.session.message.set(error instanceof Error ? error.message : 'Acesso indisponível.');
         this.session.failed.set(true);
         // UXH-11: SÓ 401 (sessão ausente) volta ao mapa. Negação de autorização (403)
         // mantém a view e mostra o motivo — recuar sem explicação escondia a regra do
         // servidor e derrubava a moldura inteira de Configurações junto.
-        if (!this.session.state()?.authenticated) {
+        if (!sessaoAntes?.authenticated) {
           this.activeView.set('map');
         } else {
+          this.session.state.set(sessaoAntes);
           this.adminAccessDenied.set(true);
           this.adminAccessReason.set(
             error instanceof Error ? error.message : 'Acesso restrito a administração.',

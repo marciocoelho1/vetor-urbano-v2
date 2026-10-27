@@ -1,5 +1,10 @@
 <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
-<div class="app-shell" [class.map-view]="activeView() === 'map'">
+<div
+  class="app-shell"
+  [class.map-view]="activeView() === 'map'"
+  [attr.data-vu-view]="activeView()"
+  [attr.data-vu-allowed]="moduleAllowed()"
+>
   <header class="topbar">
     <div class="topbar-inner">
       <a
@@ -3053,7 +3058,7 @@
              backend já responde 403 e a tela não pode fingir que a área abriu. -->
         <section
           class="admin-frame"
-          [attr.data-vu-admin-section]="activeView() === 'logs' ? 'logs' : 'fontes'"
+          [attr.data-vu-admin-section]="activeView() === 'sources' ? 'fontes' : null"
         >
           <button type="button" class="nav-link" data-vu-admin-back (click)="openView('map')">
             Voltar ao aplicativo
@@ -3095,7 +3100,15 @@
         </section>
       }
       @if (activeView() === 'logs') {
-        <app-audit-log />
+        <!-- UXH-11: a seção de Logs tem superfície própria. O hook da seção vive aqui,
+             não na moldura: assim ele descreve o destino real e não a navegação. -->
+        <section
+          class="admin-surface"
+          data-vu-admin-section="logs"
+          aria-label="Logs administrativos"
+        >
+          <app-audit-log />
+        </section>
       }
       @if (activeView() === 'sources') {
         @if (persistedQueryEnabled) {
@@ -4163,6 +4176,18 @@
               (click)="openAccountFromSheet()"
             >
               Minha conta
+            </button>
+          }
+          @if (session.state()) {
+            <!-- UXH-11: o único logout() do template vivia em .topbar-actions, que some
+                 abaixo de 768 — usuário autenticado no celular não encerrava sessão. -->
+            <button
+              class="vu-sheet-item"
+              type="button"
+              [disabled]="session.busy()"
+              (click)="logoutFromSheet()"
+            >
+              Sair
             </button>
           }
           <div class="vu-panel-triggers" role="group" aria-label="Painéis da folha">

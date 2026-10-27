@@ -38,7 +38,13 @@
     <p data-testid="audit-loading" role="status">Carregando registros…</p>
   }
   @if (error()) {
-    <p id="audit-error" data-testid="audit-error" role="alert" tabindex="-1">{{ error() }}</p>
+    <div class="query-error-state" role="alert" data-testid="audit-error" tabindex="-1">
+      <p>{{ error() }}</p>
+      <!-- UXH-11: o erro de Logs oferece a própria saída, como as outras telas. -->
+      <button type="button" class="empty-action-btn" (click)="reload()">
+        Tentar carregar novamente
+      </button>
+    </div>
   }
   @if (maintenanceFailed()) {
     <p role="alert">
