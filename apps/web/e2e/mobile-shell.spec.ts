@@ -19,6 +19,13 @@ import { expect, test, type Page } from '@playwright/test';
  *
  * Nada de literal: as alturas medidas vêm do DOM, e o teste imprime os números
  * para que o conserto use `--vu-target`/`--vu-sheet-gap`, não números soltos.
+ *
+ * REGRA DE CASA (27/10): asserção que depende de mudança de estado espera o
+ * **atributo de estado** (`data-vu-sheet-state`, `aria-expanded`, `data-theme`),
+ * nunca um tempo fixo nem "a linha seguinte". Três vezes a mesma classe nesta
+ * rodada: leitura no meio de `border-color .15s` (UX-9), folha em transição
+ * (UX-6) e folha após o clique com a conta dentro dela (UXH-07). O produto
+ * estava certo nas três; o instrumento é que lia antes do render.
  */
 
 const VIEWPORTS = [
@@ -266,6 +273,16 @@ test('UX-6: hit-test do centro da barra nos dois estados', async ({ page }) => {
   expect(recolhida?.naItem, 'recolhida: o centro da barra não acertou um item da barra').toBe(true);
 
   await page.locator('[data-vu="sheet-disclosure"]').first().click();
+  // Estado, não tempo: o clique resolve quando o evento é despachado, e
+  // `mobileSheet` chega ao template no ciclo de detecção de mudanças seguinte.
+  // Com a conta dentro da folha (UXH-07) o render ficou um ciclo mais caro e a
+  // leitura na linha seguinte passou a pegar `collapsed` — falso vermelho de
+  // instrumento, 27/10. Asserção que depende de mudança de estado espera o
+  // atributo de estado, nunca um tempo fixo.
+  await expect(page.locator('[data-vu="sheet"]')).toHaveAttribute(
+    'data-vu-sheet-state',
+    'expanded',
+  );
   const expandida = await alvo();
   const geometria = await page.evaluate(lerShell);
   console.log(
@@ -321,6 +338,16 @@ test('UX-6: z da barra ≤ 940 e da folha 950 / 1200 nos dois estados', async ({
   expect(zFolha, `z da folha colapsada ${zFolha} ≠ 950`).toBe(950);
 
   await page.locator('[data-vu="sheet-disclosure"]').first().click();
+  // Estado, não tempo: o clique resolve quando o evento é despachado, e
+  // `mobileSheet` chega ao template no ciclo de detecção de mudanças seguinte.
+  // Com a conta dentro da folha (UXH-07) o render ficou um ciclo mais caro e a
+  // leitura na linha seguinte passou a pegar `collapsed` — falso vermelho de
+  // instrumento, 27/10. Asserção que depende de mudança de estado espera o
+  // atributo de estado, nunca um tempo fixo.
+  await expect(page.locator('[data-vu="sheet"]')).toHaveAttribute(
+    'data-vu-sheet-state',
+    'expanded',
+  );
   const aberta = await page.evaluate(lerShell);
   console.log(`z expandida: folha ${aberta.folha.z} (${aberta.estado})`);
   expect(aberta.estado, 'estado depois do disclosure').toBe('expanded');
