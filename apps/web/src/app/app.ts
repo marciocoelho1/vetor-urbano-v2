@@ -2722,8 +2722,33 @@ export class App implements AfterViewInit, OnDestroy {
       );
       return;
     }
-    if (this.visibleOpenResultDetailCount() >= 5) return;
-    this.expandedResultDetailIds.set([...expanded, pointId]);
+    // UXH-12: UM detalhe por vez — abrir outro REMOVE o anterior do DOM (não esconde).
+    this.expandedResultDetailIds.set([pointId]);
+    // O <aside> tem tabindex="-1": sem receber o foco, o (keydown.escape) dele não
+    // recebe evento nenhum (keydown não borbulha por elemento fora do caminho do foco).
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(`[data-vu-detail="${CSS.escape(pointId)}"]`)
+        ?.focus({ preventScroll: true }),
+    );
+  }
+
+  /** UXH-12: fechamento explícito — foco de volta ao acionador e contexto preservado. */
+  protected closeResultDetail(pointId: string): void {
+    const lista = document.querySelector<HTMLElement>('.result-list');
+    const rolagem = lista?.scrollTop ?? 0;
+    this.expandedResultDetailIds.set(this.expandedResultDetailIds().filter((id) => id !== pointId));
+    this.relatedDetailIds.update((ids) => {
+      const copia = { ...ids };
+      delete copia[pointId];
+      return copia;
+    });
+    requestAnimationFrame(() => {
+      if (lista) lista.scrollTop = rolagem;
+      document
+        .querySelector<HTMLElement>(`[data-vu-detail-trigger="${CSS.escape(pointId)}"]`)
+        ?.focus({ preventScroll: true });
+    });
   }
 
   protected closeDetails(): void {

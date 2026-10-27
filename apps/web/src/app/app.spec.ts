@@ -1605,22 +1605,20 @@ describe('Vetor Urbano', () => {
     );
     expect(buttons.length).toBeGreaterThanOrEqual(6);
 
-    for (const button of buttons.slice(0, 5)) {
-      button!.click();
-      fixture.detectChanges();
-    }
-    expect(root.querySelectorAll('.result-inline-detail')).toHaveLength(5);
-    expect(buttons[5]?.disabled).toBe(true);
-    expect(root.querySelector('.results-detail-limit')?.textContent?.toLowerCase()).toContain(
-      'até 5 detalhes',
-    );
-
+    // UXH-12: um detalhe por vez — abrir outro REMOVE o anterior do DOM, e por isso
+    // não existe mais limite de cinco nem botão desabilitado.
     buttons[0]!.click();
     fixture.detectChanges();
-    expect(buttons[5]?.disabled).toBe(false);
-    buttons[5]!.click();
+    expect(root.querySelectorAll('.result-inline-detail')).toHaveLength(1);
+    expect(buttons[1]?.disabled).toBe(false);
+
+    buttons[1]!.click();
     fixture.detectChanges();
-    expect(root.querySelectorAll('.result-inline-detail')).toHaveLength(5);
+    const abertos = root.querySelectorAll('.result-inline-detail');
+    expect(abertos).toHaveLength(1);
+    expect((abertos[0] as HTMLElement).getAttribute('data-vu-detail')).toBe(
+      buttons[1]!.getAttribute('data-vu-detail-trigger'),
+    );
   });
 
   it('closes details hidden by filters before another result is opened', () => {

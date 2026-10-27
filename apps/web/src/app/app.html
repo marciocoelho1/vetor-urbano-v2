@@ -1639,6 +1639,7 @@
                         <button
                           class="record-detail-button"
                           type="button"
+                          [attr.data-vu-detail-trigger]="point.id"
                           [attr.data-result-detail-toggle]="point.id"
                           [attr.aria-expanded]="isResultDetailOpen(point.id)"
                           [attr.aria-controls]="'map-result-detail-' + point.id"
@@ -1652,15 +1653,19 @@
                         @if (isResultDetailOpen(point.id)) {
                           <aside
                             class="workspace-detail result-inline-detail"
+                            tabindex="-1"
+                            (keydown.escape)="closeResultDetail(point.id)"
                             [attr.id]="'map-result-detail-' + point.id"
+                            [attr.data-vu-detail]="point.id"
                             [attr.data-result-detail]="point.id"
                             [attr.aria-labelledby]="'map-result-detail-heading-' + point.id"
                           >
                             <button
                               class="detail-close"
                               type="button"
+                              data-vu-detail-close
                               [attr.aria-label]="'Fechar detalhes de ' + point.name"
-                              (click)="toggleResultDetails(point.id)"
+                              (click)="closeResultDetail(point.id)"
                             >
                               ×
                             </button>
