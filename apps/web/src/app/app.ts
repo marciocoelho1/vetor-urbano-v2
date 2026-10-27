@@ -1793,13 +1793,12 @@ export class App implements AfterViewInit, OnDestroy {
       if (isPlatformBrowser(this.platformId) && this.moduleAllowed() && !this.publicView()) {
         const view = this.activeView();
         requestAnimationFrame(() => {
-          const suppressTitleFocus = this.suppressViewTitleFocusFor === view;
-          if (suppressTitleFocus) this.suppressViewTitleFocusFor = null;
+          if (this.suppressViewTitleFocusFor === view) this.suppressViewTitleFocusFor = null;
           if (this.activeView() !== view) return;
           if (view === 'map' && !this.map && !this.fallbackMap) void this.initializeMap();
-          if (!suppressTitleFocus) {
-            document.querySelector<HTMLElement>(`[data-view-title="${view}"]`)?.focus();
-          }
+          // Sem foco no título aqui: na carga isto moveria o ponto de partida da navegação
+          // sequencial para dentro de `main` e o primeiro Tab perderia o skip link.
+          // Quem foca o título é a troca de view iniciada pelo usuário (`openView`).
         });
       }
     });
@@ -2016,6 +2015,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.destroyHeatOverlay();
     this.map?.remove();
     this.fallbackMap?.remove();
+  }
+
+  protected openAccountFromSheet(): void {
+    this.openView('account');
+    if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
   }
 
   protected toggleMobileSheet(): void {
