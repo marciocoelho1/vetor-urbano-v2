@@ -840,6 +840,21 @@ export class App implements AfterViewInit, OnDestroy {
     maxReliability: null,
     situation: '',
   });
+  /** UXH-14: o recorte que a consulta usa. Muda em «Aplicar filtros», não a cada campo.
+   *  Em demonstração (sem servidor) o recorte acompanha o formulário, para a lista responder. */
+  protected readonly historyAppliedFilters = signal<HistoryFilters>({
+    text: '',
+    periodStart: '',
+    periodEnd: '',
+    types: [],
+    subtypes: [],
+    municipality: '',
+    neighborhood: '',
+    sourceId: '',
+    minReliability: null,
+    maxReliability: null,
+    situation: '',
+  });
   protected readonly historyPage = signal(1);
   private readonly historyResponse = signal<PersistedQueryResponse | null>(null);
   private readonly historySourceCache = signal<{ id: string; name: string }[]>([]);
@@ -851,7 +866,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly historyError = signal('');
   protected readonly historyCategoryOptions = CATEGORIES;
   protected readonly historyFilterError = computed(() => {
-    const { periodStart, periodEnd } = this.historyFilters();
+    const { periodStart, periodEnd } = this.historyAppliedFilters();
     if (Boolean(periodStart) !== Boolean(periodEnd)) {
       return 'Informe início e fim do período juntos.';
     }
@@ -2023,7 +2038,7 @@ export class App implements AfterViewInit, OnDestroy {
     effect((onCleanup) => {
       const active = this.activeView() === 'history';
       const authenticated = this.session.state()?.authenticated;
-      const filters = this.historyFilters();
+      const filters = this.historyAppliedFilters();
       this.historyRetry();
       if (!this.persistedQueryEnabled || !active || !authenticated) return;
 
@@ -2531,6 +2546,33 @@ export class App implements AfterViewInit, OnDestroy {
   private updateHistoryFilters(update: Partial<HistoryFilters>): void {
     this.historyFilters.update((filters) => ({ ...filters, ...update }));
     this.historyPage.set(1);
+    if (!this.persistedQueryEnabled) this.historyAppliedFilters.set(this.historyFilters());
+  }
+
+  /** UXH-14: complementos são APRESENTAÇÃO — recolher não zera nem tira do recorte. */
+  protected readonly historyComplementsOpen = signal(false);
+
+  protected toggleHistoryComplements(): void {
+    this.historyComplementsOpen.update((aberto) => !aberto);
+  }
+
+  protected historyComplementsSummary(): string {
+    const filtros = this.historyFilters();
+    const ativos = [
+      filtros.subtypes.length > 0,
+      Boolean(filtros.sourceId),
+      filtros.minReliability !== null || filtros.maxReliability !== null,
+      Boolean(filtros.situation),
+    ].filter(Boolean).length;
+    if (!ativos) return 'nenhum complemento ativo';
+    return `${ativos} ${ativos === 1 ? 'complemento ativo' : 'complementos ativos'}`;
+  }
+
+  /** UXH-14: única porta que leva o formulário ao recorte da consulta. */
+  protected applyHistoryFilters(): void {
+    this.historyAppliedFilters.set(this.historyFilters());
+    this.historyPage.set(1);
+    if (this.persistedQueryEnabled) this.historyRetry.update((value) => value + 1);
   }
 
   protected selectQueryMunicipality(value: string): void {

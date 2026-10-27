@@ -311,3 +311,43 @@ textarea {
 .summary-table th:first-child {
   width: 50%;
 }
+
+/* UXH-14: a mesma tabela vira lista abaixo de 1024 — um `@for`, duas apresentações. */
+.history-table th:first-child {
+  width: auto;
+}
+
+@media (max-width: 1023px) {
+  .history-table,
+  .history-table thead,
+  .history-table tbody,
+  .history-table tr,
+  .history-table td {
+    display: block;
+    width: 100%;
+  }
+  .history-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .history-table tr {
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 8px;
+    padding: var(--vu-space-2);
+    margin-block-end: var(--vu-space-2);
+  }
+  .history-table td {
+    display: flex;
+    gap: var(--vu-space-2);
+    justify-content: space-between;
+    border-bottom: 0;
+  }
+  .history-table td::before {
+    content: attr(data-label);
+    font-weight: var(--vu-weight-strong);
+    color: var(--color-text-muted);
+  }
+}
