@@ -102,6 +102,52 @@ export function seedShortSample(): void {
   );
 }
 
+/**
+ * Decisão vigente com recomendação `UPGRADE` — a única que produz o selo
+ * `.reliability-pill.ok` (`recommendationTone` em `data/reliability-api.ts`).
+ *
+ * O fluxo de aprovação só registra `UPGRADE` quando a avaliação recomenda
+ * subir a nota, o que exigiria semear evidência de corroboração suficiente.
+ * Aqui a decisão é inserida direto na tabela sintética: `UPGRADE` + `APPROVED`,
+ * nota 4 → 5. É fixture, não atalho de produto — a régua mede a cor do selo,
+ * o fluxo de aprovação tem o seu próprio teste em `reliability-panel.spec.ts`.
+ */
+/**
+ * Amostra favorável: 24 afirmações confirmadas na janela, nenhuma demonstrada
+ * incorreta. É o estado que faz o painel **calcular** recomendação `UPGRADE` —
+ * e `recommendationTone('UPGRADE')` devolve `ok`, o selo que a régua do UX-8
+ * precisa medir. `SourceRatingService` exige `MIN_SAMPLE = 10` e
+ * `UPGRADE_MIN_SAMPLE = 20` — por isso 24, e não 12.
+ */
+export function seedFavorableSample(): void {
+  fixtureSql(
+    `
+    INSERT INTO source_statement_verifications (source_id, statement_key, statement_excerpt, result, note,
+        recorded_by, recorded_at)
+      SELECT '${SOURCE_ID}', 'favoravel-' || g, 'Afirmação confirmada ' || g, 'CONFIRMED',
+             'Confirmação sintética.', gen_random_uuid(), now()
+      FROM generate_series(1, 24) AS g;
+  `,
+    CONTAINER,
+  );
+}
+
+export function seedUpgradeDecision(): void {
+  fixtureSql(
+    `
+    INSERT INTO source_rating_decisions (source_id, window_start, window_end, window_days,
+        sample_applicable, sample_confirmed, sample_disproven, sample_inconclusive,
+        sample_corrected, sample_system_errors, recommendation, justification, decision,
+        previous_rating, applied_rating, applied_source_version, author_id, decided_at)
+      VALUES ('${SOURCE_ID}', now() - interval '30 days', now(), 30,
+              6, 5, 0, 1, 0, 0, 'UPGRADE',
+              'Decisão sintética: amostra favorável à subida de nota.', 'APPROVED',
+              4, 5, 2, gen_random_uuid(), now());
+  `,
+    CONTAINER,
+  );
+}
+
 /** Entra na view de fontes com sessão de admin e espera o cabeçalho. */
 export async function openSourcesView(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Fontes', exact: true }).focus();

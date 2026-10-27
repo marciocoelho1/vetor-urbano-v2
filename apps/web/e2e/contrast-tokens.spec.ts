@@ -5,6 +5,7 @@ import {
   openSourcesView,
   resetFixture,
   seedFixture,
+  seedFavorableSample,
   seedShortSample,
 } from './helpers/reliability-fixtures';
 
@@ -546,10 +547,23 @@ test('UX-9: o chip selecionado é mais forte que o de repouso e passa 3:1 no pr�
  * `reliability-panel.spec.ts`: sem elas o painel só renderiza "sem dados" e a
  * nota, que é o objeto da medida, não existe.
  */
-test('UX-8: nota e estado do painel de confiabilidade contrastam no escuro', async ({
-  page,
-  request,
-}) => {
+/**
+ * UX-8 — painel de confiabilidade, dois estados medidos em dois casos.
+ *
+ * Ruling: texto ≥ 4,5:1; indicador gráfico que codifica nota/estado ≥ 3:1.
+ * Moldura de cartão (1,62) **não** entra — 1.4.11 pede 3:1 para o que
+ * identifica componente ou estado, e a borda de contêiner não identifica nada.
+ *
+ * Separação de instrumentos: o estado é **semeado pela fixture**
+ * (`helpers/reliability-fixtures.ts`), a régua só mede. `.warn` exige amostra
+ * curta; `.ok` exige recomendação `UPGRADE`, que `SourceRatingService` só
+ * calcula com ≥ 20 afirmações aplicáveis e sem demonstradas incorretas.
+ */
+async function abrirPainelConfiabilidade(
+  page: Page,
+  request: Parameters<typeof syntheticAdmin>[1],
+  semear: () => void,
+): Promise<void> {
   test.skip(
     process.env['VETOR_ACCOUNTS_E2E'] !== '1',
     'Exige API em 127.0.0.1:8080 e a família sintética em 55442.',
@@ -561,16 +575,38 @@ test('UX-8: nota e estado do painel de confiabilidade contrastam no escuro', asy
   resetFixture();
   await syntheticAdmin(page, request, CONTAINER_UX8);
   seedFixture();
-  seedShortSample();
+  semear();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await openSourcesView(page);
+  await page
+    .locator('section[aria-labelledby="reliability-heading"]')
+    .getByTestId('reliability-source')
+    .selectOption('vu23-e2e-source');
   await expect(page.locator('.reliability-panel')).toBeVisible();
-  await expect(page.locator('.reliability-pill').first()).toBeVisible();
+}
 
+test('UX-8: selo de amostra insuficiente (.warn) contrasta nos dois temas', async ({
+  page,
+  request,
+}) => {
+  await abrirPainelConfiabilidade(page, request, seedShortSample);
+  await expect(page.locator('.reliability-pill.warn')).toBeVisible();
   const alvos: Alvo[] = [
     { seletor: '.reliability-pill', tipo: 'texto' },
     { seletor: '.reliability-pill.warn', tipo: 'texto' },
   ];
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
+  await trocarTema(page, 'dark');
+  await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'dark');
+});
+
+test('UX-8: selo de recomendação de subida (.ok) contrasta nos dois temas', async ({
+  page,
+  request,
+}) => {
+  await abrirPainelConfiabilidade(page, request, seedFavorableSample);
+  await expect(page.locator('.reliability-pill.ok')).toBeVisible({ timeout: 10_000 });
+  const alvos: Alvo[] = [{ seletor: '.reliability-pill.ok', tipo: 'texto' }];
   await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'light');
   await trocarTema(page, 'dark');
   await conferir(page, alvos, { texto: 4.5, borda: 3 }, 'dark');
