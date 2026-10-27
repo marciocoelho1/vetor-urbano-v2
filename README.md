@@ -25,6 +25,30 @@ Alertas, notificações e colaboração por votos fazem parte do backlog e depen
 
 Esta branch (`integration/functional-spec-v1`) reúne a API Java, o PostgreSQL/PostGIS, as contas com sessão e a moderação/revisão. Para abrir o Vetor Urbano aqui, com os dados sintéticos, são **três processos** — banco, API e frontend — mais o acesso pelo host correto.
 
+### Abrir em 3 comandos (para olhar a interface)
+
+```bash
+# 1) banco sintético com as contas de teste conhecidas
+podman start vetor-spec-postgis
+
+# 2) API apontada para esse banco  (detalhes e variáveis em "2. API Java")
+bash scripts/run-local-stack.sh
+
+# 3) frontend
+npm ci --prefix apps/web && npm start --prefix apps/web
+```
+
+Abra **http://127.0.0.1:4201/?consulta=api** e entre com `usuario@vetorurbano.test` / `123456`
+(ou `admin@vetorurbano.test` / `123456`, que pede o autenticador TOTP na primeira vez).
+O `?consulta=api` é o que troca a demonstração pela consulta no servidor: sem ele, o app abre
+em modo demonstração e o formulário de Fontes, por exemplo, não existe.
+
+**Bases sintéticas desta máquina:** `vetor-spec-postgis:55436` (`vetor_spec_test`) é a que tem as
+**duas contas com senha conhecida** — use esta para navegar. `vu-uxh01-five-db:55442` tem as 29
+bases de família usadas pelas réguas de teste; as contas de lá são criadas pelos helpers, **sem
+senha fixa**, então servem para teste automatizado e não para login manual. A API só pode estar
+em uma base por vez: ao trocar de família, reinicie-a.
+
 ### Caminho rápido: só a interface, sem banco nem API
 
 ```bash
