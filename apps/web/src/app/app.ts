@@ -2426,24 +2426,36 @@ export class App implements AfterViewInit, OnDestroy {
       camera.getEast(),
       camera.getNorth(),
     ];
-    const coverage = demoRecordBounds(this.allPoints());
-    if (
-      !coverage ||
-      bounds[2] < coverage[0] ||
-      bounds[0] > coverage[2] ||
-      bounds[3] < coverage[1] ||
-      bounds[1] > coverage[3]
-    ) {
-      this.outsideCoverage.set(true);
-      this.spatialQueryNotice.set(
-        'Fora da cobertura sintética da demonstração. Nenhum filtro espacial foi aplicado.',
-      );
-      return;
+    // A checagem de cobertura é do MODO DEMONSTRAÇÃO: ali a fronteira é conhecida e o
+    // aviso "fora da cobertura" é verdade. No caminho API quem responde é o servidor
+    // (west/south/east/north + ST_Intersects); autorizar consulta real pela caixa dos
+    // pontos fictícios fazia o recorte nunca aplicar em ?consulta=api.
+    if (!this.persistedQueryEnabled) {
+      const coverage = demoRecordBounds(this.allPoints());
+      if (
+        !coverage ||
+        bounds[2] < coverage[0] ||
+        bounds[0] > coverage[2] ||
+        bounds[3] < coverage[1] ||
+        bounds[1] > coverage[3]
+      ) {
+        this.outsideCoverage.set(true);
+        this.spatialQueryNotice.set(
+          'Fora da cobertura sintética da demonstração. Nenhum filtro espacial foi aplicado.',
+        );
+        return;
+      }
     }
+    // Aplicar área SUBSTITUI o raio: o servidor ANDa círculo e caixa, e a interseção
+    // silenciosa devolveria menos do que a área desenhada promete.
+    const raioSubstituido = this.useRadius();
+    if (raioSubstituido) this.toggleRadius(false);
     this.visibleAreaBounds.set(bounds);
     this.outsideCoverage.set(false);
     this.spatialQueryNotice.set(
-      'Área visível aplicada explicitamente. Registros somente territoriais não têm precisão para este recorte. Mover a câmera agora preserva a área aplicada.',
+      raioSubstituido
+        ? 'Área visível aplicada explicitamente; o filtro de raio foi substituído por ela. Registros somente territoriais não têm precisão para este recorte. Mover a câmera agora preserva a área aplicada.'
+        : 'Área visível aplicada explicitamente. Registros somente territoriais não têm precisão para este recorte. Mover a câmera agora preserva a área aplicada.',
     );
     this.refreshMapData();
   }
