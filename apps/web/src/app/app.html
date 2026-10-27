@@ -1526,18 +1526,25 @@
                   </section>
                 }
               </details>
-              <section id="map-results" class="results-panel" aria-labelledby="results-heading">
+              <section
+                id="map-results"
+                class="results-panel"
+                [attr.data-state]="resultsState()"
+                aria-labelledby="results-heading"
+              >
                 <div class="results-heading">
                   <div>
                     <h2 id="results-heading">Resultados visíveis</h2>
-                    @if (!queryError() && !queryLoading()) {
-                      <p>
-                        <span class="query-counts"
-                          >{{ eventCount() }} ocorrências ·
-                          {{ happeningCount() }} acontecimentos</span
-                        >
-                      </p>
-                    }
+                    <div class="results-status">
+                      @if (!queryError() && !queryLoading()) {
+                        <p>
+                          <span class="query-counts"
+                            >{{ eventCount() }} ocorrências ·
+                            {{ happeningCount() }} acontecimentos</span
+                          >
+                        </p>
+                      }
+                    </div>
                     <p class="query-note">O mapa mostra localizações com precisão compatível.</p>
                   </div>
                   @if (queryError()) {

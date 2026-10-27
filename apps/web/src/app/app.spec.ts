@@ -2220,6 +2220,31 @@ describe('Vetor Urbano', () => {
     expect(app.period()).toBe('24h');
   });
 
+  it('UX-7: declara initial sem consulta concluida e empty quando a consulta nao traz resultados', () => {
+    const app = fixture.componentInstance as unknown as {
+      visiblePoints: () => unknown[];
+      resultsState: () => string;
+      consultaConcluida: { (): boolean; set: (value: boolean) => void };
+      setTimeRange: (axis: 'start' | 'end', value: string) => void;
+    };
+
+    app.setTimeRange('start', '03:00');
+    app.setTimeRange('end', '03:01');
+    fixture.detectChanges();
+    expect(app.visiblePoints().length).toBe(0);
+
+    // `initial` é zero resultados sem consulta concluída: a região só ganha `data-state`
+    // quando renderiza, e quando renderiza já houve consulta — por isso o DOM nunca o pinta
+    // e a prova fica aqui, na condição que o dispara.
+    app.consultaConcluida.set(false);
+    expect(app.resultsState()).toBe('initial');
+
+    // Com a consulta concluída o mesmo zero é `empty`. Esta é a asserção que impede o defeito
+    // do vazio rotulado como inicial de voltar.
+    app.consultaConcluida.set(true);
+    expect(app.resultsState()).toBe('empty');
+  });
+
   it('ticket 10: erro na consulta nao exibe zero valido nem afirmacao de seguranca e permite tentar novamente', () => {
     const app = fixture.componentInstance as unknown as {
       queryError: () => boolean;

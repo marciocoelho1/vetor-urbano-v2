@@ -635,6 +635,11 @@ app-root {
     margin-top: 7px;
     overflow: hidden;
   }
+  // UX-7: o bloco dos contadores entra depois da consulta e deslocava 0,1394 a 390.
+  // Espaço reservado com token, sem `min-height` chutado.
+  .results-status {
+    min-height: var(--vu-space-5);
+  }
   .results-heading {
     display: flex;
     align-items: center;

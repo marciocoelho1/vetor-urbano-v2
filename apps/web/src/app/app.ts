@@ -636,7 +636,20 @@ export class App implements AfterViewInit, OnDestroy {
   protected readonly pendingUpdateAvailable = signal(false);
   protected readonly queryLoading = signal(false);
   protected readonly queryError = signal(false);
+  // UX-7: distingue `initial` (antes da primeira consulta) de `empty` (resposta sem itens).
+  protected readonly consultaConcluida = signal(false);
   protected readonly queryErrorMessage = signal('');
+  // UX-7: os seis estados que a região declara em `data-state`.
+  protected readonly resultsState = computed<
+    'initial' | 'loading' | 'empty' | 'error' | 'ready' | 'refreshing'
+  >(() => {
+    if (this.queryLoading()) return 'loading';
+    if (this.queryError()) return 'error';
+    if (this.eventCount() + this.happeningCount() > 0) {
+      return this.pendingUpdateAvailable() ? 'refreshing' : 'ready';
+    }
+    return this.consultaConcluida() ? 'empty' : 'initial';
+  });
   protected readonly customRangeStart = signal('');
   protected readonly customRangeEnd = signal('');
   protected readonly timeStart = signal('');
@@ -1802,6 +1815,7 @@ export class App implements AfterViewInit, OnDestroy {
         if (!filters) {
           this.persistedResponse.set(null);
           this.queryLoading.set(false);
+          this.consultaConcluida.set(true);
           this.queryError.set(true);
           this.queryErrorMessage.set('Revise o período, raio ou intervalo de notas inválido.');
           this.refreshMapData();
@@ -1837,11 +1851,13 @@ export class App implements AfterViewInit, OnDestroy {
               ).values(),
             ]);
             this.queryLoading.set(false);
+            this.consultaConcluida.set(true);
             this.refreshMapData();
           })
           .catch((error: unknown) => {
             if (abort.signal.aborted) return;
             this.queryLoading.set(false);
+            this.consultaConcluida.set(true);
             this.queryError.set(true);
             this.queryErrorMessage.set(
               error instanceof Error ? error.message : 'A consulta local falhou.',
@@ -2788,6 +2804,9 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.persistedQueryEnabled) this.queryReferenceDate.set(new Date());
     if (this.persistedQueryEnabled) this.persistedRetry.update((value) => value + 1);
     this.refreshMapData();
+    // UX-7: a consulta local também conclui — com zero resultados o estado é `empty`,
+    // e não `initial`, senão o sexto estado é inalcançável no modo de demonstração.
+    if (!this.persistedQueryEnabled) this.consultaConcluida.set(true);
     if (
       document.activeElement?.matches('[data-testid="apply-query-update-btn"]') ||
       this.persistedQueryEnabled
