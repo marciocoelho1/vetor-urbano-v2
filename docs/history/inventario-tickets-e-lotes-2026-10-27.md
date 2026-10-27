@@ -142,3 +142,15 @@ clonar o repositório, e o padrão desta casa, desde o auditor tipográfico, é 
 **Regras de método que a rodada produziu e que valem na retomada** (todas no §3 do `ux-lotes`): régua nova nasce com espera de estado; semente ancora na referência da tela; número viaja com hash e janela (`HH:MM:SSZ → HH:MM:SSZ`); gate se lê por `$?`, nunca por `| tail -1`; sonda HTTP só depois de `/auth/session` provar a sessão; CSS novo se paga apagando CSS morto provado.
 
 **Dívidas datadas abertas:** `/auth/session` sem campo de segundo fator cumprido (tela não distingue "negado" de "MFA pendente"); teto do `app.scss`; folha móvel sem `role`/`aria-modal`/`inert`; sete specs de `VETOR_PERSISTED_E2E` fora do manifesto da campanha; selo por execução ainda não produzido.
+
+## 7. Retomada 2 — pausa de 27/10 à noite
+
+**Estado na pausa:** `integration/functional-spec-v1`, `HEAD 3b91115`, `local = origin`, árvore limpa.
+
+**Fechados hoje, com hash:** UXH-08 (`f106d20`), UXH-09 (`2cab078`+`35949f0`), UXH-10 (`3731d02`), UXH-11 (`182d58f`, `21/21`, três portas de descarte, «Sair» recuperado no móvel), UXH-12 (`9722c2a`, `9/9`). README com o passo a passo de abertura (`6c96f51`).
+
+**Em curso, commitado como WIP em `3b91115` (gate verde, régua NÃO rodada):** Lote D passada 1 — Histórico com tabela responsiva (um `@for`, duas apresentações), `[data-vu-history-table]`, `[data-vu-history-apply]` e o recorte aplicado (`historyAppliedFilters`), Reprodução temporal removida. **Falta:** complementos recolhíveis (destacados: `text`, período, `municipality`, `neighborhood`, `types`; recolhíveis: `subtypes`, `sourceId`, `minRating`/`maxRating`, `situation` — recolher nunca zera valor), marcação do snapshot, e o bloco de Informes com raio ≤5 km na requisição.
+
+**Ordem da retomada:** 1) completar UXH-13+14 e rodar a régua uma vez; 2) UXH-15+16+17; 3) UXH-20. **Não fecham:** 04/05/06 (fonte territorial licenciada), 18/19 (provisionamento externo), 21 (depende), 22/23 (proibidos).
+
+**Ambiente ao pausar:** PC desligado pelo dono. Ao retomar: `podman start vu-uxh01-five-db` (55442) e `vetor-spec-postgis` (55436), API em `8080`, `ng serve` em `4201`. A base do login manual é `vetor_spec_test` (55436); as 29 bases de família em `55442` têm contas sem senha fixa.
