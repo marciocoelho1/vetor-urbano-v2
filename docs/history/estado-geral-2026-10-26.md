@@ -1,6 +1,6 @@
 # Vetor Urbano — estado geral em 26/10/2026
 
-Resumo para acompanhamento do responsável. Branch `integration/functional-spec-v1`, `HEAD 94a43b1`.
+Resumo para acompanhamento do responsável. Branch `integration/functional-spec-v1`, `HEAD c2f9a0c`.
 Não substitui `PLAN.md` nem `docs/product/ux-lotes.md`; é a leitura de conjunto.
 
 ## 1. O que existe agora que não existia antes (spec funcional)
@@ -103,8 +103,10 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
 
 ## 4. Estado da árvore
 
-`HEAD 94a43b1`, **15 commits locais à frente** de `origin/integration/functional-spec-v1`, nenhum
-enviado. Árvore de trabalho com **3 arquivos modificados** (`app.html`, `app.ts`, `controls.scss`) e
-**1 spec não rastreada** (`e2e/layout-stability.spec.ts`) — o UX-7 em fecho, não commitado porque a
-régua dele ainda não está 6/6. Nada perdido: patch em `scratch/ux0/ux7-nao-commitado.patch`.
+`HEAD c2f9a0c`, **17 commits locais à frente** de `origin/integration/functional-spec-v1` (mais o commit
+de documentação que publica este arquivo), nenhum enviado. **UX-7 commitado** em `c2f9a0c` — código,
+régua e teste no mesmo commit, `test:ci` **226/226** e `verify.sh web` `EXIT=0`. Árvore de trabalho com
+**3 arquivos sujos da régua do UX-8** (`e2e/helpers/reliability-fixtures.ts` não rastreado,
+`e2e/reliability-panel.spec.ts` e `e2e/contrast-tokens.spec.ts` modificados) — a régua está vermelha
+com `.reliability-pill` a **2,80** no escuro, e o passe é do @executor.
 `main` intocada, sem merge.

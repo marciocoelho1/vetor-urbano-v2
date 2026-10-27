@@ -51,7 +51,7 @@ Fonte única: `apps/web/src/styles/tokens.scss`, importado uma vez em `src/style
 | **UX-5** | @executor | corte de copy: prosa da tela de entrada → 1 bloco ≤60 ch | — | **aplicado** em `dd4bad8` — prosa 1 bloco (51 ch), obrigação intocada, `<details>` de escopo 0 |
 | **UX-4** | @executor | 3 durações + par `reduce` | UX-0, UX-3 | **aplicado** em `c07d781` — durações e easings por token, par `reduce` preservado |
 | **UX-6** | @executor | shell móvel: topbar ≤64, barra ≤72, FAB 48 | UX-3, UX-4 | **aplicado** em `e1954d7` — topbar 54 px, barra 61, folha e FAB no lugar |
-| **UX-7** | @executor | `data-state` + CLS <0,1 | UX-1…UX-6 | pendente |
+| **UX-7** | @executor | `data-state` + CLS <0,1 | UX-1…UX-6 | **aplicado** em `c2f9a0c` — 6 estados cobertos (5 no DOM + `initial` no teste unitário); CLS `0,0000` (320) / `0,0566` (1440) / **`0,1394` (390) → dívida do UX-7b** |
 | **UX-8** | @executor | contraste do `reliability-panel` — **2,11 / 2,80 / 2,54** no escuro (medido pelo @ux) | UX-1 | pendente, sem lote atribuído |
 | **UX-9** | @arquiteto → @user | contorno de controle a 3:1 no tema claro | decisão do dono | **aplicado** em `cedcfa9` (contorno `3,17/3,36` no claro, âmbar `5,41`), `5d054dd` (guarda do par base) e `9d710eb` (escuro `4,30`, chip `6,81 > 4,30`) |
 
@@ -128,6 +128,8 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 | UX-9 | `par base do contorno` | `10 passed (21,3 s)` (25/10, @arquiteto) — contorno `#838d9a` **3,36** sobre branco e **3,17** sobre `--color-bg-base`; chip selecionado **6,13** no próprio fundo e **6,71** no branco contra repouso **3,36**; escuro imprime `1,62`/`1,38` e chip `3,12`, sem asserção |
 | UX-9 (fecho) | `contorno no escuro` | `#738399` sobre `--color-bg-surface` = **4,30** e sobre `--color-bg-base` = **4,75** — conta WCAG sobre os tokens, autorizada pelo dono em 25/10 |
 | UX-9 (fecho) | `direção no escuro` | repouso `#738399` **4,30** na superfície / **3,66** na elevada; selecionado `#8aae9d` **6,81** / **5,80** / **5,18** no próprio preenchimento. Direção restaurada com margem, delta **1,46** contra o anel de foco (`#8fd7b6`), que fica em `outline-offset: 2px` (25/10, autorizado o valor do contorno pelo dono; o do selecionado é consequência do critério) |
+| UX-7 | `npx playwright test e2e/layout-stability.spec.ts` em `c2f9a0c` | `data-state` na `section#map-results`: **5 estados no DOM** — `ready → loading → error → ready → empty@4408ms → ready → refreshing`, com o vazio visível e 0 itens. `initial` **não é pintado** (duas sondas: demo começa em `ready@738ms`; `?consulta=api` faz `loading@714ms → empty@733ms`) e é asserido no `app.spec.ts` — 0 resultados com `consultaConcluida` falso → `initial`; com ele verdadeiro → `empty`. **CLS**: 320 `0,0000` e 1440 `0,0566` ✓; 390 **`0,1394`** ✗ → dívida do **UX-7b** (origem: `footer` `688/156 → 0/0` em `t=482 ms`). **Mutação:** bloco de 240 px → `0,0566 → 0,1998` |
+| UX-7 | `npm run test:ci` + `bash scripts/verify.sh web` em `c2f9a0c` | `226 passed (226)` e `OK: auditor estático, lint, test:ci e build`; auditor `0 fora / 3 pesos / 0 fantasma` + `--selftest 8/8` (medido pelo @executor) |
 | UX-1 | `grep -rl "font-size" apps/web/src --include=*.scss \| wc -l` | `14` (reexecutado pelo @revisor) |
 | UX-1 | `grep -o "<strong" apps/web/src/app/app.html \| wc -l` | `37` (reexecutado pelo @revisor) |
 | UX-1 | `grep -rn "font-weight:\s*900" apps/web/src --include=*.scss \| wc -l` | `0` (reexecutado pelo @revisor) |
