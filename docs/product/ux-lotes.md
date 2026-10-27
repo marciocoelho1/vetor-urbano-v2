@@ -120,6 +120,8 @@ Sob `prefers-reduced-motion: reduce`, **nenhum movimento em curso**: `transition
 
 **Regra de gate (27/10/2026).** Gate não se lê por pipe: `comando | tail -1` devolve o status do `tail`, não do `comando` — foi assim que um commit nasceu com o build vermelho (`app.scss` em `24,06 kB` contra teto de `24,00`) e ninguém viu. Com pipe, o número que vale é `${PIPESTATUS[0]}`; sem pipe, o `$?` do próprio gate.
 
+**Regra de número com janela (27/10/2026).** Todo número de régua viaja com **três** coisas: o valor, o hash da árvore exercitada e a **janela** `HH:MM:SSZ → HH:MM:SSZ` em que rodou. Sem janela, o número não é comparável — nem quando está certo: o `24 passed` do UXH-10 era verdadeiro e passou a suspeito porque a hora citada era de uma execução anterior, e só o carimbo do log (`05:11:28Z → 05:11:48Z`, zero `Page reload`, zero fonte alterada após o último build) o absolveu. Carimbo não é só "não houve rebuild na janela"; é a janela **existir no relatório** e o log do servidor poder negá-la.
+
 **Dívida datada 27/10 (orçamento de componente):** `apps/web/angular.json:87-90` fixa `anyComponentStyle` em **aviso 20 kB / erro 24 kB**, e o `app.scss` está **no teto** — `24,06` antes do aparo de 58 bytes do UXH-10, e acima do aviso há tempo. O teto trabalha (foi ele que obrigou a apagar CSS redundante em vez de empilhar), mas a folga é **zero**: qualquer CSS novo de ~60 bytes quebra o build. Subir o teto muda o significado do gate e é decisão do dono.
 
 ## 4. Evidência
