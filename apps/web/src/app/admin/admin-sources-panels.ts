@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, output } from '@angular/core';
 import { CollectionPanel } from '../collection/collection-panel';
 import { ReviewQueue } from '../moderation/review-queue';
 import { OperationsPanel } from '../operations/operations-panel';
@@ -28,7 +28,7 @@ import { SourceManagement } from '../sources/source-management';
   ],
   template: `
     <app-operations-panel />
-    <app-source-management />
+    <app-source-management (dirtyChange)="dirtyChange.emit($event)" />
     <app-collection-panel />
     <app-review-queue />
     <app-reliability-panel />
@@ -36,4 +36,8 @@ import { SourceManagement } from '../sources/source-management';
     <app-risk-area-fields />
   `,
 })
-export class AdminSourcesPanels {}
+export class AdminSourcesPanels {
+  /** Repasse do estado de edição pendente: o App é quem guarda o valor, porque o
+   *  `@if`+`@defer` destrói este componente ao trocar de seção. */
+  readonly dirtyChange = output<boolean>();
+}

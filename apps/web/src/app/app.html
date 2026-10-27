@@ -91,7 +91,12 @@
           </button>
         }
         @if (session.state()) {
-          <button type="button" class="nav-link" (click)="logout()" [disabled]="session.busy()">
+          <button
+            type="button"
+            class="nav-link"
+            (click)="requestLogout()"
+            [disabled]="session.busy()"
+          >
             Sair
           </button>
         }
@@ -3060,7 +3065,12 @@
           class="admin-frame"
           [attr.data-vu-admin-section]="activeView() === 'sources' ? 'fontes' : null"
         >
-          <button type="button" class="nav-link" data-vu-admin-back (click)="openView('map')">
+          <button
+            type="button"
+            class="nav-link"
+            data-vu-admin-back
+            (click)="closeAdminView('voltar')"
+          >
             Voltar ao aplicativo
           </button>
           <nav class="admin-nav" data-vu-admin-nav aria-label="Configurações">
@@ -3069,7 +3079,7 @@
               class="nav-link"
               [class.is-active]="activeView() === 'sources'"
               [attr.aria-current]="activeView() === 'sources' ? 'page' : null"
-              (click)="openView('sources')"
+              (click)="closeAdminView('secao', 'sources')"
             >
               Fontes
             </button>
@@ -3078,7 +3088,7 @@
               class="nav-link"
               [class.is-active]="activeView() === 'logs'"
               [attr.aria-current]="activeView() === 'logs' ? 'page' : null"
-              (click)="openView('logs')"
+              (click)="closeAdminView('secao', 'logs')"
             >
               Logs administrativos
             </button>
@@ -3113,7 +3123,7 @@
       @if (activeView() === 'sources') {
         @if (persistedQueryEnabled) {
           @defer (when persistedQueryEnabled) {
-            <app-admin-sources-panels />
+            <app-admin-sources-panels (dirtyChange)="adminDirty.set($event)" />
           } @placeholder {
             <p role="status" data-testid="admin-sources-loading">
               Carregando painéis administrativos de fontes, coleta, operação e revisão…
@@ -4125,6 +4135,38 @@
     </footer>
   </main>
 
+  <dialog
+    id="admin-unsaved"
+    [attr.data-vu-admin-unsaved]="adminDialogOpen() ? '' : null"
+    (cancel)="cancelAdminExit($event)"
+    (keydown)="trapAdminDialogFocus($event)"
+  >
+    <h2 id="admin-unsaved-title">
+      {{
+        adminDialogOpen() && pendingAdminExitPorta() === 'sair'
+          ? 'Sair com alterações não salvas?'
+          : 'Descartar alterações não salvas?'
+      }}
+    </h2>
+    <p id="admin-unsaved-body">
+      As alterações em Fontes não foram salvas. Se continuar, elas são perdidas
+      @if (pendingAdminExitPorta() === 'sair') {
+        e você sai da sua conta
+      }
+      .
+    </p>
+    <div class="dialog-actions">
+      <button type="button" class="nav-link" (click)="cancelAdminExit($event)" autofocus>
+        Continuar editando
+      </button>
+      <button type="button" class="nav-link" (click)="confirmAdminExit()">
+        {{
+          pendingAdminExitPorta() === 'sair' ? 'Descartar e encerrar a sessão' : 'Descartar e sair'
+        }}
+      </button>
+    </div>
+  </dialog>
+
   <div class="vu-shell">
     <!-- Folha e barra são IRMÃS: o §3 exige z próprio em cada uma e
          bottom = altura da barra + --vu-sheet-gap. Aninhar tornava os três
@@ -4185,7 +4227,7 @@
               class="vu-sheet-item"
               type="button"
               [disabled]="session.busy()"
-              (click)="logoutFromSheet()"
+              (click)="requestLogout()"
             >
               Sair
             </button>

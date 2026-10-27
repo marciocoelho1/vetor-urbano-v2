@@ -522,6 +522,123 @@ export class App implements AfterViewInit, OnDestroy {
   /** Motivo exibido quando o servidor nega a seção de administração (403). */
   /** Acesso por módulo, separado da identidade da sessão (ruling de 27/10). */
   protected readonly moduleAccess = signal<Record<string, boolean>>({});
+  /** UXH-11: edição pendente em Fontes, guardada AQUI porque o @if+@defer destrói o
+   *  componente filho ao trocar de seção — consultar o filho na saída leria undefined. */
+  protected readonly adminDirty = signal(false);
+  /** O hook só existe com o diálogo aberto: contagem 0/1 é estado, não montagem. */
+  protected readonly adminDialogOpen = signal(false);
+  private pendingAdminExit: {
+    porta: 'secao' | 'voltar' | 'sair';
+    destino?: 'sources' | 'logs';
+  } | null = null;
+  /** Porta pendente exposta ao template: título, corpo e rótulo variam por porta. */
+  protected readonly pendingAdminExitPorta = signal<'secao' | 'voltar' | 'sair' | null>(null);
+
+  private adminDialog(): HTMLDialogElement | null {
+    return document.getElementById('admin-unsaved') as HTMLDialogElement | null;
+  }
+
+  /** Porta única de saída da administração. Com edição pendente, abre o diálogo. */
+  protected closeAdminView(porta: 'secao' | 'voltar' | 'sair', destino?: 'sources' | 'logs'): void {
+    if (this.adminDirty() && this.adminDialog()) {
+      this.pendingAdminExit = { porta, destino };
+      this.pendingAdminExitPorta.set(porta);
+      const dialogo = this.adminDialog()!;
+      if (!dialogo.open) dialogo.showModal();
+      this.adminDialogOpen.set(true);
+      return;
+    }
+    this.applyAdminExit({ porta, destino });
+  }
+
+  /** Contenção de Tab no diálogo — mesmo idioma do mapa expandido: borda devolve. */
+  protected trapAdminDialogFocus(evento: KeyboardEvent): void {
+    if (evento.key !== 'Tab') return;
+    const dialogo = this.adminDialog();
+    if (!dialogo) return;
+    const focaveis = Array.from(
+      dialogo.querySelectorAll<HTMLElement>('button, [href], input, select, textarea'),
+    ).filter((el) => !el.hasAttribute('disabled'));
+    if (!focaveis.length) return;
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    const ativo = document.activeElement as HTMLElement | null;
+    if (evento.shiftKey && (ativo === primeiro || !dialogo.contains(ativo))) {
+      evento.preventDefault();
+      ultimo.focus();
+      return;
+    }
+    if (!evento.shiftKey && (ativo === ultimo || !dialogo.contains(ativo))) {
+      evento.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  /** «Sair» só passa pelo guarda quando há administração aberta. */
+  protected requestLogout(): void {
+    if (['sources', 'logs'].includes(this.activeView()) && this.adminDirty()) {
+      this.closeAdminView('sair');
+      return;
+    }
+    if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
+    void this.logout();
+  }
+
+  protected cancelAdminExit(evento?: Event): void {
+    evento?.preventDefault();
+    this.adminDialog()?.close();
+    this.adminDialogOpen.set(false);
+    this.pendingAdminExit = null;
+    this.pendingAdminExitPorta.set(null);
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>('[data-vu-panel-trigger], [data-vu-admin-back], .vu-sheet-item')
+        ?.focus({ preventScroll: true }),
+    );
+  }
+
+  protected confirmAdminExit(): void {
+    const pendente = this.pendingAdminExit;
+    this.adminDirty.set(false);
+    this.pendingAdminExit = null;
+    this.pendingAdminExitPorta.set(null);
+    this.adminDialog()?.close();
+    this.adminDialogOpen.set(false);
+    if (pendente) this.applyAdminExit(pendente);
+  }
+
+  private applyAdminExit(pendente: {
+    porta: 'secao' | 'voltar' | 'sair';
+    destino?: 'sources' | 'logs';
+  }): void {
+    if (pendente.porta === 'secao' && pendente.destino) {
+      this.openView(pendente.destino);
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLElement>(`[data-vu-admin-nav] [aria-current='page']`)
+          ?.focus({ preventScroll: true }),
+      );
+      return;
+    }
+    if (pendente.porta === 'voltar') {
+      this.openView('map');
+      requestAnimationFrame(() => {
+        const mapa = document.getElementById('map-canvas');
+        if (mapa) {
+          mapa.setAttribute('tabindex', '-1');
+          mapa.focus({ preventScroll: true });
+        }
+      });
+      return;
+    }
+    // porta «sair»: encerra a sessão e o foco aterrissa no início da tela de entrada.
+    if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
+    // O #access-heading só existe DEPOIS de a sessão cair: focar antes do logout
+    // resolver procura um elemento ausente e o foco fica no <body>.
+    void this.logout().then(() =>
+      requestAnimationFrame(() => document.getElementById('access-heading')?.focus()),
+    );
+  }
   protected readonly adminAccessDenied = signal(false);
   protected readonly adminAccessReason = signal('');
 

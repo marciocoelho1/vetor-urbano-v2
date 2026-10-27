@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  output,
+  signal,
+} from '@angular/core';
 import { Session } from '../auth/session';
 import {
   createManagedSource,
@@ -50,6 +59,33 @@ export class SourceManagement {
   protected readonly status = signal('');
   protected readonly editing = signal<ManagedSource | null>(null);
   protected readonly form = signal<SourceForm>({ ...EMPTY_FORM });
+  /** Baseline do formulário: a MESMA derivação que `edit()` aplica — sem isso o
+   *  baseline seria outro objeto e o guarda de descarte dispararia sempre. */
+  private formOf(source: ManagedSource | null): SourceForm {
+    return source
+      ? { ...source, territories: source.territories.join('\n'), rating: String(source.rating) }
+      : { ...EMPTY_FORM };
+  }
+  /** "Sujo" é derivado, não marcado: digitar e apagar até o original volta a limpo. */
+  protected readonly dirty = computed(() => {
+    const atual = this.form();
+    const base = this.formOf(this.editing());
+    const pilares = (lista: SourcePillar[]): string => [...lista].sort().join(',');
+    return (
+      atual.name !== base.name ||
+      atual.channel !== base.channel ||
+      atual.url !== base.url ||
+      atual.territories !== base.territories ||
+      atual.rating !== base.rating ||
+      atual.ratingJustification !== base.ratingJustification ||
+      atual.accessMethod !== base.accessMethod ||
+      pilares(atual.pillars) !== pilares(base.pillars)
+    );
+  });
+  /** Emitido no init também: o `@if`+`@defer` destrói o componente, e sem a primeira
+   *  emissão o pai guardaria `true` de um descarte anterior. */
+  readonly dirtyChange = output<boolean>();
+
   protected readonly history = signal<SourceHistory | null>(null);
   protected readonly historySourceId = signal<string | null>(null);
   protected readonly historyLoading = signal(false);
@@ -67,6 +103,7 @@ export class SourceManagement {
 
   constructor() {
     void this.reload();
+    effect(() => this.dirtyChange.emit(this.dirty()));
   }
 
   protected async reload(): Promise<void> {
@@ -109,11 +146,7 @@ export class SourceManagement {
 
   protected edit(source: ManagedSource): void {
     this.editing.set(source);
-    this.form.set({
-      ...source,
-      territories: source.territories.join('\n'),
-      rating: String(source.rating),
-    });
+    this.form.set(this.formOf(source));
     this.status.set(`Editando ${source.name}, versão ${source.version}.`);
     this.focusName();
   }

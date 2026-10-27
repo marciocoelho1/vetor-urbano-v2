@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { confirmedUser, testPassword } from './helpers/local-account';
 import { loginBrowser, syntheticAdmin } from './helpers/synthetic-admin';
 
@@ -265,36 +265,269 @@ test('UXH-11: USER não recebe destino de administração na navegação', async
   expect(restrito, 'USER recebeu o marcador de acesso restrito sem ter moldura').toBe(0);
 });
 
-test('UXH-11: trocar de seção com edição suja pede descarte, e Escape cancela', async ({
-  page,
-}) => {
-  await abrirDemo(page);
-  await abrirFontes(page);
-  const navF = page.locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button');
-  await expect(navF.first(), 'navegação de administração ausente').toHaveCount(1);
-  await navF.first().click();
-  await page.waitForTimeout(300);
-  const campo = page.locator('input[type="text"], input:not([type])').first();
-  if ((await campo.count()) === 0) {
-    expect(false, 'seção de Fontes sem campo editável: descarte não é exercitável').toBe(true);
-    return;
-  }
-  await campo.fill('edição pendente do teste');
-  await page.locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button').last().click();
-  const dialogo = page.locator('[data-vu-admin-unsaved]');
-  await expect(dialogo, 'troca de seção com edição suja não pediu descarte').toBeVisible();
-  const foco = await page.evaluate(() =>
-    (document.activeElement?.textContent ?? '').trim().toLowerCase(),
-  );
-  console.log(`foco inicial no diálogo: "${foco}"`);
-  expect(foco, 'o foco inicial do diálogo foi para a ação destrutiva').not.toContain('descartar');
-  await page.keyboard.press('Escape');
-  await expect(dialogo).toHaveCount(0);
-  const secoes = await page.locator('[data-vu-admin-section="fontes"]').count();
-  expect(secoes, 'Escape descartou a edição em vez de cancelar').toBe(1);
-});
+/** Fontes em modo API (o único que monta o formulário) com sessão ADMIN real. */
+async function entrarFontesApi(page: Page, request: APIRequestContext): Promise<void> {
+  await syntheticAdmin(page, request, 'vu-uxh01-five-db');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(500);
+  const antes = await page.evaluate(() => ({
+    view: document.querySelector('.app-shell')?.getAttribute('data-vu-view'),
+    navs: document.querySelectorAll('nav.primary-nav').length,
+  }));
+  console.log(`antes de entrar em Fontes: ${JSON.stringify(antes)}`);
+  const fontes = page.locator('nav.primary-nav button', { hasText: 'Fontes' });
+  await expect(fontes, 'nav.primary sem destino «Fontes» (sessão não é ADMIN?)').toHaveCount(1);
+  await fontes.first().click();
+  await page.waitForTimeout(1200);
+  const depois = await page.evaluate(() => ({
+    view: document.querySelector('.app-shell')?.getAttribute('data-vu-view'),
+    sourceName: document.querySelectorAll('#source-name').length,
+    forms: document.querySelectorAll('form').length,
+  }));
+  console.log(`depois de entrar em Fontes: ${JSON.stringify(depois)}`);
+}
 
-/** A 390 a lateral de dois destinos vira alternador de abas; nunca lista vertical. */
+/** Edição realmente pendente: digitar num campo de verdade, não só abrir a seção. */
+async function sujarFontes(page: Page): Promise<void> {
+  const campo = page.locator('#source-name');
+  await expect(campo, 'formulário de Fontes sem campo editável').toHaveCount(1);
+  await campo.fill('Fonte com edição pendente');
+  await page.waitForTimeout(200);
+  // Inventário: se houver DUAS instâncias do formulário, o que eu digito pode não
+  // ser o que o `dirtyChange` observa — o padrão de duas pinturas desta base.
+  const inventario = await page.evaluate(() => ({
+    inputsSourceName: document.querySelectorAll('#source-name').length,
+    appSourceManagement: document.querySelectorAll('app-source-management').length,
+    appAdminPanels: document.querySelectorAll('app-admin-sources-panels').length,
+    dialogs: document.querySelectorAll('dialog').length,
+    hookDialogo: document.querySelectorAll('[data-vu-admin-unsaved]').length,
+    valorDigitado: (document.querySelector('#source-name') as HTMLInputElement | null)?.value,
+  }));
+  console.log(`inventário após digitar: ${JSON.stringify(inventario)}`);
+}
+
+/** As três portas de saída que a tela oferece com edição pendente. */
+const PORTAS: { nome: string; acionar: (page: Page) => Promise<void> }[] = [
+  {
+    nome: 'trocar de seção',
+    acionar: async (page) => {
+      await page
+        .locator('[data-vu-admin-nav] a, [data-vu-admin-nav] button', { hasText: 'Logs' })
+        .first()
+        .click();
+    },
+  },
+  {
+    nome: 'Voltar ao aplicativo',
+    acionar: async (page) => {
+      await page.locator('[data-vu-admin-back]').first().click();
+    },
+  },
+  {
+    nome: 'Sair',
+    acionar: async (page) => {
+      await page.getByRole('button', { name: 'Sair', exact: true }).first().click();
+    },
+  },
+];
+
+for (const porta of PORTAS) {
+  test(`UXH-11: descarte — ${porta.nome} com edição suja abre o diálogo`, async ({
+    page,
+    request,
+  }) => {
+    test.skip(!ADMIN, 'Exige API em 127.0.0.1:8080 e a família sintética em 55442.');
+    await entrarFontesApi(page, request);
+    await sujarFontes(page);
+    await porta.acionar(page);
+    const dialogo = page.locator('[data-vu-admin-unsaved]');
+    await expect(dialogo, `«${porta.nome}» descartou a edição sem perguntar`).toBeVisible({
+      timeout: 5_000,
+    });
+
+    // Semântica de diálogo: `<dialog open>` nativo (ruling) OU role/aria-modal explícitos.
+    const semantica = await dialogo.evaluate((el) => ({
+      tag: el.tagName,
+      role: el.getAttribute('role'),
+      ariaModal: el.getAttribute('aria-modal'),
+      aberto: (el as HTMLDialogElement).open ?? null,
+      // `:modal` só casa quando o diálogo foi aberto por showModal(); `open` isolado
+      // é estado de atributo e NÃO inativa o fundo nem prende o foco.
+      modal: el.matches(':modal'),
+    }));
+    console.log(`«${porta.nome}» · semântica: ${JSON.stringify(semantica)}`);
+    const ehDialogo = semantica.tag === 'DIALOG' || semantica.role === 'dialog';
+    expect(ehDialogo, 'o contêiner não é diálogo (nem <dialog>, nem role="dialog")').toBe(true);
+    const ehModal = semantica.tag === 'DIALOG' || semantica.ariaModal === 'true';
+    expect(ehModal, 'o diálogo não se declara modal').toBe(true);
+    if (semantica.tag === 'DIALOG') {
+      expect(semantica.aberto, '<dialog> presente mas sem `open`').toBe(true);
+      expect(
+        semantica.modal,
+        '<dialog> aberto sem showModal(): fundo não é inerte e o foco escapa',
+      ).toBe(true);
+    }
+
+    const titulo = ((await dialogo.textContent()) ?? '').trim().replace(/\s+/g, ' ');
+    console.log(`«${porta.nome}» · diálogo: "${titulo.slice(0, 120)}"`);
+    expect(titulo, 'diálogo sem título que nomeie a consequência').toContain('Descartar');
+    // Título por porta: na «Sair» a pergunta é sobre sair; nas outras, sobre descartar.
+    if (porta.nome === 'Sair') {
+      expect(titulo, 'porta «Sair»: o título não pergunta sobre sair').toContain('Sair');
+    } else {
+      expect(titulo, `porta «${porta.nome}»: o título fala de sair sem sair`).not.toContain(
+        'Sair com',
+      );
+    }
+
+    const destrutivo = dialogo.getByRole('button', { name: /descartar/i });
+    await expect(destrutivo, 'ação destrutiva sem rótulo de consequência').toHaveCount(1);
+    const rotulo = ((await destrutivo.textContent()) ?? '').trim();
+    console.log(`«${porta.nome}» · ação destrutiva: "${rotulo}"`);
+
+    // Corpo por porta: a porta «Sair» encerra a conta; as outras não. Título e
+    // rótulo são iguais nas três — sem isto, a tela pode mentir sobre a consequência.
+    const corpo = ((await dialogo.locator('p').first().textContent()) ?? '')
+      .trim()
+      .replace(/\s+/g, ' ');
+    console.log(`«${porta.nome}» · corpo: "${corpo}"`);
+    const falaDeConta = /conta|sess[ãa]o/i.test(corpo);
+    if (porta.nome === 'Sair') {
+      expect(falaDeConta, 'porta «Sair»: o corpo não diz que a conta será encerrada').toBe(true);
+    } else {
+      expect(falaDeConta, `porta «${porta.nome}»: o corpo fala de conta sem encerrar conta`).toBe(
+        false,
+      );
+    }
+
+    // Foco inicial NÃO é a ação destrutiva, e está DENTRO do diálogo.
+    const foco = await page.evaluate(() => {
+      const ativo = document.activeElement as HTMLElement | null;
+      return {
+        texto: (ativo?.textContent ?? '').trim().replace(/\s+/g, ' '),
+        dentro: Boolean(ativo?.closest('[data-vu-admin-unsaved]')),
+      };
+    });
+    console.log(`«${porta.nome}» · foco inicial: ${JSON.stringify(foco)}`);
+    expect(foco.texto.toLowerCase(), 'o foco inicial foi para a ação destrutiva').not.toContain(
+      'descartar',
+    );
+    expect(foco.dentro, 'o foco inicial não está dentro do diálogo').toBe(true);
+
+    // Contenção nas BORDAS: do último botão, `Tab` leva ao primeiro do diálogo;
+    // do primeiro, `Shift+Tab` leva ao último. Sem isso, um trap que só
+    // reposiciona no fim do documento passa.
+    await page.evaluate(() => {
+      const caixa = document.querySelector('[data-vu-admin-unsaved]');
+      const botoes = caixa?.querySelectorAll('button') ?? [];
+      (botoes[botoes.length - 1] as HTMLElement | undefined)?.focus();
+    });
+    await page.keyboard.press('Tab');
+    const bordaFrente = await page.evaluate(() => {
+      const ativo = document.activeElement as HTMLElement | null;
+      return {
+        dentro: Boolean(ativo?.closest('[data-vu-admin-unsaved]')),
+        texto: (ativo?.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 24),
+      };
+    });
+    console.log(`«${porta.nome}» · Tab do último → ${JSON.stringify(bordaFrente)}`);
+    expect(bordaFrente.dentro, 'Tab do último botão saiu do diálogo').toBe(true);
+
+    await page.evaluate(() => {
+      const caixa = document.querySelector('[data-vu-admin-unsaved]');
+      (caixa?.querySelector('button') as HTMLElement | null)?.focus();
+    });
+    await page.keyboard.press('Shift+Tab');
+    const bordaTras = await page.evaluate(() => {
+      const ativo = document.activeElement as HTMLElement | null;
+      return {
+        dentro: Boolean(ativo?.closest('[data-vu-admin-unsaved]')),
+        texto: (ativo?.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 24),
+      };
+    });
+    console.log(`«${porta.nome}» · Shift+Tab do primeiro → ${JSON.stringify(bordaTras)}`);
+    expect(bordaTras.dentro, 'Shift+Tab do primeiro botão saiu do diálogo').toBe(true);
+
+    // Foco preso: seis Tabs e um controle de fora não recebe foco.
+    const trilha: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      await page.keyboard.press('Tab');
+      trilha.push(
+        await page.evaluate(() => {
+          const ativo = document.activeElement as HTMLElement | null;
+          const dentro = Boolean(ativo?.closest('[data-vu-admin-unsaved]'));
+          return `${dentro ? 'dentro' : 'FORA'}:${(ativo?.textContent ?? ativo?.tagName ?? '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .slice(0, 24)}`;
+        }),
+      );
+    }
+    console.log(`«${porta.nome}» · trilha de Tab: ${JSON.stringify(trilha)}`);
+    expect(
+      trilha.filter((passo) => passo.startsWith('FORA')),
+      'o Tab escapou do diálogo (trap furado)',
+    ).toHaveLength(0);
+
+    // Escape cancela e a edição continua lá.
+    await page.keyboard.press('Escape');
+    await expect(dialogo, 'Escape não fechou o diálogo').toHaveCount(0);
+    const valor = await page.locator('#source-name').inputValue();
+    console.log(`«${porta.nome}» · após Escape, campo = "${valor}"`);
+    expect(valor, 'Escape descartou a edição em vez de cancelar').toBe('Fonte com edição pendente');
+
+    // Caminho DESTRUTIVO: o foco não pode cair no <body>.
+    await porta.acionar(page);
+    const dialogo2 = page.locator('[data-vu-admin-unsaved]');
+    await expect(dialogo2, `«${porta.nome}» não reabriu o diálogo`).toBeVisible({ timeout: 5_000 });
+    await dialogo2
+      .getByRole('button', { name: /descartar/i })
+      .first()
+      .click();
+    await page.waitForTimeout(700);
+    const focoFinal = await page.evaluate(() => {
+      const ativo = document.activeElement as HTMLElement | null;
+      return {
+        tag: ativo?.tagName ?? null,
+        id: ativo?.id ?? null,
+        noCorpo: ativo === document.body || ativo === null,
+        dentroDaEntrada: Boolean(ativo?.closest('.account-shell, form, [data-vu="entry"]')),
+        ehTituloAcesso: ativo?.id === 'access-heading',
+        dialogoAberto: Boolean(document.querySelector('[data-vu-admin-unsaved]')),
+        adminMontado: document.querySelectorAll('[data-vu-admin-nav], [data-vu-admin-back]').length,
+      };
+    });
+    console.log(`«${porta.nome}» · após descartar: ${JSON.stringify(focoFinal)}`);
+    expect(focoFinal.noCorpo, `«${porta.nome}»: o foco ficou no <body> depois de descartar`).toBe(
+      false,
+    );
+    if (porta.nome === 'Sair') {
+      // Único caminho que troca de tela: o foco tem de estar na tela de entrada.
+      expect(focoFinal.adminMontado, 'a administração continuou montada depois de encerrar').toBe(
+        0,
+      );
+      expect(focoFinal.ehTituloAcesso, 'o foco não está em #access-heading').toBe(true);
+      expect(
+        focoFinal.dialogoAberto,
+        'o diálogo continuou aberto por cima da tela de entrada (login inclicável)',
+      ).toBe(false);
+    }
+  });
+
+  test(`UXH-11: descarte — ${porta.nome} com formulário limpo NÃO abre o diálogo`, async ({
+    page,
+    request,
+  }) => {
+    test.skip(!ADMIN, 'Exige API em 127.0.0.1:8080 e a família sintética em 55442.');
+    await entrarFontesApi(page, request);
+    await porta.acionar(page);
+    await page.waitForTimeout(400);
+    const dialogo = await page.locator('[data-vu-admin-unsaved]').count();
+    console.log(`«${porta.nome}» sem edição · diálogos = ${dialogo}`);
+    expect(dialogo, `«${porta.nome}» pediu descarte sem haver edição pendente`).toBe(0);
+  });
+}
+
 test('UXH-11: a 390 a navegação é alternador de duas abas, com aria-current no ativo', async ({
   page,
 }) => {
