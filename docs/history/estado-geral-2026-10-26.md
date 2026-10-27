@@ -95,8 +95,8 @@ Em linguagem de tela — o que se vê e o que deixou de acontecer:
 - **UX-8** — **fechado** em `9d6cf37`/`59a4480` (passe) e `67088c3`/`06e572a` (régua): `.warn` 5,88/7,38,
   `.alert` e `.blocking` 6,11/8,49, `.ok` **7,87/10,10**, sem literal de cor no arquivo.
 - **Lotes C e D do piloto** (UXH-07…17): 11 tickets de construção de interface — navegação, mapa,
-  configurações, informes, histórico, relatórios. Não iniciados; é a próxima tranche e só abre com a
-  tua palavra.
+  configurações, informes, histórico, relatórios. **UXH-07 (navegação responsiva) entregue** em
+  `7bd0a1b`; restam 10, que começam do zero e só abrem com a tua palavra.
 
 **Dívidas datadas que ficam registradas, não consertadas**
 
