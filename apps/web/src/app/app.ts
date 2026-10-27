@@ -2038,6 +2038,32 @@ export class App implements AfterViewInit, OnDestroy {
     this.fallbackMap?.remove();
   }
 
+  /** UXH-10: painel exclusivo dentro da folha móvel — no máximo um por vez. */
+  protected readonly mobilePanel = signal<'filtros' | 'ferramentas' | 'resultados' | null>(null);
+  protected readonly paineisDaFolha = [
+    { id: 'filtros' as const, rotulo: 'Filtros', icone: 'ui-icons.svg#filter' },
+    { id: 'ferramentas' as const, rotulo: 'Ferramentas', icone: 'ui-icons.svg#layers' },
+    { id: 'resultados' as const, rotulo: 'Resultados', icone: 'ui-icons.svg#map' },
+  ];
+
+  protected openMobilePanel(painel: 'filtros' | 'ferramentas' | 'resultados'): void {
+    // Trocar de painel REMOVE o anterior (o template só renderiza o selecionado), que é
+    // o que o contrato exige: escondido não é fechado.
+    this.mobilePanel.set(painel);
+  }
+
+  protected closeMobilePanel(): void {
+    const painel = this.mobilePanel();
+    this.mobilePanel.set(null);
+    if (!painel) return;
+    // Foco volta ao gatilho que abriu — sem isso o teclado fica sem âncora.
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(`[data-vu-panel-trigger="${painel}"]`)
+        ?.focus({ preventScroll: true }),
+    );
+  }
+
   protected openAccountFromSheet(): void {
     this.openView('account');
     if (this.mobileSheet() === 'expanded') this.toggleMobileSheet();
@@ -2045,6 +2071,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   protected toggleMobileSheet(): void {
     this.mobileSheet.update((estado) => (estado === 'collapsed' ? 'expanded' : 'collapsed'));
+    if (this.mobileSheet() !== 'expanded') this.mobilePanel.set(null);
   }
 
   protected openView(view: ViewId): void {

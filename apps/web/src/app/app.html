@@ -4069,7 +4069,12 @@
     <!-- Folha e barra são IRMÃS: o §3 exige z próprio em cada uma e
          bottom = altura da barra + --vu-sheet-gap. Aninhar tornava os três
          assertos tautológicos (z herdado, bottom 0, hit-test por ancestralidade). -->
-    <div class="vu-sheet-panel" data-vu="sheet" [attr.data-vu-sheet-state]="mobileSheet()">
+    <div
+      class="vu-sheet-panel"
+      data-vu="sheet"
+      [attr.data-vu-sheet-state]="mobileSheet()"
+      [attr.data-vu-panel-open]="mobilePanel()"
+    >
       <button
         type="button"
         class="vu-sheet-disclosure"
@@ -4112,6 +4117,126 @@
             >
               Minha conta
             </button>
+          }
+          <div class="vu-panel-triggers" role="group" aria-label="Painéis da folha">
+            @for (painel of paineisDaFolha; track painel.id) {
+              <button
+                type="button"
+                class="vu-sheet-item vu-panel-trigger"
+                [attr.data-vu-panel-trigger]="painel.id"
+                [attr.aria-expanded]="mobilePanel() === painel.id"
+                (click)="openMobilePanel(painel.id)"
+              >
+                <svg class="ui-icon" aria-hidden="true"><use [attr.href]="painel.icone" /></svg>
+                <span>{{ painel.rotulo }}</span>
+              </button>
+            }
+          </div>
+          @if (mobilePanel(); as painelAberto) {
+            <section class="vu-panel" [attr.data-vu-panel]="painelAberto" aria-label="Painel">
+              <button
+                type="button"
+                class="vu-sheet-item vu-panel-close"
+                data-vu-panel-close
+                [attr.aria-label]="'Fechar ' + painelAberto"
+                (click)="closeMobilePanel()"
+              >
+                <svg class="ui-icon" aria-hidden="true"><use href="ui-icons.svg#arrow" /></svg>
+                <span>Fechar</span>
+              </button>
+              @if (painelAberto === 'filtros') {
+                <label class="field"
+                  >Período
+                  <select [value]="period()" (change)="selectPeriod($any($event.target).value)">
+                    <option value="24h">Últimas 24 horas</option>
+                    <option value="1w">Últimos 7 dias</option>
+                    <option value="ongoing">Em andamento</option>
+                    <option value="1m">Último mês</option>
+                  </select>
+                </label>
+                <div class="category-shortcuts" role="group" aria-label="Categorias da consulta">
+                  @for (category of categories; track category.id) {
+                    <button
+                      class="category-shortcut"
+                      type="button"
+                      [class.is-selected]="isFilterActive('category:' + category.id)"
+                      [attr.aria-pressed]="isFilterActive('category:' + category.id)"
+                      (click)="toggleFilter('category:' + category.id)"
+                    >
+                      {{ category.label }}
+                    </button>
+                  }
+                </div>
+              } @else if (painelAberto === 'ferramentas') {
+                <button class="map-tool-button" type="button" (click)="applyVisibleQueryArea()">
+                  Buscar nesta área
+                </button>
+                <button
+                  class="heatmap-button"
+                  type="button"
+                  [class.is-on]="heatmap()"
+                  [attr.aria-pressed]="heatmap()"
+                  (click)="toggleHeatmap()"
+                >
+                  {{ heatmap() ? 'Ver marcadores' : 'Ver mancha térmica' }}
+                </button>
+                <label class="risk-layer-toggle"
+                  ><input
+                    type="checkbox"
+                    [checked]="territorySelected()"
+                    (change)="toggleRiskLayer()"
+                  />Exibir Áreas de Risco</label
+                >
+              } @else {
+                <div class="vu-panel-results" data-vu-panel-results>
+                  <p class="query-counts">
+                    {{ eventCount() }} ocorrências · {{ happeningCount() }} acontecimentos
+                  </p>
+                  @if (visiblePoints().length) {
+                    <ul class="result-list">
+                      @for (point of pagedResults(); track point.id) {
+                        <li>
+                          <button class="result-item" type="button" (click)="focusPoint(point)">
+                            <span class="record-symbol" aria-hidden="true">{{
+                              markerCode(point)
+                            }}</span>
+                            <div class="record-copy">
+                              <strong>{{ point.name }}</strong>
+                              <span>{{ point.location }}</span>
+                            </div>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                    @if (resultPageCount() > 1) {
+                      <nav class="result-pagination" aria-label="Paginação dos resultados">
+                        <button
+                          type="button"
+                          class="map-tool-button"
+                          [disabled]="resultPage() === 0"
+                          (click)="goToResultPage(resultPage() - 1)"
+                        >
+                          Anterior
+                        </button>
+                        <span class="result-pagination-status"
+                          >Página {{ resultPage() + 1 }} de {{ resultPageCount() }}</span
+                        >
+                        <button
+                          type="button"
+                          class="map-tool-button"
+                          [disabled]="resultPage() + 1 >= resultPageCount()"
+                          (click)="goToResultPage(resultPage() + 1)"
+                        >
+                          Próxima
+                        </button>
+                      </nav>
+                    }
+                  } @else {
+                    <p class="query-note">Nenhum resultado com os filtros atuais.</p>
+                  }
+                </div>
+              }
+            </section>
           }
         </div>
       }
