@@ -81,7 +81,8 @@
   font-size: var(--vu-text-base);
 
   &.ok {
-    color: #1b5e20;
+    // Tinta de sucesso: par próprio nos dois temas (o valor escuro é decisão do dono, 26/10).
+    color: var(--color-success-ink);
   }
 
   &.warn {
