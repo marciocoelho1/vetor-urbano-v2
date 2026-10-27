@@ -8,15 +8,15 @@ O front saiu de uma interface funcional mas desalinhada para uma com sistema de 
 
 | Mudança | Por quê |
 |---|---|
-| Escala tipográfica única, 3 pesos | havia 68 tamanhos fora de qualquer escala e 6 pesos misturados; título ia de 20 a 44 px sem regra |
+| Escala tipográfica única, 3 pesos | 68 declarações fora de qualquer escala no censo estático; no DOM, **5 tamanhos e 7 pesos** misturados |
 | Cores em token (`--color-*`, `--accent`, tintas de estado) | 8 tokens eram citados sem existir, e 3 declarações de borda **não renderizavam**; cartão branco fixo aparecia no tema escuro |
 | Contraste de texto e estado corrigido | badge do mapa dava **1,96:1** no escuro; aviso branco sobre verde, **1,67:1**; âmbar do marcador, **3,75** |
-| Contorno de controle a 3:1 | botões e campos eram identificados só por sombra; 1,24:1 no claro |
+| Contorno de controle a 3:1 | `--color-border-subtle` dava **1,24:1** no claro em **68 sítios** (contados por nome de token); hoje `3,17` na base e `3,36` no branco |
 | Alvos de toque ≥44 px | 14 de 20 alvos abaixo de 44; links do topo **cortados** a 320 e 390 px |
 | Movimento em 3 durações + `reduce` | 7 durações soltas, incluindo `420 ms` fora do vocabulário `{120,240,400}` |
 | Shell móvel: topbar 233 → 54 px | conteúdo ocupava só **71%** da tela no celular; agora **93%**, com barra de 5 destinos e botão flutuante |
 | Texto de apoio em 1 bloco de 51 ch | eram 54 linhas de prosa (média 92 ch, maior 421) na medição de 25/10; a árvore de 26/10 media 7 blocos, 605 ch, média 86, maior 121 — a baseline antiga não era reproduzível, então os dois números ficam |
-| Ritmo dos painéis padronizado | padding de 3 a 32 px e gaps de 5 a 14 px entre cartões iguais |
+| Ritmo dos painéis padronizado | a régua do UX-2 media **`[8,16]` px de padding** e **`[12,14]` de `gap`** entre cartões iguais antes do passe |
 | `data-state` na área de resultados | a tela não declarava o que estava fazendo; ao medir, apareceu defeito real: vazio aparecia como "estado inicial" |
 | Navegação com `aria-current` e conta no móvel | destino ativo só por cor; "Minha conta" inalcançável abaixo de 1024 |
 | Auditor de tipografia e token no build | nada impedia a reintrodução de tamanho solto ou token fantasma |
