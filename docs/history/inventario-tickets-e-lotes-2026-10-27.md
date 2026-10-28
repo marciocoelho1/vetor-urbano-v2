@@ -154,3 +154,15 @@ clonar o repositório, e o padrão desta casa, desde o auditor tipográfico, é 
 **Ordem da retomada:** 1) completar UXH-13+14 e rodar a régua uma vez; 2) UXH-15+16+17; 3) UXH-20. **Não fecham:** 04/05/06 (fonte territorial licenciada), 18/19 (provisionamento externo), 21 (depende), 22/23 (proibidos).
 
 **Ambiente ao pausar:** PC desligado pelo dono. Ao retomar: `podman start vu-uxh01-five-db` (55442) e `vetor-spec-postgis` (55436), API em `8080`, `ng serve` em `4201`. A base do login manual é `vetor_spec_test` (55436); as 29 bases de família em `55442` têm contas sem senha fixa.
+
+## 8. Retomada 3 — segunda pausa de 27/10
+
+**Estado:** `HEAD 1cf906d`, `local = origin`, árvore limpa.
+
+**Fechados hoje com hash:** UXH-08 `f106d20` · UXH-09 `2cab078`+`35949f0` · UXH-10 `3731d02` · UXH-11 `182d58f` (21/21) · UXH-12 `9722c2a` (9/9) · UXH-13+14 `1e6da36` (7/7) · README `6c96f51`.
+
+**WIP `1cf906d`:** UXH-15/16 com os dez hooks de estado do relatório já no template (`report-state/-generate/-update/-new/-snapshot/-total/-period/-copy-map/-conflict/-alert`). **As réguas `report-state.spec.ts` e `report-exports.spec.ts` estão na árvore e NUNCA foram executadas** — o primeiro passo da retomada é rodar `report-state` uma vez.
+
+**Ordem da retomada:** 1) `report-state` → commitar UXH-15/16 com o número; 2) UXH-17 (export bloqueado antes de gerar, PDF/XLSX com o total do snapshot, arquivo inspecionado); 3) UXH-20 (formulário de feedback). **Não fecham:** 04/05/06, 18/19, 21, 22/23.
+
+**Modelo de trabalho (corrigido pelo dono):** a sala é stand-up; a execução acontece **dentro do turno de cada bot, na janela dele**, e ele volta só com decisão, bloqueio e resultado. Corrente que termina sem próximo turno para — e o @arquiteto avisa no Telegram quando isso acontece.
