@@ -1067,6 +1067,35 @@ export class App implements AfterViewInit, OnDestroy {
     const snapshot = this.reportSnapshot();
     if (snapshot) (slot === 'A' ? this.comparisonA : this.comparisonB).set(snapshot);
   }
+  /** UXH-15: estado do relatório — vazio, configurado e ainda não gerado, ou gerado. */
+  protected readonly reportState = computed<'empty' | 'draft' | 'generated'>(() => {
+    if (this.reportSnapshot()) return 'generated';
+    return this.reportQueryFilters() ? 'draft' : 'empty';
+  });
+  protected readonly reportNewConfirm = signal(false);
+
+  protected requestNewReport(): void {
+    this.reportNewConfirm.set(true);
+  }
+
+  protected cancelNewReport(): void {
+    this.reportNewConfirm.set(false);
+  }
+
+  /** UXH-15: «Novo relatório» limpa só depois da confirmação explícita. */
+  protected confirmNewReport(): void {
+    this.reportNewConfirm.set(false);
+    this.reportSnapshotGeneration++;
+    this.reportQueryAbort?.abort();
+    this.reportSnapshot.set(null);
+    this.reportQueryFilters.set(null);
+    this.reportQueryError.set('');
+    this.pendingReportTransfer.set(null);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('[data-vu-report-generate]')?.focus(),
+    );
+  }
+
   protected readonly pendingReportTransfer = signal<LocalFilters | null>(null);
   protected readonly reportQueryLoading = signal(false);
   protected readonly reportQueryError = signal('');
@@ -4108,7 +4137,9 @@ export class App implements AfterViewInit, OnDestroy {
         this.reportSnapshot.set({
           generatedAt: response.generatedAt,
           snapshotOccurrenceIds: [
-            ...new Set([...response.items, ...response.relatedItems].map((item) => item.id)),
+            ...new Set(
+              [...response.items, ...(response.relatedItems ?? [])].map((item) => item.id),
+            ),
           ],
           attribution: response.attribution,
           filters: savedFilters,

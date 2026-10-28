@@ -2585,6 +2585,7 @@
           <section
             class="workspace-card report-snapshot-card"
             aria-labelledby="report-snapshot-heading"
+            [attr.data-vu-report-state]="reportState()"
             [attr.aria-busy]="reportQueryLoading() || exportLoading() || pdfExportLoading()"
           >
             <div class="section-heading">
@@ -2603,6 +2604,8 @@
                   type="button"
                   class="heatmap-button"
                   data-testid="report-generate-from-map"
+                  data-vu-report-generate
+                  data-vu-report-copy-map
                   (click)="generateReportFromMap()"
                   [disabled]="reportQueryLoading()"
                 >
@@ -2613,10 +2616,20 @@
                     type="button"
                     class="map-tool-button"
                     data-testid="report-refresh"
+                    data-vu-report-update
                     (click)="refreshReportSnapshot()"
                     [disabled]="reportQueryLoading()"
                   >
                     Atualizar relatório
+                  </button>
+                  <button
+                    type="button"
+                    class="map-tool-button"
+                    data-testid="report-new"
+                    data-vu-report-new
+                    (click)="requestNewReport()"
+                  >
+                    Novo relatório
                   </button>
                 }
               </div>
@@ -2632,6 +2645,7 @@
             @if (pendingReportTransfer()) {
               <div
                 class="report-transfer-choice"
+                data-vu-report-conflict
                 role="group"
                 aria-label="Configuração do relatório"
               >
@@ -2654,18 +2668,39 @@
                 </button>
               </div>
             }
+            @if (reportNewConfirm()) {
+              <div class="report-transfer-choice" role="group" aria-label="Novo relatório">
+                <p>Começar um novo relatório descarta o snapshot atual. Deseja continuar?</p>
+                <button
+                  type="button"
+                  class="heatmap-button"
+                  data-testid="report-new-confirm"
+                  (click)="confirmNewReport()"
+                >
+                  Descartar snapshot e começar novo
+                </button>
+                <button
+                  type="button"
+                  class="map-tool-button"
+                  data-testid="report-new-cancel"
+                  (click)="cancelNewReport()"
+                >
+                  Manter este relatório
+                </button>
+              </div>
+            }
             @if (reportQueryLoading()) {
               <p class="query-note" role="status" data-testid="report-loading">
                 Gerando relatório com o recorte escolhido…
               </p>
             }
             @if (reportQueryError()) {
-              <p class="query-error" role="alert" data-testid="report-error">
+              <p class="query-error" role="alert" data-vu-report-alert data-testid="report-error">
                 {{ reportQueryError() }}
               </p>
             }
             @if (reportSnapshot(); as snapshot) {
-              <div class="report-snapshot-result">
+              <div class="report-snapshot-result" data-vu-report-snapshot>
                 <p class="query-note">
                   Gerado em
                   <time data-testid="report-generated-at">{{
@@ -2675,7 +2710,11 @@
                   correções ou retiradas posteriores exigem atualização explícita. Arquivos já
                   baixados não são alterados.
                 </p>
-                <p class="report-snapshot-counts" data-testid="report-snapshot-counts">
+                <p
+                  class="report-snapshot-counts"
+                  data-vu-report-total
+                  data-testid="report-snapshot-counts"
+                >
                   {{ snapshot.counts.occurrences }} ocorrências ·
                   {{ snapshot.counts.happenings }} acontecimentos
                 </p>
@@ -2683,7 +2722,7 @@
                   {{ snapshot.counts.mappedOccurrences }} mapeadas ·
                   {{ snapshot.counts.listOnlyOccurrences }} apenas em lista
                 </p>
-                <p class="query-note">
+                <p class="query-note" data-vu-report-period>
                   Filtros do relatório: {{ reportFilterSummaryFor(snapshot.filters) }}
                 </p>
                 @if (reportSummary(); as summary) {
