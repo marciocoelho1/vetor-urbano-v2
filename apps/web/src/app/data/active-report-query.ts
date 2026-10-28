@@ -68,12 +68,17 @@ export async function fetchActiveReports(
   center: Coordinates,
   radiusMeters: number,
   signal: AbortSignal,
+  filters: { pillar?: string; type?: string; situation?: string } = {},
 ): Promise<ActiveReportResponse> {
   const params = new URLSearchParams({
     longitude: String(center[0]),
     latitude: String(center[1]),
     radiusMeters: String(radiusMeters),
   });
+  // UXH-13: os filtros próprios de Informes viajam na requisição; ausentes não poluem a URL.
+  if (filters.pillar) params.set('pillar', filters.pillar);
+  if (filters.type) params.set('type', filters.type);
+  if (filters.situation) params.set('situation', filters.situation);
   const response = await fetch(`http://127.0.0.1:8080/api/v1/active-reports?${params}`, {
     signal,
     credentials: 'include',

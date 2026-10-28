@@ -98,7 +98,12 @@ function observarConsultas(page: Page): string[] {
   const urls: string[] = [];
   page.on('request', (req) => {
     const url = req.url();
-    if (url.includes('/api/v1/') && /query|occurrence|history|insight/i.test(url)) urls.push(url);
+    // Tudo que não é sessão/permissão/administração é candidato a consulta: o nome do
+    // endpoint muda por view (`history/occurrences`, `active-reports`, …) e um filtro
+    // por palavra já escondeu requisição real nesta régua.
+    if (!url.includes('/api/v1/')) return;
+    if (/\/api\/v1\/(auth|admin)\//.test(url)) return;
+    urls.push(url);
   });
   return urls;
 }
@@ -124,53 +129,89 @@ test('UXH-13: Informes (view active) tem filtros próprios e não herda os do Ma
   );
 });
 
+/** Centro determinístico: a view só consulta com origem preenchida. */
+async function centroManual(page: Page): Promise<void> {
+  const lng = page.locator('#informes-lng-input');
+  const lat = page.locator('#informes-lat-input');
+  await expect(lng, 'sem campo de longitude em Informes').toHaveCount(1);
+  await expect(lat, 'sem campo de latitude em Informes').toHaveCount(1);
+  await lng.fill('-43.1915');
+  await lat.fill('-22.9032');
+  await page.waitForTimeout(150);
+}
+
+async function consultar(page: Page): Promise<void> {
+  const botao = page.getByRole('button', { name: /Consultar proximidade/i });
+  await expect(botao, 'sem botão «Consultar proximidade»').toHaveCount(1);
+  await botao.first().click();
+  await page.waitForTimeout(1200);
+}
+
 test('UXH-13: filtros combinados vão na requisição do servidor', async ({ page }) => {
-  await abrir(page, 1280);
+  await abrir(page, 1280, '/?consulta=api');
   await irPara(page, /Ocorrências/);
+  await centroManual(page);
   const urls = observarConsultas(page);
-  const pilar = page.locator('[data-vu-informes-filters]').getByRole('button', {
-    name: /Trânsito|Segurança/,
-  });
-  if ((await pilar.count()) > 0) await pilar.first().click();
-  const aplicar = page.locator(
-    '[data-vu-informes-filters] [data-vu-history-apply], [data-vu-informes-filters] button',
-    { hasText: /Aplicar/i },
-  );
-  if ((await aplicar.count()) > 0) await aplicar.first().click();
-  await page.waitForTimeout(900);
+  const rotulos = await page
+    .locator('[data-vu-informes-filters]')
+    .locator('button, [role="button"], input[type="checkbox"]')
+    .evaluateAll((nos) =>
+      nos.map(
+        (n) =>
+          `${n.tagName}:${(n.textContent ?? '').trim().slice(0, 18)}:${n.getAttribute('data-filter') ?? ''}`,
+      ),
+    );
+  console.log(`controles nos filtros de Informes: ${JSON.stringify(rotulos.slice(0, 8))}`);
+  const pilar = page
+    .locator('[data-vu-informes-filters]')
+    .getByRole('button', { name: /Trânsito|Segurança|Contingência/ })
+    .first();
+  console.log(`botão de pilar encontrado: ${await pilar.count()}`);
+  if ((await pilar.count()) > 0) {
+    await pilar.click();
+    await page.waitForTimeout(200);
+    console.log(`pilar clicado; aria-pressed=${await pilar.getAttribute('aria-pressed')}`);
+  }
+  // Filtros COMBINADOS: além do pilar, tipo e situação quando existirem.
+  for (const seletor of ['#informes-type-filter', '#informes-situation-filter']) {
+    const campo = page.locator(seletor);
+    if ((await campo.count()) === 0) continue;
+    await campo.selectOption({ index: 1 }).catch(() => undefined);
+    await page.waitForTimeout(150);
+    console.log(`${seletor} = ${await campo.inputValue()}`);
+  }
+  await consultar(page);
   console.log(`requisições: ${JSON.stringify(urls.slice(-3))}`);
+  expect(urls.length, 'nenhuma requisição ao consultar proximidade').toBeGreaterThan(0);
+  const levouFiltro = urls.filter((u) => /pillar=|&type=|&situation=/i.test(u));
+  console.log(`com filtro: ${JSON.stringify(levouFiltro.slice(-2))}`);
   expect(
-    urls.length,
-    'nenhuma requisição de consulta disparada ao aplicar filtros',
-  ).toBeGreaterThan(0);
-  const comFiltro = urls.filter((u) => /pillar|pilar|situation|situacao|type|tipo/i.test(u));
-  expect(
-    comFiltro.length,
+    levouFiltro.length,
     `nenhuma requisição levou o filtro (últimas: ${JSON.stringify(urls.slice(-2))})`,
   ).toBeGreaterThan(0);
 });
 
 test('UXH-13: raio máximo de 5 km é respeitado na requisição', async ({ page }) => {
-  await abrir(page, 1280);
+  await abrir(page, 1280, '/?consulta=api');
   await irPara(page, /Ocorrências/);
-  const raio = page.locator(
-    '[data-vu-informes-radius] input[type="range"], [data-vu-informes-radius] input[type="number"]',
-  );
+  await centroManual(page);
+  const raio = page.locator('[data-vu-informes-radius] input').first();
   await expect(raio, 'controle de raio ausente em Informes').toHaveCount(1);
-  const urls = observarConsultas(page);
-  await raio.first().evaluate((el: HTMLInputElement) => {
+  await raio.evaluate((el: HTMLInputElement) => {
     el.value = '9000';
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await page.waitForTimeout(900);
+  const urls = observarConsultas(page);
+  await consultar(page);
   const comRaio = urls.filter((u) => /radius|raio/i.test(u));
   console.log(`requisições com raio: ${JSON.stringify(comRaio.slice(-2))}`);
-  if (comRaio.length === 0) {
-    expect(comRaio.length, 'a requisição não leva o raio').toBeGreaterThan(0);
-  }
+  expect(
+    comRaio.length,
+    `a requisição não leva o raio (últimas: ${JSON.stringify(urls.slice(-2))})`,
+  ).toBeGreaterThan(0);
   const valores = comRaio.flatMap((u) =>
-    [...u.matchAll(/radius\w*=(\d+)/gi)].map((m) => Number(m[1])),
+    [...u.matchAll(/radiusMeters=(\d+)/gi)].map((m) => Number(m[1])),
   );
   console.log(`valores de raio enviados: ${JSON.stringify(valores)}`);
   expect(

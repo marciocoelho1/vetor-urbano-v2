@@ -807,7 +807,15 @@ export class App implements AfterViewInit, OnDestroy {
     'Escolha um ponto manual ou permita localização pontual.',
   );
   protected readonly informesResponse = signal<ActiveReportResponse | null>(null);
-  private readonly informesRequest = signal<{ center: Coordinates; radius: number } | null>(null);
+  /** UXH-13: recorte PRÓPRIO de Informes — não herda os filtros do Mapa. */
+  protected readonly informesPillars = signal<string[]>([]);
+  protected readonly informesType = signal('');
+  protected readonly informesSituation = signal('');
+  private readonly informesRequest = signal<{
+    center: Coordinates;
+    radius: number;
+    filters: { pillar?: string; type?: string; situation?: string };
+  } | null>(null);
   private informesLocationAttempt = 0;
   protected readonly informesRadiusMeters = signal(INFORMES_INITIAL_RADIUS_METERS);
   protected readonly informesCenter = signal({
@@ -1616,7 +1624,9 @@ export class App implements AfterViewInit, OnDestroy {
         record.location !== undefined &&
         record.insertedAt !== undefined,
     );
-    return orderHistoryRecords(filterHistoryRecords(displayableRecords, this.historyFilters()));
+    return orderHistoryRecords(
+      filterHistoryRecords(displayableRecords, this.historyAppliedFilters()),
+    );
   });
   protected readonly historyTotal = computed<number | null>(() =>
     this.persistedQueryEnabled
@@ -2101,7 +2111,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.informesResponse.set(null);
         this.informesError.set('');
         this.informesLoading.set(true);
-        void fetchActiveReports(query.center, query.radius, abort.signal)
+        void fetchActiveReports(query.center, query.radius, abort.signal, query.filters)
           .then((response) => {
             if (!abort.signal.aborted) this.informesResponse.set(response);
           })
@@ -3221,7 +3231,33 @@ export class App implements AfterViewInit, OnDestroy {
       this.informesError.set('Revise o centro WGS84 e o raio inteiro entre 1 e 5000 metros.');
       return;
     }
-    this.informesRequest.set({ center: [longitude, latitude], radius });
+    const pillars = this.informesPillars();
+    this.informesRequest.set({
+      center: [longitude, latitude],
+      radius,
+      filters: {
+        pillar: pillars[0],
+        type: this.informesType() || undefined,
+        situation: this.informesSituation() || undefined,
+      },
+    });
+  }
+
+  protected toggleInformesPillar(id: string): void {
+    this.informesPillars.update((ids) =>
+      ids.includes(id) ? ids.filter((item) => item !== id) : [id],
+    );
+    if (this.persistedQueryEnabled) this.clearInformesQuery();
+  }
+
+  protected setInformesType(value: string): void {
+    this.informesType.set(value);
+    if (this.persistedQueryEnabled) this.clearInformesQuery();
+  }
+
+  protected setInformesSituation(value: string): void {
+    this.informesSituation.set(value);
+    if (this.persistedQueryEnabled) this.clearInformesQuery();
   }
 
   protected setInformesCoordinate(axis: 'longitude' | 'latitude', value: string): void {

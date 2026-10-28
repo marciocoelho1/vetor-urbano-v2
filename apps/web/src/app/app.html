@@ -1889,6 +1889,7 @@
           <div
             class="informes-controls-card"
             role="region"
+            data-vu-informes-filters
             aria-label="Parâmetros de proximidade dos Ocorrências"
           >
             <div class="informes-controls-row">
@@ -1896,7 +1897,7 @@
                 <label for="informes-radius-input" class="informes-label">
                   Raio de busca (máximo 5 km)
                 </label>
-                <div class="informes-radius-field">
+                <div class="informes-radius-field" data-vu-informes-radius>
                   <input
                     id="informes-radius-input"
                     data-testid="informes-radius-input"
@@ -1958,6 +1959,48 @@
                   excluídos da proximidade.
                 </p>
               </div>
+              <div class="informes-control-group">
+                <span class="informes-label">Pilares de Informes</span>
+                <div class="informes-pillars">
+                  @for (category of historyCategoryOptions; track category.id) {
+                    <button
+                      type="button"
+                      class="map-tool-button"
+                      [attr.data-testid]="'informes-pillar-' + category.id"
+                      [attr.aria-pressed]="informesPillars().includes(category.id)"
+                      (click)="toggleInformesPillar(category.id)"
+                    >
+                      {{ category.label }}
+                    </button>
+                  }
+                </div>
+                <label class="informes-label">
+                  Tipo
+                  <select
+                    data-testid="informes-type-filter"
+                    [value]="informesType()"
+                    (change)="setInformesType($any($event.target).value)"
+                  >
+                    <option value="">Todos os tipos</option>
+                    @for (type of occurrenceCatalogue; track type.id) {
+                      <option [value]="type.id">{{ type.label }}</option>
+                    }
+                  </select>
+                </label>
+                <label class="informes-label">
+                  Situação
+                  <select
+                    data-testid="informes-situation-filter"
+                    [value]="informesSituation()"
+                    (change)="setInformesSituation($any($event.target).value)"
+                  >
+                    <option value="">Todas as situações</option>
+                    <option value="ONGOING">Em andamento</option>
+                    <option value="CLOSED">Encerrada</option>
+                    <option value="UNKNOWN">Desconhecida</option>
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -1988,6 +2031,10 @@
               Escolha o centro e consulte a proximidade. Nenhum resultado foi calculado.
             </p>
           } @else if (activeRecords().length) {
+            <p class="query-note" data-vu-informes-criteria>
+              Recorte aplicado: raio {{ informesRadiusMeters() }} m ·
+              {{ informesLocationStatus() }}
+            </p>
             <div class="workspace-list" data-testid="informes-list">
               @for (record of activeRecords(); track record.id) {
                 <article
