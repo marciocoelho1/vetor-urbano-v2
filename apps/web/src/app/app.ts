@@ -4275,7 +4275,14 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   protected async exportXlsx(): Promise<void> {
-    const generation = ++this.reportSnapshotGeneration;
+    // UXH-17: exporta o SNAPSHOT, nunca um recorte novo — sem snapshot não há arquivo.
+    const snapshotAtual = this.reportSnapshot();
+    if (!snapshotAtual) {
+      this.reportExportStatus.set(
+        'Gere o relatório antes de exportar. Nenhum arquivo foi baixado.',
+      );
+      return;
+    }
     this.exportLoading.set(true);
     this.reportExportStatus.set('Preparando a planilha do recorte completo…');
     try {
@@ -4284,9 +4291,7 @@ export class App implements AfterViewInit, OnDestroy {
       let savedFilters: LocalFilters | null = null;
       let exportedResponse: PersistedQueryResponse | null = null;
       if (this.persistedQueryEnabled) {
-        const requestedFilters = this.reportQueryFilters() ?? this.queryFilters();
-        if (!requestedFilters) throw new Error('Revise o período antes de exportar.');
-        savedFilters = cloneLocalFilters(requestedFilters);
+        savedFilters = cloneLocalFilters(snapshotAtual.filters);
         exportedResponse = await fetchPersistedReportExport(
           persistedQueryParameters(savedFilters),
           new AbortController().signal,
@@ -4307,28 +4312,6 @@ export class App implements AfterViewInit, OnDestroy {
         `vetor-urbano-relatorio-${generatedAt.slice(0, 10)}.xlsx`,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
-      if (exportedResponse && savedFilters && generation === this.reportSnapshotGeneration) {
-        this.reportSnapshot.set({
-          generatedAt: exportedResponse.generatedAt,
-          snapshotOccurrenceIds: [
-            ...new Set(
-              [...exportedResponse.items, ...exportedResponse.relatedItems].map((item) => item.id),
-            ),
-          ],
-          filters: savedFilters,
-          items: exportedResponse.items.map(persistedRecord),
-          counts: {
-            occurrences: exportedResponse.counts.occurrences,
-            happenings: exportedResponse.counts.happenings,
-            mappedOccurrences: exportedResponse.counts.mappedOccurrences,
-            listOnlyOccurrences: exportedResponse.counts.listOnlyOccurrences,
-            temporallyCertain: exportedResponse.counts.temporallyCertain,
-            temporallyPossible: exportedResponse.counts.temporallyPossible,
-          },
-        });
-        this.reportQueryFilters.set(savedFilters);
-        this.reportQueryError.set('');
-      }
       if (exportedResponse) {
         this.reportExportStatus.set(
           'Planilha XLSX completa gerada e exportação registrada no servidor.',
@@ -4341,9 +4324,9 @@ export class App implements AfterViewInit, OnDestroy {
       }
     } catch (error) {
       this.reportExportStatus.set(
-        error instanceof Error
-          ? `Não foi possível gerar o XLSX completo: ${error.message}`
-          : 'Não foi possível gerar o XLSX completo. Nenhum arquivo foi baixado.',
+        `Conteúdo do snapshot indisponível para exportar${
+          error instanceof Error ? `: ${error.message}` : '.'
+        } Gere o relatório novamente; nenhum arquivo foi baixado.`,
       );
     } finally {
       this.exportLoading.set(false);

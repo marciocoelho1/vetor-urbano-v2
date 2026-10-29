@@ -23,22 +23,22 @@ const sessaoAdmin = {
 
 async function abrirRelatorios(page: Page): Promise<void> {
   page.setDefaultTimeout(6_000);
+  // Mesmo conjunto de rotas da `report-state.spec.ts`: sem elas o módulo não monta.
   await page.route('**/api/v1/**', (r) =>
-    r.fulfill({
-      status: 200,
-      json: {
-        items: [
-          { id: 'exp-1', name: 'Ocorrência sintética 1', situation: 'ENABLED' },
-          { id: 'exp-2', name: 'Ocorrência sintética 2', situation: 'ENABLED' },
-        ],
-        records: [],
-        total: 2,
-        page: 1,
-      },
-    }),
+    r.fulfill({ status: 200, json: { items: [], records: [], total: 0, page: 1 } }),
   );
   await page.route('**/api/v1/auth/session', (r) => r.fulfill({ json: sessaoAdmin }));
   await page.route('**/api/v1/auth/access/**', (r) => r.fulfill({ json: sessaoAdmin }));
+  await page.route('**/api/v1/admin/**', (r) =>
+    r.fulfill({ status: 200, json: { items: [], total: 0 } }),
+  );
+  await page.route('https://tiles.stadiamaps.com/**', (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+    }),
+  );
   await page.addInitScript(() =>
     Object.defineProperty(window, 'WebGL2RenderingContext', {
       configurable: true,
@@ -48,9 +48,15 @@ async function abrirRelatorios(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/?consulta=api');
   await expect(page.locator('main')).toBeVisible();
+  await irParaModulo(page, /Relatórios/i);
+}
+
+/** Navega SEM recarregar — `goto` destrói o estado em memória do relatório. */
+async function irParaModulo(page: Page, rotulo: RegExp): Promise<void> {
   for (const alvo of [
-    page.locator('nav.primary-nav button', { hasText: /Relatórios/i }),
-    page.getByRole('button', { name: /Relatórios/i }),
+    page.locator('nav.primary-nav button', { hasText: rotulo }),
+    page.locator('nav.vu-bottom-bar button', { hasText: rotulo }),
+    page.getByRole('button', { name: rotulo }),
   ]) {
     if ((await alvo.count()) > 0 && (await alvo.first().isVisible())) {
       await alvo.first().click();
@@ -58,15 +64,62 @@ async function abrirRelatorios(page: Page): Promise<void> {
       return;
     }
   }
-  throw new Error('destino «Relatórios» não acionável');
+  throw new Error(`destino ${rotulo} não acionável`);
+}
+
+/** Um chip de filtro no Mapa deixa `queryFilters()` não-nulo para a geração. */
+async function recorteNoMapa(page: Page): Promise<void> {
+  await irParaModulo(page, /Mapa/i);
+  let chips = page.locator('[data-filter]');
+  if ((await chips.count()) === 0) {
+    for (const gatilho of [
+      page.getByRole('button', { name: /Filtros/i }),
+      page.getByRole('button', { name: /filtros avançados/i }),
+    ]) {
+      if ((await gatilho.count()) > 0 && (await gatilho.first().isVisible())) {
+        await gatilho.first().click();
+        await page.waitForTimeout(500);
+        chips = page.locator('[data-filter]');
+        if ((await chips.count()) > 0) break;
+      }
+    }
+  }
+  const total = await chips.count();
+  expect(total, 'nenhum chip [data-filter] no Mapa para preparar o recorte').toBeGreaterThan(0);
+  await chips.first().evaluate((el: HTMLElement) => el.click());
+  await page.waitForTimeout(400);
+  await irParaModulo(page, /Relatórios/i);
+}
+
+/** Payload do contrato do relatório (o catch-all genérico não tem `counts`). */
+async function mockRelatorio(page: Page, valores: number[]): Promise<void> {
+  let chamada = 0;
+  await page.route('**/api/v1/reports/occurrences**', (r) => {
+    const n = valores[Math.min(chamada, valores.length - 1)] ?? 0;
+    chamada += 1;
+    return r.fulfill({
+      json: {
+        generatedAt: '2026-10-28T12:00:00Z',
+        attribution: [],
+        items: [],
+        relatedItems: [],
+        counts: {
+          occurrences: n,
+          happenings: n,
+          mappedOccurrences: n,
+          listOnlyOccurrences: 0,
+          temporallyCertain: n,
+          temporallyPossible: 0,
+        },
+      },
+    });
+  });
 }
 
 /** Gera o relatório para que os exports tenham snapshot. */
 async function gerar(page: Page): Promise<{ total: string; periodo: string }> {
-  const inicio = page.getByLabel(/in[íi]cio|de/i).first();
-  if ((await inicio.count()) > 0) await inicio.fill('2026-10-01');
-  const fim = page.getByLabel(/fim|at[ée]/i).first();
-  if ((await fim.count()) > 0) await fim.fill('2026-10-27');
+  await recorteNoMapa(page);
+  await mockRelatorio(page, [3]);
   await page.locator('[data-vu-report-generate]').first().click();
   await page.waitForTimeout(1200);
   return {
@@ -155,7 +208,9 @@ test('UXH-17: PDF e XLSX carregam o total do snapshot, não a página visível',
     console.log(`${extensao}: ${download.suggestedFilename()} · ${caminho}`);
     expect(caminho, `download ${extensao} sem arquivo`).toBeTruthy();
     const conteudo = extensao === 'pdf' ? textoDoPdf(caminho!) : textoDoXlsx(caminho!);
-    const digitos = snapshot.total.replace(/\D/g, '');
+    // Primeiro número do total (ocorrências). Juntar todos os dígitos gerava "33"
+    // para "3 ocorrências · 3 acontecimentos" e reprovava o arquivo por artefato meu.
+    const digitos = (snapshot.total.match(/\d+/) ?? [''])[0] ?? '';
     console.log(`${extensao}: contém o total ${digitos}? ${conteudo.includes(digitos)}`);
     expect(conteudo, `${extensao} não contém o total do snapshot (${digitos})`).toContain(digitos);
   }

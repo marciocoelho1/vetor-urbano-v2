@@ -1814,9 +1814,12 @@ describe('Vetor Urbano', () => {
     });
 
     try {
+      // UXH-17: exportar sem snapshot não baixa arquivo nem inventa procedência —
+      // a exportação carrega o snapshot gerado, nunca um recorte novo.
       await app.exportXlsx();
-      expect(app.reportExportStatus()).toContain('demonstração local');
+      expect(app.reportExportStatus()).toContain('Gere o relatório antes de exportar');
       expect(app.reportExportStatus()).not.toContain('registrada no servidor');
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
     } finally {
       if (originalCreateObjectUrl) {
         Object.defineProperty(URL, 'createObjectURL', originalCreateObjectUrl);

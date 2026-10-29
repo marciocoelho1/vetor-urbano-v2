@@ -2552,8 +2552,9 @@
               class="heatmap-button"
               type="button"
               data-testid="report-export-xlsx"
+              data-vu-report-export-xlsx
               (click)="exportXlsx()"
-              [disabled]="exportLoading() || reportQueryLoading()"
+              [disabled]="exportLoading() || reportQueryLoading() || !reportSnapshot()"
             >
               Exportar XLSX
             </button>
@@ -2561,6 +2562,7 @@
           <button
             class="heatmap-button"
             type="button"
+            data-vu-report-export-pdf
             (click)="exportPdf()"
             [disabled]="!reportSnapshot() || pdfExportLoading() || reportQueryLoading()"
           >
