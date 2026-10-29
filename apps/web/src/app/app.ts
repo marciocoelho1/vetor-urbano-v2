@@ -5,6 +5,7 @@ import {
   fetchActiveReports,
   type ActiveReportResponse,
 } from './data/active-report-query';
+import { sendPilotFeedback } from './data/feedback-api';
 import { QueryUpdateMonitor } from './data/query-update-monitor';
 import { recordPersistedPdfExport } from './data/persisted-query';
 import {
@@ -1068,6 +1069,63 @@ export class App implements AfterViewInit, OnDestroy {
     if (snapshot) (slot === 'A' ? this.comparisonA : this.comparisonB).set(snapshot);
   }
   /** UXH-15: estado do relatório — vazio, configurado e ainda não gerado, ou gerado. */
+  /** UXH-20: feedback do piloto — destino interno (`POST /api/v1/feedback`). */
+  protected readonly feedbackRating = signal(0);
+  protected readonly feedbackMessage = signal('');
+  protected readonly feedbackContact = signal(false);
+  protected readonly feedbackState = signal<'idle' | 'sending' | 'done' | 'error'>('idle');
+  protected readonly feedbackError = signal('');
+
+  protected setFeedbackRating(value: number): void {
+    this.feedbackRating.set(value);
+  }
+
+  protected setFeedbackMessage(value: string): void {
+    this.feedbackMessage.set(value);
+  }
+
+  protected setFeedbackContact(value: boolean): void {
+    this.feedbackContact.set(value);
+  }
+
+  protected async submitFeedback(): Promise<void> {
+    if (this.feedbackState() === 'sending') return;
+    if (this.feedbackRating() < 1 || this.feedbackRating() > 5) {
+      this.feedbackState.set('error');
+      this.feedbackError.set('Escolha uma nota de 1 a 5.');
+      return;
+    }
+    const message = this.feedbackMessage().trim();
+    if (!message) {
+      this.feedbackState.set('error');
+      this.feedbackError.set('Escreva um comentário antes de enviar.');
+      return;
+    }
+    this.feedbackState.set('sending');
+    this.feedbackError.set('');
+    try {
+      await sendPilotFeedback(
+        {
+          rating: this.feedbackRating(),
+          message,
+          contactOptIn: this.feedbackContact(),
+          route: this.activeView(),
+        },
+        this.session.state()?.csrfToken ?? '',
+      );
+      this.feedbackState.set('done');
+      this.feedbackMessage.set('');
+      this.feedbackRating.set(0);
+      this.feedbackContact.set(false);
+    } catch (error) {
+      // Falha não descarta o que foi digitado: o texto continua no formulário.
+      this.feedbackState.set('error');
+      this.feedbackError.set(
+        error instanceof Error ? error.message : 'Não foi possível enviar o feedback.',
+      );
+    }
+  }
+
   protected readonly reportState = computed<'empty' | 'draft' | 'generated'>(() => {
     if (this.reportSnapshot()) return 'generated';
     return this.reportQueryFilters() ? 'draft' : 'empty';

@@ -4202,6 +4202,63 @@
         </section>
       }
     }
+    <section class="workspace-card feedback-card" aria-labelledby="feedback-heading">
+      <h2 id="feedback-heading">Enviar feedback do piloto</h2>
+      <p class="query-note">
+        Destino interno do próprio Vetor Urbano. Nada é capturado automaticamente: sem localização,
+        sem captura de sessão e sem imagem.
+      </p>
+      <fieldset class="feedback-rating">
+        <legend>Nota de 1 a 5</legend>
+        @for (nota of [1, 2, 3, 4, 5]; track nota) {
+          <label class="filter-choice">
+            <input
+              type="radio"
+              name="feedback-rating"
+              data-vu-feedback-rating
+              [value]="nota"
+              [checked]="feedbackRating() === nota"
+              (change)="setFeedbackRating(nota)"
+            />
+            <span>{{ nota }}</span>
+          </label>
+        }
+      </fieldset>
+      <label class="field">
+        Comentário
+        <textarea
+          data-vu-feedback-message
+          rows="3"
+          maxlength="2000"
+          [value]="feedbackMessage()"
+          (input)="setFeedbackMessage($any($event.target).value)"
+        ></textarea>
+      </label>
+      <label class="filter-choice">
+        <input
+          type="checkbox"
+          [checked]="feedbackContact()"
+          (change)="setFeedbackContact($any($event.target).checked)"
+        />
+        <span>Autorizo contato sobre este feedback</span>
+      </label>
+      <button
+        type="button"
+        class="heatmap-button"
+        data-vu-feedback-submit
+        (click)="submitFeedback()"
+        [disabled]="feedbackState() === 'sending'"
+      >
+        {{ feedbackState() === 'sending' ? 'Enviando…' : 'Enviar feedback' }}
+      </button>
+      @if (feedbackState() === 'done') {
+        <p role="status" data-vu-feedback-done>Feedback enviado. Obrigado por participar.</p>
+      }
+      @if (feedbackState() === 'error') {
+        <p class="query-error" role="alert" data-vu-feedback-error>{{ feedbackError() }}</p>
+      }
+    </section>
+
     <footer class="site-footer">
       <a class="footer-brand" href="#mapa" (click)="openView('map')">Vetor Urbano</a>
       <a
