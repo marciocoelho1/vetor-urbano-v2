@@ -2669,8 +2669,16 @@
               </div>
             }
             @if (reportNewConfirm()) {
-              <div class="report-transfer-choice" role="group" aria-label="Novo relatório">
-                <p>Começar um novo relatório descarta o snapshot atual. Deseja continuar?</p>
+              <div
+                class="report-transfer-choice report-new-dialog"
+                role="dialog"
+                aria-modal="false"
+                aria-labelledby="report-new-title"
+                data-vu-report-new-confirm
+              >
+                <p id="report-new-title">
+                  Começar um novo relatório descarta o snapshot atual. Deseja continuar?
+                </p>
                 <button
                   type="button"
                   class="heatmap-button"

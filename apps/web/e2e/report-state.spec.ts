@@ -254,8 +254,18 @@ test('UXH-15: falha do servidor é alerta, não "nenhum resultado"', async ({ pa
   );
   await page.locator('[data-vu-report-generate]').first().click();
   await page.waitForTimeout(1400);
-  const alerta = page.locator('[data-vu-report-alert], main [role="alert"]');
-  await expect(alerta.first(), 'falha do servidor sem role="alert"').toBeVisible();
+  // Só o hook do relatório: a união com `main [role="alert"]` pegava outro elemento.
+  const alerta = page.locator('[data-vu-report-alert]');
+  const inventario = await alerta.evaluateAll((nos) =>
+    nos.map((n) => ({
+      texto: (n.textContent ?? '').trim().slice(0, 60),
+      visivel: (n as HTMLElement).offsetParent !== null,
+      display: getComputedStyle(n).display,
+      hiddenAttr: n.hasAttribute('hidden'),
+    })),
+  );
+  console.log(`alertas no DOM: ${JSON.stringify(inventario)}`);
+  await expect(alerta.first(), 'falha do servidor sem alerta visível').toBeVisible();
   const texto = ((await alerta.first().textContent()) ?? '').trim();
   console.log(`alerta: "${texto.slice(0, 90)}"`);
   expect(texto.toLowerCase(), 'a falha foi apresentada como resultado vazio').not.toMatch(
@@ -304,7 +314,9 @@ test('UXH-15: snapshot sobrevive à troca de módulo e «Novo relatório» confi
 
   await page.locator('[data-vu-report-new]').first().click();
   await page.waitForTimeout(500);
-  const confirmacao = page.locator('[data-vu-report-conflict], [role="dialog"]');
+  const confirmacao = page.locator(
+    '[data-vu-report-new-confirm], [data-vu-report-conflict], [role="dialog"], dialog[open]',
+  );
   await expect(confirmacao.first(), '«Novo relatório» limpou sem confirmar').toBeVisible();
   const texto = ((await confirmacao.first().textContent()) ?? '').toLowerCase();
   console.log(`confirmação: "${texto.replace(/\s+/g, ' ').slice(0, 80)}"`);
