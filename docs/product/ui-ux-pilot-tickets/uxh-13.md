@@ -1,9 +1,9 @@
 # UXH-13 — Refinar Informes por filtros próprios no servidor
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `1e6da36`; prova em `informes-historico.spec.ts` **7/7** (janela `12:47:32Z..12:47:50Z`, build `12:46:38Z`). Aceite pendente do responsável.
 **Lote:** D.
 **Bloqueado por:** [UXH-12](uxh-12.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 

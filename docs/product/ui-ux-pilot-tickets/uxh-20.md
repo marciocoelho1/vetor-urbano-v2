@@ -1,9 +1,9 @@
 # UXH-20 — Disponibilizar formulário simples de feedback do piloto
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `b9814d4`; prova em `feedback.spec.ts` **5/5** (janela `02:29:26Z..02:29:32Z`, build `02:23:20Z`). Aceite pendente do responsável. Dívida datada: o caminho de visitante (`account_id` nulo) não é alcançável pelo `AccessBoundary` atual.
 **Lote:** E.
 **Bloqueado por:** [UXH-07](uxh-07.md)
-**Condição adicional:** Aguarda autorização de implementação e definição operacional do destino. Teste de envio externo só com escopo/destino autorizado.
+**Condição adicional:** Destino decidido: endpoint interno da API (sem serviço externo). Envio externo segue exigindo autorização. Ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 

@@ -1,9 +1,9 @@
 # UXH-16 — Gerar pelo Mapa e separar painéis e filtros salvos
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `c570346`; prova na mesma execução de `report-state.spec.ts` **5/5** (janela `02:14:39Z..02:15:07Z`). Aceite pendente do responsável.
 **Lote:** D.
 **Bloqueado por:** [UXH-09](uxh-09.md), [UXH-15](uxh-15.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 

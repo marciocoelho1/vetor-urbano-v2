@@ -1,9 +1,9 @@
 # UXH-14 — Consultar Histórico com filtros no topo e sem reprodução
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `1e6da36`; prova na mesma execução de `informes-historico.spec.ts` **7/7** (janela `12:47:32Z..12:47:50Z`). Aceite pendente do responsável.
 **Lote:** D.
 **Bloqueado por:** [UXH-12](uxh-12.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 

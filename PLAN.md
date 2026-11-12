@@ -1,5 +1,14 @@
 # Plano de trabalho
 
+## Encerramento em curso — piloto no ar — 29/10/2026
+
+- **Decisão do responsável no grill de encerramento:** a fronteira é o **piloto no ar** (UXH-22/23), «por mais que exija configuração manual». Autorizadas também a gravação das entregas (Q2), o aceite pelas réguas por ticket com a campanha E2E só como condição do UXH-21 (Q3) e a correção do **UX-7b** agora (Q4). [Entrevista e fronteira aberta](docs/history/closure-interview-2026-10-29.md).
+- **Registro das entregas de 28/10 feito:** UXH-13 e 14 (`1e6da36`, `7/7`), UXH-15 e 16 (`c570346`, `5/5`), UXH-17 (`f706002`, `4/4`), UXH-20 (`b9814d4`, `5/5`, V24 na 55436). Números transcritos do corpo dos commits; **não reexecutados** — ambiente parado em 29/10 01:28 -03. [Tabela com janelas](docs/history/uxh-13-20-registro-2026-10-29.md).
+- **Estado dos lotes:** fechados UXH-07 a UXH-17, UXH-20 **e UXH-06** (`d40b0ad`, 12/11); abertos UXH-18, 19, 21, 22 e 23; **UXH-04 e UXH-05 sem entrega commitada** (o dado dos 658 bairros está na base e o catálogo o serve, mas não há commit nem régua de ingestão — `git log --grep='UXH-0[45]'` vazio); dívidas nomeadas UX-7b, selo da campanha E2E e os textos do 36/D3.
+- **Fontes territoriais (29/10, Q5/Q6):** IPP camada 4 com **167** bairros da capital; IBGE `RJ_bairros_CD2022.gpkg` com 1.727 feições e cobertura de **13 dos 22** municípios da RMRJ (faltam Guapimirim, Itaguaí, Magé, Maricá, Paracambi, Petrópolis, Queimados, Rio Bonito, Seropédica). Capital pelo IPP, demais pelo IBGE, sem somar (167 × 294 na mesma cidade). A V23 já modela bairro, RA e AP: UXH-04/05 viram ingestão. [Registro](docs/product/territorial-sources-rmrj.md).
+- **Frente nova — informes em tempo real do OTT (29/10):** pedido do responsável de acessar o aplicativo OTT360 e publicar os informes. Viabilidade medida e entrevista aberta em [entrevista de viabilidade](docs/history/ott-informes-interview-2026-10-29.md): o feed público do site entrega 34 informes de 24 h com coordenada e endereço e **sem dado pessoal**; o app é Capacitor/Ionic e, além desse núcleo, só acrescenta descrição, foto e **identidade do informante**. Nenhuma autorização da OTT existe — a cláusula 6.1 do Termo de Uso não concede licença de uso dos informes fora da Plataforma — e nada foi decidido: oito decisões seguem na fronteira. Sem código, conta, ticket, commit ou push.
+- **Próxima ação:** fechar a fronteira do piloto — mesma origem/proxy, health check, contas de teste rotacionadas no host e insumos dos provedores (Q10) — e então executar UX-7b, a ingestão territorial e os portões do UXH-19. Sem código, contêiner, provisionamento, commit ou push nesta rodada.
+
 ## RECUPERAÇÃO VALIDADA LOCALMENTE — 24/10/2026
 
 - Pedido do responsável: «Retome pelo ponto de recuperação de 24/10/2026.» Branch `integration/functional-spec-v1`, HEAD `fc35eba`, trabalho anterior preservado. Sem staging/commit/push/merge, alteração de controlador, dados reais ou deploy.

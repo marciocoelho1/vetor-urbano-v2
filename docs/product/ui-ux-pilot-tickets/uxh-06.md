@@ -1,9 +1,9 @@
 # UXH-06 — Definir centro do raio por local com geometria validada
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 12/11/2026 — `d40b0ad`; prova em `territory-selector.spec.ts` **5/5** (janela `20:01:43Z..20:02:03Z`, build `19:58:34Z`). Aceite pendente do responsável.
 **Lote:** B.
 **Bloqueado por:** [UXH-03](uxh-03.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md) e o `CHANGELOG` de 12/11.
 
 ## Entrega verificável
 

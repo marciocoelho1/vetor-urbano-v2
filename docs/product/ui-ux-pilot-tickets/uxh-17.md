@@ -1,9 +1,9 @@
 # UXH-17 — Exportar PDF e XLSX do mesmo resultado gerado
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `f706002`; prova em `report-exports.spec.ts` **4/4** (janela `02:19:13Z..02:19:35Z`, build `02:16:36Z`). Aceite pendente do responsável.
 **Lote:** D.
 **Bloqueado por:** [UXH-15](uxh-15.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 

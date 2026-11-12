@@ -1,9 +1,9 @@
 # UXH-15 — Gerar Relatórios por formulário e ciclo de vida independentes
 
-**Estado:** proposto para revisão da divisão; não iniciado, sem aceite ou publicação no GitHub.
+**Estado:** implementado localmente em 28/10/2026 — `c570346`; prova em `report-state.spec.ts` **5/5** (janela `02:14:39Z..02:15:07Z`, build `02:13:55Z`). Aceite pendente do responsável.
 **Lote:** D.
 **Bloqueado por:** [UXH-07](uxh-07.md)
-**Condição adicional:** Autorização de implementação ainda não concedida.
+**Condição adicional:** Implementação autorizada e executada; ver [registro das entregas](../../history/uxh-13-20-registro-2026-10-29.md).
 
 ## Entrega verificável
 
