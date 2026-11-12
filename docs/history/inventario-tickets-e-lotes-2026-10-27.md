@@ -75,23 +75,23 @@ checkpoint em `docs/history/`. "Solicitado" = rodada em que o item entrou na spe
 | UXH-01 | Reproduzir e reconciliar o candidato | A | ✓ | 24/10 (aceito) |
 | UXH-02 | Inventariar fontes e cobertura metropolitana | A | ✓ | 24/10 (aceito) |
 | UXH-03 | Municípios por catálogo territorial | B | ✓ | 25/10 (`c0b70ac`, `b8c6027`) |
-| UXH-04 | Bairros, RAs e APs do Rio | B | ✗ | bloqueado: fonte territorial sem licença validada |
-| UXH-05 | Bairros dos demais municípios da RMRJ | B | ✗ | bloqueado: fonte territorial sem licença validada |
-| UXH-06 | Centro do raio por localidade | B | ◐ | município entregue no UXH-03; demais geometrias bloqueadas |
+| UXH-04 | Bairros, RAs e APs do Rio | B | ◐ | **dado publicado e régua com hash; entrega de código sem hash.** 658 bairros na `vetor_spec_test` (conferido em 12/11: `catalog_territories` = 680 → 658 BAIRRO + 22 MUNICIPALITY, **zero RA/AP**); régua `territorial-catalog` **5/5** commitada dentro de `d40b0ad`. Proveniência (manifest/alvos) **ainda não versionada** — vive em `~/.hermes/profiles/infra/cache/scratch/pacote-bairros-rmrj13/`, então não é reproduzível por clone. RA/AP do Rio **sem fonte oficial** (IPP 167 × IBGE 294 na mesma capital; as bases não se somam) |
+| UXH-05 | Bairros dos demais municípios da RMRJ | B | ◐ | idem UXH-04. **9 municípios sem malha de bairro:** Maricá, Seropédica, Guapimirim, Itaguaí, Magé, Queimados, Petrópolis, Paracambi, Rio Bonito. OSM recusado por licença (ODbL × CC BY) e por falta de oficialidade — fechar exige fonte oficial nova |
+| UXH-06 | Centro do raio por localidade | B | ✓ | 12/11 (`d40b0ad`) — centro escolhido no catálogo (abas Município/Bairro, 658 opções, homônimo desambiguado pelo município, `internal_point` do servidor); `territory-selector` **5/5**, janela `20:01:43Z→20:02:03Z`, build `19:58:34Z` |
 | UXH-07 | Navegação e linguagem responsivas | C | ✓ | 26/10 (`7bd0a1b`, `0148153`) |
 | UXH-08 | Mapa ampliado, filtros e ferramentas unificados | C | ✓ | 27/10 (`f106d20` + `8462047`) — ferramentas acima do formulário, paginação, janela 36→280 px |
 | UXH-09 | Área visível aplicada explicitamente | C | ✓ | 27/10 (`2cab078` + `35949f0`) — área no caminho API, raio substituído, contenção provada pelo par dentro/fora |
 | UXH-10 | Mapa móvel com painéis exclusivos | C | ✓ | 27/10 (`3731d02`) — painéis exclusivos na folha, `10/10` + UX-6 `14/14` na mesma execução |
-| UXH-11 | Telas administrativas em Configurações | C | ◐ | 27/10 (`7519706`) — incremento 1: moldura, acesso restrito, guarda de 403 (`7/11`) |
-| UXH-12 | Detalhe único e retorno ao contexto | C | ✗ | não iniciado |
-| UXH-13 | Informes com filtros no servidor | D | ✗ | não iniciado |
-| UXH-14 | Histórico com filtros no topo | D | ✗ | não iniciado |
-| UXH-15 | Relatórios com ciclo próprio | D | ✗ | não iniciado |
-| UXH-16 | Gerar pelo mapa e separar filtros salvos | D | ✗ | não iniciado |
-| UXH-17 | PDF e XLSX do mesmo resultado | D | ✗ | não iniciado |
+| UXH-11 | Telas administrativas em Configurações | C | ✓ | 27/10 — três incrementos: `7519706` (moldura e acesso restrito), `2223406` (`15/16`, superfície de Logs, retry, «Sair» na folha, atributos de diagnóstico), `182d58f` (**`21/21`**, guarda de descarte nas três portas). Fecha carregando as dívidas datadas de `ux-lotes` §3 |
+| UXH-12 | Detalhe único e retorno ao contexto | C | ✓ | 27/10 (`9722c2a`) — `detail-context` **9/9**, janela `19:05:03Z→19:05:19Z`; `aside` recebe foco, `Escape` chega, foco volta ao acionador |
+| UXH-13 | Informes com filtros no servidor | D | ✓ | 28/10 (`1e6da36`) — `informes-historico` **7/7** |
+| UXH-14 | Histórico com filtros no topo | D | ✓ | 28/10 (`1e6da36`) — mesmo commit e mesma régua |
+| UXH-15 | Relatórios com ciclo próprio | D | ✓ | 28/10 (`c570346`) — `report-state` **5/5** |
+| UXH-16 | Gerar pelo mapa e separar filtros salvos | D | ✓ | 28/10 (`c570346`) — mesmo commit |
+| UXH-17 | PDF e XLSX do mesmo resultado | D | ✓ | 28/10 (`f706002`) — `report-exports` **4/4**, arquivo inspecionado |
 | UXH-18 | Pacote de Áreas de Risco | E | ✗ | bloqueado: direitos de fonte |
 | UXH-19 | Integração remota e operação segura | E | ✗ | bloqueado: provisionamento externo |
-| UXH-20 | Formulário de feedback do piloto | E | ✗ | não iniciado |
+| UXH-20 | Formulário de feedback do piloto | E | ✓ | 28/10 (`b9814d4`) — `feedback` **5/5**, V24 aplicada na `vetor_spec_test`; dívida datada: `AccessBoundary` exige sessão, então a coluna de visitante não é alcançável hoje |
 | UXH-21 | Verificação do candidato integrado | F | ✗ | depende de 04, 06, 10–20 |
 | UXH-22 | Implantar piloto em Neon/Render/Vercel | G | ✗ | **pendente por decisão do responsável** |
 | UXH-23 | Homologar piloto e liberar convidados | G | ✗ | **pendente por decisão do responsável** |
@@ -99,8 +99,8 @@ checkpoint em `docs/history/`. "Solicitado" = rodada em que o item entrou na spe
 ## 4. Pendências que dependem do responsável
 
 1. **Ticket 36** — publicação jurídica dos documentos institucionais (D3).
-2. **Aceite formal** — UX-2 a UX-9 e UXH-07 aceitos em 26/10; **UXH-08 e UXH-09 entregues em 27/10** e aguardam aceite.
-3. **Lotes B (UXH-04 a 06) e G (UXH-22/23)** — manter pendentes, por decisão de 26/10.
+2. **Aceite formal** — UX-2 a UX-9 e UXH-07 aceitos em 26/10; **UXH-08 a UXH-17 e UXH-20 entregues com hash** e aguardam aceite; **UXH-06** entregue em 12/11 e também aguarda.
+3. **Lotes B (UXH-04/05) e G (UXH-22/23)** — 04/05 têm dado e régua, **sem entrega de código com hash**; G segue pendente por decisão de 26/10.
 
 ## 5. Selo por execução — ainda não produzido com perfil válido
 
@@ -166,3 +166,17 @@ clonar o repositório, e o padrão desta casa, desde o auditor tipográfico, é 
 **Ordem da retomada:** 1) `report-state` → commitar UXH-15/16 com o número; 2) UXH-17 (export bloqueado antes de gerar, PDF/XLSX com o total do snapshot, arquivo inspecionado); 3) UXH-20 (formulário de feedback). **Não fecham:** 04/05/06, 18/19, 21, 22/23.
 
 **Modelo de trabalho (corrigido pelo dono):** a sala é stand-up; a execução acontece **dentro do turno de cada bot, na janela dele**, e ele volta só com decisão, bloqueio e resultado. Corrente que termina sem próximo turno para — e o @arquiteto avisa no Telegram quando isso acontece.
+
+## 9. Retomada 4 — 12/11/2026
+
+**Fechado com hash de produto nesta retomada:** **UXH-06** (`d40b0ad`) — centro do raio escolhido no catálogo (abas Município/Bairro, 658 opções, homônimo desambiguado pelo município, centro vindo do `internal_point` do servidor), com `territory-selector` **5/5** (janela `20:01:43Z→20:02:03Z`, build `19:58:34Z`, carimbo limpo) e `territorial-catalog` **5/5** no mesmo commit. Dois defeitos de produto medidos e consertados no passe: o seletor nascia atrás de dois disclosures e o rótulo da opção não trazia o município.
+
+**Fechados na rodada anterior, com hash:** UXH-13+14 `1e6da36` (`7/7`) · UXH-15+16 `c570346` (`5/5`) · UXH-17 `f706002` (`4/4`) · UXH-20 `b9814d4` (`5/5`, V24 na 55436).
+
+**Contagem honesta:** **13 tickets UXH com entrega de código e hash** — 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 20. **UXH-04/05** têm **dado publicado e régua com hash dentro de `d40b0ad`**, mas **entrega de código sem hash**; a proveniência (manifest, alvos, sha256) **ainda não está versionada** — vive em `~/.hermes/profiles/infra/cache/scratch/pacote-bairros-rmrj13/`, logo não é reproduzível por clone.
+
+**Ainda abertos:** UXH-18 e UXH-19 (provisionamento externo e serviço de e-mail), UXH-21 (depende deles), UXH-22/23 (proibidos por decisão do responsável), **ticket 36** (publicação jurídica) e **UX-7b**.
+
+**Lacunas do Lote B, com nome:** RA/AP do Rio **sem fonte oficial** (IPP camada 4 dá 167 bairros, IBGE 294 para a capital, e as bases não se somam; mapear distrito→RA seria inventar vocabulário) e **9 municípios sem malha de bairro** — Maricá, Seropédica, Guapimirim, Itaguaí, Magé, Queimados, Petrópolis, Paracambi, Rio Bonito. OSM recusado por licença (ODbL × CC BY) e por falta de oficialidade.
+
+**Base de demonstração:** `vetor_spec_test` (55436) com `catalog_territories` = **680** (658 `BAIRRO` + 22 `MUNICIPALITY`, zero RA/AP), conferido por consulta em 12/11 — bate com as 658 opções que a régua contou na tela.
