@@ -17,11 +17,16 @@ export interface TerritoryDataset {
   limitations: string;
 }
 
+export type TerritoryLevel = 'MUNICIPALITY' | 'BAIRRO' | 'RA' | 'AP';
+
 export interface TerritoryItem {
   id: string;
   officialCode: string;
-  level: 'MUNICIPALITY' | 'BAIRRO' | 'RA' | 'AP';
+  level: TerritoryLevel;
   name: string;
+  /** Contexto do território pai: é o que desambigua homônimo («Centro» existe em muitos). */
+  parentName?: string | null;
+  parentLevel?: TerritoryLevel | null;
   version: number | null;
   validated: boolean;
   internalPoint: [number, number] | null;
@@ -53,8 +58,11 @@ export class TerritoryCatalogError extends Error {
   }
 }
 
-export async function fetchTerritoryCatalog(signal?: AbortSignal): Promise<TerritoryCatalog> {
-  const response = await fetch(`${API}/territories?level=MUNICIPALITY`, {
+export async function fetchTerritoryCatalog(
+  level: TerritoryLevel = 'MUNICIPALITY',
+  signal?: AbortSignal,
+): Promise<TerritoryCatalog> {
+  const response = await fetch(`${API}/territories?level=${level}`, {
     credentials: 'include',
     signal,
     headers: { Accept: 'application/json' },
@@ -98,7 +106,11 @@ export function filterTerritories(items: TerritoryItem[], term: string): Territo
 
 /** Nome acessível da opção: `nome, IBGE código`, e a razão quando não há centro a oferecer. */
 export function territoryOptionLabel(item: TerritoryItem): string {
-  const base = `${item.name}, IBGE ${item.officialCode}`;
+  // Bairro carrega o município no rótulo: sem isso, dois «Centro» ficam indistinguíveis.
+  const base =
+    item.level === 'BAIRRO' && item.parentName
+      ? `${item.name} (${item.parentName}), IBGE ${item.officialCode}`
+      : `${item.name}, IBGE ${item.officialCode}`;
   return item.validated && item.internalPoint !== null ? base : `${base}, sem geometria validada`;
 }
 
@@ -114,9 +126,11 @@ export function coverageLabel(coverage: TerritoryCoverage): string {
   return `Cobertura parcial: ${available} de ${expected} municípios com geometria validada.`;
 }
 
-export function countLabel(count: number): string {
-  if (count === 0) return 'Nenhum município encontrado';
-  return count === 1 ? '1 município encontrado' : `${count} municípios encontrados`;
+export function countLabel(count: number, level: TerritoryLevel = 'MUNICIPALITY'): string {
+  const singular = level === 'BAIRRO' ? 'bairro' : level === 'RA' ? 'área de risco' : 'município';
+  const plural = level === 'BAIRRO' ? 'bairros' : level === 'RA' ? 'áreas de risco' : 'municípios';
+  if (count === 0) return `Nenhum ${singular} encontrado`;
+  return count === 1 ? `1 ${singular} encontrado` : `${count} ${plural} encontrados`;
 }
 
 export function attributionLabel(dataset: TerritoryDataset | null): string {

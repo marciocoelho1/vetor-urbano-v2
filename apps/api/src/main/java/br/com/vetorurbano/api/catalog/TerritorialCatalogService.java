@@ -39,8 +39,10 @@ public class TerritorialCatalogService {
             SELECT t.id,t.level,t.official_code,t.name,t.revision,t.approved_version,
                    v.version AS catalog_version,v.dataset_id,v.reference_date,
                    ST_X(v.internal_point) AS lon,ST_Y(v.internal_point) AS lat,
-                   ST_AsGeoJSON(v.boundary,15,0) AS geometry
+                   ST_AsGeoJSON(v.boundary,15,0) AS geometry,
+                   p.name AS parent_name,p.level AS parent_level,p.official_code AS parent_code
             FROM catalog_territories t
+            LEFT JOIN catalog_territories p ON p.id=t.parent_id
             LEFT JOIN catalog_territory_versions v ON v.territory_id=t.id AND %s
             """;
     private final JdbcTemplate jdbc;
@@ -145,6 +147,10 @@ public class TerritorialCatalogService {
         item.put("internalPoint", row.getObject("lon") == null ? null
                 : List.of(row.getDouble("lon"), row.getDouble("lat")));
         item.put("referenceDate", row.getObject("reference_date", LocalDate.class));
+        // UXH-06: homônimo de bairro («Centro») só se desambigua com o pai; sem isso a lista mente.
+        item.put("parentName", row.getString("parent_name"));
+        item.put("parentLevel", row.getString("parent_level"));
+        item.put("parentOfficialCode", row.getString("parent_code"));
         if (includeGeometry) {
             String json = row.getString("geometry");
             item.put("geometry", json == null ? null : JSON.readTree(json));

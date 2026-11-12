@@ -27,7 +27,29 @@
           <p class="territory-status">Catálogo territorial ainda não publicado.</p>
           <p class="territory-hint">Use «Escolher centro no mapa» ou as coordenadas.</p>
         } @else {
-          <label class="territory-label" for="map-locality-search">Buscar município</label>
+          <div class="territory-levels" role="group" aria-label="Tipo de território">
+            <button
+              type="button"
+              class="territory-action"
+              data-vu-territory-level="MUNICIPALITY"
+              [attr.aria-pressed]="level() === 'MUNICIPALITY'"
+              (click)="setLevel('MUNICIPALITY')"
+            >
+              Município
+            </button>
+            <button
+              type="button"
+              class="territory-action"
+              data-vu-territory-level="BAIRRO"
+              [attr.aria-pressed]="level() === 'BAIRRO'"
+              (click)="setLevel('BAIRRO')"
+            >
+              Bairro
+            </button>
+          </div>
+          <label class="territory-label" for="map-locality-search"
+            >Buscar {{ level() === 'BAIRRO' ? 'bairro' : 'município' }}</label
+          >
           <input
             id="map-locality-search"
             #search
@@ -74,7 +96,12 @@
                 [class.territory-option-unavailable]="!selectable(item)"
                 (click)="choose(item)"
               >
-                <span class="territory-name">{{ item.name }}</span>
+                <span class="territory-name"
+                  >{{ item.name }}
+                  @if (item.parentName) {
+                    <span class="territory-parent"> ({{ item.parentName }})</span>
+                  }
+                </span>
                 <span class="territory-context"
                   >IBGE {{ item.officialCode }} ·
                   {{ selectable(item) ? 'Geometria validada' : 'Sem geometria validada' }}</span

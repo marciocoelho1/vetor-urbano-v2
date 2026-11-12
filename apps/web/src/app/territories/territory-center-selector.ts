@@ -19,6 +19,7 @@ import {
   filterTerritories,
   territoryOptionLabel,
   type TerritoryCatalog,
+  type TerritoryLevel,
   type TerritoryItem,
 } from '../data/territory-catalog-api';
 
@@ -58,9 +59,16 @@ const COMPACT_QUERY = '(max-width: 560px)';
 export class TerritoryCenterSelector {
   /** Seleção vigente vinda do pai: desfaz o destaque quando o centro é trocado no mapa. */
   readonly selection = input<TerritoryCenterSelection | null>(null);
+  /**
+   * UXH-06: no painel de raio, a seleção por território é a ENTRADA PRINCIPAL — abre já
+   * expandida e carrega o catálogo. Fora dali (outros usos) segue colapsada.
+   */
+  readonly startOpen = input(false);
   readonly territorySelected = output<TerritoryCenterSelection>();
 
   protected readonly open = signal(false);
+  /** UXH-06: «município» e «bairro» são o mesmo catálogo em níveis diferentes. */
+  protected readonly level = signal<TerritoryLevel>('MUNICIPALITY');
   protected readonly status = signal<Status>('idle');
   protected readonly term = signal('');
   protected readonly listOpen = signal(false);
@@ -92,6 +100,12 @@ export class TerritoryCenterSelector {
   );
 
   /** Abre o bloco e carrega o catálogo na primeira vez desta instância; o componente reabre colapsado. */
+  ngOnInit(): void {
+    if (!this.startOpen()) return;
+    this.open.set(true);
+    void this.load();
+  }
+
   protected toggle(): void {
     const opening = !this.open();
     this.open.set(opening);
@@ -163,7 +177,7 @@ export class TerritoryCenterSelector {
   protected async load(): Promise<void> {
     this.status.set('loading');
     try {
-      const catalog = await fetchTerritoryCatalog(this.abort.signal);
+      const catalog = await fetchTerritoryCatalog(this.level(), this.abort.signal);
       this.catalog.set(catalog);
       this.status.set('ready');
       this.activeIndex.set(-1);
@@ -176,6 +190,16 @@ export class TerritoryCenterSelector {
       // Falha real de carregamento: painel aberto, foco preservado e nova tentativa explícita.
       this.status.set('error');
     }
+  }
+
+  /** Troca de nível recarrega o catálogo do nível escolhido; a seleção vigente não é reescrita. */
+  protected setLevel(level: TerritoryLevel): void {
+    if (this.level() === level) return;
+    this.level.set(level);
+    this.term.set('');
+    this.activeIndex.set(-1);
+    this.listOpen.set(false);
+    void this.load();
   }
 
   protected onInput(value: string): void {
